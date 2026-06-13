@@ -55,6 +55,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
     // New screens (Phase 2)
     object Backup : Screen("backup", "النسخ الاحتياطي والاستعادة", Icons.Default.Backup)
     object IncomeHistory : Screen("income_history", "سجل المداخيل", Icons.Default.History)
+    object Updates : Screen("updates", "التحديثات", Icons.Default.SystemUpdate)
     
     // Transaction Templates
     object Templates : Screen("templates", "قوالب المعاملات", Icons.Default.ReceiptLong)

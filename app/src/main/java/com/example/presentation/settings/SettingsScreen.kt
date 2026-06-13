@@ -437,6 +437,14 @@ private fun GeneralTab(
                 }
             )
 
+            SettingsNavItem(
+                icon = Icons.Default.SystemUpdate,
+                iconTint = Primary,
+                title = "تحديثات التطبيق",
+                subtitle = "التحقق من وجود تحديثات جديدة وتثبيتها",
+                onClick = { navController?.navigate(com.example.presentation.navigation.Screen.Updates.route) }
+            )
+
             Spacer(modifier = Modifier.height(96.dp))
         }
     }

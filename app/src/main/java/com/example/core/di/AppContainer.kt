@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 
 interface AppContainer {
     val database: AppDatabase
+    val updateRepository: com.example.data.update.UpdateRepository
     val transactionRepository: TransactionRepository
     val accountRepository: AccountRepository
     val categoryRepository: CategoryRepository
@@ -320,6 +321,10 @@ class AppContainerImpl(private val context: Context) : AppContainer {
             }
         })
         .build()
+    }
+
+    override val updateRepository: com.example.data.update.UpdateRepository by lazy {
+        com.example.data.update.UpdateRepositoryImpl(context)
     }
 
     override val transactionRepository: TransactionRepository by lazy {

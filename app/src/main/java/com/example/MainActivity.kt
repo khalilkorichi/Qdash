@@ -564,6 +564,15 @@ private fun FinTrackAppShell(
                             onBack = { navController.popBackStack() }
                         )
                     }
+
+                    composable(Screen.Updates.route) {
+                        val updatesViewModel: com.example.presentation.update.UpdatesViewModel =
+                            viewModel(factory = factory)
+                        com.example.presentation.update.UpdatesScreen(
+                            viewModel = updatesViewModel,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
                 }
             }
 
