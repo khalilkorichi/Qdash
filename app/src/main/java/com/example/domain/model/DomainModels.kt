@@ -1,0 +1,249 @@
+package com.example.domain.model
+
+import com.example.data.local.entities.*
+
+data class Transaction(
+    val id: Long = 0,
+    val amount: Double,
+    val type: TransactionType,
+    val categoryId: Long,
+    val accountId: Long,
+    val toAccountId: Long? = null,
+    val note: String? = null,
+    val date: Long,
+    val isRecurring: Boolean = false,
+    val recurringPeriod: String? = null,
+    val attachmentPath: String? = null,
+    val tags: String? = null
+)
+
+enum class TransactionType {
+    EXPENSE, INCOME, TRANSFER
+}
+
+data class Account(
+    val id: Long = 0,
+    val name: String,
+    val type: AccountType,
+    val balance: Double,
+    val currency: String = "DZD",
+    val color: String,
+    val icon: String,
+    val isDefault: Boolean = false,
+    val isArchived: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+enum class AccountType {
+    BANK, CCP, BARIDIMOB, CASH, SAVINGS, WALLET, OTHER
+}
+
+data class Category(
+    val id: Long = 0,
+    val name: String,
+    val type: CategoryType,
+    val icon: String,
+    val color: String,
+    val budgetLimit: Double? = null,
+    val isSystem: Boolean = false,
+    val parentId: Long? = null,
+    val sortOrder: Int = 0
+)
+
+enum class CategoryType {
+    EXPENSE, INCOME
+}
+
+
+data class IncomeSource(
+    val id: Long = 0,
+    val name: String,
+    val amount: Double,
+    val type: String, // "SALARY", "FREELANCE", "GIFT", "RENTAL", "OTHER"
+    val accountId: Long,
+    val dayOfMonth: Int,
+    val isActive: Boolean = true,
+    val nextExpectedDate: Long = System.currentTimeMillis()
+)
+
+data class SavingGoal(
+    val id: Long = 0,
+    val name: String,
+    val targetAmount: Double,
+    val currentAmount: Double = 0.0,
+    val deadline: Long? = null,
+    val accountId: Long,
+    val icon: String,
+    val color: String,
+    val isCompleted: Boolean = false
+)
+
+data class Subscription(
+    val id: Long = 0,
+    val name: String,
+    val amount: Double,
+    val currency: String = "DZD",
+    val billingCycle: String, // "MONTHLY", "YEARLY", "WEEKLY"
+    val nextBillingDate: Long,
+    val accountId: Long,
+    val categoryId: Long,
+    val icon: String? = null,
+    val isActive: Boolean = true,
+    val reminderDaysBefore: Int = 3
+)
+
+// Mappers from Entity to Domain
+fun TransactionEntity.toDomain() = Transaction(
+    id = id,
+    amount = amount,
+    type = TransactionType.valueOf(type),
+    categoryId = categoryId,
+    accountId = accountId,
+    toAccountId = toAccountId,
+    note = note,
+    date = date,
+    isRecurring = isRecurring,
+    recurringPeriod = recurringPeriod,
+    attachmentPath = attachmentPath,
+    tags = tags
+)
+
+fun AccountEntity.toDomain() = Account(
+    id = id,
+    name = name,
+    type = AccountType.valueOf(type),
+    balance = balance,
+    currency = currency,
+    color = color,
+    icon = icon,
+    isDefault = isDefault,
+    isArchived = isArchived,
+    createdAt = createdAt
+)
+
+fun CategoryEntity.toDomain() = Category(
+    id = id,
+    name = name,
+    type = CategoryType.valueOf(type),
+    icon = icon,
+    color = color,
+    budgetLimit = budgetLimit,
+    isSystem = isSystem,
+    parentId = parentId,
+    sortOrder = sortOrder
+)
+
+fun IncomeSourceEntity.toDomain() = IncomeSource(
+    id = id,
+    name = name,
+    amount = amount,
+    type = type,
+    accountId = accountId,
+    dayOfMonth = dayOfMonth,
+    isActive = isActive,
+    nextExpectedDate = nextExpectedDate
+)
+
+fun SavingGoalEntity.toDomain() = SavingGoal(
+    id = id,
+    name = name,
+    targetAmount = targetAmount,
+    currentAmount = currentAmount,
+    deadline = deadline,
+    accountId = accountId,
+    icon = icon,
+    color = color,
+    isCompleted = isCompleted
+)
+
+fun SubscriptionEntity.toDomain() = Subscription(
+    id = id,
+    name = name,
+    amount = amount,
+    currency = currency,
+    billingCycle = billingCycle,
+    nextBillingDate = nextBillingDate,
+    accountId = accountId,
+    categoryId = categoryId,
+    icon = icon,
+    isActive = isActive,
+    reminderDaysBefore = reminderDaysBefore
+)
+
+// Mappers from Domain to Entity
+fun Transaction.toEntity() = TransactionEntity(
+    id = id,
+    amount = amount,
+    type = type.name,
+    categoryId = categoryId,
+    accountId = accountId,
+    toAccountId = toAccountId,
+    note = note,
+    date = date,
+    isRecurring = isRecurring,
+    recurringPeriod = recurringPeriod,
+    attachmentPath = attachmentPath,
+    tags = tags
+)
+
+fun Account.toEntity() = AccountEntity(
+    id = id,
+    name = name,
+    type = type.name,
+    balance = balance,
+    currency = currency,
+    color = color,
+    icon = icon,
+    isDefault = isDefault,
+    isArchived = isArchived,
+    createdAt = createdAt
+)
+
+fun Category.toEntity() = CategoryEntity(
+    id = id,
+    name = name,
+    type = type.name,
+    icon = icon,
+    color = color,
+    budgetLimit = budgetLimit,
+    isSystem = isSystem,
+    parentId = parentId,
+    sortOrder = sortOrder
+)
+
+fun IncomeSource.toEntity() = IncomeSourceEntity(
+    id = id,
+    name = name,
+    amount = amount,
+    type = type,
+    accountId = accountId,
+    dayOfMonth = dayOfMonth,
+    isActive = isActive,
+    nextExpectedDate = nextExpectedDate
+)
+
+fun SavingGoal.toEntity() = SavingGoalEntity(
+    id = id,
+    name = name,
+    targetAmount = targetAmount,
+    currentAmount = currentAmount,
+    deadline = deadline,
+    accountId = accountId,
+    icon = icon,
+    color = color,
+    isCompleted = isCompleted
+)
+
+fun Subscription.toEntity() = SubscriptionEntity(
+    id = id,
+    name = name,
+    amount = amount,
+    currency = currency,
+    billingCycle = billingCycle,
+    nextBillingDate = nextBillingDate,
+    accountId = accountId,
+    categoryId = categoryId,
+    icon = icon,
+    isActive = isActive,
+    reminderDaysBefore = reminderDaysBefore
+)

@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">قداشّ</string>
+    <string name="welcome_title">مرحباً بك في قداشّ! 🇩🇿</string>
+    <string name="welcome_desc">يسعدنا انضمامك إلينا. ابدأ الآن بإدارة مصاريفك، وتتبع حساباتك وميزانيتك بذكاء وبكل سهولة!</string>
+    <string name="nav_home">الرئيسية</string>
+    <string name="nav_analytics">الإحصائيات</string>
+    <string name="nav_accounts">الحسابات</string>
+    <string name="nav_settings">الإعدادات</string>
+</resources>

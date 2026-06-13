@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Include databases, local files, shared preferences -->
+    <include domain="database" path="fintrack_dz_database"/>
+    <include domain="database" path="fintrack_dz_database-shm"/>
+    <include domain="database" path="fintrack_dz_database-wal"/>
+    <include domain="sharedpref" path="."/>
+    <include domain="file" path="attachments"/>
+
+    <!-- Exclude cache, journals, device-specific configurations -->
+    <exclude domain="root" path="no_backup"/>
+    <exclude domain="database" path="fintrack_dz_database-journal"/>
+    <exclude domain="sharedpref" path="device.xml"/>
+</full-backup-content>
