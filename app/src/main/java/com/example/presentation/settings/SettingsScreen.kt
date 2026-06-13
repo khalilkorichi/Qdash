@@ -2,10 +2,14 @@ package com.example.presentation.settings
 
 import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -16,11 +20,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -87,34 +91,86 @@ fun SettingsScreen(
         // ── Top Bar ──────────────────────────────────────────────────────────
         FinTrackTopBar(title = "الإعدادات")
 
-        // ── Tab Row (sticky) ─────────────────────────────────────────────────
-        ScrollableTabRow(
-            selectedTabIndex = pagerState.currentPage,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = Primary,
-            edgePadding = 8.dp,
-            indicator = { tabPositions ->
-                if (pagerState.currentPage < tabPositions.size) {
-                    TabRowDefaults.SecondaryIndicator(
-                        modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
-                        color = Primary,
-                        height = 3.dp
-                    )
-                }
-            }
+        // ── Premium Pill Tab Bar (sticky) ────────────────────────────────────
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 2.dp
         ) {
-            settingsTabs.forEachIndexed { index, tab ->
-                Tab(
-                    selected = pagerState.currentPage == index,
-                    onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
-                    text = {
-                        Text(
-                            tab.label,
-                            fontWeight = if (pagerState.currentPage == index) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 13.sp
-                        )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                settingsTabs.forEachIndexed { index, tab ->
+                    val isSelected = pagerState.currentPage == index
+
+                    val bgColor by animateColorAsState(
+                        targetValue = if (isSelected) Primary else Color.Transparent,
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        label = "tabBg"
+                    )
+                    val contentColor by animateColorAsState(
+                        targetValue = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        label = "tabContent"
+                    )
+                    val borderColor by animateColorAsState(
+                        targetValue = if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant,
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        label = "tabBorder"
+                    )
+
+                    val pillShape = RoundedCornerShape(12.dp)
+
+                    Box(
+                        modifier = Modifier
+                            .then(
+                                if (isSelected) Modifier.shadow(
+                                    elevation = 4.dp,
+                                    shape = pillShape,
+                                    ambientColor = Primary.copy(alpha = 0.3f),
+                                    spotColor = Primary.copy(alpha = 0.3f)
+                                ) else Modifier
+                            )
+                            .clip(pillShape)
+                            .background(bgColor)
+                            .border(
+                                width = if (isSelected) 0.dp else 1.dp,
+                                color = borderColor,
+                                shape = pillShape
+                            )
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                scope.launch { pagerState.animateScrollToPage(index) }
+                            }
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = tab.icon,
+                                contentDescription = null,
+                                tint = contentColor,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = tab.label,
+                                color = contentColor,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 13.sp,
+                                maxLines = 1
+                            )
+                        }
                     }
-                )
+                }
             }
         }
 
