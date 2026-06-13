@@ -158,16 +158,28 @@ fun UpdatesScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text("جاري تحميل التحديث...", fontWeight = FontWeight.Bold)
-                                Text("${state.progress}%", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                if (state.progress >= 0) {
+                                    Text("${state.progress}%", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                }
                             }
-                            LinearProgressIndicator(
-                                progress = state.progress / 100f,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp)
-                                    .clip(CircleShape),
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            if (state.progress >= 0) {
+                                LinearProgressIndicator(
+                                    progress = { state.progress / 100f },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(8.dp)
+                                        .clip(CircleShape),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            } else {
+                                LinearProgressIndicator(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(8.dp)
+                                        .clip(CircleShape),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     }
                 }

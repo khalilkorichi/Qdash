@@ -38,8 +38,13 @@ class UpdateRepositoryImpl(
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .addInterceptor(HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = HttpLoggingInterceptor.Level.BASIC
         })
+        .build()
+
+    private val downloadHttpClient: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
         .build()
 
     private val retrofit: Retrofit = Retrofit.Builder()
@@ -60,14 +65,27 @@ class UpdateRepositoryImpl(
                 null
             }
 
+            val format = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).apply {
+                timeZone = java.util.TimeZone.getTimeZone("UTC")
+            }
+            val localBuildTime = BuildConfig.BUILD_TIMESTAMP
+            val localVersionName = BuildConfig.VERSION_NAME
+
             if (manifest != null) {
-                // Multi-factor update detection comparison
+                val remoteTime = try {
+                    format.parse(manifest.publishedAt)?.time ?: 0L
+                } catch (e: Exception) {
+                    0L
+                }
                 val localIdentity = BuildConfig.UPDATE_IDENTITY
                 val remoteIdentity = manifest.updateIdentity
-                val localVersionCode = BuildConfig.VERSION_CODE
-                val remoteVersionCode = manifest.versionCode
+                val remoteVersionName = manifest.versionName
 
-                val hasUpdate = remoteIdentity > localIdentity || remoteVersionCode > localVersionCode
+                val isNewerVersion = isVersionNewer(localVersionName, remoteVersionName)
+                val isSameVersionAndNewerIdentity = (remoteVersionName.removePrefix("v").trim() == localVersionName.removePrefix("v").trim()) && (remoteIdentity > localIdentity)
+                val isNewerBuildDate = remoteTime > localBuildTime && (remoteVersionName.removePrefix("v").trim() == localVersionName.removePrefix("v").trim())
+
+                val hasUpdate = isNewerVersion || isSameVersionAndNewerIdentity || isNewerBuildDate
                 
                 return@withContext Result.success(
                     UpdateInfo(
@@ -89,28 +107,19 @@ class UpdateRepositoryImpl(
             val apkAsset = latestRelease.assets.firstOrNull { it.name.endsWith(".apk") }
                 ?: return@withContext Result.failure(Exception("لم يتم العثور على ملف APK في إصدارات GitHub."))
 
-            // Parse identity from publication date or version code
-            val remoteTagName = latestRelease.tagName // e.g., "v1.1.0" or "v1.0.0"
-            // Simple check: is tag name different from local versionName?
-            // Local version name is "1.0" or similar. Clean tag to match.
+            val remoteTagName = latestRelease.tagName
             val cleanTagName = remoteTagName.removePrefix("v").trim()
-            val localVersionName = BuildConfig.VERSION_NAME
             
-            // Build timestamp check: remote build timestamp is newer
-            // Note: Since we don't have publishedAt timestamp locally as a timestamp, we can compare
-            // build timestamp with remote published date (converted to millis)
-            val format = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).apply {
-                timeZone = java.util.TimeZone.getTimeZone("UTC")
-            }
             val remoteTime = try {
                 format.parse(latestRelease.publishedAt)?.time ?: 0L
             } catch (e: Exception) {
                 0L
             }
-            val localBuildTime = BuildConfig.BUILD_TIMESTAMP
 
-            // If remote build is newer OR tag name is lexicographically higher/different
-            val hasUpdate = (remoteTime > localBuildTime && cleanTagName != localVersionName) || (cleanTagName != localVersionName && !localVersionName.startsWith(cleanTagName))
+            val isNewerVersion = isVersionNewer(localVersionName, cleanTagName)
+            val isNewerBuildDate = remoteTime > localBuildTime && (cleanTagName == localVersionName.removePrefix("v").trim())
+
+            val hasUpdate = isNewerVersion || isNewerBuildDate
 
             Result.success(
                 UpdateInfo(
@@ -120,7 +129,7 @@ class UpdateRepositoryImpl(
                     updateIdentity = remoteTime,
                     apkUrl = apkAsset.browserDownloadUrl,
                     apkSize = apkAsset.size,
-                    apkSha256 = null, // Checksum not available directly on default releases
+                    apkSha256 = null,
                     mandatory = false,
                     releaseNotes = latestRelease.body
                 )
@@ -134,7 +143,7 @@ class UpdateRepositoryImpl(
         emit(DownloadState.Progress(0))
         try {
             val request = Request.Builder().url(url).build()
-            val response = okHttpClient.newCall(request).execute()
+            val response = downloadHttpClient.newCall(request).execute()
             if (!response.isSuccessful) {
                 throw java.io.IOException("فشل تحميل الملف: ${response.message}")
             }
@@ -158,6 +167,8 @@ class UpdateRepositoryImpl(
                                 emit(DownloadState.Progress(progress))
                                 lastEmittedProgress = progress
                             }
+                        } else {
+                            emit(DownloadState.Progress(-1))
                         }
                     }
                 }
@@ -252,5 +263,18 @@ class UpdateRepositoryImpl(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    private fun isVersionNewer(local: String, remote: String): Boolean {
+        val localParts = local.removePrefix("v").split(".").map { it.toIntOrNull() ?: 0 }
+        val remoteParts = remote.removePrefix("v").split(".").map { it.toIntOrNull() ?: 0 }
+        val maxLength = maxOf(localParts.size, remoteParts.size)
+        for (i in 0 until maxLength) {
+            val localVal = localParts.getOrElse(i) { 0 }
+            val remoteVal = remoteParts.getOrElse(i) { 0 }
+            if (remoteVal > localVal) return true
+            if (localVal > remoteVal) return false
+        }
+        return false
     }
 }
