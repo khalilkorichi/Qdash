@@ -45,30 +45,32 @@ class SettingsViewModel(
     }
 
     private fun loadBackupPreferences() {
-        // Read stats or local caches
-        val date = preferencesManager.lastBackupDate
-        val autoBackup = preferencesManager.autoBackupEnabled
-        val email = preferencesManager.connectedEmail
-        val darkTheme = preferencesManager.darkModeEnabled
-        val hideDecimals = preferencesManager.hideDecimalsEnabled
-        val amountWords = preferencesManager.amountWordsEnabled
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            // Read stats or local caches
+            val date = preferencesManager.lastBackupDate
+            val autoBackup = preferencesManager.autoBackupEnabled
+            val email = preferencesManager.connectedEmail
+            val darkTheme = preferencesManager.darkModeEnabled
+            val hideDecimals = preferencesManager.hideDecimalsEnabled
+            val amountWords = preferencesManager.amountWordsEnabled
 
-        val sectionsOrder = preferencesManager.dashboardSectionsOrder.split(",")
-        val sectionsVisibility = sectionsOrder.associateWith { preferencesManager.isSectionVisible(it) }
+            val sectionsOrder = preferencesManager.dashboardSectionsOrder.split(",")
+            val sectionsVisibility = sectionsOrder.associateWith { preferencesManager.isSectionVisible(it) }
 
-        FormatterUtils.hideDecimals = hideDecimals
+            FormatterUtils.hideDecimals = hideDecimals
 
-        _uiState.update {
-            it.copy(
-                lastBackupDate = date,
-                isAutoBackupEnabled = autoBackup,
-                connectedAccountEmail = email,
-                isDarkTheme = darkTheme,
-                isHideDecimalsEnabled = hideDecimals,
-                isAmountWordsEnabled = amountWords,
-                dashboardSectionsOrder = sectionsOrder,
-                dashboardSectionsVisibility = sectionsVisibility
-            )
+            _uiState.update {
+                it.copy(
+                    lastBackupDate = date,
+                    isAutoBackupEnabled = autoBackup,
+                    connectedAccountEmail = email,
+                    isDarkTheme = darkTheme,
+                    isHideDecimalsEnabled = hideDecimals,
+                    isAmountWordsEnabled = amountWords,
+                    dashboardSectionsOrder = sectionsOrder,
+                    dashboardSectionsVisibility = sectionsVisibility
+                )
+            }
         }
     }
 

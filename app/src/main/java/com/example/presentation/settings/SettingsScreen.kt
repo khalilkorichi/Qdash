@@ -96,8 +96,8 @@ fun SettingsScreen(
         // ── Premium Pill Tab Bar (sticky) ────────────────────────────────────
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 2.dp
+            color = Color.Transparent,
+            shadowElevation = 0.dp
         ) {
             Row(
                 modifier = Modifier
@@ -110,17 +110,17 @@ fun SettingsScreen(
                     val isSelected = pagerState.currentPage == index
 
                     val bgColor by animateColorAsState(
-                        targetValue = if (isSelected) Primary else Color.Transparent,
+                        targetValue = if (isSelected) Primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
                         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                         label = "tabBg"
                     )
                     val contentColor by animateColorAsState(
-                        targetValue = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                        targetValue = if (isSelected) Primary else MaterialTheme.colorScheme.onSurfaceVariant,
                         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                         label = "tabContent"
                     )
                     val borderColor by animateColorAsState(
-                        targetValue = if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant,
+                        targetValue = if (isSelected) Primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                         label = "tabBorder"
                     )
@@ -129,18 +129,10 @@ fun SettingsScreen(
 
                     Box(
                         modifier = Modifier
-                            .then(
-                                if (isSelected) Modifier.shadow(
-                                    elevation = 4.dp,
-                                    shape = pillShape,
-                                    ambientColor = Primary.copy(alpha = 0.3f),
-                                    spotColor = Primary.copy(alpha = 0.3f)
-                                ) else Modifier
-                            )
                             .clip(pillShape)
                             .background(bgColor)
                             .border(
-                                width = if (isSelected) 0.dp else 1.dp,
+                                width = 1.dp,
                                 color = borderColor,
                                 shape = pillShape
                             )

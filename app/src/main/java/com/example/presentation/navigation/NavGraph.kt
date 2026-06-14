@@ -50,6 +50,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -76,26 +77,26 @@ internal fun FinTrackNavGraph(
             .statusBarsPadding(),
         enterTransition = {
             slideInHorizontally(
-                initialOffsetX = { it },
-                animationSpec = tween(250)
-            ) + fadeIn(animationSpec = tween(200))
+                initialOffsetX = { it / 6 },
+                animationSpec = tween(300, easing = FastOutSlowInEasing)
+            ) + fadeIn(animationSpec = tween(300))
         },
         exitTransition = {
             slideOutHorizontally(
-                targetOffsetX = { -it },
-                animationSpec = tween(250)
+                targetOffsetX = { -it / 6 },
+                animationSpec = tween(300, easing = FastOutSlowInEasing)
             ) + fadeOut(animationSpec = tween(200))
         },
         popEnterTransition = {
             slideInHorizontally(
-                initialOffsetX = { -it },
-                animationSpec = tween(250)
-            ) + fadeIn(animationSpec = tween(200))
+                initialOffsetX = { -it / 6 },
+                animationSpec = tween(300, easing = FastOutSlowInEasing)
+            ) + fadeIn(animationSpec = tween(300))
         },
         popExitTransition = {
             slideOutHorizontally(
-                targetOffsetX = { it },
-                animationSpec = tween(250)
+                targetOffsetX = { it / 6 },
+                animationSpec = tween(300, easing = FastOutSlowInEasing)
             ) + fadeOut(animationSpec = tween(200))
         }
     ) {

@@ -279,6 +279,8 @@ class AppContainerImpl(private val context: Context) : AppContainer {
     }
 
     init {
+        // Pre-warm SharedPreferences to avoid main-thread blocking I/O on startup
+        preferencesManager
         CoroutineScope(Dispatchers.IO).launch {
             DatabaseSeeder.prepopulateSystemDefaults(database)
         }
