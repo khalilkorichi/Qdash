@@ -187,6 +187,7 @@ fun SettingsScreen(
                     onToggleDark = { viewModel.toggleDarkTheme(it) },
                     onToggleHideDecimals = { viewModel.toggleHideDecimals(it) },
                     onToggleAmountWords = { viewModel.toggleAmountWords(it) },
+                    onToggleWesternNumerals = { viewModel.toggleWesternNumerals(it) },
                     onNavigateToBudgetGoals = onNavigateToBudgetGoals,
                     onNavigateToDebts = onNavigateToDebts,
                     onNavigateToTransfer = onNavigateToTransfer,
@@ -376,6 +377,28 @@ fun SettingsScreen(
                         textAlign = TextAlign.Right,
                         modifier = Modifier.fillMaxWidth()
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Start
+                    ) {
+                        TextButton(
+                            onClick = {
+                                val defaultOrder = "split_cards,context_templates,templates,quick_actions,accounts,chart,budget,subscriptions,recent_transactions".split(",")
+                                sectionsOrder = defaultOrder.toMutableList()
+                                val defaultVisibility = defaultOrder.associateWith { true }.toMutableMap()
+                                visibleMap = defaultVisibility
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "استعادة الافتراضي",
+                                tint = Primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("استعادة الافتراضي", color = Primary, style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
                     Spacer(modifier = Modifier.height(6.dp))
 
                     sectionsOrder.forEachIndexed { index, section ->
@@ -563,6 +586,7 @@ private fun GeneralTab(
     onToggleDark: (Boolean) -> Unit,
     onToggleHideDecimals: (Boolean) -> Unit,
     onToggleAmountWords: (Boolean) -> Unit,
+    onToggleWesternNumerals: (Boolean) -> Unit,
     onNavigateToBudgetGoals: () -> Unit,
     onNavigateToDebts: () -> Unit,
     onNavigateToTransfer: () -> Unit,
@@ -637,6 +661,20 @@ private fun GeneralTab(
                     Switch(
                         checked = uiState.isAmountWordsEnabled,
                         onCheckedChange = onToggleAmountWords,
+                        colors = SwitchDefaults.colors(checkedTrackColor = Primary)
+                    )
+                }
+            )
+
+            SettingsItem(
+                icon = Icons.Default.Language,
+                iconTint = Primary,
+                title = "نظام الأرقام",
+                subtitle = if (uiState.useWesternNumerals) "الأرقام الغربية (0-9)" else "الأرقام العربية (٠-٩)",
+                trailing = {
+                    Switch(
+                        checked = uiState.useWesternNumerals,
+                        onCheckedChange = onToggleWesternNumerals,
                         colors = SwitchDefaults.colors(checkedTrackColor = Primary)
                     )
                 }

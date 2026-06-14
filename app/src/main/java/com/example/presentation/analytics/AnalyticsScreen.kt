@@ -1,4 +1,4 @@
-﻿package com.example.presentation.analytics
+package com.example.presentation.analytics
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -449,7 +449,7 @@ fun AnalyticsScreen(
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis
                                             )
-                                            val dateStr = dateFormatter.format(java.util.Date(tx.date))
+                                            val dateStr = FormatterUtils.convertNumerals(dateFormatter.format(java.util.Date(tx.date)))
                                             Text(
                                                 text = dateStr,
                                                 style = MaterialTheme.typography.labelSmall,
@@ -960,7 +960,7 @@ fun AnalyticsScreen(
                                     )
 
                                     // Y-Axis label
-                                    val labelText = "${decimalFormatter.format(amount)} دج"
+                                    val labelText = FormatterUtils.convertNumerals("${decimalFormatter.format(amount)} دج")
                                     drawIntoCanvas { canvas ->
                                         canvas.nativeCanvas.drawText(
                                             labelText,

@@ -74,6 +74,10 @@ class PreferencesManager(context: Context) {
         get() = mainPrefs.getString("app_language", "ar") ?: "ar"
         set(value) = mainPrefs.edit().putString("app_language", value).apply()
 
+    var useWesternNumerals: Boolean
+        get() = mainPrefs.getBoolean("use_western_numerals", true)
+        set(value) = mainPrefs.edit().putBoolean("use_western_numerals", value).apply()
+
     fun getShowBalanceAcc(accountId: Long): Boolean {
         return mainPrefs.getBoolean("show_balance_acc_$accountId", true)
     }

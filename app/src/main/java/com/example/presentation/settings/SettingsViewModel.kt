@@ -21,6 +21,7 @@ data class SettingsUiState(
     val isDarkTheme: Boolean = false,
     val isHideDecimalsEnabled: Boolean = true,
     val isAmountWordsEnabled: Boolean = true,
+    val useWesternNumerals: Boolean = true,
     val dashboardSectionsOrder: List<String> = emptyList(),
     val dashboardSectionsVisibility: Map<String, Boolean> = emptyMap()
 )
@@ -53,11 +54,13 @@ class SettingsViewModel(
             val darkTheme = preferencesManager.darkModeEnabled
             val hideDecimals = preferencesManager.hideDecimalsEnabled
             val amountWords = preferencesManager.amountWordsEnabled
+            val useWestern = preferencesManager.useWesternNumerals
 
             val sectionsOrder = preferencesManager.dashboardSectionsOrder.split(",")
             val sectionsVisibility = sectionsOrder.associateWith { preferencesManager.isSectionVisible(it) }
 
             FormatterUtils.hideDecimals = hideDecimals
+            FormatterUtils.useWesternNumerals = useWestern
 
             _uiState.update {
                 it.copy(
@@ -67,6 +70,7 @@ class SettingsViewModel(
                     isDarkTheme = darkTheme,
                     isHideDecimalsEnabled = hideDecimals,
                     isAmountWordsEnabled = amountWords,
+                    useWesternNumerals = useWestern,
                     dashboardSectionsOrder = sectionsOrder,
                     dashboardSectionsVisibility = sectionsVisibility
                 )
@@ -88,6 +92,12 @@ class SettingsViewModel(
     fun toggleAmountWords(enabled: Boolean) {
         preferencesManager.amountWordsEnabled = enabled
         _uiState.update { it.copy(isAmountWordsEnabled = enabled) }
+    }
+
+    fun toggleWesternNumerals(enabled: Boolean) {
+        preferencesManager.useWesternNumerals = enabled
+        FormatterUtils.useWesternNumerals = enabled
+        _uiState.update { it.copy(useWesternNumerals = enabled) }
     }
 
     fun toggleAutoBackup(enabled: Boolean) {
@@ -196,5 +206,11 @@ class SettingsViewModel(
                 dashboardSectionsVisibility = visibility
             )
         }
+    }
+
+    fun restoreDefaultDashboardCustomization() {
+        val defaultOrder = "split_cards,context_templates,templates,quick_actions,accounts,chart,budget,subscriptions,recent_transactions".split(",")
+        val defaultVisibility = defaultOrder.associateWith { true }
+        saveDashboardCustomization(defaultOrder, defaultVisibility)
     }
 }

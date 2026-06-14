@@ -7,13 +7,50 @@ import java.util.Locale
 
 object FormatterUtils {
     var hideDecimals: Boolean = true
+    var useWesternNumerals: Boolean = true
+
+    fun convertNumerals(input: String): String {
+        if (useWesternNumerals) {
+            return input.map { char ->
+                when (char) {
+                    '٠' -> '0'
+                    '١' -> '1'
+                    '٢' -> '2'
+                    '٣' -> '3'
+                    '٤' -> '4'
+                    '٥' -> '5'
+                    '٦' -> '6'
+                    '٧' -> '7'
+                    '٨' -> '8'
+                    '٩' -> '9'
+                    else -> char
+                }
+            }.joinToString("")
+        } else {
+            return input.map { char ->
+                when (char) {
+                    '0' -> '٠'
+                    '1' -> '١'
+                    '2' -> '٢'
+                    '3' -> '٣'
+                    '4' -> '٤'
+                    '5' -> '٥'
+                    '6' -> '٦'
+                    '7' -> '٧'
+                    '8' -> '٨'
+                    '9' -> '٩'
+                    else -> char
+                }
+            }.joinToString("")
+        }
+    }
 
     private val decimalFormatWithDecimals = DecimalFormat("#,##0.00")
     private val decimalFormatWithoutDecimals = DecimalFormat("#,##0")
     
     fun formatCurrency(amount: Double): String {
         val format = if (hideDecimals) decimalFormatWithoutDecimals else decimalFormatWithDecimals
-        return "${format.format(amount)} دج"
+        return convertNumerals("${format.format(amount)} دج")
     }
 
     fun formatColloquialAlgerian(amount: Double): String? {
@@ -63,21 +100,22 @@ object FormatterUtils {
                 "${centimes.toInt()} سنتيم"
             }
         }
-        return if (amount < 0) "ناقص $text" else text
+        val result = if (amount < 0) "ناقص $text" else text
+        return convertNumerals(result)
     }
 
     fun formatDate(timestamp: Long): String {
         val sdf = SimpleDateFormat("dd MMMM yyyy", Locale("ar"))
-        return sdf.format(Date(timestamp))
+        return convertNumerals(sdf.format(Date(timestamp)))
     }
 
     fun formatShortDate(timestamp: Long): String {
         val sdf = SimpleDateFormat("dd MMM", Locale("ar"))
-        return sdf.format(Date(timestamp))
+        return convertNumerals(sdf.format(Date(timestamp)))
     }
 
     fun formatDateToMonthYear(timestamp: Long): String {
         val sdf = SimpleDateFormat("MMMM yyyy", Locale("ar"))
-        return sdf.format(Date(timestamp))
+        return convertNumerals(sdf.format(Date(timestamp)))
     }
 }

@@ -43,6 +43,7 @@ class MainActivity : ComponentActivity() {
 
         // Initialize formatting prefs once at startup
         com.example.core.utils.FormatterUtils.hideDecimals = prefs.hideDecimalsEnabled
+        com.example.core.utils.FormatterUtils.useWesternNumerals = prefs.useWesternNumerals
 
         setContent {
             FinTrackApp(
