@@ -5,6 +5,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -72,6 +73,7 @@ fun SettingsScreen(
     var showConfirmRestoreDialog by remember { mutableStateOf(false) }
     var showGoogleConnectDialog by remember { mutableStateOf(false) }
     var inputEmail by remember { mutableStateOf("") }
+    var showDashboardCustomizationDialog by remember { mutableStateOf(false) }
 
     // Notification toggles
     var notifBillingReminder by remember { mutableStateOf(true) }
@@ -192,7 +194,8 @@ fun SettingsScreen(
                     onNavigateToTransfer = onNavigateToTransfer,
                     onNavigateToExport = onNavigateToExport,
                     onNavigateToFinancialPlans = onNavigateToFinancialPlans,
-                    onNavigateToSalary = onNavigateToSalary
+                    onNavigateToSalary = onNavigateToSalary,
+                    onCustomiseDashboardClick = { showDashboardCustomizationDialog = true }
                 )
                 1 -> NotificationsTab(
                     billingReminder = notifBillingReminder,
@@ -335,6 +338,175 @@ fun SettingsScreen(
             containerColor = MaterialTheme.colorScheme.surface
         )
     }
+
+    if (showDashboardCustomizationDialog) {
+        val sharedPrefs = remember { context.getSharedPreferences("fintrack_prefs", android.content.Context.MODE_PRIVATE) }
+        var sectionsOrder by remember {
+            mutableStateOf(
+                (sharedPrefs.getString("dashboard_sections_order", "split_cards,context_templates,templates,quick_actions,accounts,chart,budget,subscriptions,recent_transactions") ?: "split_cards,context_templates,templates,quick_actions,accounts,chart,budget,subscriptions,recent_transactions")
+                    .split(",")
+                    .toMutableList()
+            )
+        }
+        var visibleMap by remember {
+            mutableStateOf(
+                sectionsOrder.associateWith { section ->
+                    sharedPrefs.getBoolean("dashboard_show_$section", true)
+                }.toMutableMap()
+            )
+        }
+
+        AlertDialog(
+            onDismissRequest = { showDashboardCustomizationDialog = false },
+            title = {
+                Text(
+                    "تخصيص أقسام الصفحة الرئيسية",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 400.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        "استخدم الأزرار لتغيير الترتيب، والمفاتيح لإظهار أو إخفاء أي قسم.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextGray,
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    sectionsOrder.forEachIndexed { index, section ->
+                        val label = when (section) {
+                            "split_cards" -> "بطاقة الدخل والمصاريف"
+                            "context_templates" -> "اقتراحات ذكية (حسب الوقت)"
+                            "templates" -> "القوالب المثبتة"
+                            "quick_actions" -> "الوصول السريع"
+                            "accounts" -> "حساباتي المالية"
+                            "chart" -> "تحليل المصروفات"
+                            "budget" -> "الميزانية الشهرية"
+                            "subscriptions" -> "الاشتراكات القادمة"
+                            "recent_transactions" -> "آخر العمليات"
+                            else -> section
+                        }
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            ),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    IconButton(
+                                        onClick = {
+                                            if (index > 0) {
+                                                val newList = sectionsOrder.toMutableList()
+                                                val temp = newList[index]
+                                                newList[index] = newList[index - 1]
+                                                newList[index - 1] = temp
+                                                sectionsOrder = newList
+                                            }
+                                        },
+                                        enabled = index > 0,
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ArrowUpward,
+                                            contentDescription = "للأعلى",
+                                            tint = if (index > 0) Primary else TextGray.copy(alpha = 0.4f),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = {
+                                            if (index < sectionsOrder.size - 1) {
+                                                val newList = sectionsOrder.toMutableList()
+                                                val temp = newList[index]
+                                                newList[index] = newList[index + 1]
+                                                newList[index + 1] = temp
+                                                sectionsOrder = newList
+                                            }
+                                        },
+                                        enabled = index < sectionsOrder.size - 1,
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ArrowDownward,
+                                            contentDescription = "للأسفل",
+                                            tint = if (index < sectionsOrder.size - 1) Primary else TextGray.copy(alpha = 0.4f),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f),
+                                    textAlign = TextAlign.Right
+                                )
+
+                                Switch(
+                                    checked = visibleMap[section] ?: true,
+                                    onCheckedChange = { isChecked ->
+                                        val newMap = visibleMap.toMutableMap()
+                                        newMap[section] = isChecked
+                                        visibleMap = newMap
+                                    },
+                                    colors = SwitchDefaults.colors(checkedTrackColor = Primary)
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val editor = sharedPrefs.edit()
+                        editor.putString("dashboard_sections_order", sectionsOrder.joinToString(","))
+                        visibleMap.forEach { (section, isVisible) ->
+                            editor.putBoolean("dashboard_show_$section", isVisible)
+                        }
+                        editor.apply()
+                        showDashboardCustomizationDialog = false
+                        Toast.makeText(context, "تم حفظ الترتيب الجديد بنجاح!", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                ) {
+                    Text("حفظ التعديلات", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDashboardCustomizationDialog = false }) {
+                    Text("إلغاء", color = Primary)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
 }
 
 // ─── TAB 1: General ──────────────────────────────────────────────────────────
@@ -349,7 +521,8 @@ private fun GeneralTab(
     onNavigateToTransfer: () -> Unit,
     onNavigateToExport: () -> Unit,
     onNavigateToFinancialPlans: () -> Unit,
-    onNavigateToSalary: () -> Unit
+    onNavigateToSalary: () -> Unit,
+    onCustomiseDashboardClick: () -> Unit
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     Column(
@@ -479,6 +652,16 @@ private fun GeneralTab(
                 title = "الخطط المالية",
                 subtitle = "خطط الادخار والأهداف طويلة الأمد",
                 onClick = onNavigateToFinancialPlans
+            )
+
+            SettingsSectionTitle("تخصيص الواجهة")
+
+            SettingsNavItem(
+                icon = Icons.Default.Tune,
+                iconTint = Primary,
+                title = "ترتيب وإخفاء أقسام الواجهة",
+                subtitle = "تخصيص البطاقات والترتيب في الصفحة الرئيسية",
+                onClick = onCustomiseDashboardClick
             )
 
             SettingsSectionTitle("عن التطبيق")

@@ -3,9 +3,11 @@ package com.example.presentation.categories
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -16,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,6 +63,9 @@ fun CategoriesScreen(
     val tabs = listOf("مصروف", "دخل")
     var showAddDialog by remember { mutableStateOf(false) }
     var expandedCategoryId by remember { mutableStateOf<Long?>(null) }
+
+    var categoryToEdit by remember { mutableStateOf<Category?>(null) }
+    var categoryToMerge by remember { mutableStateOf<Category?>(null) }
 
     val currentType = if (selectedTab == 0) CategoryType.EXPENSE else CategoryType.INCOME
     val filteredRoot = uiState.rootCategories.filter { it.type == currentType }
@@ -159,8 +165,9 @@ fun CategoriesScreen(
                                     viewModel.selectParent(category)
                                 }
                             },
-                            onEdit = { /* handled via dialog */ },
+                            onEdit = { categoryToEdit = category },
                             onDelete = { viewModel.deleteCategory(category) },
+                            onMergeClick = { categoryToMerge = category },
                             onAddSubcategory = { showAddDialog = true }
                         )
 
@@ -213,6 +220,29 @@ fun CategoriesScreen(
             }
         )
     }
+
+    categoryToEdit?.let { cat ->
+        EditCategoryDialog(
+            category = cat,
+            onDismiss = { categoryToEdit = null },
+            onConfirm = { updated ->
+                viewModel.updateCategory(updated)
+                categoryToEdit = null
+            }
+        )
+    }
+
+    categoryToMerge?.let { cat ->
+        MergeCategoryDialog(
+            sourceCategory = cat,
+            allCategories = uiState.rootCategories,
+            onDismiss = { categoryToMerge = null },
+            onConfirm = { targetId ->
+                viewModel.mergeCategories(cat.id, targetId)
+                categoryToMerge = null
+            }
+        )
+    }
 }
 
 @Composable
@@ -223,6 +253,7 @@ private fun CategoryCard(
     onExpandClick: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onMergeClick: () -> Unit,
     onAddSubcategory: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -251,7 +282,7 @@ private fun CategoryCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Category,
+                    imageVector = getIconVector(category.icon),
                     contentDescription = null,
                     tint = color,
                     modifier = Modifier.size(22.dp)
@@ -304,6 +335,10 @@ private fun CategoryCard(
                     DropdownMenuItem(
                         text = { Text("✏️ تعديل") },
                         onClick = { showMenu = false; onEdit() }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("🔗 دمج مع فئة أخرى") },
+                        onClick = { showMenu = false; onMergeClick() }
                     )
                     DropdownMenuItem(
                         text = { Text("إضافة فئة فرعية") },
@@ -418,23 +453,60 @@ private fun AddCategoryDialog(
                     }
                 }
 
+                // Icon picker
+                Text("اختر أيقونة:", style = MaterialTheme.typography.labelMedium, color = TextGray)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    iconOptions.forEach { iconName ->
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    if (selectedIcon == iconName) Primary.copy(alpha = 0.2f)
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                )
+                                .clickable { selectedIcon = iconName }
+                                .then(
+                                    if (selectedIcon == iconName)
+                                        Modifier.background(Primary.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                                    else Modifier
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = getIconVector(iconName),
+                                contentDescription = null,
+                                tint = if (selectedIcon == iconName) Primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+
                 // Color picker
                 Text("اختر لوناً:", style = MaterialTheme.typography.labelMedium, color = TextGray)
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    colorOptions.take(5).forEach { hex ->
+                    colorOptions.forEach { hex ->
                         val color = parseHex(hex)
                         Box(
                             modifier = Modifier
-                                .size(30.dp)
+                                .size(34.dp)
                                 .clip(CircleShape)
                                 .background(color)
                                 .clickable { selectedColor = hex }
                                 .then(
                                     if (selectedColor == hex)
-                                        Modifier.padding(2.dp).background(Color.White, CircleShape)
+                                        Modifier.padding(3.dp).background(Color.White, CircleShape)
                                     else Modifier
                                 )
                         )
@@ -451,6 +523,190 @@ private fun AddCategoryDialog(
                 }
             ) {
                 Text("إضافة", fontWeight = FontWeight.Bold, color = Primary)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("إلغاء") }
+        }
+    )
+}
+
+@Composable
+private fun EditCategoryDialog(
+    category: Category,
+    onDismiss: () -> Unit,
+    onConfirm: (Category) -> Unit
+) {
+    val Primary = MaterialTheme.colorScheme.primary
+    var name by remember { mutableStateOf(category.name) }
+    var selectedIcon by remember { mutableStateOf(category.icon) }
+    var selectedColor by remember { mutableStateOf(category.color) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("تعديل الفئة", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("اسم الفئة") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Icon picker
+                Text("اختر أيقونة:", style = MaterialTheme.typography.labelMedium, color = TextGray)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    iconOptions.forEach { iconName ->
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    if (selectedIcon == iconName) Primary.copy(alpha = 0.2f)
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                )
+                                .clickable { selectedIcon = iconName }
+                                .then(
+                                    if (selectedIcon == iconName)
+                                        Modifier.background(Primary.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                                    else Modifier
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = getIconVector(iconName),
+                                contentDescription = null,
+                                tint = if (selectedIcon == iconName) Primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Color picker
+                Text("اختر لوناً:", style = MaterialTheme.typography.labelMedium, color = TextGray)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    colorOptions.forEach { hex ->
+                        val color = parseHex(hex)
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(color)
+                                .clickable { selectedColor = hex }
+                                .then(
+                                    if (selectedColor == hex)
+                                        Modifier.padding(3.dp).background(Color.White, CircleShape)
+                                    else Modifier
+                                )
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (name.isNotBlank()) {
+                        onConfirm(category.copy(name = name, icon = selectedIcon, color = selectedColor))
+                    }
+                }
+            ) {
+                Text("حفظ", fontWeight = FontWeight.Bold, color = Primary)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("إلغاء") }
+        }
+    )
+}
+
+@Composable
+private fun MergeCategoryDialog(
+    sourceCategory: Category,
+    allCategories: List<Category>,
+    onDismiss: () -> Unit,
+    onConfirm: (targetCategoryId: Long) -> Unit
+) {
+    val Primary = MaterialTheme.colorScheme.primary
+    val eligibleCategories = allCategories.filter {
+        it.id != sourceCategory.id && it.type == sourceCategory.type
+    }
+    var selectedTargetId by remember { mutableStateOf(eligibleCategories.firstOrNull()?.id) }
+    var expandedDropdown by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("دمج الفئة", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "سيتم حذف فئة \"${sourceCategory.name}\" ونقل جميع المعاملات والميزانيات المرتبطة بها تلقائياً إلى الفئة المختارة أدناه.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                if (eligibleCategories.isEmpty()) {
+                    Text(
+                        text = "لا توجد فئات أخرى متوافقة للدمج معها.",
+                        color = ExpenseRed,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                } else {
+                    val targetCat = eligibleCategories.find { it.id == selectedTargetId }
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = targetCat?.name ?: "اختر الفئة المستهدفة",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("دمج مع الفئة") },
+                            modifier = Modifier.fillMaxWidth(),
+                            trailingIcon = {
+                                IconButton(onClick = { expandedDropdown = true }) {
+                                    Icon(Icons.Default.ArrowDropDown, null)
+                                }
+                            }
+                        )
+                        DropdownMenu(
+                            expanded = expandedDropdown,
+                            onDismissRequest = { expandedDropdown = false },
+                            modifier = Modifier.fillMaxWidth(0.9f)
+                        ) {
+                            eligibleCategories.forEach { cat ->
+                                DropdownMenuItem(
+                                    text = { Text(cat.name) },
+                                    onClick = {
+                                        selectedTargetId = cat.id
+                                        expandedDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = selectedTargetId != null,
+                onClick = {
+                    selectedTargetId?.let { onConfirm(it) }
+                }
+            ) {
+                Text("تأكيد الدمج", fontWeight = FontWeight.Bold, color = Primary)
             }
         },
         dismissButton = {
@@ -503,6 +759,28 @@ private fun CategoryRowSkeleton(modifier: Modifier = Modifier) {
                     .shimmerEffect(CircleShape)
             )
         }
+    }
+}
+
+private fun getIconVector(iconName: String): ImageVector {
+    return when (iconName) {
+        "restaurant" -> Icons.Default.Restaurant
+        "shopping_bag" -> Icons.Default.ShoppingBag
+        "home" -> Icons.Default.Home
+        "directions_car" -> Icons.Default.DirectionsCar
+        "bolt" -> Icons.Default.Bolt
+        "school" -> Icons.Default.School
+        "medical_services" -> Icons.Default.MedicalServices
+        "sports_esports" -> Icons.Default.SportsEsports
+        "coffee" -> Icons.Default.Coffee
+        "shopping_cart" -> Icons.Default.ShoppingCart
+        "local_taxi" -> Icons.Default.LocalTaxi
+        "work" -> Icons.Default.Work
+        "savings" -> Icons.Default.Savings
+        "star" -> Icons.Default.Star
+        "flag" -> Icons.Default.Flag
+        "favorite" -> Icons.Default.Favorite
+        else -> Icons.Default.Category
     }
 }
 

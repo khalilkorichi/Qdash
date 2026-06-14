@@ -50,6 +50,15 @@ interface TransactionDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM transactions WHERE type = :type AND note = :note AND date BETWEEN :startDate AND :endDate)")
     suspend fun isTransactionAlreadyInserted(type: String, note: String, startDate: Long, endDate: Long): Boolean
+
+    @Query("UPDATE transactions SET categoryId = :newCategoryId WHERE id IN (:transactionIds)")
+    suspend fun updateTransactionsCategoryBulk(transactionIds: List<Long>, newCategoryId: Long)
+
+    @Query("DELETE FROM transactions WHERE id IN (:transactionIds)")
+    suspend fun deleteTransactionsBulk(transactionIds: List<Long>)
+
+    @Query("UPDATE transactions SET categoryId = :targetCategoryId WHERE categoryId = :sourceCategoryId")
+    suspend fun mergeTransactionsCategory(sourceCategoryId: Long, targetCategoryId: Long)
 }
 
 @Dao

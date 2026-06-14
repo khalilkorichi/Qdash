@@ -19,6 +19,8 @@ data class HomeUiState(
     val totalBalance: Double = 0.0,
     val monthlyIncome: Double = 0.0,
     val monthlyExpense: Double = 0.0,
+    val incomeChangePercent: Double = 0.0,
+    val expenseChangePercent: Double = 0.0,
     val accounts: List<Account> = emptyList(),
     val recentTransactions: List<Transaction> = emptyList(),
     val categories: List<Category> = emptyList(),
@@ -38,7 +40,8 @@ class HomeViewModel(
     private val categoryRepository: CategoryRepository,
     private val subscriptionRepository: SubscriptionRepository,
     private val incomeRepository: IncomeRepository,
-    private val templateRepository: TransactionTemplateRepository
+    private val templateRepository: TransactionTemplateRepository,
+    private val context: android.content.Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -49,7 +52,15 @@ class HomeViewModel(
     private val dashboardFlow = combine(
         accountRepository.getAllAccounts(),
         _chartPeriod.flatMapLatest { period ->
-            val startDate = calculateStartDateForPeriod(period)
+            val startOfPreviousMonth = Calendar.getInstance().apply {
+                add(Calendar.MONTH, -1)
+                set(Calendar.DAY_OF_MONTH, 1)
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+            val startDate = minOf(startOfPreviousMonth, calculateStartDateForPeriod(period))
             transactionRepository.getTransactionsByDateRange(startDate, Long.MAX_VALUE)
         },
         transactionRepository.getRecentTransactions(10),
@@ -73,10 +84,23 @@ class HomeViewModel(
             val currentMonth = cal.get(Calendar.MONTH)
             val currentYear = cal.get(Calendar.YEAR)
             
+            val startOfPrevMonthCal = Calendar.getInstance().apply {
+                add(Calendar.MONTH, -1)
+                set(Calendar.DAY_OF_MONTH, 1)
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val prevMonthNum = startOfPrevMonthCal.get(Calendar.MONTH)
+            val prevMonthYear = startOfPrevMonthCal.get(Calendar.YEAR)
+
             val txCal = Calendar.getInstance()
             
             var monthlyIn = 0.0
             var monthlyOut = 0.0
+            var prevMonthIn = 0.0
+            var prevMonthOut = 0.0
             
             transactions.forEach { tx ->
                 txCal.timeInMillis = tx.date
@@ -88,8 +112,20 @@ class HomeViewModel(
                     } else if (tx.type == TransactionType.EXPENSE) {
                         monthlyOut += tx.amount
                     }
+                } else if (m == prevMonthNum && y == prevMonthYear) {
+                    if (tx.type == TransactionType.INCOME) {
+                        prevMonthIn += tx.amount
+                    } else if (tx.type == TransactionType.EXPENSE) {
+                        prevMonthOut += tx.amount
+                    }
                 }
             }
+
+            val incomeDiff = monthlyIn - prevMonthIn
+            val incomeChange = if (prevMonthIn > 0.0) (incomeDiff / prevMonthIn) * 100.0 else if (monthlyIn > 0.0) 100.0 else 0.0
+
+            val expenseDiff = monthlyOut - prevMonthOut
+            val expenseChange = if (prevMonthOut > 0.0) (expenseDiff / prevMonthOut) * 100.0 else if (monthlyOut > 0.0) 100.0 else 0.0
 
             // Budget usage calculation across category limits (optimized)
             val expenseCategoriesWithLimits = categories.filter { it.type == CategoryType.EXPENSE && it.budgetLimit != null }
@@ -185,6 +221,8 @@ class HomeViewModel(
                 totalBalance = totalBal,
                 monthlyIncome = monthlyIn,
                 monthlyExpense = monthlyOut,
+                incomeChangePercent = incomeChange,
+                expenseChangePercent = expenseChange,
                 accounts = accounts,
                 recentTransactions = recentTransactions,
                 categories = categories,

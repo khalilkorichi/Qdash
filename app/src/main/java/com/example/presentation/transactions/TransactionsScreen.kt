@@ -68,6 +68,10 @@ fun TransactionsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    var showBulkCategoryDialog by remember { mutableStateOf(false) }
+    var showBulkDeleteDialog by remember { mutableStateOf(false) }
+    var showFilterSheet by remember { mutableStateOf(false) }
+
     // Compute summary values
     val totalExpenses = remember(uiState.filteredTransactions, uiState.selectedType) {
         if (uiState.selectedType != null && uiState.selectedType != TransactionType.EXPENSE) {
@@ -113,15 +117,20 @@ fun TransactionsScreen(
             uiState.filteredTransactions.take(visibleRecentCount)
         }
 
-        LazyColumn(
-            state = listState,
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(innerPadding),
-            verticalArrangement = Arrangement.spacedBy(0.dp),
-            contentPadding = PaddingValues(bottom = 100.dp)
+                .padding(innerPadding)
         ) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
+                contentPadding = PaddingValues(bottom = 100.dp)
+            ) {
 
             // ── Unified Screen Header ────────────────────────────────────────
             item(key = "header") {
@@ -149,16 +158,18 @@ fun TransactionsScreen(
 
             // ── Search box under Title ────────────────────────────────────────
             item(key = "search_box") {
-                Box(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     TextField(
                         value = uiState.searchQuery,
                         onValueChange = { viewModel.onSearchQueryChanged(it) },
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .weight(1f)
                             .testTag("search_input")
                             .clip(RoundedCornerShape(28.dp)),
                         placeholder = {
@@ -184,6 +195,28 @@ fun TransactionsScreen(
                             cursorColor = Primary
                         )
                     )
+                    
+                    val hasActiveFilters = uiState.filterMinAmount != null || uiState.filterStartDate != null || uiState.filterEndDate != null
+                    IconButton(
+                        onClick = { showFilterSheet = true },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(
+                                color = if (hasActiveFilters) Primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(24.dp)
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (hasActiveFilters) Primary else Color.Transparent,
+                                shape = RoundedCornerShape(24.dp)
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FilterAlt,
+                            contentDescription = "تصفية متقدمة",
+                            tint = if (hasActiveFilters) Primary else MaterialTheme.colorScheme.onBackground
+                        )
+                    }
                 }
             }
 
@@ -536,6 +569,10 @@ fun TransactionsScreen(
                     items(recentTxs, key = { "recent_${it.id}" }) { tx ->
                         val cat = uiState.categories.firstOrNull { it.id == tx.categoryId }
                         val accName = uiState.accounts.firstOrNull { it.id == tx.accountId }?.name ?: "غير معروف"
+                        val isSelected = uiState.selectedTransactionIds.contains(tx.id)
+                        val isSelectionActive = uiState.selectedTransactionIds.isNotEmpty()
+                        val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+
                         Box(
                             modifier = Modifier
                                 .padding(horizontal = 16.dp, vertical = 5.dp)
@@ -552,7 +589,19 @@ fun TransactionsScreen(
                                 onDelete = {
                                     showDeleteDialog = tx
                                 },
-                                onClick = { showActionMenuForTransaction = tx }
+                                onClick = {
+                                    if (isSelectionActive) {
+                                        viewModel.toggleTransactionSelection(tx.id)
+                                    } else {
+                                        showActionMenuForTransaction = tx
+                                    }
+                                },
+                                isSelected = isSelected,
+                                isSelectionActive = isSelectionActive,
+                                onLongClick = {
+                                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                    viewModel.toggleTransactionSelection(tx.id)
+                                }
                             )
                         }
                     }
@@ -793,6 +842,292 @@ fun TransactionsScreen(
                 )
             }
         )
+    }
+
+    // ── Bulk Delete Confirmation Dialog ──
+    if (showBulkDeleteDialog) {
+        AppDialog(
+            onDismissRequest = { showBulkDeleteDialog = false },
+            title = "حذف العمليات المحددة",
+            text = "هل أنت متأكد من رغبتك في حذف ${uiState.selectedTransactionIds.size} عملية مجمعة نهائياً؟ لا يمكن التراجع عن هذا الإجراء وسيتم تحديث الحسابات تلقائياً.",
+            confirmButtonText = "نعم، حذف الكل",
+            onConfirm = {
+                viewModel.deleteSelectedTransactions()
+                showBulkDeleteDialog = false
+            },
+            dismissButtonText = "إلغاء",
+            isDestructive = true,
+            icon = {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = ColorTokens.Danger
+                )
+            }
+        )
+    }
+
+    // ── Bulk Category Selection Dialog ──
+    if (showBulkCategoryDialog) {
+        AlertDialog(
+            onDismissRequest = { showBulkCategoryDialog = false },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = {
+                Text(
+                    text = "تغيير فئة العمليات المحددة",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "اختر الفئة الجديدة لنقل العمليات المحددة إليها:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextGray,
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 240.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(uiState.categories) { category ->
+                            val catColor = try {
+                                Color(android.graphics.Color.parseColor(category.color))
+                            } catch (e: Exception) {
+                                MaterialTheme.colorScheme.primary
+                            }
+                            Surface(
+                                onClick = {
+                                    viewModel.changeCategoryForSelectedTransactions(category.id)
+                                    showBulkCategoryDialog = false
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    Text(
+                                        text = category.name,
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f),
+                                        textAlign = TextAlign.Right
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .clip(CircleShape)
+                                            .background(catColor)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showBulkCategoryDialog = false }) {
+                    Text("إلغاء", color = TextGray)
+                }
+            }
+        )
+    }
+
+    // ── Advanced Filters Bottom Sheet ──
+    if (showFilterSheet) {
+        val filterSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        var tempMinAmount by remember { mutableStateOf(uiState.filterMinAmount?.toString() ?: "") }
+        var tempStartDate by remember { mutableStateOf(uiState.filterStartDate) }
+        var tempEndDate by remember { mutableStateOf(uiState.filterEndDate) }
+        
+        var showStartDatePicker by remember { mutableStateOf(false) }
+        var showEndDatePicker by remember { mutableStateOf(false) }
+
+        ModalBottomSheet(
+            onDismissRequest = { showFilterSheet = false },
+            sheetState = filterSheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+                    .navigationBarsPadding(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "تصفية متقدمة للمعاملات",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                // 1. Min Amount Filter
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "مبالغ أكبر من أو تساوي (دج):",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = tempMinAmount,
+                        onValueChange = { tempMinAmount = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("مثال: 1000", textAlign = TextAlign.Right) },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                        ),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+
+                // 2. Date Range Filter
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "النطاق الزمني:",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // End Date Button
+                        OutlinedButton(
+                            onClick = { showEndDatePicker = true },
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = tempEndDate?.let { FormatterUtils.formatDate(it) } ?: "تاريخ النهاية",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        // Start Date Button
+                        OutlinedButton(
+                            onClick = { showStartDatePicker = true },
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = tempStartDate?.let { FormatterUtils.formatDate(it) } ?: "تاريخ البداية",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Action Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Reset Button
+                    OutlinedButton(
+                        onClick = {
+                            tempMinAmount = ""
+                            tempStartDate = null
+                            tempEndDate = null
+                            viewModel.clearAdvancedFilters()
+                            showFilterSheet = false
+                        },
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        Text("إعادة تعيين", color = ExpenseRed, fontWeight = FontWeight.Bold)
+                    }
+
+                    // Apply Button
+                    Button(
+                        onClick = {
+                            val minVal = tempMinAmount.toDoubleOrNull()
+                            viewModel.setAdvancedFilters(minVal, tempStartDate, tempEndDate)
+                            showFilterSheet = false
+                        },
+                        modifier = Modifier.weight(2f).height(48.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                    ) {
+                        Text("تطبيق الفلتر", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+        
+        // DatePickers Dialogs
+        if (showStartDatePicker) {
+            val datePickerState = rememberDatePickerState(initialSelectedDateMillis = tempStartDate ?: System.currentTimeMillis())
+            DatePickerDialog(
+                onDismissRequest = { showStartDatePicker = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        tempStartDate = datePickerState.selectedDateMillis
+                        showStartDatePicker = false
+                    }) {
+                        Text("تأكيد", fontWeight = FontWeight.Bold, color = Primary)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showStartDatePicker = false }) {
+                        Text("إلغاء", color = TextGray)
+                    }
+                }
+            ) {
+                DatePicker(state = datePickerState)
+            }
+        }
+
+        if (showEndDatePicker) {
+            val datePickerState = rememberDatePickerState(initialSelectedDateMillis = tempEndDate ?: System.currentTimeMillis())
+            DatePickerDialog(
+                onDismissRequest = { showEndDatePicker = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        tempEndDate = datePickerState.selectedDateMillis
+                        showEndDatePicker = false
+                    }) {
+                        Text("تأكيد", fontWeight = FontWeight.Bold, color = Primary)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showEndDatePicker = false }) {
+                        Text("إلغاء", color = TextGray)
+                    }
+                }
+            ) {
+                DatePicker(state = datePickerState)
+            }
+        }
     }
 
     // ── Daily Financial Summary Bottom Sheet drawer ───────────────────────────
@@ -1208,6 +1543,7 @@ fun TransactionsScreen(
             }
         }
     }
+}
 }
 
 // ── Summary Mini Card ────────────────────────────────────────────────────────
@@ -1776,11 +2112,16 @@ private fun SwipeableTransactionRow(
     accountName: String,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isSelected: Boolean = false,
+    isSelectionActive: Boolean = false,
+    onLongClick: () -> Unit = {}
 ) {
     var offsetX by remember { mutableStateOf(0f) }
     val density = LocalDensity.current
     val minSwipeDistance = with(density) { 80.dp.toPx() }
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    var hapticTriggered by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -1789,65 +2130,78 @@ private fun SwipeableTransactionRow(
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
     ) {
         // Background Actions Layer
-        Row(
-            modifier = Modifier.matchParentSize(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Edit action (Right in RTL - Blue)
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(80.dp)
-                    .background(TransferBlue)
-                    .clickable { 
-                        onEdit()
-                        offsetX = 0f
-                    },
-                contentAlignment = Alignment.Center
+        if (!isSelectionActive) {
+            Row(
+                modifier = Modifier.matchParentSize(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Edit, contentDescription = "\u062a\u0639\u062f\u064a\u0644", tint = Color.White)
-            }
+                // Edit action (Right in RTL - Blue)
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(80.dp)
+                        .background(TransferBlue)
+                        .clickable { 
+                            onEdit()
+                            offsetX = 0f
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Edit, contentDescription = "تعديل", tint = Color.White)
+                }
 
-            // Delete action (Left in RTL - Red)
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(80.dp)
-                    .background(ExpenseRed)
-                    .clickable { 
-                        onDelete()
-                        offsetX = 0f
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.Delete, contentDescription = "\u062d\u0630\u0641", tint = Color.White)
+                // Delete action (Left in RTL - Red)
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(80.dp)
+                        .background(ExpenseRed)
+                        .clickable { 
+                            onDelete()
+                            offsetX = 0f
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = "حذف", tint = Color.White)
+                }
             }
         }
 
         // Foreground Content Layer
-        val animOffset by androidx.compose.animation.core.animateFloatAsState(targetValue = offsetX)
+        val animOffset by androidx.compose.animation.core.animateFloatAsState(targetValue = if (isSelectionActive) 0f else offsetX)
         Box(
             modifier = Modifier
                 .offset(x = with(density) { animOffset.toDp() })
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.background)
-                .pointerInput(Unit) {
-                    detectHorizontalDragGestures(
-                        onDragEnd = {
-                            offsetX = when {
-                                offsetX > minSwipeDistance * 0.5f -> minSwipeDistance
-                                offsetX < -minSwipeDistance * 0.5f -> -minSwipeDistance
-                                else -> 0f
+                .pointerInput(isSelectionActive) {
+                    if (!isSelectionActive) {
+                        detectHorizontalDragGestures(
+                            onDragEnd = {
+                                offsetX = when {
+                                    offsetX > minSwipeDistance * 0.5f -> minSwipeDistance
+                                    offsetX < -minSwipeDistance * 0.5f -> -minSwipeDistance
+                                    else -> 0f
+                                }
+                            },
+                            onDragCancel = { offsetX = 0f },
+                            onHorizontalDrag = { _, dragAmount ->
+                                // Subtracting dragAmount to compensate for RTL layout coordinate inversion in Compose absolute offset.
+                                // When dragging to the right (dragAmount > 0), we want the row to shift to the right, which translates to a negative offset in RTL.
+                                offsetX = (offsetX - dragAmount).coerceIn(-minSwipeDistance, minSwipeDistance)
+                                
+                                val threshold = minSwipeDistance * 0.5f
+                                val crossed = kotlin.math.abs(offsetX) >= threshold
+                                if (crossed && !hapticTriggered) {
+                                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                    hapticTriggered = true
+                                } else if (!crossed) {
+                                    hapticTriggered = false
+                                }
                             }
-                        },
-                        onDragCancel = { offsetX = 0f },
-                        onHorizontalDrag = { _, dragAmount ->
-                            // Subtracting dragAmount to compensate for RTL layout coordinate inversion in Compose absolute offset.
-                            // When dragging to the right (dragAmount > 0), we want the row to shift to the right, which translates to a negative offset in RTL.
-                            offsetX = (offsetX - dragAmount).coerceIn(-minSwipeDistance, minSwipeDistance)
-                        }
-                    )
+                        )
+                    }
                 }
         ) {
             TransactionItem(
@@ -1860,7 +2214,9 @@ private fun SwipeableTransactionRow(
                     } else {
                         onClick()
                     }
-                }
+                },
+                isSelected = isSelected,
+                onLongClick = onLongClick
             )
         }
     }

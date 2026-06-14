@@ -112,6 +112,16 @@ class CategoriesViewModel(
         }
     }
 
+    fun mergeCategories(sourceCategoryId: Long, targetCategoryId: Long) {
+        viewModelScope.launch {
+            try {
+                categoryRepository.mergeCategories(sourceCategoryId, targetCategoryId)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = e.localizedMessage) }
+            }
+        }
+    }
+
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
     }

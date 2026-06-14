@@ -654,6 +654,7 @@ fun AddTransactionScreen(
             if (type != TransactionType.TRANSFER) {
                 CategoryDropdownSelector(
                     categories = uiState.categories,
+                    transactions = uiState.transactions,
                     type = type,
                     selectedCategoryId = selectedCategoryId,
                     subcategoryId = subcategoryId,
@@ -2077,6 +2078,7 @@ sealed interface DropdownCategoryItem {
 @Composable
 private fun CategoryDropdownSelector(
     categories: List<com.example.domain.model.Category>,
+    transactions: List<com.example.domain.model.Transaction>,
     type: TransactionType,
     selectedCategoryId: Long?,
     subcategoryId: Long?,
@@ -2086,6 +2088,19 @@ private fun CategoryDropdownSelector(
     onAddSubCategory: () -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val sharedPrefs = remember(context) {
+        context.getSharedPreferences("fintrack_prefs", android.content.Context.MODE_PRIVATE)
+    }
+    var smartSortEnabled by remember {
+        mutableStateOf(sharedPrefs.getBoolean("smart_category_sort_enabled", false))
+    }
+
+    val categoryFrequencies = remember(transactions) {
+        transactions.groupBy { it.categoryId }
+            .mapValues { it.value.size }
+    }
 
     val selectedCategory = remember(categories, selectedCategoryId) {
         categories.find { it.id == selectedCategoryId }
@@ -2104,7 +2119,7 @@ private fun CategoryDropdownSelector(
         }
     }
 
-    val dropdownItems = remember(categories, selectedCategoryId, subcategoryId, type) {
+    val dropdownItems = remember(categories, selectedCategoryId, subcategoryId, type, smartSortEnabled, categoryFrequencies) {
         val mainCats = categories.filter { cat ->
             cat.parentId == null &&
             when (type) {
@@ -2115,13 +2130,24 @@ private fun CategoryDropdownSelector(
         val subs = categories.filter { it.parentId != null }
         val subsMap = subs.groupBy { it.parentId!! }
 
+        val sortedMainCats = if (smartSortEnabled) {
+            mainCats.sortedByDescending { categoryFrequencies[it.id] ?: 0 }
+        } else {
+            mainCats
+        }
+
         buildList {
-            mainCats.forEach { mainCat ->
+            sortedMainCats.forEach { mainCat ->
                 val isMainSelected = selectedCategoryId == mainCat.id && subcategoryId == null
                 add(DropdownCategoryItem.MainCategory(mainCat, isMainSelected))
                 
                 val childSubs = subsMap[mainCat.id] ?: emptyList()
-                childSubs.forEach { subCat ->
+                val sortedChildSubs = if (smartSortEnabled) {
+                    childSubs.sortedByDescending { categoryFrequencies[it.id] ?: 0 }
+                } else {
+                    childSubs
+                }
+                sortedChildSubs.forEach { subCat ->
                     val isSubSelected = subcategoryId == subCat.id
                     add(DropdownCategoryItem.SubCategory(subCat, mainCat, isSubSelected))
                 }
@@ -2218,11 +2244,38 @@ private fun CategoryDropdownSelector(
             AlertDialog(
                 onDismissRequest = { showDialog = false },
                 title = {
-                    Text(
-                        text = "اختر الفئة",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "اختر الفئة",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable {
+                                smartSortEnabled = !smartSortEnabled
+                                sharedPrefs.edit().putBoolean("smart_category_sort_enabled", smartSortEnabled).apply()
+                            }
+                        ) {
+                            Checkbox(
+                                checked = smartSortEnabled,
+                                onCheckedChange = {
+                                    smartSortEnabled = it
+                                    sharedPrefs.edit().putBoolean("smart_category_sort_enabled", it).apply()
+                                },
+                                colors = CheckboxDefaults.colors(checkedColor = typeAccentColor)
+                            )
+                            Text(
+                                text = "ترتيب ذكي",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
                 },
                 text = {
                     if (dropdownItems.isEmpty()) {

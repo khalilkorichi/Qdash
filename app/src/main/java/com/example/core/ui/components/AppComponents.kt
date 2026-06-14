@@ -2,9 +2,11 @@ package com.example.core.ui.components
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -507,13 +509,16 @@ fun AccountCard(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TransactionItem(
     transaction: Transaction,
     category: Category?,
     accountName: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isSelected: Boolean = false,
+    onLongClick: (() -> Unit)? = null
 ) {
     val isExpense = transaction.type == TransactionType.EXPENSE
     val isTransfer = transaction.type == TransactionType.TRANSFER
@@ -542,14 +547,32 @@ fun TransactionItem(
     val amountText = (if (isExpense) "-" else "+") + FormatterUtils.formatCurrency(transaction.amount)
     val textColor = if (isExpense) ExpenseRed else IncomeGreen
 
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val cardModifier = if (onLongClick != null) {
+        modifier
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
+    } else {
+        modifier
+    }
+
     AppCard(
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag("transaction_item_${transaction.id}"),
+        modifier = if (isSelected) {
+            cardModifier
+                .fillMaxWidth()
+                .border(2.dp, primaryColor, ShapeTokens.Md)
+                .testTag("transaction_item_${transaction.id}")
+        } else {
+            cardModifier
+                .fillMaxWidth()
+                .testTag("transaction_item_${transaction.id}")
+        },
         variant = CardVariant.INTERACTIVE,
         shape = ShapeTokens.Md,
-        backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-        onClick = onClick
+        backgroundColor = if (isSelected) primaryColor.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+        onClick = if (onLongClick != null) null else onClick
     ) {
         Row(
             modifier = Modifier
@@ -562,6 +585,17 @@ fun TransactionItem(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
+                if (isSelected) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "محدد",
+                        tint = primaryColor,
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(24.dp)
+                    )
+                }
+
                 // Icon badge with gradient
                 Box(
                     modifier = Modifier

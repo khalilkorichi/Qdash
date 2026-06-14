@@ -210,7 +210,9 @@ class AccountRepositoryImpl(
 }
 
 class CategoryRepositoryImpl(
-    private val categoryDao: CategoryDao
+    private val categoryDao: CategoryDao,
+    private val transactionDao: TransactionDao,
+    private val budgetGoalDao: BudgetGoalDao
 ) : CategoryRepository {
     override fun getAllCategories(): Flow<List<Category>> {
         return categoryDao.getAllCategories().map { list -> list.map { it.toDomain() } }
@@ -254,6 +256,15 @@ class CategoryRepositoryImpl(
 
     override suspend fun deleteSubcategoriesForParent(parentId: Long) {
         categoryDao.deleteSubcategoriesForParent(parentId)
+    }
+
+    override suspend fun mergeCategories(sourceCategoryId: Long, targetCategoryId: Long) {
+        transactionDao.mergeTransactionsCategory(sourceCategoryId, targetCategoryId)
+        budgetGoalDao.mergeBudgetGoalsCategory(sourceCategoryId, targetCategoryId)
+        val sourceCat = categoryDao.getCategoryById(sourceCategoryId)
+        if (sourceCat != null) {
+            categoryDao.deleteCategory(sourceCat)
+        }
     }
 }
 

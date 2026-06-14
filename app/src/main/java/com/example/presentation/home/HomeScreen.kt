@@ -75,9 +75,10 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isRefreshing = uiState.isRefreshing
     val pullRefreshState = rememberPullToRefreshState()
+    val navController = com.example.presentation.navigation.LocalNavController.current
 
     val context = androidx.compose.ui.platform.LocalContext.current
-    val sharedPrefs = remember { context.getSharedPreferences("kdach_prefs", android.content.Context.MODE_PRIVATE) }
+    val sharedPrefs = remember { context.getSharedPreferences("fintrack_prefs", android.content.Context.MODE_PRIVATE) }
     var showWalletReminder by remember {
         mutableStateOf(
             sharedPrefs.getBoolean("wallet_setup_skipped", false) &&
@@ -114,8 +115,9 @@ fun HomeScreen(
                 state = pullRefreshState,
                 modifier = Modifier.fillMaxSize()
             ) {
+                val sections = remember(uiState) { getDashboardSections(sharedPrefs) }
 
-            LazyColumn(
+                LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background)
@@ -213,541 +215,557 @@ fun HomeScreen(
                     }
                 }
 
-                // ── Split Cards & Savings Indicator ───────────────────────
-                item {
-                    IncomeExpenseSplitCards(
-                        monthlyIncome = uiState.monthlyIncome,
-                        monthlyExpense = uiState.monthlyExpense,
-                        accounts = uiState.accounts,
-                        recentTransactions = uiState.recentTransactions,
-                        onIncomeShowAllClick = onViewAllIncomeClick,
-                        onExpenseShowAllClick = onViewAllTransactionsClick,
-                        showBalances = showBalances,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                }
-
-                // ── Pinned Templates Strip ────────────────────────────────
-                if (uiState.pinnedTemplates.isNotEmpty()) {
-                    item {
-                        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "القوالب المثبتة",
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                                    color = MaterialTheme.colorScheme.onBackground
-                                )
-                                val navController = com.example.presentation.navigation.LocalNavController.current
-                                Text(
-                                    text = "إدارة القوالب",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Primary,
-                                    modifier = Modifier
-                                        .clickable { navController?.navigate(com.example.presentation.navigation.Screen.Templates.route) }
-                                        .padding(4.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(10.dp))
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                items(uiState.pinnedTemplates, key = { it.id }) { template ->
-                                    val typeAccentColor = when (template.transactionType) {
-                                        com.example.domain.model.TransactionType.EXPENSE -> ExpenseRed
-                                        com.example.domain.model.TransactionType.INCOME -> IncomeGreen
-                                        com.example.domain.model.TransactionType.TRANSFER -> TransferBlue
-                                    }
-                                    val navController = com.example.presentation.navigation.LocalNavController.current
-                                    Surface(
-                                        onClick = {
-                                            // Serialize draft to JSON string to pass safely via Navigation Compose route args
-                                            val draft = com.example.domain.model.TransactionDraft(
-                                                amount = template.amount,
-                                                type = template.transactionType,
-                                                categoryId = template.categoryId,
-                                                subcategoryId = template.subcategoryId,
-                                                accountId = template.accountId,
-                                                targetAccountId = template.targetAccountId,
-                                                notes = template.notes,
-                                                templateId = template.id
-                                            )
-                                            // Custom simple JSON encoding
-                                            val json = """
-                                                {
-                                                    "amount": ${draft.amount},
-                                                    "type": "${draft.type.name}",
-                                                    "categoryId": ${draft.categoryId ?: "null"},
-                                                    "subcategoryId": ${draft.subcategoryId ?: "null"},
-                                                    "accountId": ${draft.accountId},
-                                                    "targetAccountId": ${draft.targetAccountId ?: "null"},
-                                                    "notes": "${draft.notes?.replace("\"", "\\\"") ?: ""}",
-                                                    "templateId": ${draft.templateId ?: "null"}
-                                                }
-                                            """.trimIndent().replace("\n", "").replace(" ", "")
-                                            navController?.navigate(com.example.presentation.navigation.Screen.AddTransaction.createRoute("EXPENSE", draft = json))
-                                        },
-                                        shape = RoundedCornerShape(16.dp),
-                                        color = MaterialTheme.colorScheme.surfaceVariant,
-                                        border = BorderStroke(1.dp, typeAccentColor.copy(alpha = 0.15f)),
-                                        tonalElevation = 1.dp
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Text(text = template.iconEmoji ?: "📝", fontSize = 18.sp)
-                                            Column {
-                                                Text(
-                                                    text = template.name,
-                                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-                                                Text(
-                                                    text = FormatterUtils.formatCurrency(template.amount),
-                                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                                                    color = typeAccentColor
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ── Quick actions grid ────────────────────────────────────
-                item {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        Text(
-                            text = "الوصول السريع",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            QuickActionTile(
-                                modifier = Modifier.weight(1f),
-                                icon = Icons.Default.Payments,
-                                label = "إضافة معاملة",
-                                iconBg = Brush.linearGradient(
-                                    listOf(Primary.copy(alpha = 0.25f), Primary.copy(alpha = 0.08f))
-                                ),
-                                iconColor = Primary,
-                                onClick = onAddTransactionClick
-                            )
-                            QuickActionTile(
-                                modifier = Modifier.weight(1f),
-                                icon = Icons.Default.ReceiptLong,
-                                label = "سجل المعاملات",
-                                iconBg = Brush.linearGradient(
-                                    listOf(TransferBlue.copy(alpha = 0.25f), TransferBlue.copy(alpha = 0.08f))
-                                ),
-                                iconColor = TransferBlue,
-                                onClick = onViewAllTransactionsClick
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            QuickActionTile(
-                                modifier = Modifier.weight(1f),
-                                icon = Icons.Default.Savings,
-                                label = "حصالة الادخار",
-                                iconBg = Brush.linearGradient(
-                                    listOf(SavingsAmber.copy(alpha = 0.25f), SavingsAmber.copy(alpha = 0.08f))
-                                ),
-                                iconColor = SavingsAmber,
-                                onClick = onSavingsClick
-                            )
-                            QuickActionTile(
-                                modifier = Modifier.weight(1f),
-                                icon = Icons.Default.CardMembership,
-                                label = "الاشتراكات",
-                                iconBg = Brush.linearGradient(
-                                    listOf(ExpenseRed.copy(alpha = 0.20f), ExpenseRed.copy(alpha = 0.06f))
-                                ),
-                                iconColor = ExpenseRed,
-                                onClick = onSubscriptionsClick
-                            )
-                        }
-                    }
-                }
-
-                // ── Accounts horizontal scroll ────────────────────────────
-                item {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        Text(
-                            text = "حساباتي المالية",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        if (uiState.isLoading) {
-                            AccountsRowSkeleton()
-                        } else if (uiState.accounts.isEmpty()) {
-                            Text(
-                                text = "لا توجد حسابات مضافة حالياً.",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = TextGray
-                            )
-                        } else {
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                items(uiState.accounts, key = { it.id }) { acc ->
-                                    AccountCard(
-                                        account = acc,
-                                        onClick = { onAccountClick(acc.id) }
+                // ── Customizable Dashboard Sections ───────────────────────
+                sections.forEach { section ->
+                    if (isSectionVisible(sharedPrefs, section)) {
+                        when (section) {
+                            "split_cards" -> {
+                                item {
+                                    IncomeExpenseSplitCards(
+                                        monthlyIncome = uiState.monthlyIncome,
+                                        monthlyExpense = uiState.monthlyExpense,
+                                        incomeChangePercent = uiState.incomeChangePercent,
+                                        expenseChangePercent = uiState.expenseChangePercent,
+                                        accounts = uiState.accounts,
+                                        recentTransactions = uiState.recentTransactions,
+                                        onIncomeShowAllClick = onViewAllIncomeClick,
+                                        onExpenseShowAllClick = onViewAllTransactionsClick,
+                                        showBalances = showBalances,
+                                        modifier = Modifier.padding(horizontal = 16.dp)
                                     )
                                 }
                             }
-                        }
-                    }
-                }
-
-                // ── Line Chart for Expense Trend ──────────────────────────
-                item {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        Text(
-                            text = "تحليل المصروفات",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        
-                        if (uiState.isLoading) {
-                            ChartSkeleton()
-                        } else {
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth(),
-                                shape = RoundedCornerShape(20.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                                ),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                            ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    // Time Period Selector Pills
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceEvenly
-                                    ) {
-                                        listOf(
-                                            "DAY" to "يومي",
-                                            "WEEK" to "أسبوعي",
-                                            "MONTH" to "شهري",
-                                            "YEAR" to "سنوي"
-                                        ).forEach { (p, label) ->
-                                            val isSelected = uiState.chartPeriod == p
-                                            val bg = if (isSelected) Primary else MaterialTheme.colorScheme.background
-                                            val tc = if (isSelected) Color.White else TextGray
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(12.dp))
-                                                    .background(bg)
-                                                    .clickable { viewModel.setChartPeriod(p) }
-                                                    .padding(horizontal = 14.dp, vertical = 6.dp),
-                                                contentAlignment = Alignment.Center
+                            "context_templates" -> {
+                                item {
+                                    ContextAwareTemplateCard(
+                                        categories = uiState.categories,
+                                        onSelectTemplate = { json ->
+                                            navController?.navigate(com.example.presentation.navigation.Screen.AddTransaction.createRoute("EXPENSE", draft = json))
+                                        }
+                                    )
+                                }
+                            }
+                            "templates" -> {
+                                if (uiState.pinnedTemplates.isNotEmpty()) {
+                                    item {
+                                        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Text(text = label, style = MaterialTheme.typography.labelMedium, color = tc, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
+                                                Text(
+                                                    text = "القوالب المثبتة",
+                                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+                                                    color = MaterialTheme.colorScheme.onBackground
+                                                )
+                                                Text(
+                                                    text = "إدارة القوالب",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = Primary,
+                                                    modifier = Modifier
+                                                        .clickable { navController?.navigate(com.example.presentation.navigation.Screen.Templates.route) }
+                                                        .padding(4.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            LazyRow(
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                items(uiState.pinnedTemplates, key = { it.id }) { template ->
+                                                    val typeAccentColor = when (template.transactionType) {
+                                                        com.example.domain.model.TransactionType.EXPENSE -> ExpenseRed
+                                                        com.example.domain.model.TransactionType.INCOME -> IncomeGreen
+                                                        com.example.domain.model.TransactionType.TRANSFER -> TransferBlue
+                                                    }
+                                                    Surface(
+                                                        onClick = {
+                                                            // Serialize draft to JSON string to pass safely via Navigation Compose route args
+                                                            val draft = com.example.domain.model.TransactionDraft(
+                                                                amount = template.amount,
+                                                                type = template.transactionType,
+                                                                categoryId = template.categoryId,
+                                                                subcategoryId = template.subcategoryId,
+                                                                accountId = template.accountId,
+                                                                targetAccountId = template.targetAccountId,
+                                                                notes = template.notes,
+                                                                templateId = template.id
+                                                            )
+                                                            // Custom simple JSON encoding
+                                                            val json = """
+                                                                {
+                                                                    "amount": ${draft.amount},
+                                                                    "type": "${draft.type.name}",
+                                                                    "categoryId": ${draft.categoryId ?: "null"},
+                                                                    "subcategoryId": ${draft.subcategoryId ?: "null"},
+                                                                    "accountId": ${draft.accountId},
+                                                                    "targetAccountId": ${draft.targetAccountId ?: "null"},
+                                                                    "notes": "${draft.notes?.replace("\"", "\\\"") ?: ""}",
+                                                                    "templateId": ${draft.templateId ?: "null"}
+                                                                }
+                                                            """.trimIndent().replace("\n", "").replace(" ", "")
+                                                            navController?.navigate(com.example.presentation.navigation.Screen.AddTransaction.createRoute("EXPENSE", draft = json))
+                                                        },
+                                                        shape = RoundedCornerShape(16.dp),
+                                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                                        border = BorderStroke(1.dp, typeAccentColor.copy(alpha = 0.15f)),
+                                                        tonalElevation = 1.dp
+                                                    ) {
+                                                        Row(
+                                                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                        ) {
+                                                            Text(text = template.iconEmoji ?: "📝", fontSize = 18.sp)
+                                                            Column {
+                                                                Text(
+                                                                    text = template.name,
+                                                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                                                    color = MaterialTheme.colorScheme.onSurface
+                                                                )
+                                                                Text(
+                                                                    text = FormatterUtils.formatCurrency(template.amount),
+                                                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
+                                                                    color = typeAccentColor
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                             }
                                         }
                                     }
-                                    
-                                    Spacer(modifier = Modifier.height(20.dp))
-                                    
-                                    // Line Chart Canvas
-                                    val points = uiState.expenseTrendData
-                                    if (points.isEmpty() || points.all { it.amount == 0.0 }) {
-                                        Box(modifier = Modifier.fillMaxWidth().height(140.dp), contentAlignment = Alignment.Center) {
-                                            Text("لا توجد مصروفات متاحة في هذه الفترة", color = TextGray, style = MaterialTheme.typography.labelMedium)
+                                }
+                            }
+                            "quick_actions" -> {
+                                item {
+                                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                        Text(
+                                            text = "الوصول السريع",
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+                                            color = MaterialTheme.colorScheme.onBackground
+                                        )
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            QuickActionTile(
+                                                modifier = Modifier.weight(1f),
+                                                icon = Icons.Default.Payments,
+                                                label = "إضافة معاملة",
+                                                iconBg = Brush.linearGradient(
+                                                    listOf(Primary.copy(alpha = 0.25f), Primary.copy(alpha = 0.08f))
+                                                ),
+                                                iconColor = Primary,
+                                                onClick = onAddTransactionClick
+                                            )
+                                            QuickActionTile(
+                                                modifier = Modifier.weight(1f),
+                                                icon = Icons.Default.ReceiptLong,
+                                                label = "سجل المعاملات",
+                                                iconBg = Brush.linearGradient(
+                                                    listOf(TransferBlue.copy(alpha = 0.25f), TransferBlue.copy(alpha = 0.08f))
+                                                ),
+                                                iconColor = TransferBlue,
+                                                onClick = onViewAllTransactionsClick
+                                            )
                                         }
-                                    } else {
-                                        val maxAmount = points.maxOfOrNull { it.amount }?.toFloat()?.coerceAtLeast(1f) ?: 1f
-                                        val primaryColor = Primary
-                                        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxWidth().height(140.dp)) {
-                                            val w = size.width
-                                            val h = size.height - 20.dp.toPx() // Reserve 20dp for labels
-                                            val stepX = w / (points.size - 1).coerceAtLeast(1)
-                                            
-                                            val path = androidx.compose.ui.graphics.Path()
-                                            points.forEachIndexed { i, pt ->
-                                                val x = i * stepX
-                                                val y = h - ((pt.amount.toFloat() / maxAmount) * h * 0.8f) // leave top padding
-                                                if (i == 0) {
-                                                    path.moveTo(x, y)
-                                                } else {
-                                                    val prevX = (i - 1) * stepX
-                                                    val prevY = h - ((points[i - 1].amount.toFloat() / maxAmount) * h * 0.8f)
-                                                    path.cubicTo(
-                                                        prevX + (x - prevX) / 2f, prevY,
-                                                        prevX + (x - prevX) / 2f, y,
-                                                        x, y
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            QuickActionTile(
+                                                modifier = Modifier.weight(1f),
+                                                icon = Icons.Default.Savings,
+                                                label = "حصالة الادخار",
+                                                iconBg = Brush.linearGradient(
+                                                    listOf(SavingsAmber.copy(alpha = 0.25f), SavingsAmber.copy(alpha = 0.08f))
+                                                ),
+                                                iconColor = SavingsAmber,
+                                                onClick = onSavingsClick
+                                            )
+                                            QuickActionTile(
+                                                modifier = Modifier.weight(1f),
+                                                icon = Icons.Default.CardMembership,
+                                                label = "الاشتراكات",
+                                                iconBg = Brush.linearGradient(
+                                                    listOf(ExpenseRed.copy(alpha = 0.20f), ExpenseRed.copy(alpha = 0.06f))
+                                                ),
+                                                iconColor = ExpenseRed,
+                                                onClick = onSubscriptionsClick
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            "accounts" -> {
+                                item {
+                                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                        Text(
+                                            text = "حساباتي المالية",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.onBackground,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        if (uiState.isLoading) {
+                                            AccountsRowSkeleton()
+                                        } else if (uiState.accounts.isEmpty()) {
+                                            Text(
+                                                text = "لا توجد حسابات مضافة حالياً.",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = TextGray
+                                            )
+                                        } else {
+                                            LazyRow(
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                items(uiState.accounts, key = { it.id }) { acc ->
+                                                    AccountCard(
+                                                        account = acc,
+                                                        onClick = { onAccountClick(acc.id) }
                                                     )
                                                 }
                                             }
-                                            
-                                            // Draw gradient fill
-                                            val fillPath = androidx.compose.ui.graphics.Path().apply {
-                                                addPath(path)
-                                                lineTo(w, h)
-                                                lineTo(0f, h)
-                                                close()
-                                            }
-                                            drawPath(
-                                                path = fillPath,
-                                                brush = Brush.verticalGradient(
-                                                    colors = listOf(primaryColor.copy(alpha = 0.2f), Color.Transparent),
-                                                    startY = 0f,
-                                                    endY = h
+                                        }
+                                    }
+                                }
+                            }
+                            "chart" -> {
+                                item {
+                                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                        Text(
+                                            text = "تحليل المصروفات",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.onBackground,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        
+                                        if (uiState.isLoading) {
+                                            ChartSkeleton()
+                                        } else {
+                                            Card(
+                                                modifier = Modifier
+                                                    .fillMaxWidth(),
+                                                shape = RoundedCornerShape(20.dp),
+                                                colors = CardDefaults.cardColors(
+                                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
                                                 ),
-                                                style = androidx.compose.ui.graphics.drawscope.Fill
-                                            )
-                                            
-                                            // Draw stroke
-                                            drawPath(
-                                                path = path,
-                                                color = primaryColor,
-                                                style = androidx.compose.ui.graphics.drawscope.Stroke(
-                                                    width = 3.dp.toPx(),
-                                                    cap = androidx.compose.ui.graphics.StrokeCap.Round
-                                                )
-                                            )
-                                            
-                                            // Draw points & labels
-                                            val textPaint = android.graphics.Paint().apply {
-                                                color = android.graphics.Color.GRAY
-                                                textSize = 10.sp.toPx()
-                                                textAlign = android.graphics.Paint.Align.CENTER
-                                                isAntiAlias = true
-                                            }
-                                            points.forEachIndexed { i, pt ->
-                                                val x = i * stepX
-                                                val y = h - ((pt.amount.toFloat() / maxAmount) * h * 0.8f)
-                                                
-                                                // Find the highest point to highlight
-                                                val isMax = pt.amount == points.maxOf { it.amount } && pt.amount > 0.0
-                                                
-                                                if (isMax) {
-                                                    // Glowing/highlighted point
-                                                    drawCircle(color = Color.Black, radius = 7.dp.toPx(), center = androidx.compose.ui.geometry.Offset(x, y))
-                                                    drawCircle(color = primaryColor, radius = 5.dp.toPx(), center = androidx.compose.ui.geometry.Offset(x, y))
-                                                    drawCircle(color = Color.White, radius = 2.dp.toPx(), center = androidx.compose.ui.geometry.Offset(x, y))
-                                                } else {
-                                                    // Smaller, cleaner secondary points
-                                                    drawCircle(color = Color.White, radius = 3.5.dp.toPx(), center = androidx.compose.ui.geometry.Offset(x, y))
-                                                    drawCircle(color = primaryColor, radius = 2.dp.toPx(), center = androidx.compose.ui.geometry.Offset(x, y))
-                                                }
-                                                
-                                                // Only draw every nth label if too many points to avoid clutter, or draw all for small sets
-                                                if (points.size <= 7 || i % (points.size / 7) == 0 || i == points.lastIndex) {
-                                                    drawContext.canvas.nativeCanvas.drawText(pt.label, x, h + 15.dp.toPx(), textPaint)
+                                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                                            ) {
+                                                Column(modifier = Modifier.padding(16.dp)) {
+                                                    // Time Period Selector Pills
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceEvenly
+                                                    ) {
+                                                        listOf(
+                                                            "DAY" to "يومي",
+                                                            "WEEK" to "أسبوعي",
+                                                            "MONTH" to "شهري",
+                                                            "YEAR" to "سنوي"
+                                                        ).forEach { (p, label) ->
+                                                            val isSelected = uiState.chartPeriod == p
+                                                            val bg = if (isSelected) Primary else MaterialTheme.colorScheme.background
+                                                            val tc = if (isSelected) Color.White else TextGray
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .clip(RoundedCornerShape(12.dp))
+                                                                    .background(bg)
+                                                                    .clickable { viewModel.setChartPeriod(p) }
+                                                                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                                                                contentAlignment = Alignment.Center
+                                                            ) {
+                                                                Text(text = label, style = MaterialTheme.typography.labelMedium, color = tc, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
+                                                            }
+                                                        }
+                                                    }
+                                                    
+                                                    Spacer(modifier = Modifier.height(20.dp))
+                                                    
+                                                    // Line Chart Canvas
+                                                    val points = uiState.expenseTrendData
+                                                    if (points.isEmpty() || points.all { it.amount == 0.0 }) {
+                                                        Box(modifier = Modifier.fillMaxWidth().height(140.dp), contentAlignment = Alignment.Center) {
+                                                            Text("لا توجد مصروفات متاحة في هذه الفترة", color = TextGray, style = MaterialTheme.typography.labelMedium)
+                                                        }
+                                                    } else {
+                                                        val maxAmount = points.maxOfOrNull { it.amount }?.toFloat()?.coerceAtLeast(1f) ?: 1f
+                                                        val primaryColor = Primary
+                                                        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxWidth().height(140.dp)) {
+                                                            val w = size.width
+                                                            val h = size.height - 20.dp.toPx() // Reserve 20dp for labels
+                                                            val stepX = w / (points.size - 1).coerceAtLeast(1)
+                                                            
+                                                            val path = androidx.compose.ui.graphics.Path()
+                                                            points.forEachIndexed { i, pt ->
+                                                                val x = i * stepX
+                                                                val y = h - ((pt.amount.toFloat() / maxAmount) * h * 0.8f) // leave top padding
+                                                                if (i == 0) {
+                                                                    path.moveTo(x, y)
+                                                                } else {
+                                                                    val prevX = (i - 1) * stepX
+                                                                    val prevY = h - ((points[i - 1].amount.toFloat() / maxAmount) * h * 0.8f)
+                                                                    path.cubicTo(
+                                                                        prevX + (x - prevX) / 2f, prevY,
+                                                                        prevX + (x - prevX) / 2f, y,
+                                                                        x, y
+                                                                    )
+                                                                }
+                                                            }
+                                                            
+                                                            // Draw gradient fill
+                                                            val fillPath = androidx.compose.ui.graphics.Path().apply {
+                                                                addPath(path)
+                                                                lineTo(w, h)
+                                                                lineTo(0f, h)
+                                                                close()
+                                                            }
+                                                            drawPath(
+                                                                path = fillPath,
+                                                                brush = Brush.verticalGradient(
+                                                                    colors = listOf(primaryColor.copy(alpha = 0.2f), Color.Transparent),
+                                                                    startY = 0f,
+                                                                    endY = h
+                                                                ),
+                                                                style = androidx.compose.ui.graphics.drawscope.Fill
+                                                            )
+                                                            
+                                                            // Draw stroke
+                                                            drawPath(
+                                                                path = path,
+                                                                color = primaryColor,
+                                                                style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                                                    width = 3.dp.toPx(),
+                                                                    cap = androidx.compose.ui.graphics.StrokeCap.Round
+                                                                )
+                                                            )
+                                                            
+                                                            // Draw points & labels
+                                                            val textPaint = android.graphics.Paint().apply {
+                                                                color = android.graphics.Color.GRAY
+                                                                textSize = 10.sp.toPx()
+                                                                textAlign = android.graphics.Paint.Align.CENTER
+                                                                isAntiAlias = true
+                                                            }
+                                                            points.forEachIndexed { i, pt ->
+                                                                val x = i * stepX
+                                                                val y = h - ((pt.amount.toFloat() / maxAmount) * h * 0.8f)
+                                                                
+                                                                // Find the highest point to highlight
+                                                                val isMax = pt.amount == points.maxOf { it.amount } && pt.amount > 0.0
+                                                                
+                                                                if (isMax) {
+                                                                    // Glowing/highlighted point
+                                                                    drawCircle(color = Color.Black, radius = 7.dp.toPx(), center = androidx.compose.ui.geometry.Offset(x, y))
+                                                                    drawCircle(color = primaryColor, radius = 5.dp.toPx(), center = androidx.compose.ui.geometry.Offset(x, y))
+                                                                    drawCircle(color = Color.White, radius = 2.dp.toPx(), center = androidx.compose.ui.geometry.Offset(x, y))
+                                                                } else {
+                                                                    // Smaller, cleaner secondary points
+                                                                    drawCircle(color = Color.White, radius = 3.5.dp.toPx(), center = androidx.compose.ui.geometry.Offset(x, y))
+                                                                    drawCircle(color = primaryColor, radius = 2.dp.toPx(), center = androidx.compose.ui.geometry.Offset(x, y))
+                                                                }
+                                                                
+                                                                // Only draw every nth label if too many points to avoid clutter, or draw all for small sets
+                                                                if (points.size <= 7 || i % (points.size / 7) == 0 || i == points.lastIndex) {
+                                                                    drawContext.canvas.nativeCanvas.drawText(pt.label, x, h + 15.dp.toPx(), textPaint)
+                                                                }
+                                                            }
+                                                        }
+                                                        Spacer(modifier = Modifier.height(4.dp))
+                                                    }
                                                 }
                                             }
                                         }
-                                        Spacer(modifier = Modifier.height(4.dp))
                                     }
                                 }
                             }
-                        }
-                    }
-                }
+                            "budget" -> {
+                                item {
+                                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                        Text(
+                                            text = "الميزانية الشهرية",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.onBackground,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Spacer(modifier = Modifier.height(10.dp))
 
-                // ── Budget summary ────────────────────────────────────────
-                item {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        Text(
-                            text = "الميزانية الشهرية",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
+                                        val budgetCat = uiState.categories.firstOrNull {
+                                            it.type == CategoryType.EXPENSE && it.budgetLimit != null
+                                        }
+                                        if (budgetCat != null) {
+                                            val matchingSpent = uiState.recentTransactions
+                                                .filter { it.categoryId == budgetCat.id }
+                                                .sumOf { it.amount }
+                                            BudgetProgressCard(
+                                                category = budgetCat,
+                                                currentUsage = matchingSpent
+                                            )
+                                        }
 
-                        val budgetCat = uiState.categories.firstOrNull {
-                            it.type == CategoryType.EXPENSE && it.budgetLimit != null
-                        }
-                        if (budgetCat != null) {
-                            val matchingSpent = uiState.recentTransactions
-                                .filter { it.categoryId == budgetCat.id }
-                                .sumOf { it.amount }
-                            BudgetProgressCard(
-                                category = budgetCat,
-                                currentUsage = matchingSpent
-                            )
-                        }
+                                        Spacer(modifier = Modifier.height(8.dp))
 
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onBudgetGoalsClick() },
-                            shape = RoundedCornerShape(20.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
-                            ),
-                            border = BorderStroke(1.dp, Primary.copy(alpha = 0.2f))
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(
-                                    modifier = Modifier.weight(1f),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
+                                        Card(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { onBudgetGoalsClick() },
+                                            shape = RoundedCornerShape(20.dp),
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+                                            ),
+                                            border = BorderStroke(1.dp, Primary.copy(alpha = 0.2f))
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(16.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.weight(1f),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(40.dp)
+                                                            .background(Primary.copy(alpha = 0.12f), CircleShape),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.PieChart,
+                                                            contentDescription = null,
+                                                            tint = Primary,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
+                                                    }
+                                                    Spacer(modifier = Modifier.width(12.dp))
+                                                    Column {
+                                                        Text(
+                                                            text = "لوحة تتبع الميزانية الذكية وتنبيهات الإنفاق",
+                                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                                            color = MaterialTheme.colorScheme.onBackground
+                                                        )
+                                                        Spacer(modifier = Modifier.height(2.dp))
+                                                        Text(
+                                                            text = "انقر لعرض وتخصيص حدود ميزانياتك الشهرية والأسبوعية الفعالة تفصيلياً.",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = TextGray,
+                                                            lineHeight = 16.sp
+                                                        )
+                                                    }
+                                                }
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Icon(
+                                                    imageVector = Icons.Default.KeyboardArrowLeft,
+                                                    contentDescription = "انتقال",
+                                                    tint = Primary.copy(alpha = 0.7f),
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            "subscriptions" -> {
+                                if (uiState.upcomingSubscriptions.isNotEmpty()) {
+                                    item {
+                                        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = "تذكيرات الاشتراكات القادمة",
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    color = MaterialTheme.colorScheme.onBackground,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Icon(
+                                                    Icons.Default.Notifications,
+                                                    contentDescription = null,
+                                                    tint = Primary,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                uiState.upcomingSubscriptions.take(2).forEach { sub ->
+                                                    val linkedAcc = uiState.accounts
+                                                        .firstOrNull { it.id == sub.accountId }?.name ?: "غير محدد"
+                                                    SubscriptionItem(
+                                                        subscription = sub,
+                                                        onToggleActive = {},
+                                                        accountName = linkedAcc
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            "recent_transactions" -> {
+                                item {
+                                    Row(
                                         modifier = Modifier
-                                            .size(40.dp)
-                                            .background(Primary.copy(alpha = 0.12f), CircleShape),
-                                        contentAlignment = Alignment.Center
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.PieChart,
-                                            contentDescription = null,
-                                            tint = Primary,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column {
                                         Text(
-                                            text = "لوحة تتبع الميزانية الذكية وتنبيهات الإنفاق",
-                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                            color = MaterialTheme.colorScheme.onBackground
+                                            text = "آخر العمليات والإنفاق",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.onBackground,
+                                            fontWeight = FontWeight.Bold
                                         )
-                                        Spacer(modifier = Modifier.height(2.dp))
                                         Text(
-                                            text = "انقر لعرض وتخصيص حدود ميزانياتك الشهرية والأسبوعية الفعالة تفصيلياً.",
+                                            text = "عرض الكل",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = TextGray,
-                                            lineHeight = 16.sp
+                                            color = Primary,
+                                            modifier = Modifier
+                                                .clickable { onViewAllTransactionsClick() }
+                                                .padding(4.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                }
+                                if (uiState.isLoading) {
+                                    item {
+                                        TransactionListSkeleton(modifier = Modifier.padding(horizontal = 16.dp))
+                                    }
+                                } else if (uiState.recentTransactions.isEmpty()) {
+                                    item {
+                                        EmptyStateView(
+                                            title = "لا توجد معاملات مضافة!",
+                                            description = "اضغط على زر الإضافة العائم لإدراج أول مصروف لك اليوم.",
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 16.dp)
+                                        )
+                                    }
+                                } else {
+                                    items(uiState.recentTransactions.take(5), key = { it.id }) { tx ->
+                                        val cat = uiState.categories.firstOrNull { it.id == tx.categoryId }
+                                        val accName = uiState.accounts
+                                            .firstOrNull { it.id == tx.accountId }?.name ?: "غير معروف"
+                                        TransactionItem(
+                                            transaction = tx,
+                                            category = cat,
+                                            accountName = accName,
+                                            onClick = onViewAllTransactionsClick,
+                                            modifier = Modifier
+                                                .padding(horizontal = 16.dp)
+                                                .padding(bottom = 8.dp)
                                         )
                                     }
                                 }
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Icon(
-                                    imageVector = Icons.Default.KeyboardArrowLeft,
-                                    contentDescription = "انتقال",
-                                    tint = Primary.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(24.dp)
-                                )
                             }
                         }
-                    }
-                }
-
-                // ── Upcoming subscriptions ────────────────────────────────
-                if (uiState.upcomingSubscriptions.isNotEmpty()) {
-                    item {
-                        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "تذكيرات الاشتراكات القادمة",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onBackground,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Icon(
-                                    Icons.Default.Notifications,
-                                    contentDescription = null,
-                                    tint = Primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                uiState.upcomingSubscriptions.take(2).forEach { sub ->
-                                    val linkedAcc = uiState.accounts
-                                        .firstOrNull { it.id == sub.accountId }?.name ?: "غير محدد"
-                                    SubscriptionItem(
-                                        subscription = sub,
-                                        onToggleActive = {},
-                                        accountName = linkedAcc
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ── Recent transactions header ─────────────────────────────
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "آخر العمليات والإنفاق",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "عرض الكل",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Primary,
-                            modifier = Modifier
-                                .clickable { onViewAllTransactionsClick() }
-                                .padding(4.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
-                // ── Recent transactions list ───────────────────────────────
-                if (uiState.isLoading) {
-                    item {
-                        TransactionListSkeleton(modifier = Modifier.padding(horizontal = 16.dp))
-                    }
-                } else if (uiState.recentTransactions.isEmpty()) {
-                    item {
-                        EmptyStateView(
-                            title = "لا توجد معاملات مضافة!",
-                            description = "اضغط على زر الإضافة العائم لإدراج أول مصروف لك اليوم.",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                        )
-                    }
-                } else {
-                    items(uiState.recentTransactions.take(5), key = { it.id }) { tx ->
-                        val cat = uiState.categories.firstOrNull { it.id == tx.categoryId }
-                        val accName = uiState.accounts
-                            .firstOrNull { it.id == tx.accountId }?.name ?: "غير معروف"
-                        TransactionItem(
-                            transaction = tx,
-                            category = cat,
-                            accountName = accName,
-                            onClick = onViewAllTransactionsClick,
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp)
-                                .padding(bottom = 8.dp)
-                        )
                     }
                 }
             }
@@ -1508,6 +1526,8 @@ private fun PremiumTopBalanceCard(
 private fun IncomeExpenseSplitCards(
     monthlyIncome: Double,
     monthlyExpense: Double,
+    incomeChangePercent: Double = 0.0,
+    expenseChangePercent: Double = 0.0,
     accounts: List<Account> = emptyList(),
     recentTransactions: List<Transaction> = emptyList(),
     onIncomeShowAllClick: () -> Unit,
@@ -1809,6 +1829,31 @@ private fun IncomeExpenseSplitCards(
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.ExtraBold
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    // Income change percent badge
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background((if (incomeChangePercent >= 0) IncomeGreen else ExpenseRed).copy(alpha = 0.1f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (incomeChangePercent >= 0) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                            contentDescription = null,
+                            tint = if (incomeChangePercent >= 0) IncomeGreen else ExpenseRed,
+                            modifier = Modifier.size(10.dp)
+                        )
+                        Text(
+                            text = String.format(java.util.Locale.US, "%.1f%%", kotlin.math.abs(incomeChangePercent)),
+                            fontSize = 9.sp,
+                            color = if (incomeChangePercent >= 0) IncomeGreen else ExpenseRed,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
                     Spacer(modifier = Modifier.height(12.dp))
                     Box(
                         modifier = Modifier
@@ -1866,6 +1911,32 @@ private fun IncomeExpenseSplitCards(
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.ExtraBold
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    // Expense change percent badge (decrease is green/good, increase is red/bad)
+                    val isExpenseDecreased = expenseChangePercent <= 0
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background((if (isExpenseDecreased) IncomeGreen else ExpenseRed).copy(alpha = 0.1f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (expenseChangePercent >= 0) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                            contentDescription = null,
+                            tint = if (isExpenseDecreased) IncomeGreen else ExpenseRed,
+                            modifier = Modifier.size(10.dp)
+                        )
+                        Text(
+                            text = String.format(java.util.Locale.US, "%.1f%%", kotlin.math.abs(expenseChangePercent)),
+                            fontSize = 9.sp,
+                            color = if (isExpenseDecreased) IncomeGreen else ExpenseRed,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
                     Spacer(modifier = Modifier.height(12.dp))
                     Box(
                         modifier = Modifier
@@ -2020,5 +2091,145 @@ private fun TransactionListSkeleton(modifier: Modifier = Modifier) {
             )
         }
     }
+}
+
+private data class ContextTemplateData(
+    val emoji: String,
+    val suggestionText: String,
+    val targetKeyword: String,
+    val defaultAmount: Double,
+    val note: String,
+    val title: String
+)
+
+@Composable
+private fun ContextAwareTemplateCard(
+    categories: List<com.example.domain.model.Category>,
+    onSelectTemplate: (String) -> Unit
+) {
+    val currentHour = remember { java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY) }
+    val templateData = remember(currentHour) {
+        when (currentHour) {
+            in 6..11 -> ContextTemplateData(
+                emoji = "🌅",
+                suggestionText = "صباح الخير! هل دفعت ثمن مواصلات العمل اليوم؟",
+                targetKeyword = "مواصلات",
+                defaultAmount = 150.0,
+                note = "تاكسي / حافلة العمل",
+                title = "مواصلات الصباح"
+            )
+            in 12..16 -> ContextTemplateData(
+                emoji = "☕",
+                suggestionText = "وقت الاستراحة! هل ترغب في تسجيل وجبة الغداء أو قهوة؟",
+                targetKeyword = "طعام",
+                defaultAmount = 450.0,
+                note = "غداء / قهوة استراحة",
+                title = "وجبة الغداء"
+            )
+            in 17..21 -> ContextTemplateData(
+                emoji = "🛒",
+                suggestionText = "مساء الخير! هل قمت بشراء البقالة ومستلزمات المنزل؟",
+                targetKeyword = "طعام",
+                defaultAmount = 1200.0,
+                note = "مشتريات البقالة المنزلية",
+                title = "عشاء / بقالة المساء"
+            )
+            else -> ContextTemplateData(
+                emoji = "🌙",
+                suggestionText = "سهرة سعيدة! هل قمت بتعبئة رصيد هاتف أو إنترنت؟",
+                targetKeyword = "منزلي",
+                defaultAmount = 500.0,
+                note = "تعبئة رصيد إنترنت / هاتف",
+                title = "رصيد إنترنت / مكالمات"
+            )
+        }
+    }
+    val emoji = templateData.emoji
+    val suggestionText = templateData.suggestionText
+    val targetKeyword = templateData.targetKeyword
+    val defaultAmount = templateData.defaultAmount
+    
+    val note = templateData.note
+    val title = templateData.title
+
+    val targetCategory = categories.find { it.name.contains(targetKeyword) }
+    val categoryId = targetCategory?.id
+
+    val Primary = MaterialTheme.colorScheme.primary
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.12f)
+        ),
+        border = BorderStroke(1.dp, Primary.copy(alpha = 0.15f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(text = emoji, fontSize = 24.sp)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "اقتراح ذكي حسب الوقت",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Primary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = suggestionText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = {
+                        val draft = """{"amount":$defaultAmount,"type":"EXPENSE","categoryId":${categoryId ?: "null"},"notes":"$note"}"""
+                        onSelectTemplate(draft)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "سجل الآن (${FormatterUtils.formatCurrency(defaultAmount)})",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun getDashboardSections(sharedPrefs: android.content.SharedPreferences): List<String> {
+    val defaultOrder = "split_cards,context_templates,templates,quick_actions,accounts,chart,budget,subscriptions,recent_transactions"
+    val orderStr = sharedPrefs.getString("dashboard_sections_order", defaultOrder) ?: defaultOrder
+    return orderStr.split(",")
+}
+
+private fun isSectionVisible(sharedPrefs: android.content.SharedPreferences, section: String): Boolean {
+    return sharedPrefs.getBoolean("dashboard_show_$section", true)
 }
 
