@@ -15,6 +15,9 @@ interface TransactionRepository {
     suspend fun deleteTransaction(transaction: Transaction)
     suspend fun deleteTransactionById(id: Long)
     suspend fun isTransactionAlreadyInserted(type: TransactionType, note: String, startDate: Long, endDate: Long): Boolean
+    fun getDailyFinancialAggregatesForRange(startDate: Long, endDate: Long): Flow<List<com.example.data.local.entities.DailyFinancialAggregateEntity>>
+    suspend fun deleteTransactionsBulk(ids: List<Long>)
+    suspend fun updateTransactionsCategoryBulk(ids: List<Long>, newCategoryId: Long)
 }
 
 interface AccountRepository {

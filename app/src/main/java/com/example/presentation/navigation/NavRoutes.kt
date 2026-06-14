@@ -27,6 +27,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
     }
     object Transactions : Screen("transactions", "المعاملات", Icons.Default.History)
     object Accounts : Screen("accounts", "الحسابات", Icons.Default.AccountBalanceWallet)
+    @Deprecated("Unused route. Kept for backward compatibility.")
     object Income : Screen("income", "الدخل", Icons.Default.TrendingUp)
     object Savings : Screen("savings", "الادخار", Icons.Default.Savings)
     object Subscriptions : Screen("subscriptions", "الاشتراكات", Icons.Default.Receipt)

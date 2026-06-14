@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.text.SimpleDateFormat
 import java.util.Locale
+import com.example.core.preferences.PreferencesManager
 
 @Immutable
 data class ExpenseTrendPoint(val label: String, val amount: Double)
@@ -31,7 +32,11 @@ data class HomeUiState(
     val pinnedTemplates: List<TransactionTemplate> = emptyList(),
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val showBalances: Boolean = true,
+    val showWalletReminder: Boolean = false,
+    val visibleSections: List<String> = emptyList(),
+    val accountBalancesVisibility: Map<Long, Boolean> = emptyMap()
 )
 
 class HomeViewModel(
@@ -41,7 +46,7 @@ class HomeViewModel(
     private val subscriptionRepository: SubscriptionRepository,
     private val incomeRepository: IncomeRepository,
     private val templateRepository: TransactionTemplateRepository,
-    private val context: android.content.Context
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -231,7 +236,11 @@ class HomeViewModel(
                 chartPeriod = period,
                 expenseTrendData = trendPoints,
                 pinnedTemplates = pinnedTemplates,
-                isLoading = false
+                isLoading = false,
+                showBalances = preferencesManager.showBalanceTotal,
+                showWalletReminder = preferencesManager.walletSetupSkipped && !preferencesManager.walletSetupReminderDismissed,
+                visibleSections = preferencesManager.dashboardSectionsOrder.split(",").filter { preferencesManager.isSectionVisible(it) },
+                accountBalancesVisibility = accounts.associate { it.id to preferencesManager.getShowBalanceAcc(it.id) }
             )
         }
     }
@@ -374,5 +383,27 @@ class HomeViewModel(
         viewModelScope.launch {
             transactionRepository.deleteTransactionById(id)
         }
+    }
+
+    fun toggleShowBalances() {
+        val nextVal = !preferencesManager.showBalanceTotal
+        preferencesManager.showBalanceTotal = nextVal
+        _uiState.update { it.copy(showBalances = nextVal) }
+    }
+
+    fun toggleAccountBalanceVisibility(accountId: Long) {
+        val nextVal = !preferencesManager.getShowBalanceAcc(accountId)
+        preferencesManager.setShowBalanceAcc(accountId, nextVal)
+        _uiState.update { state ->
+            val updatedMap = state.accountBalancesVisibility.toMutableMap().apply {
+                put(accountId, nextVal)
+            }
+            state.copy(accountBalancesVisibility = updatedMap)
+        }
+    }
+
+    fun dismissWalletReminder() {
+        preferencesManager.walletSetupReminderDismissed = true
+        _uiState.update { it.copy(showWalletReminder = false) }
     }
 }

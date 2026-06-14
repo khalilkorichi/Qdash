@@ -16,6 +16,8 @@ data class TransactionsUiState(
     val filteredTransactions: List<Transaction> = emptyList(),
     val categories: List<Category> = emptyList(),
     val accounts: List<Account> = emptyList(),
+    val isAmountWordsEnabled: Boolean = true,
+    val smartCategorySortEnabled: Boolean = false,
     
     // Filters
     val searchQuery: String = "",
@@ -78,8 +80,9 @@ class TransactionsViewModel(
     private val incomeRepository: IncomeRepository,
     private val getCategorySuggestionUseCase: GetCategorySuggestionUseCase,
     private val learnCategoryMappingUseCase: LearnCategoryMappingUseCase,
-    private val database: com.example.data.local.AppDatabase,
-    private val templateRepository: TransactionTemplateRepository
+    private val budgetGoalRepository: com.example.domain.repository.BudgetGoalRepository,
+    private val templateRepository: TransactionTemplateRepository,
+    private val preferencesManager: com.example.core.preferences.PreferencesManager
 ) : ViewModel() {
 
     fun saveAsTemplate(
@@ -229,7 +232,11 @@ class TransactionsViewModel(
                 val aggregatesFlow = combine(_visibleYear, _visibleMonth) { year, month ->
                     getMonthRange(year, month)
                 }.flatMapLatest { range ->
-                    database.dailyFinancialAggregateDao().getAggregatesForRange(range.first, range.second)
+                    transactionRepository.getDailyFinancialAggregatesForRange(range.first, range.second)
+                }
+
+                val budgetsFlow = budgetGoalRepository.getActiveBudgetGoals().map { list ->
+                    list.map { it.toEntity() }
                 }
 
                 combine(
@@ -237,7 +244,7 @@ class TransactionsViewModel(
                     filtersFlow,
                     calendarStateFlow,
                     aggregatesFlow,
-                    database.budgetGoalDao().getActiveBudgetGoals()
+                    budgetsFlow
                 ) { coreData, filtersPair, calendarState, aggregates, budgets ->
                     val (txs, cats, accs) = coreData
                     val filters = filtersPair.first
@@ -276,6 +283,8 @@ class TransactionsViewModel(
                         filterMinAmount = filters.filterMinAmount,
                         filterStartDate = filters.filterStartDate,
                         filterEndDate = filters.filterEndDate,
+                        isAmountWordsEnabled = preferencesManager.amountWordsEnabled,
+                        smartCategorySortEnabled = preferencesManager.smartCategorySortEnabled,
                         isLoading = false
                     )
                 }
@@ -298,6 +307,8 @@ class TransactionsViewModel(
                             filterMinAmount = updatedState.filterMinAmount,
                             filterStartDate = updatedState.filterStartDate,
                             filterEndDate = updatedState.filterEndDate,
+                            isAmountWordsEnabled = updatedState.isAmountWordsEnabled,
+                            smartCategorySortEnabled = updatedState.smartCategorySortEnabled,
                             isLoading = false
                         )
                     }
@@ -541,9 +552,7 @@ class TransactionsViewModel(
         if (ids.isEmpty()) return
         viewModelScope.launch {
             try {
-                database.withTransaction {
-                    database.transactionDao().deleteTransactionsBulk(ids)
-                }
+                transactionRepository.deleteTransactionsBulk(ids)
                 clearTransactionSelection()
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = e.localizedMessage) }
@@ -556,9 +565,7 @@ class TransactionsViewModel(
         if (ids.isEmpty()) return
         viewModelScope.launch {
             try {
-                database.withTransaction {
-                    database.transactionDao().updateTransactionsCategoryBulk(ids, newCategoryId)
-                }
+                transactionRepository.updateTransactionsCategoryBulk(ids, newCategoryId)
                 clearTransactionSelection()
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = e.localizedMessage) }
@@ -569,17 +576,16 @@ class TransactionsViewModel(
     fun mergeCategories(sourceCategoryId: Long, targetCategoryId: Long) {
         viewModelScope.launch {
             try {
-                database.withTransaction {
-                    database.transactionDao().mergeTransactionsCategory(sourceCategoryId, targetCategoryId)
-                    database.budgetGoalDao().mergeBudgetGoalsCategory(sourceCategoryId, targetCategoryId)
-                    val sourceCat = categoryRepository.getCategoryById(sourceCategoryId)
-                    if (sourceCat != null) {
-                        categoryRepository.deleteCategory(sourceCat)
-                    }
-                }
+                categoryRepository.mergeCategories(sourceCategoryId, targetCategoryId)
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = e.localizedMessage) }
             }
         }
+    }
+
+    fun toggleSmartCategorySort() {
+        val nextVal = !preferencesManager.smartCategorySortEnabled
+        preferencesManager.smartCategorySortEnabled = nextVal
+        _uiState.update { it.copy(smartCategorySortEnabled = nextVal) }
     }
 }

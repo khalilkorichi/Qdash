@@ -8,6 +8,8 @@ import com.example.domain.repository.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+import com.example.core.preferences.PreferencesManager
+
 @Immutable
 data class AccountsUiState(
     val accounts: List<Account> = emptyList(),
@@ -18,13 +20,16 @@ data class AccountsUiState(
     val isRefreshing: Boolean = false,
     val error: String? = null,
     val deleteError: String? = null,
-    val editingAccount: Account? = null
+    val editingAccount: Account? = null,
+    val showBalances: Boolean = true,
+    val accountBalancesVisibility: Map<Long, Boolean> = emptyMap()
 )
 
 class AccountsViewModel(
     private val accountRepository: AccountRepository,
     private val transactionRepository: TransactionRepository,
-    private val categoryRepository: CategoryRepository
+    private val categoryRepository: CategoryRepository,
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AccountsUiState())
@@ -43,6 +48,23 @@ class AccountsViewModel(
         }
     }
 
+    fun toggleTotalBalanceVisibility() {
+        val nextVal = !preferencesManager.showBalanceTotal
+        preferencesManager.showBalanceTotal = nextVal
+        _uiState.update { it.copy(showBalances = nextVal) }
+    }
+
+    fun toggleAccountBalanceVisibility(accountId: Long) {
+        val nextVal = !preferencesManager.getShowBalanceAcc(accountId)
+        preferencesManager.setShowBalanceAcc(accountId, nextVal)
+        _uiState.update { state ->
+            val updatedMap = state.accountBalancesVisibility.toMutableMap().apply {
+                put(accountId, nextVal)
+            }
+            state.copy(accountBalancesVisibility = updatedMap)
+        }
+    }
+
     private fun loadAccounts() {
         _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
@@ -58,6 +80,8 @@ class AccountsViewModel(
                         archivedAccounts = archived,
                         transactions = txs,
                         categories = cats,
+                        showBalances = preferencesManager.showBalanceTotal,
+                        accountBalancesVisibility = active.associate { it.id to preferencesManager.getShowBalanceAcc(it.id) },
                         isLoading = false
                     )
                 }

@@ -340,20 +340,11 @@ fun SettingsScreen(
     }
 
     if (showDashboardCustomizationDialog) {
-        val sharedPrefs = remember { context.getSharedPreferences("fintrack_prefs", android.content.Context.MODE_PRIVATE) }
         var sectionsOrder by remember {
-            mutableStateOf(
-                (sharedPrefs.getString("dashboard_sections_order", "split_cards,context_templates,templates,quick_actions,accounts,chart,budget,subscriptions,recent_transactions") ?: "split_cards,context_templates,templates,quick_actions,accounts,chart,budget,subscriptions,recent_transactions")
-                    .split(",")
-                    .toMutableList()
-            )
+            mutableStateOf(uiState.dashboardSectionsOrder.toMutableList())
         }
         var visibleMap by remember {
-            mutableStateOf(
-                sectionsOrder.associateWith { section ->
-                    sharedPrefs.getBoolean("dashboard_show_$section", true)
-                }.toMutableMap()
-            )
+            mutableStateOf(uiState.dashboardSectionsVisibility.toMutableMap())
         }
 
         AlertDialog(
@@ -484,12 +475,7 @@ fun SettingsScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        val editor = sharedPrefs.edit()
-                        editor.putString("dashboard_sections_order", sectionsOrder.joinToString(","))
-                        visibleMap.forEach { (section, isVisible) ->
-                            editor.putBoolean("dashboard_show_$section", isVisible)
-                        }
-                        editor.apply()
+                        viewModel.saveDashboardCustomization(sectionsOrder, visibleMap)
                         showDashboardCustomizationDialog = false
                         Toast.makeText(context, "تم حفظ الترتيب الجديد بنجاح!", Toast.LENGTH_SHORT).show()
                     },

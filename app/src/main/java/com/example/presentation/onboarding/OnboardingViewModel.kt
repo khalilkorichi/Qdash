@@ -1,4 +1,4 @@
-﻿package com.example.presentation.onboarding
+package com.example.presentation.onboarding
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -24,17 +24,15 @@ data class OnboardingUiState(
 
 class OnboardingViewModel(
     private val accountRepository: AccountRepository,
-    context: Context
+    private val preferencesManager: com.example.core.preferences.PreferencesManager
 ) : ViewModel() {
-
-    private val sharedPrefs: SharedPreferences = context.getSharedPreferences("kdach_prefs", Context.MODE_PRIVATE)
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
 
     init {
         // Default language is Arabic
-        val savedLang = sharedPrefs.getString("app_language", "ar") ?: "ar"
+        val savedLang = preferencesManager.appLanguage
         _uiState.value = _uiState.value.copy(selectedLanguage = savedLang)
     }
 
@@ -52,7 +50,7 @@ class OnboardingViewModel(
 
     fun setLanguage(lang: String) {
         _uiState.value = _uiState.value.copy(selectedLanguage = lang)
-        sharedPrefs.edit().putString("app_language", lang).apply()
+        preferencesManager.appLanguage = lang
     }
 
     fun onBalanceChanged(accountType: AccountType, value: String) {
@@ -67,8 +65,8 @@ class OnboardingViewModel(
     }
 
     fun saveNotificationPermission(granted: Boolean) {
-        sharedPrefs.edit().putBoolean("notification_permission_handled", true).apply()
-        sharedPrefs.edit().putBoolean("notification_permission_granted", granted).apply()
+        preferencesManager.notificationPermissionHandled = true
+        preferencesManager.notificationPermissionGranted = granted
     }
 
     fun completeWalletSetup(skip: Boolean, onFinished: () -> Unit) {
@@ -113,9 +111,9 @@ class OnboardingViewModel(
             }
 
             // Save state flags in shared preferences
-            sharedPrefs.edit().putBoolean("wallet_setup_completed", !skip).apply()
-            sharedPrefs.edit().putBoolean("wallet_setup_skipped", skip).apply()
-            sharedPrefs.edit().putBoolean("is_first_launch", false).apply()
+            preferencesManager.walletSetupCompleted = !skip
+            preferencesManager.walletSetupSkipped = skip
+            preferencesManager.isFirstLaunch = false
 
             _uiState.value = _uiState.value.copy(isSaving = false)
             onFinished()

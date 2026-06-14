@@ -34,7 +34,7 @@ class SearchViewModel(
     private val transactionRepo: TransactionRepository,
     private val categoryRepo: CategoryRepository,
     private val accountRepo: AccountRepository,
-    private val context: Context
+    private val preferencesManager: com.example.core.preferences.PreferencesManager
 ) : ViewModel() {
 
     private val _query = MutableStateFlow("")
@@ -118,17 +118,13 @@ class SearchViewModel(
         _recentSearches.value = updated
 
         viewModelScope.launch {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit()
-                .putString(KEY_RECENT_SEARCHES, updated.joinToString("|||"))
-                .apply()
+            preferencesManager.recentSearches = updated.joinToString("|||")
         }
     }
 
     fun loadRecentSearches() {
         viewModelScope.launch {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val raw = prefs.getString(KEY_RECENT_SEARCHES, "") ?: ""
+            val raw = preferencesManager.recentSearches
             _recentSearches.value = if (raw.isBlank()) {
                 emptyList()
             } else {
@@ -141,18 +137,14 @@ class SearchViewModel(
         val updated = _recentSearches.value.filter { it != query }
         _recentSearches.value = updated
         viewModelScope.launch {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit()
-                .putString(KEY_RECENT_SEARCHES, updated.joinToString("|||"))
-                .apply()
+            preferencesManager.recentSearches = updated.joinToString("|||")
         }
     }
 
     fun clearRecentSearches() {
         _recentSearches.value = emptyList()
         viewModelScope.launch {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit().remove(KEY_RECENT_SEARCHES).apply()
+            preferencesManager.recentSearches = ""
         }
     }
 }

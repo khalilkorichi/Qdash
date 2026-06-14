@@ -38,11 +38,10 @@ class ViewModelFactory(
                     container.transactionRepository,
                     container.accountRepository,
                     container.categoryRepository,
-                    context
+                    container.preferencesManager
                 ) as T
             }
             modelClass.isAssignableFrom(HomeViewModel::class.java) -> {
-
                 HomeViewModel(
                     container.transactionRepository,
                     container.accountRepository,
@@ -50,7 +49,7 @@ class ViewModelFactory(
                     container.subscriptionRepository,
                     container.incomeRepository,
                     container.transactionTemplateRepository,
-                    context
+                    container.preferencesManager
                 ) as T
             }
             modelClass.isAssignableFrom(TransactionsViewModel::class.java) -> {
@@ -61,15 +60,17 @@ class ViewModelFactory(
                     container.incomeRepository,
                     container.getCategorySuggestionUseCase,
                     container.learnCategoryMappingUseCase,
-                    container.database,
-                    container.transactionTemplateRepository
+                    container.budgetGoalRepository,
+                    container.transactionTemplateRepository,
+                    container.preferencesManager
                 ) as T
             }
             modelClass.isAssignableFrom(AccountsViewModel::class.java) -> {
                 AccountsViewModel(
                     container.accountRepository,
                     container.transactionRepository,
-                    container.categoryRepository
+                    container.categoryRepository,
+                    container.preferencesManager
                 ) as T
             }
             modelClass.isAssignableFrom(SavingsViewModel::class.java) -> {
@@ -123,7 +124,8 @@ class ViewModelFactory(
                     container.incomeRepository,
                     container.savingRepository,
                     container.subscriptionRepository,
-                    container.database,
+                    container.backupRepository,
+                    container.preferencesManager,
                     context
                 ) as T
             }
@@ -146,7 +148,7 @@ class ViewModelFactory(
                     container.transactionRepository,
                     container.categoryRepository,
                     container.accountRepository,
-                    context
+                    container.preferencesManager
                 ) as T
             }
             modelClass.isAssignableFrom(CategoriesViewModel::class.java) -> {
@@ -172,7 +174,7 @@ class ViewModelFactory(
             }
             modelClass.isAssignableFrom(BackupViewModel::class.java) -> {
                 BackupViewModel(
-                    BackupManager(context, container.database),
+                    container.backupManager,
                     container.transactionRepository,
                     container.categoryRepository,
                     container.accountRepository
@@ -181,7 +183,7 @@ class ViewModelFactory(
             modelClass.isAssignableFrom(com.example.presentation.update.UpdatesViewModel::class.java) -> {
                 com.example.presentation.update.UpdatesViewModel(
                     container.updateRepository,
-                    BackupManager(context, container.database)
+                    container.backupManager
                 ) as T
             }
             modelClass.isAssignableFrom(SalaryViewModel::class.java) -> {
@@ -194,7 +196,7 @@ class ViewModelFactory(
             modelClass.isAssignableFrom(com.example.presentation.onboarding.OnboardingViewModel::class.java) -> {
                 com.example.presentation.onboarding.OnboardingViewModel(
                     container.accountRepository,
-                    context
+                    container.preferencesManager
                 ) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

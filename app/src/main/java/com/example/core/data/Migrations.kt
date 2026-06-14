@@ -1,0 +1,238 @@
+package com.example.core.data
+
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+
+/**
+ * All Room database migrations for kdach_database.
+ * Extracted from AppContainer.kt — exact same SQL, never modify migration content.
+ *
+ * Migration chain: 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13
+ */
+
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `notifications` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                `title` TEXT NOT NULL, 
+                `message` TEXT NOT NULL, 
+                `type` TEXT NOT NULL, 
+                `isRead` INTEGER NOT NULL DEFAULT 0, 
+                `timestamp` INTEGER NOT NULL, 
+                `deepLinkRoute` TEXT, 
+                `relatedEntityId` INTEGER
+            )
+        """.trimIndent())
+
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `financial_plans` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                `title` TEXT NOT NULL, 
+                `type` TEXT NOT NULL, 
+                `targetAmount` REAL NOT NULL, 
+                `currentAmount` REAL NOT NULL DEFAULT 0.0, 
+                `linkedAccountIds` TEXT NOT NULL, 
+                `linkedCategoryIds` TEXT NOT NULL, 
+                `startDate` INTEGER NOT NULL, 
+                `endDate` INTEGER, 
+                `status` TEXT NOT NULL DEFAULT 'ACTIVE', 
+                `notes` TEXT, 
+                `color` TEXT NOT NULL DEFAULT '#6C63FF', 
+                `icon` TEXT NOT NULL DEFAULT 'flag', 
+                `createdAt` INTEGER NOT NULL
+            )
+        """.trimIndent())
+
+        db.execSQL("ALTER TABLE `accounts` ADD COLUMN `isDefault` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `accounts` ADD COLUMN `isArchived` INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL("ALTER TABLE `categories` ADD COLUMN `isSystem` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `categories` ADD COLUMN `parentId` INTEGER")
+        db.execSQL("ALTER TABLE `categories` ADD COLUMN `sortOrder` INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_accountId` ON `transactions` (`accountId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_categoryId` ON `transactions` (`categoryId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_date` ON `transactions` (`date`)")
+        
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `savings_contributions` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                `savingGoalId` INTEGER NOT NULL, 
+                `accountId` INTEGER NOT NULL, 
+                `amount` REAL NOT NULL, 
+                `type` TEXT NOT NULL, 
+                `note` TEXT, 
+                `date` INTEGER NOT NULL, 
+                `linkedTransactionId` INTEGER, 
+                `createdAt` INTEGER NOT NULL
+            )
+        """.trimIndent())
+
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `debts` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                `title` TEXT NOT NULL, 
+                `creditorName` TEXT NOT NULL, 
+                `totalAmount` REAL NOT NULL, 
+                `remainingAmount` REAL NOT NULL, 
+                `interestRate` REAL, 
+                `dueDate` INTEGER, 
+                `minimumPayment` REAL NOT NULL, 
+                `recommendedPayment` REAL, 
+                `paymentFrequency` TEXT NOT NULL, 
+                `linkedAccountId` INTEGER, 
+                `priority` INTEGER NOT NULL, 
+                `notes` TEXT, 
+                `color` TEXT NOT NULL, 
+                `icon` TEXT NOT NULL, 
+                `createdAt` INTEGER NOT NULL, 
+                `isClosed` INTEGER NOT NULL DEFAULT 0
+            )
+        """.trimIndent())
+
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `debt_payments` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                `debtId` INTEGER NOT NULL, 
+                `accountId` INTEGER NOT NULL, 
+                `amount` REAL NOT NULL, 
+                `paymentDate` INTEGER NOT NULL, 
+                `paymentType` TEXT NOT NULL, 
+                `note` TEXT, 
+                `linkedTransactionId` INTEGER, 
+                `createdAt` INTEGER NOT NULL
+            )
+        """.trimIndent())
+
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `transfers` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                `fromAccountId` INTEGER NOT NULL, 
+                `toAccountId` INTEGER NOT NULL, 
+                `amount` REAL NOT NULL, 
+                `feeAmount` REAL, 
+                `note` TEXT, 
+                `date` INTEGER NOT NULL, 
+                `referenceId` TEXT NOT NULL, 
+                `createdAt` INTEGER NOT NULL
+            )
+        """.trimIndent())
+    }
+}
+
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_categories_parentId` ON `categories` (`parentId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_income_sources_accountId` ON `income_sources` (`accountId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_saving_goals_accountId` ON `saving_goals` (`accountId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_subscriptions_accountId` ON `subscriptions` (`accountId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_subscriptions_categoryId` ON `subscriptions` (`categoryId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_savings_contributions_savingGoalId` ON `savings_contributions` (`savingGoalId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_savings_contributions_accountId` ON `savings_contributions` (`accountId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_savings_contributions_date` ON `savings_contributions` (`date`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_debts_linkedAccountId` ON `debts` (`linkedAccountId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_debtId` ON `debt_payments` (`debtId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_accountId` ON `debt_payments` (`accountId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transfers_fromAccountId` ON `transfers` (`fromAccountId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transfers_toAccountId` ON `transfers` (`toAccountId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transfers_date` ON `transfers` (`date`)")
+    }
+}
+
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `daily_financial_aggregates` (
+                `localDateTimestamp` INTEGER NOT NULL, 
+                `totalExpense` REAL NOT NULL, 
+                `totalIncome` REAL NOT NULL, 
+                `transactionCount` INTEGER NOT NULL, 
+                `netCashflow` REAL NOT NULL, 
+                `activityScore` REAL NOT NULL, 
+                PRIMARY KEY(`localDateTimestamp`)
+            )
+        """.trimIndent())
+        
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_daily_financial_aggregates_localDateTimestamp` ON `daily_financial_aggregates` (`localDateTimestamp`)")
+    }
+}
+
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `transaction_templates` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                `name` TEXT NOT NULL, 
+                `amount` REAL NOT NULL, 
+                `transactionType` TEXT NOT NULL, 
+                `accountId` INTEGER NOT NULL, 
+                `targetAccountId` INTEGER, 
+                `categoryId` INTEGER, 
+                `subcategoryId` INTEGER, 
+                `notes` TEXT, 
+                `iconEmoji` TEXT, 
+                `colorHex` TEXT, 
+                `isPinned` INTEGER NOT NULL DEFAULT 0, 
+                `usageCount` INTEGER NOT NULL DEFAULT 0, 
+                `lastUsedAt` INTEGER, 
+                `createdAt` INTEGER NOT NULL, 
+                `updatedAt` INTEGER NOT NULL
+            )
+        """.trimIndent())
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transaction_templates_isPinned` ON `transaction_templates` (`isPinned`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transaction_templates_usageCount` ON `transaction_templates` (`usageCount`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transaction_templates_lastUsedAt` ON `transaction_templates` (`lastUsedAt`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transaction_templates_transactionType` ON `transaction_templates` (`transactionType`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transaction_templates_categoryId` ON `transaction_templates` (`categoryId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transaction_templates_accountId` ON `transaction_templates` (`accountId`)")
+    }
+}
+
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Schema v8 and v9 are identical — only version bumped.
+        // No structural changes required. Room still needs this
+        // migration path so it does NOT fall back to destructive.
+    }
+}
+
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_budget_goals_linkedCategoryId ON budget_goals (linkedCategoryId)")
+    }
+}
+
+val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_ai_chat_messages_sessionTitle` ON `ai_chat_messages` (`sessionTitle`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_paymentDate` ON `debt_payments` (`paymentDate`)")
+    }
+}
+
+val MIGRATION_11_12 = object : Migration(11, 12) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE transactions ADD COLUMN tags TEXT")
+    }
+}
+
+val MIGRATION_12_13 = object : Migration(12, 13) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_user_category_mappings_normalizedText` ON `user_category_mappings` (`normalizedText`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_category_rules_keyword` ON `category_rules` (`keyword`)")
+    }
+}
+
+/**
+ * All migrations in order, for passing to Room's addMigrations().
+ */
+val ALL_MIGRATIONS = arrayOf(
+    MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
+    MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
+    MIGRATION_11_12, MIGRATION_12_13
+)

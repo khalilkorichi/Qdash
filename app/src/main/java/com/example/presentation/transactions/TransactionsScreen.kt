@@ -1,4 +1,4 @@
-package com.example.presentation.transactions
+﻿package com.example.presentation.transactions
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
@@ -132,11 +132,11 @@ fun TransactionsScreen(
                 contentPadding = PaddingValues(bottom = 100.dp)
             ) {
 
-            // ── Unified Screen Header ────────────────────────────────────────
+            // â”€â”€ Unified Screen Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             item(key = "header") {
                 UnifiedScreenHeader(
-                    title = "سجل المعاملات",
-                    subtitle = "تتبع تفاصيل وارداتك ومصروفاتك اليومية بدقة",
+                    title = "ط³ط¬ظ„ ط§ظ„ظ…ط¹ط§ظ…ظ„ط§طھ",
+                    subtitle = "طھطھط¨ط¹ طھظپط§طµظٹظ„ ظˆط§ط±ط¯ط§طھظƒ ظˆظ…طµط±ظˆظپط§طھظƒ ط§ظ„ظٹظˆظ…ظٹط© ط¨ط¯ظ‚ط©",
                     showBackButton = true,
                     onBackClick = onBack,
                     actions = {
@@ -145,7 +145,7 @@ fun TransactionsScreen(
                             color = Primary.copy(alpha = 0.12f)
                         ) {
                             Text(
-                                text = "${uiState.filteredTransactions.size} عمليات",
+                                text = "${uiState.filteredTransactions.size} ط¹ظ…ظ„ظٹط§طھ",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Primary,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
@@ -156,7 +156,7 @@ fun TransactionsScreen(
                 )
             }
 
-            // ── Search box under Title ────────────────────────────────────────
+            // â”€â”€ Search box under Title â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             item(key = "search_box") {
                 Row(
                     modifier = Modifier
@@ -174,7 +174,7 @@ fun TransactionsScreen(
                             .clip(RoundedCornerShape(28.dp)),
                         placeholder = {
                             Text(
-                                "بحث باسم المعاملة أو غرض الشراء...",
+                                "ط¨ط­ط« ط¨ط§ط³ظ… ط§ظ„ظ…ط¹ط§ظ…ظ„ط© ط£ظˆ ط؛ط±ط¶ ط§ظ„ط´ط±ط§ط،...",
                                 color = TextGray,
                                 fontSize = 13.sp
                             )
@@ -213,14 +213,14 @@ fun TransactionsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.FilterAlt,
-                            contentDescription = "تصفية متقدمة",
+                            contentDescription = "طھطµظپظٹط© ظ…طھظ‚ط¯ظ…ط©",
                             tint = if (hasActiveFilters) Primary else MaterialTheme.colorScheme.onBackground
                         )
                     }
                 }
             }
 
-            // ── Unified Summary & Filters Card ──────────────────────────────
+            // â”€â”€ Unified Summary & Filters Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             item(key = "summary_and_filters") {
                 if (uiState.isLoading) {
                     Box(
@@ -256,7 +256,7 @@ fun TransactionsScreen(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Box(modifier = Modifier.size(5.dp).background(ExpenseRed, CircleShape))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("المصاريف", fontSize = 11.sp, color = TextGray)
+                                        Text("ط§ظ„ظ…طµط§ط±ظٹظپ", fontSize = 11.sp, color = TextGray)
                                     }
                                     Text(FormatterUtils.formatCurrency(totalExpenses), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ExpenseRed)
                                 }
@@ -268,7 +268,7 @@ fun TransactionsScreen(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Box(modifier = Modifier.size(5.dp).background(IncomeGreen, CircleShape))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("المداخيل", fontSize = 11.sp, color = TextGray)
+                                        Text("ط§ظ„ظ…ط¯ط§ط®ظٹظ„", fontSize = 11.sp, color = TextGray)
                                     }
                                     Text(FormatterUtils.formatCurrency(totalIncome), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = IncomeGreen)
                                 }
@@ -280,7 +280,7 @@ fun TransactionsScreen(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Box(modifier = Modifier.size(5.dp).background(netColor, CircleShape))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("الصافي", fontSize = 11.sp, color = TextGray)
+                                        Text("ط§ظ„طµط§ظپظٹ", fontSize = 11.sp, color = TextGray)
                                     }
                                     Text(FormatterUtils.formatCurrency(netBalance), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = netColor)
                                 }
@@ -302,7 +302,7 @@ fun TransactionsScreen(
                                 FilterChip(
                                     selected = uiState.selectedType == null,
                                     onClick = { viewModel.onTypeSelected(null) },
-                                    label = { Text("الكل", style = textStyle) },
+                                    label = { Text("ط§ظ„ظƒظ„", style = textStyle) },
                                     leadingIcon = { Icon(Icons.Default.FilterList, contentDescription = null, modifier = Modifier.size(12.dp)) },
                                     shape = RoundedCornerShape(50.dp),
                                     colors = FilterChipDefaults.filterChipColors(
@@ -318,7 +318,7 @@ fun TransactionsScreen(
                                 FilterChip(
                                     selected = uiState.selectedType == TransactionType.EXPENSE,
                                     onClick = { viewModel.onTypeSelected(TransactionType.EXPENSE) },
-                                    label = { Text("مصاريف", style = textStyle) },
+                                    label = { Text("ظ…طµط§ط±ظٹظپ", style = textStyle) },
                                     leadingIcon = { Icon(Icons.Default.ArrowUpward, contentDescription = null, modifier = Modifier.size(12.dp)) },
                                     shape = RoundedCornerShape(50.dp),
                                     colors = FilterChipDefaults.filterChipColors(
@@ -334,7 +334,7 @@ fun TransactionsScreen(
                                 FilterChip(
                                     selected = uiState.selectedType == TransactionType.INCOME,
                                     onClick = { viewModel.onTypeSelected(TransactionType.INCOME) },
-                                    label = { Text("مداخيل", style = textStyle) },
+                                    label = { Text("ظ…ط¯ط§ط®ظٹظ„", style = textStyle) },
                                     leadingIcon = { Icon(Icons.Default.ArrowDownward, contentDescription = null, modifier = Modifier.size(12.dp)) },
                                     shape = RoundedCornerShape(50.dp),
                                     colors = FilterChipDefaults.filterChipColors(
@@ -350,7 +350,7 @@ fun TransactionsScreen(
                                 FilterChip(
                                     selected = uiState.selectedType == TransactionType.TRANSFER,
                                     onClick = { viewModel.onTypeSelected(TransactionType.TRANSFER) },
-                                    label = { Text("تحويلات", style = textStyle) },
+                                    label = { Text("طھط­ظˆظٹظ„ط§طھ", style = textStyle) },
                                     leadingIcon = { Icon(Icons.Default.SwapHoriz, contentDescription = null, modifier = Modifier.size(12.dp)) },
                                     shape = RoundedCornerShape(50.dp),
                                     colors = FilterChipDefaults.filterChipColors(
@@ -369,7 +369,7 @@ fun TransactionsScreen(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            // ── Financial Activity Calendar ──────────────────────────────────
+            // â”€â”€ Financial Activity Calendar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             item(key = "calendar") {
                 FinancialActivityCalendar(
                     uiState = uiState,
@@ -379,7 +379,7 @@ fun TransactionsScreen(
                 )
             }
 
-            // ── Metric Switcher Row ──────────────────────────────────────────
+            // â”€â”€ Metric Switcher Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             item(key = "metric_switcher") {
                 Row(
                     modifier = Modifier
@@ -395,11 +395,11 @@ fun TransactionsScreen(
                         modifier = Modifier.weight(1f)
                     ) {
                         val modes = listOf(
-                            "COUNT" to "العمليات",
-                            "EXPENSE" to "المصاريف",
-                            "INCOME" to "المداخيل",
-                            "CASHFLOW" to "صافي الحركة",
-                            "SCORE" to "النشاط"
+                            "COUNT" to "ط§ظ„ط¹ظ…ظ„ظٹط§طھ",
+                            "EXPENSE" to "ط§ظ„ظ…طµط§ط±ظٹظپ",
+                            "INCOME" to "ط§ظ„ظ…ط¯ط§ط®ظٹظ„",
+                            "CASHFLOW" to "طµط§ظپظٹ ط§ظ„ط­ط±ظƒط©",
+                            "SCORE" to "ط§ظ„ظ†ط´ط§ط·"
                         )
 
                         items(modes) { (modeCode, label) ->
@@ -433,7 +433,7 @@ fun TransactionsScreen(
                     IconButton(onClick = { showHelpDialog = true }, modifier = Modifier.size(32.dp)) {
                         Icon(
                             imageVector = Icons.Default.Info,
-                            contentDescription = "معلومات المؤشرات",
+                            contentDescription = "ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ظ…ط¤ط´ط±ط§طھ",
                             tint = TextGray,
                             modifier = Modifier.size(20.dp)
                         )
@@ -446,7 +446,7 @@ fun TransactionsScreen(
                             containerColor = MaterialTheme.colorScheme.surface,
                             title = {
                                 Text(
-                                    text = "دليل المؤشرات المالية",
+                                    text = "ط¯ظ„ظٹظ„ ط§ظ„ظ…ط¤ط´ط±ط§طھ ط§ظ„ظ…ط§ظ„ظٹط©",
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurface,
                                     textAlign = TextAlign.Right
@@ -455,11 +455,11 @@ fun TransactionsScreen(
                             text = {
                                 Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                     listOf(
-                                        "• النشاط اليومي: يوضح عدد المعاملات والعمليات المسجلة كل يوم في هذا الشهر.",
-                                        "• المصاريف: حجم الإنفاقات المالية اليومية. الدوائر الحمراء الكبرى تدل على مصاريف ضخمة.",
-                                        "• المداخيل: وارداتك المالية اليومية. الدوائر الخضراء الكبرى تمثل أيام استلام الرواتب والمكاسب.",
-                                        "• صافي الحركة: يعرض الفارق بين الواردات والمصاريف اليومية.",
-                                        "• مؤشر السرعة: خوارزمية ذكية تدمج بين تكرار معاملاتك وحجم مبالغك المتداولة."
+                                        "â€¢ ط§ظ„ظ†ط´ط§ط· ط§ظ„ظٹظˆظ…ظٹ: ظٹظˆط¶ط­ ط¹ط¯ط¯ ط§ظ„ظ…ط¹ط§ظ…ظ„ط§طھ ظˆط§ظ„ط¹ظ…ظ„ظٹط§طھ ط§ظ„ظ…ط³ط¬ظ„ط© ظƒظ„ ظٹظˆظ… ظپظٹ ظ‡ط°ط§ ط§ظ„ط´ظ‡ط±.",
+                                        "â€¢ ط§ظ„ظ…طµط§ط±ظٹظپ: ط­ط¬ظ… ط§ظ„ط¥ظ†ظپط§ظ‚ط§طھ ط§ظ„ظ…ط§ظ„ظٹط© ط§ظ„ظٹظˆظ…ظٹط©. ط§ظ„ط¯ظˆط§ط¦ط± ط§ظ„ط­ظ…ط±ط§ط، ط§ظ„ظƒط¨ط±ظ‰ طھط¯ظ„ ط¹ظ„ظ‰ ظ…طµط§ط±ظٹظپ ط¶ط®ظ…ط©.",
+                                        "â€¢ ط§ظ„ظ…ط¯ط§ط®ظٹظ„: ظˆط§ط±ط¯ط§طھظƒ ط§ظ„ظ…ط§ظ„ظٹط© ط§ظ„ظٹظˆظ…ظٹط©. ط§ظ„ط¯ظˆط§ط¦ط± ط§ظ„ط®ط¶ط±ط§ط، ط§ظ„ظƒط¨ط±ظ‰ طھظ…ط«ظ„ ط£ظٹط§ظ… ط§ط³طھظ„ط§ظ… ط§ظ„ط±ظˆط§طھط¨ ظˆط§ظ„ظ…ظƒط§ط³ط¨.",
+                                        "â€¢ طµط§ظپظٹ ط§ظ„ط­ط±ظƒط©: ظٹط¹ط±ط¶ ط§ظ„ظپط§ط±ظ‚ ط¨ظٹظ† ط§ظ„ظˆط§ط±ط¯ط§طھ ظˆط§ظ„ظ…طµط§ط±ظٹظپ ط§ظ„ظٹظˆظ…ظٹط©.",
+                                        "â€¢ ظ…ط¤ط´ط± ط§ظ„ط³ط±ط¹ط©: ط®ظˆط§ط±ط²ظ…ظٹط© ط°ظƒظٹط© طھط¯ظ…ط¬ ط¨ظٹظ† طھظƒط±ط§ط± ظ…ط¹ط§ظ…ظ„ط§طھظƒ ظˆط­ط¬ظ… ظ…ط¨ط§ظ„ط؛ظƒ ط§ظ„ظ…طھط¯ط§ظˆظ„ط©."
                                     ).forEach { line ->
                                         Text(text = line, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Right)
                                     }
@@ -467,7 +467,7 @@ fun TransactionsScreen(
                             },
                             confirmButton = {
                                 TextButton(onClick = { showHelpDialog = false }) {
-                                    Text("حسناً", fontWeight = FontWeight.Bold, color = Primary)
+                                    Text("ط­ط³ظ†ط§ظ‹", fontWeight = FontWeight.Bold, color = Primary)
                                 }
                             }
                         )
@@ -475,9 +475,9 @@ fun TransactionsScreen(
                 }
             }
 
-            // ══════════════════════════════════════════════════════════════════
-            // ── آخر العمليات والإنفاق — دائم أسفل التقويم مباشرة ─────────────
-            // ══════════════════════════════════════════════════════════════════
+            // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+            // â”€â”€ ط¢ط®ط± ط§ظ„ط¹ظ…ظ„ظٹط§طھ ظˆط§ظ„ط¥ظ†ظپط§ظ‚ â€” ط¯ط§ط¦ظ… ط£ط³ظپظ„ ط§ظ„طھظ‚ظˆظٹظ… ظ…ط¨ط§ط´ط±ط© â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
             item(key = "recent_ops_header") {
                 Row(
                     modifier = Modifier
@@ -505,7 +505,7 @@ fun TransactionsScreen(
                             )
                         }
                         Text(
-                            text = if (uiState.selectedCalendarDate != null) "عمليات اليوم المحدد" else "آخر العمليات والإنفاق",
+                            text = if (uiState.selectedCalendarDate != null) "ط¹ظ…ظ„ظٹط§طھ ط§ظ„ظٹظˆظ… ط§ظ„ظ…ط­ط¯ط¯" else "ط¢ط®ط± ط§ظ„ط¹ظ…ظ„ظٹط§طھ ظˆط§ظ„ط¥ظ†ظپط§ظ‚",
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
                             color = MaterialTheme.colorScheme.onBackground
                         )
@@ -525,12 +525,12 @@ fun TransactionsScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "إلغاء فلتر اليوم",
+                                    contentDescription = "ط¥ظ„ط؛ط§ط، ظپظ„طھط± ط§ظ„ظٹظˆظ…",
                                     tint = ExpenseRed,
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Text(
-                                    text = "إلغاء الفلتر",
+                                    text = "ط¥ظ„ط؛ط§ط، ط§ظ„ظپظ„طھط±",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = ExpenseRed
@@ -543,7 +543,7 @@ fun TransactionsScreen(
                 }
             }
 
-            // ── Recent transactions (last 5 or day-filtered) ─────────────────
+            // â”€â”€ Recent transactions (last 5 or day-filtered) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if (uiState.isLoading) {
                 items(4, key = { "recent_skeleton_$it" }) {
                     Box(
@@ -558,8 +558,8 @@ fun TransactionsScreen(
                 if (recentTxs.isEmpty()) {
                     item(key = "recent_empty") {
                         EmptyStateView(
-                            title = if (uiState.selectedCalendarDate != null) "لا عمليات في هذا اليوم" else "لا توجد عمليات مسجلة!",
-                            description = if (uiState.selectedCalendarDate != null) "لم يتم تسجيل أي معاملات في هذا التاريخ." else "اضغط على زر الإضافة لتسجيل أول عملية مالية.",
+                            title = if (uiState.selectedCalendarDate != null) "ظ„ط§ ط¹ظ…ظ„ظٹط§طھ ظپظٹ ظ‡ط°ط§ ط§ظ„ظٹظˆظ…" else "ظ„ط§ طھظˆط¬ط¯ ط¹ظ…ظ„ظٹط§طھ ظ…ط³ط¬ظ„ط©!",
+                            description = if (uiState.selectedCalendarDate != null) "ظ„ظ… ظٹطھظ… طھط³ط¬ظٹظ„ ط£ظٹ ظ…ط¹ط§ظ…ظ„ط§طھ ظپظٹ ظ‡ط°ط§ ط§ظ„طھط§ط±ظٹط®." else "ط§ط¶ط؛ط· ط¹ظ„ظ‰ ط²ط± ط§ظ„ط¥ط¶ط§ظپط© ظ„طھط³ط¬ظٹظ„ ط£ظˆظ„ ط¹ظ…ظ„ظٹط© ظ…ط§ظ„ظٹط©.",
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 20.dp)
@@ -568,7 +568,7 @@ fun TransactionsScreen(
                 } else {
                     items(recentTxs, key = { "recent_${it.id}" }) { tx ->
                         val cat = uiState.categories.firstOrNull { it.id == tx.categoryId }
-                        val accName = uiState.accounts.firstOrNull { it.id == tx.accountId }?.name ?: "غير معروف"
+                        val accName = uiState.accounts.firstOrNull { it.id == tx.accountId }?.name ?: "ط؛ظٹط± ظ…ط¹ط±ظˆظپ"
                         val isSelected = uiState.selectedTransactionIds.contains(tx.id)
                         val isSelectionActive = uiState.selectedTransactionIds.isNotEmpty()
                         val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
@@ -635,7 +635,7 @@ fun TransactionsScreen(
                                             modifier = Modifier.size(18.dp)
                                         )
                                         Text(
-                                            text = "عرض المزيد من العمليات (${uiState.filteredTransactions.size - visibleRecentCount})",
+                                            text = "ط¹ط±ط¶ ط§ظ„ظ…ط²ظٹط¯ ظ…ظ† ط§ظ„ط¹ظ…ظ„ظٹط§طھ (${uiState.filteredTransactions.size - visibleRecentCount})",
                                             style = MaterialTheme.typography.labelLarge.copy(
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 13.sp
@@ -653,7 +653,7 @@ fun TransactionsScreen(
     }
 
 
-    // ── Professional Action Menu Dialog ──────────────────────────────────────
+    // â”€â”€ Professional Action Menu Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (showActionMenuForTransaction != null) {
         val tx = showActionMenuForTransaction!!
         val cat = uiState.categories.firstOrNull { it.id == tx.categoryId }
@@ -700,7 +700,7 @@ fun TransactionsScreen(
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "التحكم بالعملية المالية",
+                        text = "ط§ظ„طھط­ظƒظ… ط¨ط§ظ„ط¹ظ…ظ„ظٹط© ط§ظ„ظ…ط§ظ„ظٹط©",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 18.sp
@@ -710,7 +710,7 @@ fun TransactionsScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "${tx.note ?: cat?.name ?: "عملية مالية"} • $txAmountText",
+                        text = "${tx.note ?: cat?.name ?: "ط¹ظ…ظ„ظٹط© ظ…ط§ظ„ظٹط©"} â€¢ $txAmountText",
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                         color = TextGray,
@@ -744,7 +744,7 @@ fun TransactionsScreen(
                             horizontalArrangement = Arrangement.End
                         ) {
                             Text(
-                                text = "تعديل بيانات العملية",
+                                text = "طھط¹ط¯ظٹظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¹ظ…ظ„ظٹط©",
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.weight(1f),
@@ -778,7 +778,7 @@ fun TransactionsScreen(
                             horizontalArrangement = Arrangement.End
                         ) {
                             Text(
-                                text = "حذف العملية نهائياً",
+                                text = "ط­ط°ظپ ط§ظ„ط¹ظ…ظ„ظٹط© ظ†ظ‡ط§ط¦ظٹط§ظ‹",
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                 color = ExpenseRed,
                                 modifier = Modifier.weight(1f),
@@ -801,7 +801,7 @@ fun TransactionsScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "إلغاء",
+                        text = "ط¥ظ„ط؛ط§ط،",
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                         color = TextGray
                     )
@@ -810,21 +810,21 @@ fun TransactionsScreen(
         )
     }
 
-    // ── Delete Confirmation Dialog ───────────────────────────────────────────
+    // â”€â”€ Delete Confirmation Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (showDeleteDialog != null) {
         val txToDelete = showDeleteDialog!!
         AppDialog(
             onDismissRequest = { showDeleteDialog = null },
-            title = "حذف العملية المالية",
-            text = "هل أنت متأكد من رغبتك في حذف هذا الإنفاق؟ سيتم موازنة الرصيد وتحديث الحساب تلقائياً.",
-            confirmButtonText = "نعم، حذف",
+            title = "ط­ط°ظپ ط§ظ„ط¹ظ…ظ„ظٹط© ط§ظ„ظ…ط§ظ„ظٹط©",
+            text = "ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯ ظ…ظ† ط±ط؛ط¨طھظƒ ظپظٹ ط­ط°ظپ ظ‡ط°ط§ ط§ظ„ط¥ظ†ظپط§ظ‚طں ط³ظٹطھظ… ظ…ظˆط§ط²ظ†ط© ط§ظ„ط±طµظٹط¯ ظˆطھط­ط¯ظٹط« ط§ظ„ط­ط³ط§ط¨ طھظ„ظ‚ط§ط¦ظٹط§ظ‹.",
+            confirmButtonText = "ظ†ط¹ظ…طŒ ط­ط°ظپ",
             onConfirm = {
                 viewModel.deleteTransaction(txToDelete)
                 showDeleteDialog = null
                 scope.launch {
                     val result = snackbarHostState.showSnackbar(
-                        message = "تم حذف العملية بنجاح",
-                        actionLabel = "تراجع",
+                        message = "طھظ… ط­ط°ظپ ط§ظ„ط¹ظ…ظ„ظٹط© ط¨ظ†ط¬ط§ط­",
+                        actionLabel = "طھط±ط§ط¬ط¹",
                         duration = SnackbarDuration.Short
                     )
                     if (result == SnackbarResult.ActionPerformed) {
@@ -832,7 +832,7 @@ fun TransactionsScreen(
                     }
                 }
             },
-            dismissButtonText = "إلغاء",
+            dismissButtonText = "ط¥ظ„ط؛ط§ط،",
             isDestructive = true,
             icon = {
                 Icon(
@@ -844,18 +844,18 @@ fun TransactionsScreen(
         )
     }
 
-    // ── Bulk Delete Confirmation Dialog ──
+    // â”€â”€ Bulk Delete Confirmation Dialog â”€â”€
     if (showBulkDeleteDialog) {
         AppDialog(
             onDismissRequest = { showBulkDeleteDialog = false },
-            title = "حذف العمليات المحددة",
-            text = "هل أنت متأكد من رغبتك في حذف ${uiState.selectedTransactionIds.size} عملية مجمعة نهائياً؟ لا يمكن التراجع عن هذا الإجراء وسيتم تحديث الحسابات تلقائياً.",
-            confirmButtonText = "نعم، حذف الكل",
+            title = "ط­ط°ظپ ط§ظ„ط¹ظ…ظ„ظٹط§طھ ط§ظ„ظ…ط­ط¯ط¯ط©",
+            text = "ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯ ظ…ظ† ط±ط؛ط¨طھظƒ ظپظٹ ط­ط°ظپ ${uiState.selectedTransactionIds.size} ط¹ظ…ظ„ظٹط© ظ…ط¬ظ…ط¹ط© ظ†ظ‡ط§ط¦ظٹط§ظ‹طں ظ„ط§ ظٹظ…ظƒظ† ط§ظ„طھط±ط§ط¬ط¹ ط¹ظ† ظ‡ط°ط§ ط§ظ„ط¥ط¬ط±ط§ط، ظˆط³ظٹطھظ… طھط­ط¯ظٹط« ط§ظ„ط­ط³ط§ط¨ط§طھ طھظ„ظ‚ط§ط¦ظٹط§ظ‹.",
+            confirmButtonText = "ظ†ط¹ظ…طŒ ط­ط°ظپ ط§ظ„ظƒظ„",
             onConfirm = {
                 viewModel.deleteSelectedTransactions()
                 showBulkDeleteDialog = false
             },
-            dismissButtonText = "إلغاء",
+            dismissButtonText = "ط¥ظ„ط؛ط§ط،",
             isDestructive = true,
             icon = {
                 Icon(
@@ -867,7 +867,7 @@ fun TransactionsScreen(
         )
     }
 
-    // ── Bulk Category Selection Dialog ──
+    // â”€â”€ Bulk Category Selection Dialog â”€â”€
     if (showBulkCategoryDialog) {
         AlertDialog(
             onDismissRequest = { showBulkCategoryDialog = false },
@@ -875,7 +875,7 @@ fun TransactionsScreen(
             containerColor = MaterialTheme.colorScheme.surface,
             title = {
                 Text(
-                    text = "تغيير فئة العمليات المحددة",
+                    text = "طھط؛ظٹظٹط± ظپط¦ط© ط§ظ„ط¹ظ…ظ„ظٹط§طھ ط§ظ„ظ…ط­ط¯ط¯ط©",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Right,
@@ -888,7 +888,7 @@ fun TransactionsScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "اختر الفئة الجديدة لنقل العمليات المحددة إليها:",
+                        text = "ط§ط®طھط± ط§ظ„ظپط¦ط© ط§ظ„ط¬ط¯ظٹط¯ط© ظ„ظ†ظ‚ظ„ ط§ظ„ط¹ظ…ظ„ظٹط§طھ ط§ظ„ظ…ط­ط¯ط¯ط© ط¥ظ„ظٹظ‡ط§:",
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextGray,
                         textAlign = TextAlign.Right,
@@ -945,13 +945,13 @@ fun TransactionsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showBulkCategoryDialog = false }) {
-                    Text("إلغاء", color = TextGray)
+                    Text("ط¥ظ„ط؛ط§ط،", color = TextGray)
                 }
             }
         )
     }
 
-    // ── Advanced Filters Bottom Sheet ──
+    // â”€â”€ Advanced Filters Bottom Sheet â”€â”€
     if (showFilterSheet) {
         val filterSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         var tempMinAmount by remember { mutableStateOf(uiState.filterMinAmount?.toString() ?: "") }
@@ -975,7 +975,7 @@ fun TransactionsScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "تصفية متقدمة للمعاملات",
+                    text = "طھطµظپظٹط© ظ…طھظ‚ط¯ظ…ط© ظ„ظ„ظ…ط¹ط§ظ…ظ„ط§طھ",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Right,
@@ -985,7 +985,7 @@ fun TransactionsScreen(
                 // 1. Min Amount Filter
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "مبالغ أكبر من أو تساوي (دج):",
+                        text = "ظ…ط¨ط§ظ„ط؛ ط£ظƒط¨ط± ظ…ظ† ط£ظˆ طھط³ط§ظˆظٹ (ط¯ط¬):",
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Right,
@@ -995,7 +995,7 @@ fun TransactionsScreen(
                         value = tempMinAmount,
                         onValueChange = { tempMinAmount = it },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("مثال: 1000", textAlign = TextAlign.Right) },
+                        placeholder = { Text("ظ…ط«ط§ظ„: 1000", textAlign = TextAlign.Right) },
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
                         ),
@@ -1007,7 +1007,7 @@ fun TransactionsScreen(
                 // 2. Date Range Filter
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "النطاق الزمني:",
+                        text = "ط§ظ„ظ†ط·ط§ظ‚ ط§ظ„ط²ظ…ظ†ظٹ:",
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Right,
@@ -1024,7 +1024,7 @@ fun TransactionsScreen(
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
-                                text = tempEndDate?.let { FormatterUtils.formatDate(it) } ?: "تاريخ النهاية",
+                                text = tempEndDate?.let { FormatterUtils.formatDate(it) } ?: "طھط§ط±ظٹط® ط§ظ„ظ†ظ‡ط§ظٹط©",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -1037,7 +1037,7 @@ fun TransactionsScreen(
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
-                                text = tempStartDate?.let { FormatterUtils.formatDate(it) } ?: "تاريخ البداية",
+                                text = tempStartDate?.let { FormatterUtils.formatDate(it) } ?: "طھط§ط±ظٹط® ط§ظ„ط¨ط¯ط§ظٹط©",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -1064,7 +1064,7 @@ fun TransactionsScreen(
                         modifier = Modifier.weight(1f).height(48.dp),
                         shape = RoundedCornerShape(24.dp)
                     ) {
-                        Text("إعادة تعيين", color = ExpenseRed, fontWeight = FontWeight.Bold)
+                        Text("ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ†", color = ExpenseRed, fontWeight = FontWeight.Bold)
                     }
 
                     // Apply Button
@@ -1078,7 +1078,7 @@ fun TransactionsScreen(
                         shape = RoundedCornerShape(24.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Primary)
                     ) {
-                        Text("تطبيق الفلتر", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("طھط·ط¨ظٹظ‚ ط§ظ„ظپظ„طھط±", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -1094,12 +1094,12 @@ fun TransactionsScreen(
                         tempStartDate = datePickerState.selectedDateMillis
                         showStartDatePicker = false
                     }) {
-                        Text("تأكيد", fontWeight = FontWeight.Bold, color = Primary)
+                        Text("طھط£ظƒظٹط¯", fontWeight = FontWeight.Bold, color = Primary)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showStartDatePicker = false }) {
-                        Text("إلغاء", color = TextGray)
+                        Text("ط¥ظ„ط؛ط§ط،", color = TextGray)
                     }
                 }
             ) {
@@ -1116,12 +1116,12 @@ fun TransactionsScreen(
                         tempEndDate = datePickerState.selectedDateMillis
                         showEndDatePicker = false
                     }) {
-                        Text("تأكيد", fontWeight = FontWeight.Bold, color = Primary)
+                        Text("طھط£ظƒظٹط¯", fontWeight = FontWeight.Bold, color = Primary)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showEndDatePicker = false }) {
-                        Text("إلغاء", color = TextGray)
+                        Text("ط¥ظ„ط؛ط§ط،", color = TextGray)
                     }
                 }
             ) {
@@ -1130,7 +1130,7 @@ fun TransactionsScreen(
         }
     }
 
-    // ── Daily Financial Summary Bottom Sheet drawer ───────────────────────────
+    // â”€â”€ Daily Financial Summary Bottom Sheet drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (activeSummarySheetDay != null) {
         val selectedDayTs = activeSummarySheetDay!!
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -1176,7 +1176,7 @@ fun TransactionsScreen(
                 Spacer(modifier = Modifier.height(12.dp))
                 
                 Text(
-                    text = "الملخص المالي اليومي",
+                    text = "ط§ظ„ظ…ظ„ط®طµ ط§ظ„ظ…ط§ظ„ظٹ ط§ظ„ظٹظˆظ…ظٹ",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 20.sp,
@@ -1239,7 +1239,7 @@ fun TransactionsScreen(
                             }
                             Spacer(modifier = Modifier.height(10.dp))
                             Text(
-                                text = "مداخيل اليوم",
+                                text = "ظ…ط¯ط§ط®ظٹظ„ ط§ظ„ظٹظˆظ…",
                                 fontSize = 11.sp,
                                 color = TextGray,
                                 fontWeight = FontWeight.Bold
@@ -1286,7 +1286,7 @@ fun TransactionsScreen(
                             }
                             Spacer(modifier = Modifier.height(10.dp))
                             Text(
-                                text = "مصاريف اليوم",
+                                text = "ظ…طµط§ط±ظٹظپ ط§ظ„ظٹظˆظ…",
                                 fontSize = 11.sp,
                                 color = TextGray,
                                 fontWeight = FontWeight.Bold
@@ -1321,7 +1321,7 @@ fun TransactionsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "الصافي المالي:",
+                        text = "ط§ظ„طµط§ظپظٹ ط§ظ„ظ…ط§ظ„ظٹ:",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -1350,7 +1350,7 @@ fun TransactionsScreen(
                 val expenseTransactions = dayTransactions.filter { it.type == TransactionType.EXPENSE }
                 if (expenseTransactions.isNotEmpty()) {
                     Text(
-                        text = "توزيع مصاريف اليوم حسب الفئة",
+                        text = "طھظˆط²ظٹط¹ ظ…طµط§ط±ظٹظپ ط§ظ„ظٹظˆظ… ط­ط³ط¨ ط§ظ„ظپط¦ط©",
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 14.sp
@@ -1375,7 +1375,7 @@ fun TransactionsScreen(
                     ) {
                         categoryGroups.forEach { (catId, txs) ->
                             val category = uiState.categories.find { it.id == catId }
-                            val catName = category?.name ?: "أخرى"
+                            val catName = category?.name ?: "ط£ط®ط±ظ‰"
                             val catColorHex = category?.color ?: "#6C63FF"
                             val catColor = try {
                                 Color(android.graphics.Color.parseColor(catColorHex))
@@ -1465,7 +1465,7 @@ fun TransactionsScreen(
                             }
                             Spacer(modifier = Modifier.height(14.dp))
                             Text(
-                                text = "يوم بدون مصاريف!",
+                                text = "ظٹظˆظ… ط¨ط¯ظˆظ† ظ…طµط§ط±ظٹظپ!",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 15.sp
@@ -1475,7 +1475,7 @@ fun TransactionsScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "لم تقم بتسجيل أي مصاريف في هذا اليوم. استمر في التحكم بميزانيتك!",
+                                text = "ظ„ظ… طھظ‚ظ… ط¨طھط³ط¬ظٹظ„ ط£ظٹ ظ…طµط§ط±ظٹظپ ظپظٹ ظ‡ط°ط§ ط§ظ„ظٹظˆظ…. ط§ط³طھظ…ط± ظپظٹ ط§ظ„طھط­ظƒظ… ط¨ظ…ظٹط²ط§ظ†ظٹطھظƒ!",
                                 style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
                                 color = TextGray,
                                 textAlign = TextAlign.Center
@@ -1501,7 +1501,7 @@ fun TransactionsScreen(
                         border = BorderStroke(1.dp, TextGray.copy(alpha = 0.4f))
                     ) {
                         Text(
-                            text = "إغلاق",
+                            text = "ط¥ط؛ظ„ط§ظ‚",
                             color = TextGray,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp
@@ -1532,7 +1532,7 @@ fun TransactionsScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "عرض عمليات اليوم",
+                                text = "ط¹ط±ط¶ ط¹ظ…ظ„ظٹط§طھ ط§ظ„ظٹظˆظ…",
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
@@ -1545,681 +1545,4 @@ fun TransactionsScreen(
     }
 }
 }
-
-// ── Summary Mini Card ────────────────────────────────────────────────────────
-@Composable
-private fun SummaryMiniCard(
-    label: String,
-    amount: Double,
-    accentColor: Color,
-    modifier: Modifier = Modifier
-) {
-    AppCard(
-        modifier = modifier,
-        variant = CardVariant.SOLID,
-        shape = ShapeTokens.Md,
-        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .clip(CircleShape)
-                    .background(accentColor)
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = label,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = TextGray,
-                textAlign = TextAlign.Center,
-                maxLines = 1
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = FormatterUtils.formatCurrency(amount),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = accentColor,
-                textAlign = TextAlign.Center,
-                maxLines = 1
-            )
-        }
-    }
-}
-
-@Composable
-private fun SummaryMiniCardSkeleton(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .height(72.dp)
-            .shimmerEffect(ShapeTokens.Md)
-    )
-}
-
-@Composable
-private fun TransactionItemSkeleton(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(72.dp)
-            .shimmerEffect(ShapeTokens.Md)
-    )
-}
-
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-@Composable
-private fun FinancialActivityCalendar(
-    uiState: TransactionsUiState,
-    viewModel: TransactionsViewModel,
-    listState: LazyListState,
-    onDayDoubleTapped: (Long) -> Unit
-) {
-    val Primary = MaterialTheme.colorScheme.primary
-    val monthsArabic = listOf(
-        "يناير", "فبراير", "مارس", "أبريل", "ماي", "يونيو",
-        "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
-    )
-    
-    val daysHeader = listOf("س", "ح", "ن", "ث", "ر", "خ", "ج")
-    
-    val calendar = remember(uiState.visibleYear, uiState.visibleMonth) {
-        java.util.Calendar.getInstance().apply {
-            set(java.util.Calendar.YEAR, uiState.visibleYear)
-            set(java.util.Calendar.MONTH, uiState.visibleMonth)
-            set(java.util.Calendar.DAY_OF_MONTH, 1)
-        }
-    }
-    
-    val firstDayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK)
-    val daysInMonth = calendar.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
-    
-    val startOffset = when (firstDayOfWeek) {
-        java.util.Calendar.SATURDAY -> 0
-        java.util.Calendar.SUNDAY -> 1
-        java.util.Calendar.MONDAY -> 2
-        java.util.Calendar.TUESDAY -> 3
-        java.util.Calendar.WEDNESDAY -> 4
-        java.util.Calendar.THURSDAY -> 5
-        java.util.Calendar.FRIDAY -> 6
-        else -> 0
-    }
-    
-    val totalCells = startOffset + daysInMonth
-    val rowsCount = (totalCells + 6) / 7
-    
-    val activeColor = when (uiState.selectedMetricMode) {
-        "COUNT" -> Primary
-        "EXPENSE" -> ExpenseRed
-        "INCOME" -> IncomeGreen
-        "SCORE" -> SavingsAmber
-        "CASHFLOW" -> TransferBlue
-        else -> Primary
-    }
-    
-    val maxVal = remember(uiState.dailyAggregates, uiState.selectedMetricMode) {
-        uiState.dailyAggregates.maxOfOrNull { agg ->
-            when (uiState.selectedMetricMode) {
-                "COUNT" -> agg.transactionCount.toDouble()
-                "EXPENSE" -> agg.totalExpense
-                "INCOME" -> agg.totalIncome
-                "SCORE" -> agg.activityScore
-                "CASHFLOW" -> kotlin.math.abs(agg.netCashflow)
-                else -> 0.0
-            }
-        } ?: 0.0
-    }
-    
-    val lnMax = kotlin.math.ln(maxVal + 1.0)
-    
-    AppCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        variant = CardVariant.OUTLINED,
-        shape = ShapeTokens.Lg,
-        backgroundColor = MaterialTheme.colorScheme.surface
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = {
-                        val newMonth = if (uiState.visibleMonth == 0) 11 else uiState.visibleMonth - 1
-                        val newYear = if (uiState.visibleMonth == 0) uiState.visibleYear - 1 else uiState.visibleYear
-                        viewModel.onCalendarMonthChanged(newYear, newMonth)
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ChevronRight,
-                        contentDescription = "الشهر السابق",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                
-                Text(
-                    text = "${monthsArabic[uiState.visibleMonth]} ${uiState.visibleYear}",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 16.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                
-                IconButton(
-                    onClick = {
-                        val newMonth = if (uiState.visibleMonth == 11) 0 else uiState.visibleMonth + 1
-                        val newYear = if (uiState.visibleMonth == 11) uiState.visibleYear + 1 else uiState.visibleYear
-                        viewModel.onCalendarMonthChanged(newYear, newMonth)
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ChevronLeft,
-                        contentDescription = "الشهر التالي",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                daysHeader.forEach { dayName ->
-                    Text(
-                        text = dayName,
-                        modifier = Modifier.weight(1f),
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        ),
-                        color = TextGray
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                val navController = com.example.presentation.navigation.LocalNavController.current
-                for (row in 0 until rowsCount) {
-                    var selectedColInThisRow: Int? = null
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        for (col in 0..6) {
-                            val cellIndex = row * 7 + col
-                            val dayNumber = cellIndex - startOffset + 1
-                            
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (dayNumber in 1..daysInMonth) {
-                                    val dayTimestamp = remember(dayNumber) {
-                                        java.util.Calendar.getInstance().apply {
-                                            set(java.util.Calendar.YEAR, uiState.visibleYear)
-                                            set(java.util.Calendar.MONTH, uiState.visibleMonth)
-                                            set(java.util.Calendar.DAY_OF_MONTH, dayNumber)
-                                            set(java.util.Calendar.HOUR_OF_DAY, 0)
-                                            set(java.util.Calendar.MINUTE, 0)
-                                            set(java.util.Calendar.SECOND, 0)
-                                            set(java.util.Calendar.MILLISECOND, 0)
-                                        }.timeInMillis
-                                    }
-                                    
-                                    val isSelected = uiState.selectedCalendarDate == dayTimestamp
-                                    if (isSelected) {
-                                        selectedColInThisRow = col
-                                    }
-                                    val dayAggregate = uiState.dailyAggregates.find { it.localDateTimestamp == dayTimestamp }
-                                    
-                                    val metricValue = when (uiState.selectedMetricMode) {
-                                        "COUNT" -> dayAggregate?.transactionCount?.toDouble() ?: 0.0
-                                        "EXPENSE" -> dayAggregate?.totalExpense ?: 0.0
-                                        "INCOME" -> dayAggregate?.totalIncome ?: 0.0
-                                        "SCORE" -> dayAggregate?.activityScore ?: 0.0
-                                        "CASHFLOW" -> dayAggregate?.netCashflow ?: 0.0
-                                        else -> 0.0
-                                    }
-                                    
-                                    val metricValueForScale = if (uiState.selectedMetricMode == "CASHFLOW") {
-                                        kotlin.math.abs(metricValue)
-                                    } else {
-                                        metricValue
-                                    }
-                                    
-                                    val cellActiveColor = if (uiState.selectedMetricMode == "CASHFLOW") {
-                                        when {
-                                            metricValue > 0.0 -> IncomeGreen
-                                            metricValue < 0.0 -> ExpenseRed
-                                            else -> TextGray
-                                        }
-                                    } else {
-                                        activeColor
-                                    }
-                                    
-                                    val lnVal = kotlin.math.ln(metricValueForScale + 1.0)
-                                    val ratio = if (lnMax > 0.0) lnVal / lnMax else 0.0
-                                    
-                                    val (bubbleSize, showGlow) = when {
-                                        metricValueForScale == 0.0 -> Pair(4.dp, false)
-                                        ratio <= 0.25 -> Pair(12.dp, false)
-                                        ratio <= 0.60 -> Pair(20.dp, false)
-                                        ratio <= 0.90 -> Pair(28.dp, false)
-                                        else -> Pair(36.dp, true)
-                                    }
-                                    
-                                    val alphaVal = when {
-                                        metricValueForScale == 0.0 -> 0.15f
-                                        ratio <= 0.25 -> 0.35f
-                                        ratio <= 0.60 -> 0.60f
-                                        ratio <= 0.90 -> 0.85f
-                                        else -> 1.0f
-                                    }
-                                    
-                                    Box(
-                                        modifier = Modifier
-                                            .size(44.dp)
-                                            .clip(CircleShape)
-                                            .combinedClickable(
-                                                onClick = {
-                                                    if (isSelected) {
-                                                        viewModel.onCalendarDateSelected(null)
-                                                    } else {
-                                                        viewModel.onCalendarDateSelected(dayTimestamp)
-                                                    }
-                                                },
-                                                onDoubleClick = {
-                                                    onDayDoubleTapped(dayTimestamp)
-                                                }
-                                            )
-                                            .background(
-                                                color = if (isSelected) cellActiveColor.copy(alpha = 0.12f) else Color.Transparent
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        if (isSelected) {
-                                            Surface(
-                                                modifier = Modifier.size(36.dp),
-                                                shape = CircleShape,
-                                                color = Color.Transparent,
-                                                border = BorderStroke(1.5.dp, cellActiveColor)
-                                            ) {}
-                                        }
-                                        
-                                        Box(
-                                            modifier = Modifier
-                                                .size(bubbleSize)
-                                                .clip(CircleShape)
-                                                .background(
-                                                    color = if (metricValueForScale == 0.0) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f) else cellActiveColor.copy(alpha = alphaVal)
-                                                )
-                                        ) {
-                                            if (showGlow && !isSelected) {
-                                                Surface(
-                                                    modifier = Modifier.fillMaxSize(),
-                                                    shape = CircleShape,
-                                                    color = Color.Transparent,
-                                                    border = BorderStroke(1.dp, cellActiveColor.copy(alpha = 0.5f))
-                                                ) {}
-                                            }
-                                        }
-                                        
-                                        Text(
-                                            text = "$dayNumber",
-                                            color = when {
-                                                metricValueForScale > 0.0 -> Color.White
-                                                isSelected -> MaterialTheme.colorScheme.onSurface
-                                                else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
-                                            },
-                                            fontSize = 11.sp,
-                                            fontWeight = if (metricValueForScale > 0.0 || isSelected) FontWeight.ExtraBold else FontWeight.Medium
-                                        )
-                                    }
-                                } else {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(44.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Surface(
-                                            modifier = Modifier.size(16.dp),
-                                            shape = CircleShape,
-                                            color = Color.Transparent,
-                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-                                        ) {}
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Anchored capsule under selected day circle row
-                    if (selectedColInThisRow != null) {
-                        val coroutineScope = rememberCoroutineScope()
-                        val horizontalBias = -1f + (selectedColInThisRow / 3f)
-                        
-                        // Select a premium, dynamic entrance/exit transition depending on cell position
-                        // Saturday is index 0 (far right), Sunday is 1 (right)
-                        // Friday is index 6 (far left), Thursday is 5 (left)
-                        val enterTransition = remember(selectedColInThisRow) {
-                            when (selectedColInThisRow) {
-                                0 -> slideInHorizontally(
-                                    initialOffsetX = { it },
-                                    animationSpec = tween(durationMillis = 250, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                                ) + fadeIn(animationSpec = tween(durationMillis = 200))
-                                1 -> slideInHorizontally(
-                                    initialOffsetX = { it / 2 },
-                                    animationSpec = tween(durationMillis = 250, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                                ) + fadeIn(animationSpec = tween(durationMillis = 200))
-                                5 -> slideInHorizontally(
-                                    initialOffsetX = { -it / 2 },
-                                    animationSpec = tween(durationMillis = 250, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                                ) + fadeIn(animationSpec = tween(durationMillis = 200))
-                                6 -> slideInHorizontally(
-                                    initialOffsetX = { -it },
-                                    animationSpec = tween(durationMillis = 250, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                                ) + fadeIn(animationSpec = tween(durationMillis = 200))
-                                else -> slideInVertically(
-                                    initialOffsetY = { -30 },
-                                    animationSpec = tween(durationMillis = 250, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                                ) + expandVertically(
-                                    expandFrom = Alignment.Top,
-                                    animationSpec = tween(durationMillis = 250)
-                                ) + fadeIn(animationSpec = tween(durationMillis = 200))
-                            }
-                        }
-
-                        val exitTransition = remember(selectedColInThisRow) {
-                            when (selectedColInThisRow) {
-                                0 -> slideOutHorizontally(
-                                    targetOffsetX = { it },
-                                    animationSpec = tween(durationMillis = 200, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                                ) + fadeOut(animationSpec = tween(durationMillis = 150))
-                                1 -> slideOutHorizontally(
-                                    targetOffsetX = { it / 2 },
-                                    animationSpec = tween(durationMillis = 200, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                                ) + fadeOut(animationSpec = tween(durationMillis = 150))
-                                5 -> slideOutHorizontally(
-                                    targetOffsetX = { -it / 2 },
-                                    animationSpec = tween(durationMillis = 200, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                                ) + fadeOut(animationSpec = tween(durationMillis = 150))
-                                6 -> slideOutHorizontally(
-                                    targetOffsetX = { -it },
-                                    animationSpec = tween(durationMillis = 200, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                                ) + fadeOut(animationSpec = tween(durationMillis = 150))
-                                else -> slideOutVertically(
-                                    targetOffsetY = { -30 },
-                                    animationSpec = tween(durationMillis = 200, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                                ) + shrinkVertically(
-                                    shrinkTowards = Alignment.Top,
-                                    animationSpec = tween(durationMillis = 200)
-                                ) + fadeOut(animationSpec = tween(durationMillis = 150))
-                            }
-                        }
-
-                        key(uiState.selectedCalendarDate) {
-                            androidx.compose.animation.AnimatedVisibility(
-                                visible = true,
-                                enter = enterTransition,
-                                exit = exitTransition,
-                                modifier = Modifier
-                                    .zIndex(10f)
-                                    .layout { measurable, constraints ->
-                                        val placeable = measurable.measure(constraints)
-                                        // Report 0 height so it floats overlaying rows below it!
-                                        layout(placeable.width, 0) {
-                                            placeable.placeRelative(0, 0)
-                                        }
-                                    }
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp),
-                                    contentAlignment = androidx.compose.ui.BiasAlignment(horizontalBias, -1f)
-                                ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Top
-                                ) {
-                                    // Arrow (connected directly to the capsule box)
-                                    val arrowColor = Color(0xFF1E1E24)
-                                    androidx.compose.foundation.Canvas(
-                                        modifier = Modifier.size(width = 14.dp, height = 7.dp)
-                                    ) {
-                                        val path = androidx.compose.ui.graphics.Path().apply {
-                                            moveTo(size.width / 2f, 0f)
-                                            lineTo(size.width, size.height)
-                                            lineTo(0f, size.height)
-                                            close()
-                                        }
-                                        drawPath(path, color = arrowColor)
-                                    }
-
-                                    val context = androidx.compose.ui.platform.LocalContext.current
-                                    // Capsule container holding buttons side-by-side
-                                    Surface(
-                                        color = Color(0xFF1E1E24),
-                                        shape = RoundedCornerShape(24.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            // Plus Button (Button 1)
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(36.dp)
-                                                    .clip(CircleShape)
-                                                    .background(Color.White.copy(alpha = 0.15f))
-                                                    .combinedClickable(
-                                                        onClick = {
-                                                            val selectedTs = uiState.selectedCalendarDate!!
-                                                            val route = com.example.presentation.navigation.Screen.AddTransaction.createRoute("EXPENSE", null, selectedTs)
-                                                            navController?.navigate(route)
-                                                        },
-                                                        onLongClick = {
-                                                            android.widget.Toast.makeText(context, "أضف عملية في هذا اليوم", android.widget.Toast.LENGTH_SHORT).show()
-                                                        }
-                                                    ),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Add,
-                                                    contentDescription = null,
-                                                    tint = Color.White,
-                                                    modifier = Modifier.size(20.dp)
-                                                )
-                                            }
-
-                                            // Eye Button (Button 2)
-                                            val currentSelectedTs = uiState.selectedCalendarDate
-                                            val currentDayAggregate = uiState.dailyAggregates.find { it.localDateTimestamp == currentSelectedTs }
-                                            val hasAnyActivity = currentDayAggregate != null && currentDayAggregate.transactionCount > 0
-
-                                            if (hasAnyActivity) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(36.dp)
-                                                        .clip(CircleShape)
-                                                        .background(Color.White.copy(alpha = 0.15f))
-                                                        .combinedClickable(
-                                                            onClick = {
-                                                                coroutineScope.launch {
-                                                                    listState.animateScrollToItem(5)
-                                                                }
-                                                            },
-                                                            onLongClick = {
-                                                                android.widget.Toast.makeText(context, "\u0639\u0631\u0636\u0020\u0639\u0645\u0644\u064a\u0627\u062a\u0020\u0627\u0644\u064a\u0648\u0645", android.widget.Toast.LENGTH_SHORT).show()
-                                                            }
-                                                        ),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Visibility,
-                                                        contentDescription = null,
-                                                        tint = Color.White,
-                                                        modifier = Modifier.size(18.dp)
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun SwipeableTransactionRow(
-    transaction: Transaction,
-    category: Category?,
-    accountName: String,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onClick: () -> Unit,
-    isSelected: Boolean = false,
-    isSelectionActive: Boolean = false,
-    onLongClick: () -> Unit = {}
-) {
-    var offsetX by remember { mutableStateOf(0f) }
-    val density = LocalDensity.current
-    val minSwipeDistance = with(density) { 80.dp.toPx() }
-    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
-    var hapticTriggered by remember { mutableStateOf(false) }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-    ) {
-        // Background Actions Layer
-        if (!isSelectionActive) {
-            Row(
-                modifier = Modifier.matchParentSize(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Edit action (Right in RTL - Blue)
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(80.dp)
-                        .background(TransferBlue)
-                        .clickable { 
-                            onEdit()
-                            offsetX = 0f
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Edit, contentDescription = "تعديل", tint = Color.White)
-                }
-
-                // Delete action (Left in RTL - Red)
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(80.dp)
-                        .background(ExpenseRed)
-                        .clickable { 
-                            onDelete()
-                            offsetX = 0f
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Delete, contentDescription = "حذف", tint = Color.White)
-                }
-            }
-        }
-
-        // Foreground Content Layer
-        val animOffset by androidx.compose.animation.core.animateFloatAsState(targetValue = if (isSelectionActive) 0f else offsetX)
-        Box(
-            modifier = Modifier
-                .offset(x = with(density) { animOffset.toDp() })
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.background)
-                .pointerInput(isSelectionActive) {
-                    if (!isSelectionActive) {
-                        detectHorizontalDragGestures(
-                            onDragEnd = {
-                                offsetX = when {
-                                    offsetX > minSwipeDistance * 0.5f -> minSwipeDistance
-                                    offsetX < -minSwipeDistance * 0.5f -> -minSwipeDistance
-                                    else -> 0f
-                                }
-                            },
-                            onDragCancel = { offsetX = 0f },
-                            onHorizontalDrag = { _, dragAmount ->
-                                // Subtracting dragAmount to compensate for RTL layout coordinate inversion in Compose absolute offset.
-                                // When dragging to the right (dragAmount > 0), we want the row to shift to the right, which translates to a negative offset in RTL.
-                                offsetX = (offsetX - dragAmount).coerceIn(-minSwipeDistance, minSwipeDistance)
-                                
-                                val threshold = minSwipeDistance * 0.5f
-                                val crossed = kotlin.math.abs(offsetX) >= threshold
-                                if (crossed && !hapticTriggered) {
-                                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                                    hapticTriggered = true
-                                } else if (!crossed) {
-                                    hapticTriggered = false
-                                }
-                            }
-                        )
-                    }
-                }
-        ) {
-            TransactionItem(
-                transaction = transaction,
-                category = category,
-                accountName = accountName,
-                onClick = {
-                    if (offsetX != 0f) {
-                        offsetX = 0f
-                    } else {
-                        onClick()
-                    }
-                },
-                isSelected = isSelected,
-                onLongClick = onLongClick
-            )
-        }
-    }
-}
-
 

@@ -128,6 +128,18 @@ class TransactionRepositoryImpl(
         return transactionDao.isTransactionAlreadyInserted(type.name, note, startDate, endDate)
     }
 
+    override fun getDailyFinancialAggregatesForRange(startDate: Long, endDate: Long): Flow<List<DailyFinancialAggregateEntity>> {
+        return database.dailyFinancialAggregateDao().getAggregatesForRange(startDate, endDate)
+    }
+
+    override suspend fun deleteTransactionsBulk(ids: List<Long>) = database.withTransaction {
+        transactionDao.deleteTransactionsBulk(ids)
+    }
+
+    override suspend fun updateTransactionsCategoryBulk(ids: List<Long>, newCategoryId: Long) = database.withTransaction {
+        transactionDao.updateTransactionsCategoryBulk(ids, newCategoryId)
+    }
+
     private suspend fun syncAggregateForDate(date: Long) {
         val calendar = java.util.Calendar.getInstance().apply {
             timeInMillis = date

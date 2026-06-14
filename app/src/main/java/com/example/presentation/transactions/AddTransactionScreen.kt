@@ -51,9 +51,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 
 
-// ─────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  AddTransactionScreen
-// ─────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -70,18 +70,14 @@ fun AddTransactionScreen(
     val uiState by viewModel.uiState.collectAsState()
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val showAmountWords = remember {
-        context.getSharedPreferences("kdach_prefs", android.content.Context.MODE_PRIVATE)
-            .getBoolean("amount_words_enabled", true)
-    }
+    val showAmountWords = uiState.isAmountWordsEnabled
 
-    // ── Local state ──────────────────────────────────────
+    // â”€â”€ Local state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     var rawAmount by remember { mutableStateOf("0") }
     var showAddCategoryDialog by remember { mutableStateOf(false) }
     var isAddingSubcategory by remember { mutableStateOf(false) }
     var newCategoryName by remember { mutableStateOf("") }
-    var newCategoryIcon by remember { mutableStateOf("📁") }
+    var newCategoryIcon by remember { mutableStateOf("ًں“پ") }
     var newCategoryColor by remember { mutableStateOf("#8B5CF6") }
 
     val curatedColors = listOf(
@@ -255,11 +251,11 @@ fun AddTransactionScreen(
 
     var showSaveTemplateDialog by remember { mutableStateOf(false) }
     var templateName by remember { mutableStateOf("") }
-    var templateEmoji by remember { mutableStateOf("📝") }
+    var templateEmoji by remember { mutableStateOf("ًں“‌") }
     var templatePinned by remember { mutableStateOf(false) }
     var showEmojiPicker by remember { mutableStateOf(false) }
 
-    val operatorsList = setOf("+", "-", "×", "÷")
+    val operatorsList = setOf("+", "-", "أ—", "أ·")
 
     // Compute a clean display string for the expression with thousands separator commas on digits
     val displayAmount: String = remember(rawAmount) {
@@ -349,7 +345,7 @@ fun AddTransactionScreen(
 
     val scrollState = rememberScrollState()
 
-    // ── Root column: top-bar / scrollable form / keypad ──
+    // â”€â”€ Root column: top-bar / scrollable form / keypad â”€â”€
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -357,14 +353,14 @@ fun AddTransactionScreen(
             .testTag("add_transaction_screen")
     ) {
 
-        // ── Top bar ──────────────────────────────────────
+        // â”€â”€ Top bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         FinTrackTopBar(
-            title = if (transactionId != null) "تعديل العملية المالية" else "إضافة عملية مالية",
+            title = if (transactionId != null) "طھط¹ط¯ظٹظ„ ط§ظ„ط¹ظ…ظ„ظٹط© ط§ظ„ظ…ط§ظ„ظٹط©" else "ط¥ط¶ط§ظپط© ط¹ظ…ظ„ظٹط© ظ…ط§ظ„ظٹط©",
             showBackButton = true,
             onBackClick = onBack
         )
 
-        // ── Scrollable form body ─────────────────────────
+        // â”€â”€ Scrollable form body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -398,7 +394,7 @@ fun AddTransactionScreen(
                 onTap = { isKeypadExpanded = true }
             )
 
-            // ── Note input (Moved to the top) ─────────────
+            // â”€â”€ Note input (Moved to the top) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             OutlinedTextField(
                 value = note,
                 onValueChange = { newNote ->
@@ -411,7 +407,7 @@ fun AddTransactionScreen(
                     .testTag("note_input"),
                 placeholder = {
                     Text(
-                        text = "أضف ملاحظة أو سبب المعاملة…",
+                        text = "ط£ط¶ظپ ظ…ظ„ط§ط­ط¸ط© ط£ظˆ ط³ط¨ط¨ ط§ظ„ظ…ط¹ط§ظ…ظ„ط©â€¦",
                         color = TextGray,
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -430,9 +426,9 @@ fun AddTransactionScreen(
                 singleLine = true
             )
 
-            // ── Tags Section ──────────────────────────────
+            // â”€â”€ Tags Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                SectionLabel(text = "الوسوم (Tags)")
+                SectionLabel(text = "ط§ظ„ظˆط³ظˆظ… (Tags)")
                 Spacer(modifier = Modifier.height(4.dp))
                 
                 // Display selected tags as small chips
@@ -466,7 +462,7 @@ fun AddTransactionScreen(
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Icon(
                                         imageVector = Icons.Default.Close,
-                                        contentDescription = "حذف",
+                                        contentDescription = "ط­ط°ظپ",
                                         tint = typeAccentColor,
                                         modifier = Modifier.size(10.dp)
                                     )
@@ -478,11 +474,11 @@ fun AddTransactionScreen(
                 }
 
                 // Preset recommended tags
-                val presetTags = listOf("غذاء", "بنزين", "فاتورة", "سفر", "هدايا", "صحة", "ملابس", "إنترنت")
+                val presetTags = listOf("ط؛ط°ط§ط،", "ط¨ظ†ط²ظٹظ†", "ظپط§طھظˆط±ط©", "ط³ظپط±", "ظ‡ط¯ط§ظٹط§", "طµط­ط©", "ظ…ظ„ط§ط¨ط³", "ط¥ظ†طھط±ظ†طھ")
                 val availablePresets = presetTags.filter { it !in selectedTags }
                 
                 Text(
-                    text = "وسوم مقترحة:",
+                    text = "ظˆط³ظˆظ… ظ…ظ‚طھط±ط­ط©:",
                     style = MaterialTheme.typography.labelSmall,
                     color = TextGray
                 )
@@ -547,7 +543,7 @@ fun AddTransactionScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
-                                    contentDescription = "إضافة",
+                                    contentDescription = "ط¥ط¶ط§ظپط©",
                                     tint = typeAccentColor,
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -561,7 +557,7 @@ fun AddTransactionScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "إلغاء",
+                                    contentDescription = "ط¥ظ„ط؛ط§ط،",
                                     tint = TextGray,
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -577,7 +573,7 @@ fun AddTransactionScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "+ وسم مخصص",
+                                text = "+ ظˆط³ظ… ظ…ط®طµطµ",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = typeAccentColor,
                                 fontWeight = FontWeight.Bold
@@ -587,7 +583,7 @@ fun AddTransactionScreen(
                 }
             }
 
-            // ── Budget Warning Card ───────────────────────
+            // â”€â”€ Budget Warning Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             activeBudget?.let { budget ->
                 val inputAmount = com.example.core.utils.CalculatorParser.evaluate(rawAmount)
                 if (inputAmount > 0.0) {
@@ -629,16 +625,16 @@ fun AddTransactionScreen(
                                 )
                                 Column {
                                     Text(
-                                        text = if (isExceeded) "تنبيه: هذا المبلغ يتجاوز الميزانية المحددة للفئة!" else "انتبه: الميزانية المحددة لهذه الفئة أوشكت على النفاد!",
+                                        text = if (isExceeded) "طھظ†ط¨ظٹظ‡: ظ‡ط°ط§ ط§ظ„ظ…ط¨ظ„ط؛ ظٹطھط¬ط§ظˆط² ط§ظ„ظ…ظٹط²ط§ظ†ظٹط© ط§ظ„ظ…ط­ط¯ط¯ط© ظ„ظ„ظپط¦ط©!" else "ط§ظ†طھط¨ظ‡: ط§ظ„ظ…ظٹط²ط§ظ†ظٹط© ط§ظ„ظ…ط­ط¯ط¯ط© ظ„ظ‡ط°ظ‡ ط§ظ„ظپط¦ط© ط£ظˆط´ظƒطھ ط¹ظ„ظ‰ ط§ظ„ظ†ظپط§ط¯!",
                                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                         color = if (isExceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground
                                     )
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
                                         text = if (isExceeded) {
-                                            "ميزانية الفئة: $limitFormatted (تجاوز بقيمة: ${com.example.core.utils.FormatterUtils.formatCurrency(newSpent - budget.amountLimit)})"
+                                            "ظ…ظٹط²ط§ظ†ظٹط© ط§ظ„ظپط¦ط©: $limitFormatted (طھط¬ط§ظˆط² ط¨ظ‚ظٹظ…ط©: ${com.example.core.utils.FormatterUtils.formatCurrency(newSpent - budget.amountLimit)})"
                                         } else {
-                                            "المتبقي في الميزانية: $remainingFormatted من إجمالي $limitFormatted"
+                                            "ط§ظ„ظ…طھط¨ظ‚ظٹ ظپظٹ ط§ظ„ظ…ظٹط²ط§ظ†ظٹط©: $remainingFormatted ظ…ظ† ط¥ط¬ظ…ط§ظ„ظٹ $limitFormatted"
                                         },
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -650,7 +646,7 @@ fun AddTransactionScreen(
                 }
             }
 
-            // ── Category dropdown (not for Transfer) ───────
+            // â”€â”€ Category dropdown (not for Transfer) â”€â”€â”€â”€â”€â”€â”€
             if (type != TransactionType.TRANSFER) {
                 CategoryDropdownSelector(
                     categories = uiState.categories,
@@ -659,20 +655,22 @@ fun AddTransactionScreen(
                     selectedCategoryId = selectedCategoryId,
                     subcategoryId = subcategoryId,
                     typeAccentColor = typeAccentColor,
+                    smartSortEnabled = uiState.smartCategorySortEnabled,
+                    onToggleSmartSort = { viewModel.toggleSmartCategorySort() },
                     onCategorySelected = { parentCatId, subCatId ->
                         selectedCategoryId = parentCatId
                         subcategoryId = subCatId
                     },
                     onAddMainCategory = {
                         newCategoryName = ""
-                        newCategoryIcon = "📁"
+                        newCategoryIcon = "ًں“پ"
                         newCategoryColor = "#8B5CF6"
                         isAddingSubcategory = false
                         showAddCategoryDialog = true
                     },
                     onAddSubCategory = {
                         newCategoryName = ""
-                        newCategoryIcon = "📁"
+                        newCategoryIcon = "ًں“پ"
                         newCategoryColor = "#8B5CF6"
                         isAddingSubcategory = true
                         showAddCategoryDialog = true
@@ -680,14 +678,14 @@ fun AddTransactionScreen(
                 )
             }
 
-            // ── Source account picker ─────────────────────
+            // â”€â”€ Source account picker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if (uiState.accounts.isNotEmpty()) {
                 Column {
                     SectionLabel(
                         text = when (type) {
-                            TransactionType.INCOME   -> "الإيداع في حِساب"
-                            TransactionType.EXPENSE  -> "الدفع من حِساب"
-                            TransactionType.TRANSFER -> "من حساب"
+                            TransactionType.INCOME   -> "ط§ظ„ط¥ظٹط¯ط§ط¹ ظپظٹ ط­ظگط³ط§ط¨"
+                            TransactionType.EXPENSE  -> "ط§ظ„ط¯ظپط¹ ظ…ظ† ط­ظگط³ط§ط¨"
+                            TransactionType.TRANSFER -> "ظ…ظ† ط­ط³ط§ط¨"
                         }
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -703,10 +701,10 @@ fun AddTransactionScreen(
                 }
             }
 
-            // ── Destination account (Transfer only) ───────
+            // â”€â”€ Destination account (Transfer only) â”€â”€â”€â”€â”€â”€â”€
             if (type == TransactionType.TRANSFER && uiState.accounts.isNotEmpty()) {
                 Column {
-                    SectionLabel(text = "إلى حساب")
+                    SectionLabel(text = "ط¥ظ„ظ‰ ط­ط³ط§ط¨")
                     Spacer(modifier = Modifier.height(6.dp))
                     AccountPickerRow(
                         accounts = uiState.accounts,
@@ -720,9 +718,9 @@ fun AddTransactionScreen(
                 }
             }
 
-            // ── Date Selector ─────────────────────────────
+            // â”€â”€ Date Selector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Column {
-                SectionLabel(text = "تاريخ العملية")
+                SectionLabel(text = "طھط§ط±ظٹط® ط§ظ„ط¹ظ…ظ„ظٹط©")
                 Spacer(modifier = Modifier.height(6.dp))
                 Card(
                     modifier = Modifier
@@ -765,7 +763,7 @@ fun AddTransactionScreen(
                         }
                         Icon(
                             imageVector = Icons.Default.Edit,
-                            contentDescription = "تعديل التاريخ",
+                            contentDescription = "طھط¹ط¯ظٹظ„ ط§ظ„طھط§ط±ظٹط®",
                             tint = TextGray,
                             modifier = Modifier.size(16.dp)
                         )
@@ -784,7 +782,7 @@ fun AddTransactionScreen(
 
                     // Today Button
                     QuickDateButton(
-                        text = "اليوم",
+                        text = "ط§ظ„ظٹظˆظ…",
                         isSelected = isToday,
                         accentColor = typeAccentColor,
                         onClick = { transactionDate = System.currentTimeMillis() }
@@ -792,7 +790,7 @@ fun AddTransactionScreen(
 
                     // Yesterday Button
                     QuickDateButton(
-                        text = "البارحة",
+                        text = "ط§ظ„ط¨ط§ط±ط­ط©",
                         isSelected = isYesterday,
                         accentColor = typeAccentColor,
                         onClick = { transactionDate = System.currentTimeMillis() - 24 * 60 * 60 * 1000L }
@@ -800,7 +798,7 @@ fun AddTransactionScreen(
 
                     // Other Date Button
                     QuickDateButton(
-                        text = "تاريخ آخر...",
+                        text = "طھط§ط±ظٹط® ط¢ط®ط±...",
                         isSelected = isOther,
                         accentColor = typeAccentColor,
                         onClick = { showDatePicker = true }
@@ -823,12 +821,12 @@ fun AddTransactionScreen(
                                 showDatePicker = false
                             }
                         ) {
-                            Text("موافق", color = typeAccentColor, fontWeight = FontWeight.Bold)
+                            Text("ظ…ظˆط§ظپظ‚", color = typeAccentColor, fontWeight = FontWeight.Bold)
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { showDatePicker = false }) {
-                            Text("إلغاء", color = TextGray)
+                            Text("ط¥ظ„ط؛ط§ط،", color = TextGray)
                         }
                     }
                 ) {
@@ -846,7 +844,7 @@ fun AddTransactionScreen(
 
 
 
-            // ── Smart category suggestion ─────────────────
+            // â”€â”€ Smart category suggestion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             val suggestedCat = uiState.suggestedCategory
             val confidence = uiState.currentSuggestion?.confidenceScore ?: 0.85f
             if (suggestedCat != null && type == TransactionType.EXPENSE) {
@@ -861,7 +859,7 @@ fun AddTransactionScreen(
                 )
             }
 
-            // ── Recurring toggle ──────────────────────────
+            // â”€â”€ Recurring toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -876,7 +874,7 @@ fun AddTransactionScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "عملية متكررة دورياً؟",
+                        text = "ط¹ظ…ظ„ظٹط© ظ…طھظƒط±ط±ط© ط¯ظˆط±ظٹط§ظ‹طں",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Medium
@@ -895,7 +893,7 @@ fun AddTransactionScreen(
             AnimatedVisibility(visible = isRecurring) {
                 Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
                     Text(
-                        text = "وتيرة التكرار",
+                        text = "ظˆطھظٹط±ط© ط§ظ„طھظƒط±ط§ط±",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextGray
                     )
@@ -905,10 +903,10 @@ fun AddTransactionScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         listOf(
-                            "DAILY" to "يومياً",
-                            "WEEKLY" to "أسبوعياً",
-                            "MONTHLY" to "شهرياً",
-                            "YEARLY" to "سنوياً"
+                            "DAILY" to "ظٹظˆظ…ظٹط§ظ‹",
+                            "WEEKLY" to "ط£ط³ط¨ظˆط¹ظٹط§ظ‹",
+                            "MONTHLY" to "ط´ظ‡ط±ظٹط§ظ‹",
+                            "YEARLY" to "ط³ظ†ظˆظٹط§ظ‹"
                         ).forEach { (period, label) ->
                             val isSelected = recurringPeriod == period
                             Box(
@@ -943,7 +941,7 @@ fun AddTransactionScreen(
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        // ── Fixed bottom area: keypad + save button ───────
+        // â”€â”€ Fixed bottom area: keypad + save button â”€â”€â”€â”€â”€â”€â”€
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1003,7 +1001,7 @@ fun AddTransactionScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "حفظ كقالب",
+                            text = "ط­ظپط¸ ظƒظ‚ط§ظ„ط¨",
                             style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp),
                             fontWeight = FontWeight.Bold
                         )
@@ -1096,7 +1094,7 @@ fun AddTransactionScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (transactionId != null) "حفظ التعديلات" else "تسجيل العملية",
+                        text = if (transactionId != null) "ط­ظپط¸ ط§ظ„طھط¹ط¯ظٹظ„ط§طھ" else "طھط³ط¬ظٹظ„ ط§ظ„ط¹ظ…ظ„ظٹط©",
                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -1105,13 +1103,13 @@ fun AddTransactionScreen(
             }
         }
 
-        // ── Add Category/Subcategory Dialog ──
+        // â”€â”€ Add Category/Subcategory Dialog â”€â”€
         if (showAddCategoryDialog) {
             AlertDialog(
                 onDismissRequest = { showAddCategoryDialog = false },
                 title = {
                     Text(
-                        text = if (isAddingSubcategory) "إنشاء فئة فرعية جديدة" else "إنشاء فئة رئيسية جديدة",
+                        text = if (isAddingSubcategory) "ط¥ظ†ط´ط§ط، ظپط¦ط© ظپط±ط¹ظٹط© ط¬ط¯ظٹط¯ط©" else "ط¥ظ†ط´ط§ط، ظپط¦ط© ط±ط¦ظٹط³ظٹط© ط¬ط¯ظٹط¯ط©",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                 },
@@ -1123,8 +1121,8 @@ fun AddTransactionScreen(
                         OutlinedTextField(
                             value = newCategoryName,
                             onValueChange = { newCategoryName = it },
-                            label = { Text(if (isAddingSubcategory) "اسم الفئة الفرعية" else "اسم الفئة الرئيسية") },
-                            placeholder = { Text("مثال: تسوق، هدايا، نقل...") },
+                            label = { Text(if (isAddingSubcategory) "ط§ط³ظ… ط§ظ„ظپط¦ط© ط§ظ„ظپط±ط¹ظٹط©" else "ط§ط³ظ… ط§ظ„ظپط¦ط© ط§ظ„ط±ط¦ظٹط³ظٹط©") },
+                            placeholder = { Text("ظ…ط«ط§ظ„: طھط³ظˆظ‚طŒ ظ‡ط¯ط§ظٹط§طŒ ظ†ظ‚ظ„...") },
                             singleLine = true,
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth(),
@@ -1141,8 +1139,8 @@ fun AddTransactionScreen(
                             OutlinedTextField(
                                 value = newCategoryIcon,
                                 onValueChange = { newCategoryIcon = it },
-                                label = { Text("أيقونة/رمز") },
-                                placeholder = { Text("📁") },
+                                label = { Text("ط£ظٹظ‚ظˆظ†ط©/ط±ظ…ط²") },
+                                placeholder = { Text("ًں“پ") },
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.width(90.dp),
@@ -1152,7 +1150,7 @@ fun AddTransactionScreen(
                                 )
                             )
                             Text(
-                                text = "يمكنك كتابة رمز تعبيري (Emoji)",
+                                text = "ظٹظ…ظƒظ†ظƒ ظƒطھط§ط¨ط© ط±ظ…ط² طھط¹ط¨ظٹط±ظٹ (Emoji)",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextGray,
                                 modifier = Modifier.weight(1f)
@@ -1161,7 +1159,7 @@ fun AddTransactionScreen(
 
                         Column {
                             Text(
-                                text = "اختر لون الفئة:",
+                                text = "ط§ط®طھط± ظ„ظˆظ† ط§ظ„ظپط¦ط©:",
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(bottom = 8.dp)
@@ -1210,24 +1208,24 @@ fun AddTransactionScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = typeAccentColor),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("إنشاء الفئة", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("ط¥ظ†ط´ط§ط، ط§ظ„ظپط¦ط©", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showAddCategoryDialog = false }) {
-                        Text("إلغاء", color = TextGray)
+                        Text("ط¥ظ„ط؛ط§ط،", color = TextGray)
                     }
                 }
             )
         }
 
-        // ── Template Dialogs & Overlays ──
+        // â”€â”€ Template Dialogs & Overlays â”€â”€
         if (showSaveTemplateDialog) {
             AlertDialog(
                 onDismissRequest = { showSaveTemplateDialog = false },
                 title = {
                     Text(
-                        text = "حفظ كقالب معاملة",
+                        text = "ط­ظپط¸ ظƒظ‚ط§ظ„ط¨ ظ…ط¹ط§ظ…ظ„ط©",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -1237,7 +1235,7 @@ fun AddTransactionScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = "سيتم حفظ هذه المعاملة كقالب لتتمكن من إعادة استخدامها بضغطة زر واحدة.",
+                            text = "ط³ظٹطھظ… ط­ظپط¸ ظ‡ط°ظ‡ ط§ظ„ظ…ط¹ط§ظ…ظ„ط© ظƒظ‚ط§ظ„ط¨ ظ„طھطھظ…ظƒظ† ظ…ظ† ط¥ط¹ط§ط¯ط© ط§ط³طھط®ط¯ط§ظ…ظ‡ط§ ط¨ط¶ط؛ط·ط© ط²ط± ظˆط§ط­ط¯ط©.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextGray
                         )
@@ -1260,8 +1258,8 @@ fun AddTransactionScreen(
                             OutlinedTextField(
                                 value = templateName,
                                 onValueChange = { templateName = it },
-                                label = { Text("اسم القالب") },
-                                placeholder = { Text("مثال: قهوة، فاتورة الإنترنت…") },
+                                label = { Text("ط§ط³ظ… ط§ظ„ظ‚ط§ظ„ط¨") },
+                                placeholder = { Text("ظ…ط«ط§ظ„: ظ‚ظ‡ظˆط©طŒ ظپط§طھظˆط±ط© ط§ظ„ط¥ظ†طھط±ظ†طھâ€¦") },
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.weight(1f),
@@ -1280,7 +1278,7 @@ fun AddTransactionScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.PushPin, contentDescription = null, tint = Primary, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("تثبيت القالب في الرئيسية", style = MaterialTheme.typography.bodyMedium)
+                                Text("طھط«ط¨ظٹطھ ط§ظ„ظ‚ط§ظ„ط¨ ظپظٹ ط§ظ„ط±ط¦ظٹط³ظٹط©", style = MaterialTheme.typography.bodyMedium)
                             }
                             Switch(
                                 checked = templatePinned,
@@ -1316,12 +1314,12 @@ fun AddTransactionScreen(
                         },
                         enabled = templateName.isNotBlank()
                     ) {
-                        Text("حفظ", color = typeAccentColor, fontWeight = FontWeight.Bold)
+                        Text("ط­ظپط¸", color = typeAccentColor, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showSaveTemplateDialog = false }) {
-                        Text("إلغاء", color = TextGray)
+                        Text("ط¥ظ„ط؛ط§ط،", color = TextGray)
                     }
                 }
             )
@@ -1340,14 +1338,14 @@ fun AddTransactionScreen(
     }
 }
 
-// ─────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  Numpad key handler (pure function, easy to test)
-// ─────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 private fun handleNumpadKey(current: String, key: String): String {
-    val operators = setOf("+", "-", "×", "÷")
+    val operators = setOf("+", "-", "أ—", "أ·")
     return when (key) {
-        "⌫" -> {
+        "âŒ«" -> {
             if (current.length <= 1) "0"
             else {
                 // If ending with operator and spaces, drop last 3 characters " op "
@@ -1375,7 +1373,7 @@ private fun handleNumpadKey(current: String, key: String): String {
                 }
             }
         }
-        "+", "-", "×", "÷" -> {
+        "+", "-", "أ—", "أ·" -> {
             if (current.isEmpty()) "0"
             else {
                 val trimmed = current.trim()
@@ -1416,1041 +1414,9 @@ private fun handleNumpadKey(current: String, key: String): String {
     }
 }
 
-// ─────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  Sub-composables
-// ─────────────────────────────────────────────────────────
-
-@Composable
-private fun TypeSelectorBar(
-    selected: TransactionType,
-    onSelect: (TransactionType) -> Unit
-) {
-    val types = listOf(
-        TransactionType.EXPENSE  to "مصروف",
-        TransactionType.INCOME   to "دخل",
-        TransactionType.TRANSFER to "تحويل"
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        types.forEach { (t, label) ->
-            val isSelected = selected == t
-            val activeColor = when (t) {
-                TransactionType.EXPENSE  -> ExpenseRed
-                TransactionType.INCOME   -> IncomeGreen
-                TransactionType.TRANSFER -> TransferBlue
-            }
-            val bgColor by animateColorAsState(
-                targetValue = if (isSelected) activeColor else Color.Transparent,
-                animationSpec = tween(200),
-                label = "type_bg_$t"
-            )
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(bgColor)
-                    .clickable { onSelect(t) }
-                    .padding(vertical = 10.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isSelected) Color.White
-                            else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AmountDisplayCard(
-    displayAmount: String,
-    livePreviewAmount: String,
-    accentColor: Color,
-    showAmountWords: Boolean = true,
-    onTap: () -> Unit
-) {
-    // Calculate the actual numeric amount for words conversion
-    val numericAmount = remember(displayAmount, livePreviewAmount) {
-        if (livePreviewAmount.isNotEmpty()) {
-            livePreviewAmount.replace(",", "").replace(" ", "").toDoubleOrNull() ?: 0.0
-        } else {
-            displayAmount.replace(",", "").replace(" ", "").toDoubleOrNull() ?: 0.0
-        }
-    }
-    val amountWords = remember(numericAmount) {
-        numberToArabicWordsDZ(numericAmount)
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = 4.dp,
-                shape = RoundedCornerShape(20.dp),
-                ambientColor = accentColor.copy(alpha = 0.15f),
-                spotColor = accentColor.copy(alpha = 0.25f)
-            )
-            .clickable(onClick = onTap),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp, horizontal = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "المبلغ",
-                style = MaterialTheme.typography.labelMedium,
-                color = TextGray
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = displayAmount,
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        fontSize = if (displayAmount.length > 12) 28.sp else 38.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.ExtraBold,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "دج",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = accentColor,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-            }
-            // Amount in Arabic words (Algerian Dinar + Centime system)
-            if (showAmountWords && numericAmount > 0 && amountWords.first.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                // Dinar words
-                Text(
-                    text = amountWords.first,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                    color = accentColor.copy(alpha = 0.7f),
-                    textAlign = TextAlign.Center,
-                    maxLines = 2
-                )
-                // Centime equivalent (as Algerians speak daily)
-                if (amountWords.second.isNotEmpty()) {
-                    Text(
-                        text = "بالسنتيم: ${amountWords.second}",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        color = TextGray.copy(alpha = 0.6f),
-                        textAlign = TextAlign.Center,
-                        maxLines = 2
-                    )
-                }
-            }
-            if (livePreviewAmount.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "= $livePreviewAmount دج",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = accentColor,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    }
-}
-
-/**
- * Converts a Dinar amount to Arabic words.
- * Returns Pair(dinarText, centimeText).
- * Example: 1500 -> ("ألف وخمسمائة دينار", "مية وخمسين ألف سنتيم")
- * 1 دينار = 100 سنتيم
- */
-private fun numberToArabicWordsDZ(amount: Double): Pair<String, String> {
-    if (amount <= 0) return Pair("", "")
-    
-    val wholePart = amount.toLong()
-    
-    // Dinar representation
-    val dinarText = if (wholePart > 0) {
-        val words = convertWholeNumber(wholePart)
-        val suffix = when {
-            wholePart == 1L -> " دينار"
-            wholePart == 2L -> " ديناران"
-            wholePart in 3..10 -> " دنانير"
-            else -> " دينار"
-        }
-        "$words$suffix"
-    } else ""
-    
-    // Centime representation (×100) - as Algerians speak daily
-    val centimeValue = wholePart * 100
-    val centimeText = if (centimeValue > 0) {
-        val words = convertWholeNumber(centimeValue)
-        val suffix = when {
-            centimeValue == 1L -> " سنتيم"
-            centimeValue == 2L -> " سنتيمان"
-            centimeValue in 3..10 -> " سنتيمات"
-            else -> " سنتيم"
-        }
-        "$words$suffix"
-    } else ""
-    
-    return Pair(dinarText, centimeText)
-}
-
-private fun convertWholeNumber(n: Long): String {
-    if (n == 0L) return "صفر"
-    if (n == 1L) return "واحد"
-    if (n == 2L) return "اثنان"
-
-    val ones = arrayOf("", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة")
-    val teens = arrayOf("عشرة", "أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر",
-        "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر")
-    val tens = arrayOf("", "", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون")
-    val hundreds = arrayOf("", "مائة", "مئتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة")
-
-    val parts = mutableListOf<String>()
-    var remaining = n
-
-    // Billions
-    if (remaining >= 1_000_000_000) {
-        val b = remaining / 1_000_000_000
-        remaining %= 1_000_000_000
-        parts.add(when {
-            b == 1L -> "مليار"
-            b == 2L -> "ملياران"
-            b in 3..10 -> "${convertSmall(b)} مليارات"
-            else -> "${convertSmall(b)} مليار"
-        })
-    }
-
-    // Millions
-    if (remaining >= 1_000_000) {
-        val m = remaining / 1_000_000
-        remaining %= 1_000_000
-        parts.add(when {
-            m == 1L -> "مليون"
-            m == 2L -> "مليونان"
-            m in 3..10 -> "${convertSmall(m)} ملايين"
-            else -> "${convertSmall(m)} مليون"
-        })
-    }
-
-    // Thousands
-    if (remaining >= 1000) {
-        val t = remaining / 1000
-        remaining %= 1000
-        parts.add(when {
-            t == 1L -> "ألف"
-            t == 2L -> "ألفان"
-            t in 3..10 -> "${convertSmall(t)} آلاف"
-            else -> "${convertSmall(t)} ألف"
-        })
-    }
-
-    // Hundreds
-    if (remaining >= 100) {
-        val h = (remaining / 100).toInt()
-        remaining %= 100
-        parts.add(hundreds[h])
-    }
-
-    // Tens and ones
-    if (remaining > 0) {
-        if (remaining in 10..19) {
-            parts.add(teens[(remaining - 10).toInt()])
-        } else {
-            val o = (remaining % 10).toInt()
-            val t = (remaining / 10).toInt()
-            if (o > 0 && t > 0) {
-                parts.add("${ones[o]} و${tens[t]}")
-            } else if (t > 0) {
-                parts.add(tens[t])
-            } else if (o > 0) {
-                parts.add(ones[o])
-            }
-        }
-    }
-
-    return parts.joinToString(" و")
-}
-
-private fun convertSmall(n: Long): String {
-    val ones = arrayOf("", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة")
-    val teens = arrayOf("عشرة", "أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر",
-        "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر")
-    val tens = arrayOf("", "", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون")
-    val hundreds = arrayOf("", "مائة", "مئتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة")
-    
-    if (n == 0L) return "صفر"
-    val parts = mutableListOf<String>()
-    var r = n
-    if (r >= 100) { parts.add(hundreds[(r/100).toInt()]); r %= 100 }
-    if (r in 10..19) { parts.add(teens[(r-10).toInt()]); r = 0 }
-    if (r > 0) {
-        val o = (r % 10).toInt()
-        val t = (r / 10).toInt()
-        if (o > 0 && t > 0) parts.add("${ones[o]} و${tens[t]}")
-        else if (t > 0) parts.add(tens[t])
-        else if (o > 0) parts.add(ones[o])
-    }
-    return parts.joinToString(" و")
-}
-
-@Composable
-private fun AccountPickerRow(
-    accounts: List<com.example.domain.model.Account>,
-    selectedId: Long?,
-    accentColor: Color,
-    disabledId: Long?,
-    expectedBalances: Map<Long, Double> = emptyMap(),
-    parsedAmount: Double = 0.0,
-    onSelect: (Long) -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        accounts.forEach { acc ->
-            val isSelected = selectedId == acc.id
-            val isDisabled = acc.id == disabledId
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        when {
-                            isSelected  -> accentColor.copy(alpha = 0.18f)
-                            isDisabled  -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                            else        -> MaterialTheme.colorScheme.surfaceVariant
-                        }
-                    )
-                    .clickable(enabled = !isDisabled) { onSelect(acc.id) }
-                    .padding(vertical = 8.dp, horizontal = 4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = acc.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = when {
-                        isDisabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.28f)
-                        isSelected -> accentColor
-                        else       -> MaterialTheme.colorScheme.onSurface
-                    },
-                    textAlign = TextAlign.Center,
-                    maxLines = 1
-                )
-                Text(
-                    text = FormatterUtils.formatCurrency(acc.balance),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = when {
-                        isDisabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-                        isSelected -> accentColor.copy(alpha = 0.8f)
-                        else       -> TextGray
-                    },
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-                // Live preview of expected balance
-                val expectedBalance = expectedBalances[acc.id] ?: acc.balance
-                val showExpected = isSelected && parsedAmount > 0.0 && expectedBalance != acc.balance
-                if (showExpected) {
-                    val isPlus = expectedBalance > acc.balance
-                    Text(
-                        text = "➔ " + FormatterUtils.formatCurrency(expectedBalance),
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                        fontWeight = FontWeight.Bold,
-                        color = if (isPlus) IncomeGreen else ExpenseRed,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        modifier = Modifier.padding(top = 1.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-
-@Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onBackground
-    )
-}
-
-@Composable
-private fun KeypadToggleBar(
-    isExpanded: Boolean,
-    currentAmount: String,
-    onToggle: () -> Unit
-) {
-    val Primary = MaterialTheme.colorScheme.primary
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onToggle)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = if (isExpanded) Icons.Default.KeyboardArrowDown
-                              else Icons.Default.KeyboardArrowUp,
-                contentDescription = null,
-                tint = Primary,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = if (isExpanded) "إخفاء لوحة المفاتيح" else "إظهار لوحة المفاتيح",
-                style = MaterialTheme.typography.labelMedium,
-                color = Primary
-            )
-        }
-        Text(
-            text = "$currentAmount دج",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-@Composable
-private fun NumPad(onKeyPress: (String) -> Unit) {
-    val rows = listOf(
-        listOf("7", "8", "9", "÷"),
-        listOf("4", "5", "6", "×"),
-        listOf("1", "2", "3", "-"),
-        listOf(".", "0", "⌫", "+")
-    )
-    val bottomRow = listOf("C", "00", "=")
-
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            rows.forEach { rowKeys ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    rowKeys.forEach { key ->
-                        val isDelete = key == "⌫"
-                        val isOperator = key == "+" || key == "-" || key == "×" || key == "÷"
-                        val buttonBg = when {
-                            isDelete -> ExpenseRed.copy(alpha = 0.12f)
-                            isOperator -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                        }
-                        val textColor = when {
-                            isDelete -> ExpenseRed
-                            isOperator -> MaterialTheme.colorScheme.primary
-                            else -> MaterialTheme.colorScheme.onSurface
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(44.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(buttonBg)
-                                .clickable { onKeyPress(key) }
-                                .testTag("numpad_key_$key"),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isDelete) {
-                                Icon(
-                                    imageVector = Icons.Default.Backspace,
-                                    contentDescription = "حذف",
-                                    tint = ExpenseRed,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            } else {
-                                Text(
-                                    text = key,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = textColor
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                bottomRow.forEach { key ->
-                    val isEquals = key == "="
-                    val isClear = key == "C"
-                    val buttonBg = when {
-                        isEquals -> MaterialTheme.colorScheme.primary
-                        isClear -> ExpenseRed.copy(alpha = 0.15f)
-                        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                    }
-                    val textColor = when {
-                        isEquals -> Color.White
-                        isClear -> ExpenseRed
-                        else -> MaterialTheme.colorScheme.onSurface
-                    }
-                    val weight = if (isEquals) 2f else 1f
-
-                    Box(
-                        modifier = Modifier
-                            .weight(weight)
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(buttonBg)
-                            .clickable { onKeyPress(key) }
-                            .testTag("numpad_key_$key"),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = key,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = textColor
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SaveTransactionButton(
-    accentColor: Color,
-    isEnabled: Boolean,
-    isEditMode: Boolean = false,
-    onClick: () -> Unit
-) {
-    Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-        Button(
-            onClick = onClick,
-            enabled = isEnabled,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-                .testTag("save_transaction_button"),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = accentColor,
-                disabledContainerColor = accentColor.copy(alpha = 0.35f)
-            ),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = if (isEditMode) "حفظ التعديلات" else "تسجيل العملية المالية",
-                style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-        }
-    }
-}
-
-@Composable
-private fun CategoryIconView(
-    iconStr: String,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    val isMaterialIcon = remember(iconStr) {
-        iconStr.matches(Regex("^[a-zA-Z_]+$"))
-    }
-
-    if (isMaterialIcon) {
-        val vectorIcon = when (iconStr) {
-            "person" -> Icons.Default.Person
-            "groups" -> Icons.Default.Groups
-            "home" -> Icons.Default.Home
-            "restaurant" -> Icons.Default.Restaurant
-            "directions_car" -> Icons.Default.DirectionsCar
-            "receipt_long" -> Icons.Default.ReceiptLong
-            "shopping_bag" -> Icons.Default.ShoppingBag
-            "medical_services" -> Icons.Default.MedicalServices
-            "school" -> Icons.Default.School
-            "sports_esports" -> Icons.Default.SportsEsports
-            "work" -> Icons.Default.Work
-            "redeem" -> Icons.Default.Redeem
-            "storefront" -> Icons.Default.Storefront
-            "schedule" -> Icons.Default.Schedule
-            "monetization_on" -> Icons.Default.MonetizationOn
-            "savings" -> Icons.Default.Savings
-            "payments" -> Icons.Default.Payments
-            "account_balance" -> Icons.Default.AccountBalance
-            "trending_up" -> Icons.Default.TrendingUp
-            "card_giftcard" -> Icons.Default.CardGiftcard
-            "shopping_cart" -> Icons.Default.ShoppingCart
-            "local_gas_station" -> Icons.Default.LocalGasStation
-            "directions_bus" -> Icons.Default.DirectionsBus
-            "local_taxi" -> Icons.Default.LocalTaxi
-            "flight" -> Icons.Default.Flight
-            "checkroom" -> Icons.Default.Checkroom
-            "spa" -> Icons.Default.Spa
-            "fitness_center" -> Icons.Default.FitnessCenter
-            "live_tv" -> Icons.Default.LiveTv
-            "event" -> Icons.Default.Event
-            "phone_android" -> Icons.Default.PhoneAndroid
-            "wifi" -> Icons.Default.Wifi
-            "bolt" -> Icons.Default.Bolt
-            "water_drop" -> Icons.Default.WaterDrop
-            "chair" -> Icons.Default.Chair
-            "coffee" -> Icons.Default.Coffee
-            "child_care" -> Icons.Default.ChildCare
-            "pets" -> Icons.Default.Pets
-            "favorite" -> Icons.Default.Favorite
-            "star" -> Icons.Default.Star
-            "attach_money" -> Icons.Default.AttachMoney
-            "receipt" -> Icons.Default.Receipt
-            "build" -> Icons.Default.Build
-            "local_hospital" -> Icons.Default.LocalHospital
-            "mosque" -> Icons.Default.Mosque
-            "volunteer_activism" -> Icons.Default.VolunteerActivism
-            else -> Icons.Default.Category
-        }
-        Icon(
-            imageVector = vectorIcon,
-            contentDescription = null,
-            tint = color,
-            modifier = modifier
-        )
-    } else {
-        // Emoji or special character icon
-        Box(
-            modifier = modifier,
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = iconStr,
-                fontSize = 14.sp,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
-
-sealed interface DropdownCategoryItem {
-    data class MainCategory(val category: com.example.domain.model.Category, val isSelected: Boolean) : DropdownCategoryItem
-    data class SubCategory(val category: com.example.domain.model.Category, val parentCategory: com.example.domain.model.Category, val isSelected: Boolean) : DropdownCategoryItem
-}
-
-@Composable
-private fun CategoryDropdownSelector(
-    categories: List<com.example.domain.model.Category>,
-    transactions: List<com.example.domain.model.Transaction>,
-    type: TransactionType,
-    selectedCategoryId: Long?,
-    subcategoryId: Long?,
-    typeAccentColor: Color,
-    onCategorySelected: (Long?, Long?) -> Unit,
-    onAddMainCategory: () -> Unit,
-    onAddSubCategory: () -> Unit
-) {
-    var showDialog by remember { mutableStateOf(false) }
-
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val sharedPrefs = remember(context) {
-        context.getSharedPreferences("fintrack_prefs", android.content.Context.MODE_PRIVATE)
-    }
-    var smartSortEnabled by remember {
-        mutableStateOf(sharedPrefs.getBoolean("smart_category_sort_enabled", false))
-    }
-
-    val categoryFrequencies = remember(transactions) {
-        transactions.groupBy { it.categoryId }
-            .mapValues { it.value.size }
-    }
-
-    val selectedCategory = remember(categories, selectedCategoryId) {
-        categories.find { it.id == selectedCategoryId }
-    }
-    val selectedSubcategory = remember(categories, subcategoryId) {
-        categories.find { it.id == subcategoryId }
-    }
-
-    val buttonText = remember(selectedCategory, selectedSubcategory) {
-        when {
-            selectedSubcategory != null && selectedCategory != null -> 
-                "${selectedCategory.name} ➔ ${selectedSubcategory.name}"
-            selectedCategory != null -> 
-                selectedCategory.name
-            else -> "اختر الفئة الرئيسية والفرعية"
-        }
-    }
-
-    val dropdownItems = remember(categories, selectedCategoryId, subcategoryId, type, smartSortEnabled, categoryFrequencies) {
-        val mainCats = categories.filter { cat ->
-            cat.parentId == null &&
-            when (type) {
-                TransactionType.INCOME -> cat.type == CategoryType.INCOME
-                else                   -> cat.type == CategoryType.EXPENSE
-            }
-        }
-        val subs = categories.filter { it.parentId != null }
-        val subsMap = subs.groupBy { it.parentId!! }
-
-        val sortedMainCats = if (smartSortEnabled) {
-            mainCats.sortedByDescending { categoryFrequencies[it.id] ?: 0 }
-        } else {
-            mainCats
-        }
-
-        buildList {
-            sortedMainCats.forEach { mainCat ->
-                val isMainSelected = selectedCategoryId == mainCat.id && subcategoryId == null
-                add(DropdownCategoryItem.MainCategory(mainCat, isMainSelected))
-                
-                val childSubs = subsMap[mainCat.id] ?: emptyList()
-                val sortedChildSubs = if (smartSortEnabled) {
-                    childSubs.sortedByDescending { categoryFrequencies[it.id] ?: 0 }
-                } else {
-                    childSubs
-                }
-                sortedChildSubs.forEach { subCat ->
-                    val isSubSelected = subcategoryId == subCat.id
-                    add(DropdownCategoryItem.SubCategory(subCat, mainCat, isSubSelected))
-                }
-            }
-        }
-    }
-
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SectionLabel(text = "الفئة")
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (selectedCategoryId != null) {
-                    Text(
-                        text = "إضافة فرعية +",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = typeAccentColor,
-                        modifier = Modifier
-                            .clickable { onAddSubCategory() }
-                            .padding(4.dp)
-                    )
-                }
-                Text(
-                    text = "إضافة فئة رئيسية +",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = typeAccentColor,
-                    modifier = Modifier
-                        .clickable { onAddMainCategory() }
-                        .padding(4.dp)
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(6.dp))
-
-        // Category selection button
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(elevation = 1.dp, shape = RoundedCornerShape(14.dp))
-                .clickable { showDialog = true },
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            border = BorderStroke(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-            )
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (selectedCategory != null) {
-                        CategoryIconView(
-                            iconStr = selectedCategory.icon,
-                            color = typeAccentColor,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Category,
-                            contentDescription = null,
-                            tint = typeAccentColor,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = buttonText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (selectedCategoryId != null) MaterialTheme.colorScheme.onSurface else TextGray,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-                Icon(
-                    imageVector = Icons.Default.ArrowDropDown,
-                    contentDescription = "اختر الفئة",
-                    tint = TextGray,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-
-        // Category picker dialog with LazyColumn for performance
-        if (showDialog) {
-            AlertDialog(
-                onDismissRequest = { showDialog = false },
-                title = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "اختر الفئة",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable {
-                                smartSortEnabled = !smartSortEnabled
-                                sharedPrefs.edit().putBoolean("smart_category_sort_enabled", smartSortEnabled).apply()
-                            }
-                        ) {
-                            Checkbox(
-                                checked = smartSortEnabled,
-                                onCheckedChange = {
-                                    smartSortEnabled = it
-                                    sharedPrefs.edit().putBoolean("smart_category_sort_enabled", it).apply()
-                                },
-                                colors = CheckboxDefaults.colors(checkedColor = typeAccentColor)
-                            )
-                            Text(
-                                text = "ترتيب ذكي",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                },
-                text = {
-                    if (dropdownItems.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 24.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "لا توجد فئات مضافة بعد.",
-                                color = TextGray
-                            )
-                        }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 350.dp),
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            items(
-                                count = dropdownItems.size,
-                                key = { index ->
-                                    when (val item = dropdownItems[index]) {
-                                        is DropdownCategoryItem.MainCategory -> "main_${item.category.id}"
-                                        is DropdownCategoryItem.SubCategory -> "sub_${item.category.id}"
-                                    }
-                                }
-                            ) { index ->
-                                val item = dropdownItems[index]
-                                when (item) {
-                                    is DropdownCategoryItem.MainCategory -> {
-                                        val mainCat = item.category
-                                        val isCatSelected = item.isSelected
-                                        val catColor = try {
-                                            Color(android.graphics.Color.parseColor(mainCat.color))
-                                        } catch (_: Exception) {
-                                            typeAccentColor
-                                        }
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clip(RoundedCornerShape(10.dp))
-                                                .background(
-                                                    if (isCatSelected) typeAccentColor.copy(alpha = 0.1f)
-                                                    else Color.Transparent
-                                                )
-                                                .clickable {
-                                                    onCategorySelected(mainCat.id, null)
-                                                    showDialog = false
-                                                }
-                                                .padding(horizontal = 12.dp, vertical = 10.dp)
-                                        ) {
-                                            CategoryIconView(
-                                                iconStr = mainCat.icon,
-                                                color = catColor,
-                                                modifier = Modifier.size(22.dp)
-                                            )
-                                            Text(
-                                                text = mainCat.name,
-                                                fontWeight = FontWeight.Bold,
-                                                style = MaterialTheme.typography.bodyLarge,
-                                                color = if (isCatSelected) typeAccentColor
-                                                        else MaterialTheme.colorScheme.onSurface,
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                            if (isCatSelected) {
-                                                Icon(
-                                                    imageVector = Icons.Default.CheckCircle,
-                                                    contentDescription = null,
-                                                    tint = typeAccentColor,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            }
-                                        }
-                                    }
-                                    is DropdownCategoryItem.SubCategory -> {
-                                        val subCat = item.category
-                                        val isSubCatSelected = item.isSelected
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(start = 20.dp)
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(
-                                                    if (isSubCatSelected) typeAccentColor.copy(alpha = 0.08f)
-                                                    else Color.Transparent
-                                                )
-                                                .clickable {
-                                                    onCategorySelected(item.parentCategory.id, subCat.id)
-                                                    showDialog = false
-                                                }
-                                                .padding(horizontal = 10.dp, vertical = 8.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.SubdirectoryArrowLeft,
-                                                contentDescription = null,
-                                                tint = TextGray.copy(alpha = 0.4f),
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                            CategoryIconView(
-                                                iconStr = subCat.icon,
-                                                color = typeAccentColor.copy(alpha = 0.6f),
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                            Text(
-                                                text = subCat.name,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = if (isSubCatSelected) typeAccentColor
-                                                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                            if (isSubCatSelected) {
-                                                Icon(
-                                                    imageVector = Icons.Default.CheckCircle,
-                                                    contentDescription = null,
-                                                    tint = typeAccentColor.copy(alpha = 0.7f),
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showDialog = false }) {
-                        Text("إغلاق", color = typeAccentColor)
-                    }
-                },
-                shape = RoundedCornerShape(20.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun RowScope.QuickDateButton(
-    text: String,
-    isSelected: Boolean,
-    accentColor: Color,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .weight(1f)
-            .height(36.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(
-                if (isSelected) accentColor.copy(alpha = 0.15f)
-                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            )
-            .clickable(onClick = onClick)
-            .border(
-                width = 1.dp,
-                color = if (isSelected) accentColor else Color.Transparent,
-                shape = RoundedCornerShape(8.dp)
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-            color = if (isSelected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 private fun getStartOfDay(millis: Long): Long {
     val cal = java.util.Calendar.getInstance()

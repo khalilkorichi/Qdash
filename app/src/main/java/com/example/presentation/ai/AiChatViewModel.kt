@@ -54,7 +54,7 @@ class AiChatViewModel(
     private val transactionRepository: TransactionRepository,
     private val accountRepository: AccountRepository,
     private val categoryRepository: CategoryRepository,
-    private val context: Context
+    private val preferencesManager: com.example.core.preferences.PreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AiChatUiState())
@@ -80,8 +80,7 @@ class AiChatViewModel(
         loadSessionMessages(_uiState.value.currentSessionTitle)
 
         // Load saved model preference
-        val sharedPrefs = context.getSharedPreferences("kdach_prefs", Context.MODE_PRIVATE)
-        val savedModelId = sharedPrefs.getString("selected_ai_model", "gemini-2.5-flash") ?: "gemini-2.5-flash"
+        val savedModelId = preferencesManager.selectedAiModel
         _uiState.update { it.copy(selectedModelId = savedModelId) }
 
         // Generate proactive insights
@@ -89,8 +88,7 @@ class AiChatViewModel(
     }
 
     fun selectModel(modelId: String) {
-        val sharedPrefs = context.getSharedPreferences("kdach_prefs", Context.MODE_PRIVATE)
-        sharedPrefs.edit().putString("selected_ai_model", modelId).apply()
+        preferencesManager.selectedAiModel = modelId
         _uiState.update { it.copy(selectedModelId = modelId) }
     }
 
