@@ -1,4 +1,4 @@
-﻿package com.example.presentation.home
+package com.example.presentation.home
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
@@ -1067,7 +1067,7 @@ fun TransactionListSkeleton(modifier: Modifier = Modifier) {
 }
 
 private data class ContextTemplateData(
-    val emoji: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
     val suggestionText: String,
     val targetKeyword: String,
     val defaultAmount: Double,
@@ -1084,7 +1084,7 @@ fun ContextAwareTemplateCard(
     val templateData = remember(currentHour) {
         when (currentHour) {
             in 6..11 -> ContextTemplateData(
-                emoji = "ًںŒ…",
+                icon = Icons.Default.LightMode,
                 suggestionText = "صباح الخير! هل دفعت ثمن مواصلات العمل اليوم؟",
                 targetKeyword = "مواصلات",
                 defaultAmount = 150.0,
@@ -1092,7 +1092,7 @@ fun ContextAwareTemplateCard(
                 title = "مواصلات الصباح"
             )
             in 12..16 -> ContextTemplateData(
-                emoji = "âک•",
+                icon = Icons.Default.Coffee,
                 suggestionText = "وقت الاستراحة! هل ترغب في تسجيل وجبة الغداء أو قهوة؟",
                 targetKeyword = "طعام",
                 defaultAmount = 450.0,
@@ -1100,7 +1100,7 @@ fun ContextAwareTemplateCard(
                 title = "وجبة الغداء"
             )
             in 17..21 -> ContextTemplateData(
-                emoji = "ًں›’",
+                icon = Icons.Default.ShoppingCart,
                 suggestionText = "مساء الخير! هل قمت بشراء البقالة ومستلزمات المنزل؟",
                 targetKeyword = "طعام",
                 defaultAmount = 1200.0,
@@ -1108,7 +1108,7 @@ fun ContextAwareTemplateCard(
                 title = "عشاء / بقالة المساء"
             )
             else -> ContextTemplateData(
-                emoji = "ًںŒ™",
+                icon = Icons.Default.NightsStay,
                 suggestionText = "سهرة سعيدة! هل قمت بتعبئة رصيد هاتف أو إنترنت؟",
                 targetKeyword = "منزلي",
                 defaultAmount = 500.0,
@@ -1117,7 +1117,7 @@ fun ContextAwareTemplateCard(
             )
         }
     }
-    val emoji = templateData.emoji
+    val icon = templateData.icon
     val suggestionText = templateData.suggestionText
     val targetKeyword = templateData.targetKeyword
     val defaultAmount = templateData.defaultAmount
@@ -1149,7 +1149,19 @@ fun ContextAwareTemplateCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(text = emoji, fontSize = 24.sp)
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(Primary.copy(alpha = 0.1f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = Primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "اقتراح ذكي حسب الوقت",

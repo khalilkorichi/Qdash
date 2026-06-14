@@ -1,11 +1,11 @@
 {
-  "versionCode": 2,
-  "versionName": "1.0.0.02",
-  "updateIdentity": 102,
-  "publishedAt": "2026-06-14T01:05:00Z",
-  "apkUrl": "https://github.com/khalilkorichi/Qdash/releases/download/v1.0.0.02/app-debug.apk",
-  "apkSize": 23148488,
-  "apkSha256": "961099744beadff994caea2ffb35dab5ecd23d418433794b77dd2c2d7347afa7",
+  "versionCode": 3,
+  "versionName": "1.0.0.03",
+  "updateIdentity": 103,
+  "publishedAt": "2026-06-14T17:55:00Z",
+  "apkUrl": "https://github.com/khalilkorichi/Qdash/releases/download/v1.0.0.03/app-debug.apk",
+  "apkSize": 23295944,
+  "apkSha256": "2b3f3cf0589bb23da9e26959c3e466988957cac9bfd75cc917679faef3118f59",
   "mandatory": false,
-  "releaseNotes": "إضافة ميزات متقدمة: التحديد المتعدد والعمليات المجمعة، إيماءات سحب انسيابية بالاهتزاز الحسي، فلاتر متقدمة، مقارنة المصروفات الذكية، تخصيص ترتيب الواجهة، دمج الفئات وتخصيصها، المساعد الصوتي بالعامية والتحليلات الاستباقية."
+  "releaseNotes": "تحديث الأيقونات التعبيرية (Emojis) إلى أيقونات SVG متجهة واحترافية في كامل التطبيق، بما في ذلك بطاقات الاقتراحات الذكية وشاشة الإحصائيات، بالإضافة إلى ترقية رقم الإصدار إلى v1.0.0.03."
 }

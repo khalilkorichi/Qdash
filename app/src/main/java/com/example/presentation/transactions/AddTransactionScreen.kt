@@ -77,7 +77,7 @@ fun AddTransactionScreen(
     var showAddCategoryDialog by remember { mutableStateOf(false) }
     var isAddingSubcategory by remember { mutableStateOf(false) }
     var newCategoryName by remember { mutableStateOf("") }
-    var newCategoryIcon by remember { mutableStateOf("ًں“پ") }
+    var newCategoryIcon by remember { mutableStateOf("📁") }
     var newCategoryColor by remember { mutableStateOf("#8B5CF6") }
 
     val curatedColors = listOf(
@@ -251,7 +251,7 @@ fun AddTransactionScreen(
 
     var showSaveTemplateDialog by remember { mutableStateOf(false) }
     var templateName by remember { mutableStateOf("") }
-    var templateEmoji by remember { mutableStateOf("ًں“‌") }
+    var templateEmoji by remember { mutableStateOf("📝") }
     var templatePinned by remember { mutableStateOf(false) }
     var showEmojiPicker by remember { mutableStateOf(false) }
 
@@ -663,14 +663,14 @@ fun AddTransactionScreen(
                     },
                     onAddMainCategory = {
                         newCategoryName = ""
-                        newCategoryIcon = "ًں“پ"
+                        newCategoryIcon = "📁"
                         newCategoryColor = "#8B5CF6"
                         isAddingSubcategory = false
                         showAddCategoryDialog = true
                     },
                     onAddSubCategory = {
                         newCategoryName = ""
-                        newCategoryIcon = "ًں“پ"
+                        newCategoryIcon = "📁"
                         newCategoryColor = "#8B5CF6"
                         isAddingSubcategory = true
                         showAddCategoryDialog = true
@@ -1140,7 +1140,7 @@ fun AddTransactionScreen(
                                 value = newCategoryIcon,
                                 onValueChange = { newCategoryIcon = it },
                                 label = { Text("أيقونة/رمز") },
-                                placeholder = { Text("ًں“پ") },
+                                placeholder = { Text("📁") },
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.width(90.dp),

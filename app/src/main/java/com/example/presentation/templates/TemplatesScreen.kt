@@ -338,7 +338,17 @@ private fun TemplateItemCard(
                         .background(typeAccentColor.copy(alpha = 0.08f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = template.iconEmoji ?: "📝", fontSize = 22.sp)
+                    val emoji = template.iconEmoji
+                    if (emoji != null && emoji.isNotBlank()) {
+                        Text(text = emoji, fontSize = 22.sp)
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.ReceiptLong,
+                            contentDescription = null,
+                            tint = typeAccentColor,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
                 }
                 
                 Spacer(modifier = Modifier.width(12.dp))
@@ -442,7 +452,17 @@ private fun FrequentTemplateChip(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(text = template.iconEmoji ?: "☕", fontSize = 16.sp)
+            val emoji = template.iconEmoji
+            if (emoji != null && emoji.isNotBlank()) {
+                Text(text = emoji, fontSize = 16.sp)
+            } else {
+                Icon(
+                    imageVector = Icons.Default.ReceiptLong,
+                    contentDescription = null,
+                    tint = typeAccentColor,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
             Text(text = template.name, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             Text(text = FormatterUtils.formatCurrency(template.amount), fontSize = 11.sp, color = typeAccentColor, fontWeight = FontWeight.ExtraBold)
         }

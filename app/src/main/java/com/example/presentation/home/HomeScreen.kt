@@ -1,4 +1,4 @@
-﻿package com.example.presentation.home
+package com.example.presentation.home
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
@@ -299,7 +299,17 @@ fun HomeScreen(
                                                             verticalAlignment = Alignment.CenterVertically,
                                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                                         ) {
-                                                            Text(text = template.iconEmoji ?: "ًں“‌", fontSize = 18.sp)
+                                                            val emoji = template.iconEmoji
+                                                            if (emoji != null && emoji.isNotBlank()) {
+                                                                Text(text = emoji, fontSize = 18.sp)
+                                                            } else {
+                                                                Icon(
+                                                                    imageVector = Icons.Default.ReceiptLong,
+                                                                    contentDescription = null,
+                                                                    tint = MaterialTheme.colorScheme.primary,
+                                                                    modifier = Modifier.size(18.dp)
+                                                                )
+                                                            }
                                                             Column {
                                                                 Text(
                                                                     text = template.name,

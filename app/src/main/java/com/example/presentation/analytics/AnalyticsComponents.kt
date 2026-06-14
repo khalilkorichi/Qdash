@@ -1,4 +1,4 @@
-﻿package com.example.presentation.analytics
+package com.example.presentation.analytics
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -27,6 +27,8 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.input.pointer.changedToUp
@@ -2033,9 +2035,11 @@ fun SimplePeriodEmptyState(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "ًں’،",
-                        fontSize = 16.sp
+                    Icon(
+                        imageVector = Icons.Default.Lightbulb,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
                     )
                     Text(
                         text = "نصيحة: يمكنك التنقل بين الفترات الزمنية من الأعلى لرؤية إحصائيات الأيام أو الأسابيع الأخرى النشطة.",
@@ -2080,12 +2084,11 @@ fun HelpIconButton(
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = "طں",
-            color = MaterialTheme.colorScheme.primary,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
+        Icon(
+            imageVector = Icons.Default.QuestionMark,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(14.dp)
         )
     }
 }
