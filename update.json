@@ -3,7 +3,7 @@
   "versionName": "1.0.0.03",
   "updateIdentity": 103,
   "publishedAt": "2026-06-14T17:55:00Z",
-  "apkUrl": "https://github.com/khalilkorichi/Qdash/releases/download/v1.0.0.03/app-debug.apk",
+  "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
   "apkSize": 23295944,
   "apkSha256": "2b3f3cf0589bb23da9e26959c3e466988957cac9bfd75cc917679faef3118f59",
   "mandatory": false,
