@@ -355,7 +355,7 @@ fun AddTransactionScreen(
 
         // â”€â”€ Top bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         FinTrackTopBar(
-            title = if (transactionId != null) "طھط¹ط¯ظٹظ„ ط§ظ„ط¹ظ…ظ„ظٹط© ط§ظ„ظ…ط§ظ„ظٹط©" else "ط¥ط¶ط§ظپط© ط¹ظ…ظ„ظٹط© ظ…ط§ظ„ظٹط©",
+            title = if (transactionId != null) "تعديل العملية المالية" else "إضافة عملية مالية",
             showBackButton = true,
             onBackClick = onBack
         )
@@ -407,7 +407,7 @@ fun AddTransactionScreen(
                     .testTag("note_input"),
                 placeholder = {
                     Text(
-                        text = "ط£ط¶ظپ ظ…ظ„ط§ط­ط¸ط© ط£ظˆ ط³ط¨ط¨ ط§ظ„ظ…ط¹ط§ظ…ظ„ط©â€¦",
+                        text = "أضف ملاحظة أو سبب المعاملة…",
                         color = TextGray,
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -428,7 +428,7 @@ fun AddTransactionScreen(
 
             // â”€â”€ Tags Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                SectionLabel(text = "ط§ظ„ظˆط³ظˆظ… (Tags)")
+                SectionLabel(text = "الوسوم (Tags)")
                 Spacer(modifier = Modifier.height(4.dp))
                 
                 // Display selected tags as small chips
@@ -462,7 +462,7 @@ fun AddTransactionScreen(
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Icon(
                                         imageVector = Icons.Default.Close,
-                                        contentDescription = "ط­ط°ظپ",
+                                        contentDescription = "حذف",
                                         tint = typeAccentColor,
                                         modifier = Modifier.size(10.dp)
                                     )
@@ -474,11 +474,11 @@ fun AddTransactionScreen(
                 }
 
                 // Preset recommended tags
-                val presetTags = listOf("ط؛ط°ط§ط،", "ط¨ظ†ط²ظٹظ†", "ظپط§طھظˆط±ط©", "ط³ظپط±", "ظ‡ط¯ط§ظٹط§", "طµط­ط©", "ظ…ظ„ط§ط¨ط³", "ط¥ظ†طھط±ظ†طھ")
+                val presetTags = listOf("غذاء", "بنزين", "فاتورة", "سفر", "هدايا", "صحة", "ملابس", "إنترنت")
                 val availablePresets = presetTags.filter { it !in selectedTags }
                 
                 Text(
-                    text = "ظˆط³ظˆظ… ظ…ظ‚طھط±ط­ط©:",
+                    text = "وسوم مقترحة:",
                     style = MaterialTheme.typography.labelSmall,
                     color = TextGray
                 )
@@ -543,7 +543,7 @@ fun AddTransactionScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
-                                    contentDescription = "ط¥ط¶ط§ظپط©",
+                                    contentDescription = "إضافة",
                                     tint = typeAccentColor,
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -557,7 +557,7 @@ fun AddTransactionScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "ط¥ظ„ط؛ط§ط،",
+                                    contentDescription = "إلغاء",
                                     tint = TextGray,
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -573,7 +573,7 @@ fun AddTransactionScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "+ ظˆط³ظ… ظ…ط®طµطµ",
+                                text = "+ وسم مخصص",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = typeAccentColor,
                                 fontWeight = FontWeight.Bold
@@ -625,16 +625,16 @@ fun AddTransactionScreen(
                                 )
                                 Column {
                                     Text(
-                                        text = if (isExceeded) "طھظ†ط¨ظٹظ‡: ظ‡ط°ط§ ط§ظ„ظ…ط¨ظ„ط؛ ظٹطھط¬ط§ظˆط² ط§ظ„ظ…ظٹط²ط§ظ†ظٹط© ط§ظ„ظ…ط­ط¯ط¯ط© ظ„ظ„ظپط¦ط©!" else "ط§ظ†طھط¨ظ‡: ط§ظ„ظ…ظٹط²ط§ظ†ظٹط© ط§ظ„ظ…ط­ط¯ط¯ط© ظ„ظ‡ط°ظ‡ ط§ظ„ظپط¦ط© ط£ظˆط´ظƒطھ ط¹ظ„ظ‰ ط§ظ„ظ†ظپط§ط¯!",
+                                        text = if (isExceeded) "تنبيه: هذا المبلغ يتجاوز الميزانية المحددة للفئة!" else "انتبه: الميزانية المحددة لهذه الفئة أوشكت على النفاد!",
                                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                         color = if (isExceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground
                                     )
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
                                         text = if (isExceeded) {
-                                            "ظ…ظٹط²ط§ظ†ظٹط© ط§ظ„ظپط¦ط©: $limitFormatted (طھط¬ط§ظˆط² ط¨ظ‚ظٹظ…ط©: ${com.example.core.utils.FormatterUtils.formatCurrency(newSpent - budget.amountLimit)})"
+                                            "ميزانية الفئة: $limitFormatted (تجاوز بقيمة: ${com.example.core.utils.FormatterUtils.formatCurrency(newSpent - budget.amountLimit)})"
                                         } else {
-                                            "ط§ظ„ظ…طھط¨ظ‚ظٹ ظپظٹ ط§ظ„ظ…ظٹط²ط§ظ†ظٹط©: $remainingFormatted ظ…ظ† ط¥ط¬ظ…ط§ظ„ظٹ $limitFormatted"
+                                            "المتبقي في الميزانية: $remainingFormatted من إجمالي $limitFormatted"
                                         },
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -683,9 +683,9 @@ fun AddTransactionScreen(
                 Column {
                     SectionLabel(
                         text = when (type) {
-                            TransactionType.INCOME   -> "ط§ظ„ط¥ظٹط¯ط§ط¹ ظپظٹ ط­ظگط³ط§ط¨"
-                            TransactionType.EXPENSE  -> "ط§ظ„ط¯ظپط¹ ظ…ظ† ط­ظگط³ط§ط¨"
-                            TransactionType.TRANSFER -> "ظ…ظ† ط­ط³ط§ط¨"
+                            TransactionType.INCOME   -> "الإيداع في حِساب"
+                            TransactionType.EXPENSE  -> "الدفع من حِساب"
+                            TransactionType.TRANSFER -> "من حساب"
                         }
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -704,7 +704,7 @@ fun AddTransactionScreen(
             // â”€â”€ Destination account (Transfer only) â”€â”€â”€â”€â”€â”€â”€
             if (type == TransactionType.TRANSFER && uiState.accounts.isNotEmpty()) {
                 Column {
-                    SectionLabel(text = "ط¥ظ„ظ‰ ط­ط³ط§ط¨")
+                    SectionLabel(text = "إلى حساب")
                     Spacer(modifier = Modifier.height(6.dp))
                     AccountPickerRow(
                         accounts = uiState.accounts,
@@ -720,7 +720,7 @@ fun AddTransactionScreen(
 
             // â”€â”€ Date Selector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Column {
-                SectionLabel(text = "طھط§ط±ظٹط® ط§ظ„ط¹ظ…ظ„ظٹط©")
+                SectionLabel(text = "تاريخ العملية")
                 Spacer(modifier = Modifier.height(6.dp))
                 Card(
                     modifier = Modifier
@@ -763,7 +763,7 @@ fun AddTransactionScreen(
                         }
                         Icon(
                             imageVector = Icons.Default.Edit,
-                            contentDescription = "طھط¹ط¯ظٹظ„ ط§ظ„طھط§ط±ظٹط®",
+                            contentDescription = "تعديل التاريخ",
                             tint = TextGray,
                             modifier = Modifier.size(16.dp)
                         )
@@ -782,7 +782,7 @@ fun AddTransactionScreen(
 
                     // Today Button
                     QuickDateButton(
-                        text = "ط§ظ„ظٹظˆظ…",
+                        text = "اليوم",
                         isSelected = isToday,
                         accentColor = typeAccentColor,
                         onClick = { transactionDate = System.currentTimeMillis() }
@@ -790,7 +790,7 @@ fun AddTransactionScreen(
 
                     // Yesterday Button
                     QuickDateButton(
-                        text = "ط§ظ„ط¨ط§ط±ط­ط©",
+                        text = "البارحة",
                         isSelected = isYesterday,
                         accentColor = typeAccentColor,
                         onClick = { transactionDate = System.currentTimeMillis() - 24 * 60 * 60 * 1000L }
@@ -798,7 +798,7 @@ fun AddTransactionScreen(
 
                     // Other Date Button
                     QuickDateButton(
-                        text = "طھط§ط±ظٹط® ط¢ط®ط±...",
+                        text = "تاريخ آخر...",
                         isSelected = isOther,
                         accentColor = typeAccentColor,
                         onClick = { showDatePicker = true }
@@ -821,12 +821,12 @@ fun AddTransactionScreen(
                                 showDatePicker = false
                             }
                         ) {
-                            Text("ظ…ظˆط§ظپظ‚", color = typeAccentColor, fontWeight = FontWeight.Bold)
+                            Text("موافق", color = typeAccentColor, fontWeight = FontWeight.Bold)
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { showDatePicker = false }) {
-                            Text("ط¥ظ„ط؛ط§ط،", color = TextGray)
+                            Text("إلغاء", color = TextGray)
                         }
                     }
                 ) {
@@ -874,7 +874,7 @@ fun AddTransactionScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "ط¹ظ…ظ„ظٹط© ظ…طھظƒط±ط±ط© ط¯ظˆط±ظٹط§ظ‹طں",
+                        text = "عملية متكررة دورياً؟",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Medium
@@ -893,7 +893,7 @@ fun AddTransactionScreen(
             AnimatedVisibility(visible = isRecurring) {
                 Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
                     Text(
-                        text = "ظˆطھظٹط±ط© ط§ظ„طھظƒط±ط§ط±",
+                        text = "وتيرة التكرار",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextGray
                     )
@@ -903,10 +903,10 @@ fun AddTransactionScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         listOf(
-                            "DAILY" to "ظٹظˆظ…ظٹط§ظ‹",
-                            "WEEKLY" to "ط£ط³ط¨ظˆط¹ظٹط§ظ‹",
-                            "MONTHLY" to "ط´ظ‡ط±ظٹط§ظ‹",
-                            "YEARLY" to "ط³ظ†ظˆظٹط§ظ‹"
+                            "DAILY" to "يومياً",
+                            "WEEKLY" to "أسبوعياً",
+                            "MONTHLY" to "شهرياً",
+                            "YEARLY" to "سنوياً"
                         ).forEach { (period, label) ->
                             val isSelected = recurringPeriod == period
                             Box(
@@ -1001,7 +1001,7 @@ fun AddTransactionScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "ط­ظپط¸ ظƒظ‚ط§ظ„ط¨",
+                            text = "حفظ كقالب",
                             style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp),
                             fontWeight = FontWeight.Bold
                         )
@@ -1094,7 +1094,7 @@ fun AddTransactionScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (transactionId != null) "ط­ظپط¸ ط§ظ„طھط¹ط¯ظٹظ„ط§طھ" else "طھط³ط¬ظٹظ„ ط§ظ„ط¹ظ…ظ„ظٹط©",
+                        text = if (transactionId != null) "حفظ التعديلات" else "تسجيل العملية",
                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -1109,7 +1109,7 @@ fun AddTransactionScreen(
                 onDismissRequest = { showAddCategoryDialog = false },
                 title = {
                     Text(
-                        text = if (isAddingSubcategory) "ط¥ظ†ط´ط§ط، ظپط¦ط© ظپط±ط¹ظٹط© ط¬ط¯ظٹط¯ط©" else "ط¥ظ†ط´ط§ط، ظپط¦ط© ط±ط¦ظٹط³ظٹط© ط¬ط¯ظٹط¯ط©",
+                        text = if (isAddingSubcategory) "إنشاء فئة فرعية جديدة" else "إنشاء فئة رئيسية جديدة",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                 },
@@ -1121,8 +1121,8 @@ fun AddTransactionScreen(
                         OutlinedTextField(
                             value = newCategoryName,
                             onValueChange = { newCategoryName = it },
-                            label = { Text(if (isAddingSubcategory) "ط§ط³ظ… ط§ظ„ظپط¦ط© ط§ظ„ظپط±ط¹ظٹط©" else "ط§ط³ظ… ط§ظ„ظپط¦ط© ط§ظ„ط±ط¦ظٹط³ظٹط©") },
-                            placeholder = { Text("ظ…ط«ط§ظ„: طھط³ظˆظ‚طŒ ظ‡ط¯ط§ظٹط§طŒ ظ†ظ‚ظ„...") },
+                            label = { Text(if (isAddingSubcategory) "اسم الفئة الفرعية" else "اسم الفئة الرئيسية") },
+                            placeholder = { Text("مثال: تسوق، هدايا، نقل...") },
                             singleLine = true,
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth(),
@@ -1139,7 +1139,7 @@ fun AddTransactionScreen(
                             OutlinedTextField(
                                 value = newCategoryIcon,
                                 onValueChange = { newCategoryIcon = it },
-                                label = { Text("ط£ظٹظ‚ظˆظ†ط©/ط±ظ…ط²") },
+                                label = { Text("أيقونة/رمز") },
                                 placeholder = { Text("ًں“پ") },
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
@@ -1150,7 +1150,7 @@ fun AddTransactionScreen(
                                 )
                             )
                             Text(
-                                text = "ظٹظ…ظƒظ†ظƒ ظƒطھط§ط¨ط© ط±ظ…ط² طھط¹ط¨ظٹط±ظٹ (Emoji)",
+                                text = "يمكنك كتابة رمز تعبيري (Emoji)",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextGray,
                                 modifier = Modifier.weight(1f)
@@ -1159,7 +1159,7 @@ fun AddTransactionScreen(
 
                         Column {
                             Text(
-                                text = "ط§ط®طھط± ظ„ظˆظ† ط§ظ„ظپط¦ط©:",
+                                text = "اختر لون الفئة:",
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(bottom = 8.dp)
@@ -1208,12 +1208,12 @@ fun AddTransactionScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = typeAccentColor),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("ط¥ظ†ط´ط§ط، ط§ظ„ظپط¦ط©", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("إنشاء الفئة", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showAddCategoryDialog = false }) {
-                        Text("ط¥ظ„ط؛ط§ط،", color = TextGray)
+                        Text("إلغاء", color = TextGray)
                     }
                 }
             )
@@ -1225,7 +1225,7 @@ fun AddTransactionScreen(
                 onDismissRequest = { showSaveTemplateDialog = false },
                 title = {
                     Text(
-                        text = "ط­ظپط¸ ظƒظ‚ط§ظ„ط¨ ظ…ط¹ط§ظ…ظ„ط©",
+                        text = "حفظ كقالب معاملة",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -1235,7 +1235,7 @@ fun AddTransactionScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = "ط³ظٹطھظ… ط­ظپط¸ ظ‡ط°ظ‡ ط§ظ„ظ…ط¹ط§ظ…ظ„ط© ظƒظ‚ط§ظ„ط¨ ظ„طھطھظ…ظƒظ† ظ…ظ† ط¥ط¹ط§ط¯ط© ط§ط³طھط®ط¯ط§ظ…ظ‡ط§ ط¨ط¶ط؛ط·ط© ط²ط± ظˆط§ط­ط¯ط©.",
+                            text = "سيتم حفظ هذه المعاملة كقالب لتتمكن من إعادة استخدامها بضغطة زر واحدة.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextGray
                         )
@@ -1258,8 +1258,8 @@ fun AddTransactionScreen(
                             OutlinedTextField(
                                 value = templateName,
                                 onValueChange = { templateName = it },
-                                label = { Text("ط§ط³ظ… ط§ظ„ظ‚ط§ظ„ط¨") },
-                                placeholder = { Text("ظ…ط«ط§ظ„: ظ‚ظ‡ظˆط©طŒ ظپط§طھظˆط±ط© ط§ظ„ط¥ظ†طھط±ظ†طھâ€¦") },
+                                label = { Text("اسم القالب") },
+                                placeholder = { Text("مثال: قهوة، فاتورة الإنترنت…") },
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.weight(1f),
@@ -1278,7 +1278,7 @@ fun AddTransactionScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.PushPin, contentDescription = null, tint = Primary, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("طھط«ط¨ظٹطھ ط§ظ„ظ‚ط§ظ„ط¨ ظپظٹ ط§ظ„ط±ط¦ظٹط³ظٹط©", style = MaterialTheme.typography.bodyMedium)
+                                Text("تثبيت القالب في الرئيسية", style = MaterialTheme.typography.bodyMedium)
                             }
                             Switch(
                                 checked = templatePinned,
@@ -1314,12 +1314,12 @@ fun AddTransactionScreen(
                         },
                         enabled = templateName.isNotBlank()
                     ) {
-                        Text("ط­ظپط¸", color = typeAccentColor, fontWeight = FontWeight.Bold)
+                        Text("حفظ", color = typeAccentColor, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showSaveTemplateDialog = false }) {
-                        Text("ط¥ظ„ط؛ط§ط،", color = TextGray)
+                        Text("إلغاء", color = TextGray)
                     }
                 }
             )

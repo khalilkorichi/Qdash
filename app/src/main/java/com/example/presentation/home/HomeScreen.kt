@@ -170,13 +170,13 @@ fun HomeScreen(
 
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "ط¥ط¹ط¯ط§ط¯ ط£ط±طµط¯ط© ط§ظ„ط­ط³ط§ط¨ط§طھ",
+                                        text = "إعداد أرصدة الحسابات",
                                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.onBackground
                                     )
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
-                                        text = "ط£ط¶ظپ ط£ط±طµط¯طھظƒ ط§ظ„ط­ط§ظ„ظٹط© ظ„ط¬ط¹ظ„ طھطھط¨ط¹ ظ…طµط§ط±ظٹظپظƒ ط£ظƒط«ط± ط¯ظ‚ط© ظˆظˆط§ظ‚ط¹ظٹط©.",
+                                        text = "أضف أرصدتك الحالية لجعل تتبع مصاريفك أكثر دقة وواقعية.",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = TextGray,
                                         lineHeight = 16.sp
@@ -188,7 +188,7 @@ fun HomeScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Close,
-                                        contentDescription = "ط¥ط؛ظ„ط§ظ‚",
+                                        contentDescription = "إغلاق",
                                         tint = TextGray,
                                         modifier = Modifier.size(18.dp)
                                     )
@@ -237,12 +237,12 @@ fun HomeScreen(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Text(
-                                                    text = "ط§ظ„ظ‚ظˆط§ظ„ط¨ ط§ظ„ظ…ط«ط¨طھط©",
+                                                    text = "القوالب المثبتة",
                                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
                                                     color = MaterialTheme.colorScheme.onBackground
                                                 )
                                                 Text(
-                                                    text = "ط¥ط¯ط§ط±ط© ط§ظ„ظ‚ظˆط§ظ„ط¨",
+                                                    text = "إدارة القوالب",
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = Primary,
                                                     modifier = Modifier
@@ -324,7 +324,7 @@ fun HomeScreen(
                                 item {
                                     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                                         Text(
-                                            text = "ط§ظ„ظˆطµظˆظ„ ط§ظ„ط³ط±ظٹط¹",
+                                            text = "الوصول السريع",
                                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
                                             color = MaterialTheme.colorScheme.onBackground
                                         )
@@ -336,7 +336,7 @@ fun HomeScreen(
                                             QuickActionTile(
                                                 modifier = Modifier.weight(1f),
                                                 icon = Icons.Default.Payments,
-                                                label = "ط¥ط¶ط§ظپط© ظ…ط¹ط§ظ…ظ„ط©",
+                                                label = "إضافة معاملة",
                                                 iconBg = Brush.linearGradient(
                                                     listOf(Primary.copy(alpha = 0.25f), Primary.copy(alpha = 0.08f))
                                                 ),
@@ -346,7 +346,7 @@ fun HomeScreen(
                                             QuickActionTile(
                                                 modifier = Modifier.weight(1f),
                                                 icon = Icons.Default.ReceiptLong,
-                                                label = "ط³ط¬ظ„ ط§ظ„ظ…ط¹ط§ظ…ظ„ط§طھ",
+                                                label = "سجل المعاملات",
                                                 iconBg = Brush.linearGradient(
                                                     listOf(TransferBlue.copy(alpha = 0.25f), TransferBlue.copy(alpha = 0.08f))
                                                 ),
@@ -362,7 +362,7 @@ fun HomeScreen(
                                             QuickActionTile(
                                                 modifier = Modifier.weight(1f),
                                                 icon = Icons.Default.Savings,
-                                                label = "ط­طµط§ظ„ط© ط§ظ„ط§ط¯ط®ط§ط±",
+                                                label = "حصالة الادخار",
                                                 iconBg = Brush.linearGradient(
                                                     listOf(SavingsAmber.copy(alpha = 0.25f), SavingsAmber.copy(alpha = 0.08f))
                                                 ),
@@ -372,7 +372,7 @@ fun HomeScreen(
                                             QuickActionTile(
                                                 modifier = Modifier.weight(1f),
                                                 icon = Icons.Default.CardMembership,
-                                                label = "ط§ظ„ط§ط´طھط±ط§ظƒط§طھ",
+                                                label = "الاشتراكات",
                                                 iconBg = Brush.linearGradient(
                                                     listOf(ExpenseRed.copy(alpha = 0.20f), ExpenseRed.copy(alpha = 0.06f))
                                                 ),
@@ -387,7 +387,7 @@ fun HomeScreen(
                                 item {
                                     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                                         Text(
-                                            text = "ط­ط³ط§ط¨ط§طھظٹ ط§ظ„ظ…ط§ظ„ظٹط©",
+                                            text = "حساباتي المالية",
                                             style = MaterialTheme.typography.titleMedium,
                                             color = MaterialTheme.colorScheme.onBackground,
                                             fontWeight = FontWeight.Bold
@@ -397,7 +397,7 @@ fun HomeScreen(
                                             AccountsRowSkeleton()
                                         } else if (uiState.accounts.isEmpty()) {
                                             Text(
-                                                text = "ظ„ط§ طھظˆط¬ط¯ ط­ط³ط§ط¨ط§طھ ظ…ط¶ط§ظپط© ط­ط§ظ„ظٹط§ظ‹.",
+                                                text = "لا توجد حسابات مضافة حالياً.",
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = TextGray
                                             )
@@ -423,7 +423,7 @@ fun HomeScreen(
                                 item {
                                     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                                         Text(
-                                            text = "طھط­ظ„ظٹظ„ ط§ظ„ظ…طµط±ظˆظپط§طھ",
+                                            text = "تحليل المصروفات",
                                             style = MaterialTheme.typography.titleMedium,
                                             color = MaterialTheme.colorScheme.onBackground,
                                             fontWeight = FontWeight.Bold
@@ -449,10 +449,10 @@ fun HomeScreen(
                                                         horizontalArrangement = Arrangement.SpaceEvenly
                                                     ) {
                                                         listOf(
-                                                            "DAY" to "ظٹظˆظ…ظٹ",
-                                                            "WEEK" to "ط£ط³ط¨ظˆط¹ظٹ",
-                                                            "MONTH" to "ط´ظ‡ط±ظٹ",
-                                                            "YEAR" to "ط³ظ†ظˆظٹ"
+                                                            "DAY" to "يومي",
+                                                            "WEEK" to "أسبوعي",
+                                                            "MONTH" to "شهري",
+                                                            "YEAR" to "سنوي"
                                                         ).forEach { (p, label) ->
                                                             val isSelected = uiState.chartPeriod == p
                                                             val bg = if (isSelected) Primary else MaterialTheme.colorScheme.background
@@ -476,7 +476,7 @@ fun HomeScreen(
                                                     val points = uiState.expenseTrendData
                                                     if (points.isEmpty() || points.all { it.amount == 0.0 }) {
                                                         Box(modifier = Modifier.fillMaxWidth().height(140.dp), contentAlignment = Alignment.Center) {
-                                                            Text("ظ„ط§ طھظˆط¬ط¯ ظ…طµط±ظˆظپط§طھ ظ…طھط§ط­ط© ظپظٹ ظ‡ط°ظ‡ ط§ظ„ظپطھط±ط©", color = TextGray, style = MaterialTheme.typography.labelMedium)
+                                                            Text("لا توجد مصروفات متاحة في هذه الفترة", color = TextGray, style = MaterialTheme.typography.labelMedium)
                                                         }
                                                     } else {
                                                         val maxAmount = points.maxOfOrNull { it.amount }?.toFloat()?.coerceAtLeast(1f) ?: 1f
@@ -573,7 +573,7 @@ fun HomeScreen(
                                 item {
                                     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                                         Text(
-                                            text = "ط§ظ„ظ…ظٹط²ط§ظ†ظٹط© ط§ظ„ط´ظ‡ط±ظٹط©",
+                                            text = "الميزانية الشهرية",
                                             style = MaterialTheme.typography.titleMedium,
                                             color = MaterialTheme.colorScheme.onBackground,
                                             fontWeight = FontWeight.Bold
@@ -632,13 +632,13 @@ fun HomeScreen(
                                                     Spacer(modifier = Modifier.width(12.dp))
                                                     Column {
                                                         Text(
-                                                            text = "ظ„ظˆط­ط© طھطھط¨ط¹ ط§ظ„ظ…ظٹط²ط§ظ†ظٹط© ط§ظ„ط°ظƒظٹط© ظˆطھظ†ط¨ظٹظ‡ط§طھ ط§ظ„ط¥ظ†ظپط§ظ‚",
+                                                            text = "لوحة تتبع الميزانية الذكية وتنبيهات الإنفاق",
                                                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                                             color = MaterialTheme.colorScheme.onBackground
                                                         )
                                                         Spacer(modifier = Modifier.height(2.dp))
                                                         Text(
-                                                            text = "ط§ظ†ظ‚ط± ظ„ط¹ط±ط¶ ظˆطھط®طµظٹطµ ط­ط¯ظˆط¯ ظ…ظٹط²ط§ظ†ظٹط§طھظƒ ط§ظ„ط´ظ‡ط±ظٹط© ظˆط§ظ„ط£ط³ط¨ظˆط¹ظٹط© ط§ظ„ظپط¹ط§ظ„ط© طھظپطµظٹظ„ظٹط§ظ‹.",
+                                                            text = "انقر لعرض وتخصيص حدود ميزانياتك الشهرية والأسبوعية الفعالة تفصيلياً.",
                                                             style = MaterialTheme.typography.labelSmall,
                                                             color = TextGray,
                                                             lineHeight = 16.sp
@@ -648,7 +648,7 @@ fun HomeScreen(
                                                 Spacer(modifier = Modifier.width(8.dp))
                                                 Icon(
                                                     imageVector = Icons.Default.KeyboardArrowLeft,
-                                                    contentDescription = "ط§ظ†طھظ‚ط§ظ„",
+                                                    contentDescription = "انتقال",
                                                     tint = Primary.copy(alpha = 0.7f),
                                                     modifier = Modifier.size(24.dp)
                                                 )
@@ -663,7 +663,7 @@ fun HomeScreen(
                                         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Text(
-                                                    text = "طھط°ظƒظٹط±ط§طھ ط§ظ„ط§ط´طھط±ط§ظƒط§طھ ط§ظ„ظ‚ط§ط¯ظ…ط©",
+                                                    text = "تذكيرات الاشتراكات القادمة",
                                                     style = MaterialTheme.typography.titleMedium,
                                                     color = MaterialTheme.colorScheme.onBackground,
                                                     fontWeight = FontWeight.Bold
@@ -680,7 +680,7 @@ fun HomeScreen(
                                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                                 uiState.upcomingSubscriptions.take(2).forEach { sub ->
                                                     val linkedAcc = uiState.accounts
-                                                        .firstOrNull { it.id == sub.accountId }?.name ?: "ط؛ظٹط± ظ…ط­ط¯ط¯"
+                                                        .firstOrNull { it.id == sub.accountId }?.name ?: "غير محدد"
                                                     SubscriptionItem(
                                                         subscription = sub,
                                                         onToggleActive = {},
@@ -702,13 +702,13 @@ fun HomeScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = "ط¢ط®ط± ط§ظ„ط¹ظ…ظ„ظٹط§طھ ظˆط§ظ„ط¥ظ†ظپط§ظ‚",
+                                            text = "آخر العمليات والإنفاق",
                                             style = MaterialTheme.typography.titleMedium,
                                             color = MaterialTheme.colorScheme.onBackground,
                                             fontWeight = FontWeight.Bold
                                         )
                                         Text(
-                                            text = "ط¹ط±ط¶ ط§ظ„ظƒظ„",
+                                            text = "عرض الكل",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = Primary,
                                             modifier = Modifier
@@ -725,8 +725,8 @@ fun HomeScreen(
                                 } else if (uiState.recentTransactions.isEmpty()) {
                                     item {
                                         EmptyStateView(
-                                            title = "ظ„ط§ طھظˆط¬ط¯ ظ…ط¹ط§ظ…ظ„ط§طھ ظ…ط¶ط§ظپط©!",
-                                            description = "ط§ط¶ط؛ط· ط¹ظ„ظ‰ ط²ط± ط§ظ„ط¥ط¶ط§ظپط© ط§ظ„ط¹ط§ط¦ظ… ظ„ط¥ط¯ط±ط§ط¬ ط£ظˆظ„ ظ…طµط±ظˆظپ ظ„ظƒ ط§ظ„ظٹظˆظ….",
+                                            title = "لا توجد معاملات مضافة!",
+                                            description = "اضغط على زر الإضافة العائم لإدراج أول مصروف لك اليوم.",
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .padding(horizontal = 16.dp)
@@ -736,7 +736,7 @@ fun HomeScreen(
                                     items(uiState.recentTransactions.take(5), key = { it.id }) { tx ->
                                         val cat = uiState.categories.firstOrNull { it.id == tx.categoryId }
                                         val accName = uiState.accounts
-                                            .firstOrNull { it.id == tx.accountId }?.name ?: "ط؛ظٹط± ظ…ط¹ط±ظˆظپ"
+                                            .firstOrNull { it.id == tx.accountId }?.name ?: "غير معروف"
                                         TransactionItem(
                                             transaction = tx,
                                             category = cat,
@@ -864,7 +864,7 @@ fun HomeScreen(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "طھظپط§طµظٹظ„ ط§ظ„ط±طµظٹط¯ ط§ظ„ظ…طھظˆظپط±",
+                                        text = "تفاصيل الرصيد المتوفر",
                                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                         color = Color.White
                                     )
@@ -885,7 +885,7 @@ fun HomeScreen(
                                     ) {
                                         Icon(
                                             imageVector = if (showBalances) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                            contentDescription = "ط¥ط®ظپط§ط،/ط¥ط¸ظ‡ط§ط± ط§ظ„ط±طµظٹط¯",
+                                            contentDescription = "إخفاء/إظهار الرصيد",
                                             tint = Color.White,
                                             modifier = Modifier.size(14.dp)
                                         )
@@ -900,7 +900,7 @@ fun HomeScreen(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Close,
-                                            contentDescription = "ط¥ط؛ظ„ط§ظ‚",
+                                            contentDescription = "إغلاق",
                                             tint = Color.White,
                                             modifier = Modifier.size(14.dp)
                                         )
@@ -911,13 +911,13 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.height(16.dp))
 
                             Text(
-                                text = "ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط±طµظٹط¯ ط§ظ„ط­ط§ظ„ظٹ",
+                                text = "إجمالي الرصيد الحالي",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.White.copy(alpha = 0.6f)
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = if (showBalances) FormatterUtils.formatCurrency(uiState.totalBalance) else "â€¢â€¢â€¢â€¢ ط¯ط¬",
+                                text = if (showBalances) FormatterUtils.formatCurrency(uiState.totalBalance) else "•••• دج",
                                 style = MaterialTheme.typography.headlineLarge.copy(
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 30.sp
@@ -930,7 +930,7 @@ fun HomeScreen(
                             if (dialogColloquial != null) {
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = "ط£ظٹ ظ…ط§ ظٹط¹ط§ط¯ظ„: $dialogColloquial",
+                                    text = "أي ما يعادل: $dialogColloquial",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.White.copy(alpha = 0.6f)
                                 )
@@ -941,7 +941,7 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.height(16.dp))
 
                             Text(
-                                text = "طھظˆط²ظٹط¹ ط§ظ„ط±طµظٹط¯ ط­ط³ط¨ ط§ظ„ط­ط³ط§ط¨ط§طھ:",
+                                text = "توزيع الرصيد حسب الحسابات:",
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                                 color = Color.White.copy(alpha = 0.85f),
                                 modifier = Modifier.padding(bottom = 12.dp)
@@ -991,7 +991,7 @@ fun HomeScreen(
                                                     if (acc.type == com.example.domain.model.AccountType.BARIDIMOB) {
                                                         androidx.compose.foundation.Image(
                                                             painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.ic_baridimob),
-                                                            contentDescription = "ط¨ط±ظٹط¯ظٹ ظ…ظˆط¨",
+                                                            contentDescription = "بريدي موب",
                                                             modifier = Modifier.size(20.dp)
                                                         )
                                                     } else {
@@ -1019,11 +1019,11 @@ fun HomeScreen(
                                                     )
                                                     Text(
                                                         text = when (acc.type) {
-                                                            com.example.domain.model.AccountType.BARIDIMOB -> "ط¨ط±ظٹط¯ظٹ ظ…ظˆط¨"
-                                                            com.example.domain.model.AccountType.CCP -> "ط­ط³ط§ط¨ ط¬ط§ط±ظٹ CCP"
-                                                            com.example.domain.model.AccountType.CASH -> "ظ†ظ‚ط¯ ط³ظ„ظ‘ط©"
-                                                            com.example.domain.model.AccountType.SAVINGS -> "ط§ط¯ط®ط§ط±"
-                                                            else -> "ط­ط³ط§ط¨ ط¢ط®ط±"
+                                                            com.example.domain.model.AccountType.BARIDIMOB -> "بريدي موب"
+                                                            com.example.domain.model.AccountType.CCP -> "حساب جاري CCP"
+                                                            com.example.domain.model.AccountType.CASH -> "نقد سلّة"
+                                                            com.example.domain.model.AccountType.SAVINGS -> "ادخار"
+                                                            else -> "حساب آخر"
                                                         },
                                                         style = MaterialTheme.typography.labelSmall,
                                                         color = Color.White.copy(alpha = 0.5f)
@@ -1036,13 +1036,13 @@ fun HomeScreen(
                                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
                                                 Text(
-                                                    text = if (showBalances) FormatterUtils.formatCurrency(acc.balance) else "â€¢â€¢â€¢â€¢ ط¯ط¬",
+                                                    text = if (showBalances) FormatterUtils.formatCurrency(acc.balance) else "•••• دج",
                                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
                                                     color = Color.White
                                                 )
                                                 Icon(
                                                     imageVector = Icons.Default.ChevronLeft,
-                                                    contentDescription = "ط¹ط±ط¶ ط§ظ„طھظپط§طµظٹظ„",
+                                                    contentDescription = "عرض التفاصيل",
                                                     tint = Color.White.copy(alpha = 0.4f),
                                                     modifier = Modifier.size(16.dp)
                                                 )

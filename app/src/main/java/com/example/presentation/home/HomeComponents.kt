@@ -73,7 +73,7 @@ fun HomeTopBar(
     ) {
         // App logo / title
         Text(
-            text = "ظ‚ط¯ط§ط´ظ‘",
+            text = "قداشّ",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.ExtraBold,
             color = Primary,
@@ -95,7 +95,7 @@ fun HomeTopBar(
             ) {
                 Icon(
                     imageVector = Icons.Default.Search,
-                    contentDescription = "ط¨ط­ط«",
+                    contentDescription = "بحث",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
@@ -128,7 +128,7 @@ fun HomeTopBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Notifications,
-                        contentDescription = "ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ",
+                        contentDescription = "الإشعارات",
                         tint = Primary,
                         modifier = Modifier.size(20.dp)
                     )
@@ -209,7 +209,7 @@ fun PremiumTopBalanceCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "ظ‚ط¯ط§ط´ظ‘",
+                        text = "قداشّ",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color.White
@@ -230,7 +230,7 @@ fun PremiumTopBalanceCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Search,
-                                contentDescription = "ط¨ط­ط«",
+                                contentDescription = "بحث",
                                 tint = Color.White,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -263,7 +263,7 @@ fun PremiumTopBalanceCard(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Notifications,
-                                    contentDescription = "ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ",
+                                    contentDescription = "الإشعارات",
                                     tint = Color.White,
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -282,7 +282,7 @@ fun PremiumTopBalanceCard(
                 ) {
                     Column {
                         Text(
-                            text = "ظ…ط±ط­ط¨ط§ظ‹ ط¨ظƒ ًں‘‹",
+                            text = "مرحباً بك 👋",
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
@@ -291,7 +291,7 @@ fun PremiumTopBalanceCard(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "طھط¨ط¯ظˆ ظ…ظٹط²ط§ظ†ظٹطھظƒ ط¨ط£ظ…ط§ظ† ط§ظ„ظٹظˆظ…",
+                            text = "تبدو ميزانيتك بأمان اليوم",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.75f)
                         )
@@ -306,7 +306,7 @@ fun PremiumTopBalanceCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Face,
-                            contentDescription = "ط§ظ„ظ…ظ„ظپ ط§ظ„ط´ط®طµظٹ",
+                            contentDescription = "الملف الشخصي",
                             tint = Color.White,
                             modifier = Modifier.size(28.dp)
                         )
@@ -322,7 +322,7 @@ fun PremiumTopBalanceCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "ط§ظ„ط±طµظٹط¯ ط§ظ„ظ…طھظˆظپط± (ط¯ط¬)",
+                        text = "الرصيد المتوفر (دج)",
                         style = MaterialTheme.typography.titleSmall,
                         color = Color.White.copy(alpha = 0.8f)
                     )
@@ -334,7 +334,7 @@ fun PremiumTopBalanceCard(
                     ) {
                         Icon(
                             imageVector = if (showBalances) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = if (showBalances) "ط¥ط®ظپط§ط، ط§ظ„ط±طµظٹط¯" else "ط¥ط¸ظ‡ط§ط± ط§ظ„ط±طµظٹط¯",
+                            contentDescription = if (showBalances) "إخفاء الرصيد" else "إظهار الرصيد",
                             tint = Color.White.copy(alpha = 0.8f),
                             modifier = Modifier.size(16.dp)
                         )
@@ -350,7 +350,7 @@ fun PremiumTopBalanceCard(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     val balanceText = remember(totalBalance, showBalances) {
-                        if (showBalances) FormatterUtils.formatCurrency(totalBalance) else "â€¢â€¢â€¢â€¢ ط¯ط¬"
+                        if (showBalances) FormatterUtils.formatCurrency(totalBalance) else "•••• دج"
                     }
                     val balanceFontSize = remember(balanceText) {
                         val length = balanceText.length
@@ -381,7 +381,7 @@ fun PremiumTopBalanceCard(
                             if (colloquialText != null) {
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = "ط£ظٹ ظ…ط§ ظٹط¹ط§ط¯ظ„: $colloquialText",
+                                    text = "أي ما يعادل: $colloquialText",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.White.copy(alpha = 0.6f)
                                 )
@@ -432,7 +432,7 @@ fun PremiumTopBalanceCard(
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = "ط¥ط¶ط§ظپط© +",
+                                text = "إضافة +",
                                 color = Color.White,
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
                             )
@@ -449,7 +449,7 @@ fun PremiumTopBalanceCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.DateRange,
-                            contentDescription = "ط§ظ„طھظ‚ظˆظٹظ… ظˆط§ظ„ط®ط·ط·",
+                            contentDescription = "التقويم والخطط",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
@@ -464,7 +464,7 @@ fun PremiumTopBalanceCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.AccountBalanceWallet,
-                            contentDescription = "ط§ظ„ط­ط³ط§ط¨ط§طھ",
+                            contentDescription = "الحسابات",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
@@ -479,7 +479,7 @@ fun PremiumTopBalanceCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Settings,
-                            contentDescription = "ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ",
+                            contentDescription = "الإعدادات",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
@@ -562,7 +562,7 @@ fun IncomeExpenseSplitCards(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "ظ…ط¹ط¯ظ„ ط§ظ„ط§ط¯ط®ط§ط± ط§ظ„ط´ظ‡ط±ظٹ",
+                        text = "معدل الادخار الشهري",
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -573,17 +573,17 @@ fun IncomeExpenseSplitCards(
                     ) {
                         val (statusText, statusIcon, iconColor) = when {
                             savingsRatio >= 0.5f -> Triple(
-                                "ط£ط¯ط§ط، ظ…ظ…طھط§ط²! طھط¨ظ†ظٹ ظ…ط³طھظ‚ط¨ظ„ط§ظ‹ ظ…ط§ظ„ظٹط§ظ‹ ط¢ظ…ظ†ط§ظ‹",
+                                "أداء ممتاز! تبني مستقبلاً مالياً آمناً",
                                 Icons.Default.AutoAwesome,
                                 IncomeGreen
                             )
                             savingsRatio >= 0.2f -> Triple(
-                                "ط£ط¯ط§ط، ط¬ظٹط¯طŒ ط­ط§ظˆظ„ ط²ظٹط§ط¯ط© ظ…ط¯ط®ط±ط§طھظƒ ظ‚ظ„ظٹظ„ط§ظ‹",
+                                "أداء جيد، حاول زيادة مدخراتك قليلاً",
                                 Icons.Default.CheckCircle,
                                 SavingsAmber
                             )
                             else -> Triple(
-                                "ظ…طµط§ط±ظٹظپظƒ ظ…ط±طھظپط¹ط© ط¨ط§ظ„ظ†ط³ط¨ط© ظ„ط¯ط®ظ„ظƒ ظ‡ط°ط§ ط§ظ„ط´ظ‡ط±",
+                                "مصاريفك مرتفعة بالنسبة لدخلك هذا الشهر",
                                 Icons.Default.Info,
                                 ExpenseRed
                             )
@@ -607,7 +607,7 @@ fun IncomeExpenseSplitCards(
                 }
                 Icon(
                     imageVector = Icons.Default.ChevronLeft,
-                    contentDescription = "ط¹ط±ط¶ ط§ظ„طھظپط§طµظٹظ„",
+                    contentDescription = "عرض التفاصيل",
                     tint = TextGray,
                     modifier = Modifier.size(20.dp)
                 )
@@ -620,7 +620,7 @@ fun IncomeExpenseSplitCards(
                 onDismissRequest = { showSavingsDetailDialog = false },
                 title = {
                     Text(
-                        text = "طھظپط§طµظٹظ„ ط§ظ„ط§ط¯ط®ط§ط± ط§ظ„ط´ظ‡ط±ظٹ",
+                        text = "تفاصيل الادخار الشهري",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -648,7 +648,7 @@ fun IncomeExpenseSplitCards(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¯ط®ظ„:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
+                                    Text("إجمالي الدخل:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
                                     Text(
                                         text = FormatterUtils.formatCurrency(monthlyIncome),
                                         style = MaterialTheme.typography.bodyMedium,
@@ -660,7 +660,7 @@ fun IncomeExpenseSplitCards(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…طµط§ط±ظٹظپ:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
+                                    Text("إجمالي المصاريف:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
                                     Text(
                                         text = FormatterUtils.formatCurrency(monthlyExpense),
                                         style = MaterialTheme.typography.bodyMedium,
@@ -673,7 +673,7 @@ fun IncomeExpenseSplitCards(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("ط§ظ„طµط§ظپظٹ ط§ظ„ظ…ط¯ط®ط±:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
+                                    Text("الصافي المدخر:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
                                     val netSaved = monthlyIncome - monthlyExpense
                                     Text(
                                         text = FormatterUtils.formatCurrency(netSaved),
@@ -694,7 +694,7 @@ fun IncomeExpenseSplitCards(
                         }
 
                         Text(
-                            text = "طھط­ظˆظٹظ„ط§طھ ط­ط³ط§ط¨ط§طھ ط§ظ„ط§ط¯ط®ط§ط±:",
+                            text = "تحويلات حسابات الادخار:",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -708,8 +708,8 @@ fun IncomeExpenseSplitCards(
                                 verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 directSavingTxs.forEach { tx ->
-                                    val accFromName = accounts.find { it.id == tx.accountId }?.name ?: "ط­ط³ط§ط¨"
-                                    val accToName = savingsAccounts.find { it.id == tx.toAccountId }?.name ?: "ط§ط¯ط®ط§ط±"
+                                    val accFromName = accounts.find { it.id == tx.accountId }?.name ?: "حساب"
+                                    val accToName = savingsAccounts.find { it.id == tx.toAccountId }?.name ?: "ادخار"
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -719,7 +719,7 @@ fun IncomeExpenseSplitCards(
                                     ) {
                                         Column {
                                             Text(
-                                                text = "طھط­ظˆظٹظ„: $accFromName â‍” $accToName",
+                                                text = "تحويل: $accFromName ➔ $accToName",
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 fontWeight = FontWeight.SemiBold
                                             )
@@ -740,7 +740,7 @@ fun IncomeExpenseSplitCards(
                             }
                         } else {
                             Text(
-                                text = "ظ„ط§ طھظˆط¬ط¯ طھط­ظˆظٹظ„ط§طھ ظ…ط¨ط§ط´ط±ط© ظ„ط­ط³ط§ط¨ط§طھ ط§ظ„ط§ط¯ط®ط§ط± ظ‡ط°ط§ ط§ظ„ط´ظ‡ط±. ط§ظ„ط§ط¯ط®ط§ط± ظٹظ…ط«ظ„ ط§ظ„ظپط§ط±ظ‚ ط§ظ„ط¥ظٹط¬ط§ط¨ظٹ ط¨ظٹظ† ظ…ط¯ط§ط®ظٹظ„ظƒ ظˆظ…طµط§ط±ظٹظپظƒ.",
+                                text = "لا توجد تحويلات مباشرة لحسابات الادخار هذا الشهر. الادخار يمثل الفارق الإيجابي بين مداخيلك ومصاريفك.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextGray,
                                 textAlign = TextAlign.Center,
@@ -753,7 +753,7 @@ fun IncomeExpenseSplitCards(
                 },
                 confirmButton = {
                     TextButton(onClick = { showSavingsDetailDialog = false }) {
-                        Text("ط¥ط؛ظ„ط§ظ‚", color = Primary)
+                        Text("إغلاق", color = Primary)
                     }
                 },
                 shape = RoundedCornerShape(20.dp)
@@ -783,21 +783,21 @@ fun IncomeExpenseSplitCards(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.TrendingUp,
-                                contentDescription = "ط¯ط®ظ„",
+                                contentDescription = "دخل",
                                 tint = IncomeGreen,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "ط§ظ„ط¯ط®ظ„",
+                            text = "الدخل",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextGray
                         )
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = if (showBalances) FormatterUtils.formatCurrency(monthlyIncome) else "â€¢â€¢â€¢â€¢ ط¯ط¬",
+                        text = if (showBalances) FormatterUtils.formatCurrency(monthlyIncome) else "•••• دج",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.ExtraBold
@@ -838,7 +838,7 @@ fun IncomeExpenseSplitCards(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "ط¥ط¸ظ‡ط§ط± ط§ظ„ظƒظ„",
+                            text = "إظهار الكل",
                             style = MaterialTheme.typography.labelSmall,
                             color = Primary,
                             fontWeight = FontWeight.Bold
@@ -865,21 +865,21 @@ fun IncomeExpenseSplitCards(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.TrendingDown,
-                                contentDescription = "ظ…طµط±ظˆظپط§طھ",
+                                contentDescription = "مصروفات",
                                 tint = ExpenseRed,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "ط§ظ„ظ…طµط§ط±ظٹظپ",
+                            text = "المصاريف",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextGray
                         )
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = if (showBalances) FormatterUtils.formatCurrency(monthlyExpense) else "â€¢â€¢â€¢â€¢ ط¯ط¬",
+                        text = if (showBalances) FormatterUtils.formatCurrency(monthlyExpense) else "•••• دج",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.ExtraBold
@@ -921,7 +921,7 @@ fun IncomeExpenseSplitCards(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "ط¥ط¸ظ‡ط§ط± ط§ظ„ظƒظ„",
+                            text = "إظهار الكل",
                             style = MaterialTheme.typography.labelSmall,
                             color = Primary,
                             fontWeight = FontWeight.Bold
@@ -1085,35 +1085,35 @@ fun ContextAwareTemplateCard(
         when (currentHour) {
             in 6..11 -> ContextTemplateData(
                 emoji = "ًںŒ…",
-                suggestionText = "طµط¨ط§ط­ ط§ظ„ط®ظٹط±! ظ‡ظ„ ط¯ظپط¹طھ ط«ظ…ظ† ظ…ظˆط§طµظ„ط§طھ ط§ظ„ط¹ظ…ظ„ ط§ظ„ظٹظˆظ…طں",
-                targetKeyword = "ظ…ظˆط§طµظ„ط§طھ",
+                suggestionText = "صباح الخير! هل دفعت ثمن مواصلات العمل اليوم؟",
+                targetKeyword = "مواصلات",
                 defaultAmount = 150.0,
-                note = "طھط§ظƒط³ظٹ / ط­ط§ظپظ„ط© ط§ظ„ط¹ظ…ظ„",
-                title = "ظ…ظˆط§طµظ„ط§طھ ط§ظ„طµط¨ط§ط­"
+                note = "تاكسي / حافلة العمل",
+                title = "مواصلات الصباح"
             )
             in 12..16 -> ContextTemplateData(
                 emoji = "âک•",
-                suggestionText = "ظˆظ‚طھ ط§ظ„ط§ط³طھط±ط§ط­ط©! ظ‡ظ„ طھط±ط؛ط¨ ظپظٹ طھط³ط¬ظٹظ„ ظˆط¬ط¨ط© ط§ظ„ط؛ط¯ط§ط، ط£ظˆ ظ‚ظ‡ظˆط©طں",
-                targetKeyword = "ط·ط¹ط§ظ…",
+                suggestionText = "وقت الاستراحة! هل ترغب في تسجيل وجبة الغداء أو قهوة؟",
+                targetKeyword = "طعام",
                 defaultAmount = 450.0,
-                note = "ط؛ط¯ط§ط، / ظ‚ظ‡ظˆط© ط§ط³طھط±ط§ط­ط©",
-                title = "ظˆط¬ط¨ط© ط§ظ„ط؛ط¯ط§ط،"
+                note = "غداء / قهوة استراحة",
+                title = "وجبة الغداء"
             )
             in 17..21 -> ContextTemplateData(
                 emoji = "ًں›’",
-                suggestionText = "ظ…ط³ط§ط، ط§ظ„ط®ظٹط±! ظ‡ظ„ ظ‚ظ…طھ ط¨ط´ط±ط§ط، ط§ظ„ط¨ظ‚ط§ظ„ط© ظˆظ…ط³طھظ„ط²ظ…ط§طھ ط§ظ„ظ…ظ†ط²ظ„طں",
-                targetKeyword = "ط·ط¹ط§ظ…",
+                suggestionText = "مساء الخير! هل قمت بشراء البقالة ومستلزمات المنزل؟",
+                targetKeyword = "طعام",
                 defaultAmount = 1200.0,
-                note = "ظ…ط´طھط±ظٹط§طھ ط§ظ„ط¨ظ‚ط§ظ„ط© ط§ظ„ظ…ظ†ط²ظ„ظٹط©",
-                title = "ط¹ط´ط§ط، / ط¨ظ‚ط§ظ„ط© ط§ظ„ظ…ط³ط§ط،"
+                note = "مشتريات البقالة المنزلية",
+                title = "عشاء / بقالة المساء"
             )
             else -> ContextTemplateData(
                 emoji = "ًںŒ™",
-                suggestionText = "ط³ظ‡ط±ط© ط³ط¹ظٹط¯ط©! ظ‡ظ„ ظ‚ظ…طھ ط¨طھط¹ط¨ط¦ط© ط±طµظٹط¯ ظ‡ط§طھظپ ط£ظˆ ط¥ظ†طھط±ظ†طھطں",
-                targetKeyword = "ظ…ظ†ط²ظ„ظٹ",
+                suggestionText = "سهرة سعيدة! هل قمت بتعبئة رصيد هاتف أو إنترنت؟",
+                targetKeyword = "منزلي",
                 defaultAmount = 500.0,
-                note = "طھط¹ط¨ط¦ط© ط±طµظٹط¯ ط¥ظ†طھط±ظ†طھ / ظ‡ط§طھظپ",
-                title = "ط±طµظٹط¯ ط¥ظ†طھط±ظ†طھ / ظ…ظƒط§ظ„ظ…ط§طھ"
+                note = "تعبئة رصيد إنترنت / هاتف",
+                title = "رصيد إنترنت / مكالمات"
             )
         }
     }
@@ -1152,7 +1152,7 @@ fun ContextAwareTemplateCard(
                 Text(text = emoji, fontSize = 24.sp)
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "ط§ظ‚طھط±ط§ط­ ط°ظƒظٹ ط­ط³ط¨ ط§ظ„ظˆظ‚طھ",
+                        text = "اقتراح ذكي حسب الوقت",
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = Primary
                     )
@@ -1186,7 +1186,7 @@ fun ContextAwareTemplateCard(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "ط³ط¬ظ„ ط§ظ„ط¢ظ† (${FormatterUtils.formatCurrency(defaultAmount)})",
+                        text = "سجل الآن (${FormatterUtils.formatCurrency(defaultAmount)})",
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = Color.White
                     )

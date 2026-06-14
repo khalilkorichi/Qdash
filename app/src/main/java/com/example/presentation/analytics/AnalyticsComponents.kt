@@ -213,7 +213,7 @@ fun AnalyticsEmptyState(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "ط³ط¬ظ„ ط¥ط­طµط§ط¦ظٹط§طھظƒ ظپط§ط±ط؛ ط­ط§ظ„ظٹط§ظ‹",
+                    text = "سجل إحصائياتك فارغ حالياً",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 18.sp
@@ -222,7 +222,7 @@ fun AnalyticsEmptyState(
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "ط§ط¨ط¯ط£ ط¨طھط³ط¬ظٹظ„ ظ…طµط§ط±ظٹظپظƒ ظˆط¯ط®ظ„ظƒ ط§ظ„ظٹظˆظ…ظٹ ظ„طھط¸ظ‡ط± ظ‡ظ†ط§ طھط­ظ„ظٹظ„ط§طھ ظˆط±ط³ظˆظ…ط§طھ ط°ظƒظ‘ظٹط© طھط³ط§ط¹ط¯ظƒ ط¹ظ„ظ‰ ظپظ‡ظ… ظ†ظ…ط· ط¥ظ†ظپط§ظ‚ظƒ ظˆطھظˆظپظٹط± ط§ظ„ظ…ط²ظٹط¯.",
+                    text = "ابدأ بتسجيل مصاريفك ودخلك اليومي لتظهر هنا تحليلات ورسومات ذكّية تساعدك على فهم نمط إنفاقك وتوفير المزيد.",
                     style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
                     color = TextGray,
                     textAlign = TextAlign.Center,
@@ -244,7 +244,7 @@ fun AnalyticsEmptyState(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "ظ…ط§ ط³طھط­طµظ„ ط¹ظ„ظٹظ‡ ط¨ط¹ط¯ طھط³ط¬ظٹظ„ ط§ظ„ط¹ظ…ظ„ظٹط§طھ:",
+                        text = "ما ستحصل عليه بعد تسجيل العمليات:",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = Primary
                     )
@@ -270,12 +270,12 @@ fun AnalyticsEmptyState(
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "طھظˆط²ظٹط¹ ط§ظ„ظ…طµط§ط±ظٹظپ ط­ط³ط¨ ط§ظ„ظپط¦ط§طھ",
+                                text = "توزيع المصاريف حسب الفئات",
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "ط±ط³ظ… ط¯ط§ط¦ط±ظٹ طھظپط§ط¹ظ„ظٹ ظٹظˆط¶ط­ ط§ظ„ظپط¦ط§طھ ط§ظ„ط£ظƒط«ط± ط§ط³طھظ‡ظ„ط§ظƒط§ظ‹ ظ„ظ…ظٹط²ط§ظ†ظٹطھظƒ",
+                                text = "رسم دائري تفاعلي يوضح الفئات الأكثر استهلاكاً لميزانيتك",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = TextGray
                             )
@@ -303,12 +303,12 @@ fun AnalyticsEmptyState(
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "ظ…ط®ط·ط· ط§ظ„طھط¯ظپظ‚ ط§ظ„ظ†ظ‚ط¯ظٹ ط§ظ„طھط§ط±ظٹط®ظٹ",
+                                text = "مخطط التدفق النقدي التاريخي",
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "ظ…ظ‚ط§ط±ظ†ط© ط¨طµط±ظٹط© ط°ظƒظٹط© ظˆطھظپط§ط¹ظ„ظٹط© ط¨ظٹظ† ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¯ط®ظ„ ظˆط§ظ„ظ…طµط§ط±ظٹظپ ط´ظ‡ط±ظٹط§ظ‹",
+                                text = "مقارنة بصرية ذكية وتفاعلية بين إجمالي الدخل والمصاريف شهرياً",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = TextGray
                             )
@@ -336,12 +336,12 @@ fun AnalyticsEmptyState(
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "طھط­ظ„ظٹظ„ط§طھ ظˆظ…ط¤ط´ط±ط§طھ ط°ظƒظٹط©",
+                                text = "تحليلات ومؤشرات ذكية",
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "طھظˆظ‚ط¹ط§طھ ط§ظ„ط¥ظ†ظپط§ظ‚طŒ ط£ظ…ط§ظ† طµظ†ط¯ظˆظ‚ ط§ظ„ط·ظˆط§ط±ط¦ ظˆظ…ط¹ط¯ظ„ ط§ظ„ط§ط¯ط®ط§ط±",
+                                text = "توقعات الإنفاق، أمان صندوق الطوارئ ومعدل الادخار",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = TextGray
                             )
@@ -361,7 +361,7 @@ fun AnalyticsEmptyState(
                 colors = ButtonDefaults.buttonColors(containerColor = Primary)
             ) {
                 Text(
-                    text = "ط³ط¬ظ„ ط£ظˆظ„ ظ…ط¹ط§ظ…ظ„ط© ط§ظ„ط¢ظ†",
+                    text = "سجل أول معاملة الآن",
                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                     color = Color.White
                 )
@@ -434,12 +434,12 @@ fun InteractiveDonutCard(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "طھظˆط²ظٹط¹ ط§ظ„ظ…طµط§ط±ظٹظپ ط­ط³ط¨ ط§ظ„ظپط¦ط©",
+                            text = "توزيع المصاريف حسب الفئة",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "طھط­ظ„ظٹظ„ ظˆطھظˆط²ظٹط¹ ط§ظ„ظ†ظپظ‚ط§طھ طھظپطµظٹظ„ظٹط§ظ‹",
+                            text = "تحليل وتوزيع النفقات تفصيلياً",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextGray
                         )
@@ -447,8 +447,8 @@ fun InteractiveDonutCard(
                     HelpIconButton(
                         onClick = {
                             onHelpClick(
-                                "طھظˆط²ظٹط¹ ط§ظ„ظ…طµط§ط±ظٹظپ ط­ط³ط¨ ط§ظ„ظپط¦ط©",
-                                "ظٹظ‚ظٹط³ ظ‡ط°ط§ ط§ظ„ظ…ط®ط·ط· ط§ظ„ظ†ط³ط¨ط© ط§ظ„ظ…ط¦ظˆظٹط© ظ„ط¥ط¬ظ…ط§ظ„ظٹ ظ†ظپظ‚ط§طھظƒ ط§ظ„ظ…ظˆط²ط¹ط© ط¹ظ„ظ‰ ظ…ط®طھظ„ظپ ط§ظ„ظپط¦ط§طھ ط§ظ„ظ…ط§ظ„ظٹط© (ظƒط§ظ„ط£ط؛ط°ظٹط©طŒ ط§ظ„ظ†ظ‚ظ„طŒ ط§ظ„ظپظˆط§طھظٹط±طŒ ط¥ظ„ط®) ط®ظ„ط§ظ„ ط§ظ„ظپطھط±ط© ط§ظ„ط²ظ…ظ†ظٹط© ط§ظ„ظ…ط­ط¯ط¯ط©.\n\nط§ظ„ظپط§ط¦ط¯ط©: ظٹط³ط§ط¹ط¯ظƒ ط¹ظ„ظ‰ ط±طµط¯ ط§ظ„ظپط¦ط§طھ ط§ظ„ط±ط¦ظٹط³ظٹط© ط§ظ„ط£ظƒط«ط± ط§ط³طھظ‡ظ„ط§ظƒط§ظ‹ ظ„ط³ظٹظˆظ„طھظƒ ط§ظ„ظ†ظ‚ط¯ظٹط© ظ„طھطھظ…ظƒظ† ظ…ظ† ط§طھط®ط§ط° ظ‚ط±ط§ط±ط§طھ ظˆط§ط¹ظٹط© ط¨ظƒط¨ط­ ط§ظ„طµط±ظپ ظپظٹ ط§ظ„ط¬ظˆط§ظ†ط¨ ط§ظ„طھط±ظپظٹظ‡ظٹط© ظˆط²ظٹط§ط¯ط© ظ…ط¯ط®ط±ط§طھظƒ."
+                                "توزيع المصاريف حسب الفئة",
+                                "يقيس هذا المخطط النسبة المئوية لإجمالي نفقاتك الموزعة على مختلف الفئات المالية (كالأغذية، النقل، الفواتير، إلخ) خلال الفترة الزمنية المحددة.\n\nالفائدة: يساعدك على رصد الفئات الرئيسية الأكثر استهلاكاً لسيولتك النقدية لتتمكن من اتخاذ قرارات واعية بكبح الصرف في الجوانب الترفيهية وزيادة مدخراتك."
                             )
                         }
                     )
@@ -482,7 +482,7 @@ fun InteractiveDonutCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Equalizer,
-                                contentDescription = "ط£ط¹ظ…ط¯ط©",
+                                contentDescription = "أعمدة",
                                 tint = if (viewMode == ChartViewMode.BAR) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                 modifier = Modifier.size(20.dp)
                             )
@@ -512,7 +512,7 @@ fun InteractiveDonutCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.PieChart,
-                                contentDescription = "ط¯ط§ط¦ط±ط©",
+                                contentDescription = "دائرة",
                                 tint = if (viewMode == ChartViewMode.DONUT) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                 modifier = Modifier.size(20.dp)
                             )
@@ -728,7 +728,7 @@ fun InteractiveDonutCard(
                             )
                         } else {
                             Text(
-                                "ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…طµط§ط±ظٹظپ",
+                                "إجمالي المصاريف",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = TextGray,
@@ -961,7 +961,7 @@ fun InteractiveDonutCard(
 
 /**
  * A unified smart date navigator that replaces the old tab + dropdown selectors.
- * Shows period-mode pills (ظٹظˆظ… / ط£ط³ط¨ظˆط¹ / ط´ظ‡ط± / ط³ظ†ط©) and left/right arrow
+ * Shows period-mode pills (يوم / أسبوع / شهر / سنة) and left/right arrow
  * navigator to move between periods. RTL-aware.
  */
 @Composable
@@ -972,20 +972,20 @@ fun SmartDateNavigator(
     onNext: () -> Unit
 ) {
     val arabicMonths = arrayOf(
-        "ط¬ط§ظ†ظپظٹ", "ظپظٹظپط±ظٹ", "ظ…ط§ط±ط³", "ط£ظپط±ظٹظ„", "ظ…ط§ظٹ", "ط¬ظˆط§ظ†",
-        "ط¬ظˆظٹظ„ظٹط©", "ط£ظˆطھ", "ط³ط¨طھظ…ط¨ط±", "ط£ظƒطھظˆط¨ط±", "ظ†ظˆظپظ…ط¨ط±", "ط¯ظٹط³ظ…ط¨ط±"
+        "جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان",
+        "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
     )
     val arabicDays = arrayOf(
-        "ط§ظ„ظٹظˆظ…", "ط£ظ…ط³", "ظ‚ط¨ظ„ ظٹظˆظ…ظٹظ†", "ظ‚ط¨ظ„ 3 ط£ظٹط§ظ…", "ظ‚ط¨ظ„ 4 ط£ظٹط§ظ…", "ظ‚ط¨ظ„ 5 ط£ظٹط§ظ…", "ظ‚ط¨ظ„ 6 ط£ظٹط§ظ…"
+        "اليوم", "أمس", "قبل يومين", "قبل 3 أيام", "قبل 4 أيام", "قبل 5 أيام", "قبل 6 أيام"
     )
     val arabicWeeks = arrayOf(
-        "ط§ظ„ط£ط³ط¨ظˆط¹ ط§ظ„ط­ط§ظ„ظٹ", "ط§ظ„ط£ط³ط¨ظˆط¹ ط§ظ„ظ…ط§ط¶ظٹ", "ظ‚ط¨ظ„ ط£ط³ط¨ظˆط¹ظٹظ†", "ظ‚ط¨ظ„ 3 ط£ط³ط§ط¨ظٹط¹"
+        "الأسبوع الحالي", "الأسبوع الماضي", "قبل أسبوعين", "قبل 3 أسابيع"
     )
 
     val centerLabel = when (uiState.selectedPeriod) {
-        "ALL"   -> "ظƒظ„ ط§ظ„ط£ظˆظ‚ط§طھ"
-        "DAY"   -> arabicDays.getOrElse(uiState.selectedDayOffset) { "ط§ظ„ظٹظˆظ…" }
-        "WEEK"  -> arabicWeeks.getOrElse(uiState.selectedWeekOffset) { "ط§ظ„ط£ط³ط¨ظˆط¹ ط§ظ„ط­ط§ظ„ظٹ" }
+        "ALL"   -> "كل الأوقات"
+        "DAY"   -> arabicDays.getOrElse(uiState.selectedDayOffset) { "اليوم" }
+        "WEEK"  -> arabicWeeks.getOrElse(uiState.selectedWeekOffset) { "الأسبوع الحالي" }
         "MONTH" -> "${arabicMonths.getOrElse(uiState.selectedMonth) { arabicMonths[0] }} ${uiState.selectedYear}"
         "YEAR"  -> "${uiState.selectedYear}"
         else    -> ""
@@ -1012,11 +1012,11 @@ fun SmartDateNavigator(
     }
 
     val periods = listOf(
-        "ALL"   to "ط§ظ„ظƒظ„",
-        "DAY"   to "ظٹظˆظ…",
-        "WEEK"  to "ط£ط³ط¨ظˆط¹",
-        "MONTH" to "ط´ظ‡ط±",
-        "YEAR"  to "ط³ظ†ط©"
+        "ALL"   to "الكل",
+        "DAY"   to "يوم",
+        "WEEK"  to "أسبوع",
+        "MONTH" to "شهر",
+        "YEAR"  to "سنة"
     )
 
     Column(
@@ -1099,7 +1099,7 @@ fun SmartDateNavigator(
                 ) {
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
-                        contentDescription = "ط§ظ„ط³ط§ط¨ظ‚",
+                        contentDescription = "السابق",
                         tint = if (canGoPrev) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f),
                         modifier = Modifier.size(22.dp)
                     )
@@ -1130,11 +1130,11 @@ fun SmartDateNavigator(
                         )
                         Text(
                             text = when (uiState.selectedPeriod) {
-                                "ALL"   -> "ط¥ط­طµط§ط¦ظٹط§طھ ظƒظ„ ط§ظ„ط£ظˆظ‚ط§طھ"
-                                "DAY"   -> "ط¥ط­طµط§ط¦ظٹط§طھ ط§ظ„ظٹظˆظ…"
-                                "WEEK"  -> "ط¥ط­طµط§ط¦ظٹط§طھ ط§ظ„ط£ط³ط¨ظˆط¹"
-                                "MONTH" -> "ط¥ط­طµط§ط¦ظٹط§طھ ط§ظ„ط´ظ‡ط±"
-                                "YEAR"  -> "ط¥ط­طµط§ط¦ظٹط§طھ ط§ظ„ط³ظ†ط©"
+                                "ALL"   -> "إحصائيات كل الأوقات"
+                                "DAY"   -> "إحصائيات اليوم"
+                                "WEEK"  -> "إحصائيات الأسبوع"
+                                "MONTH" -> "إحصائيات الشهر"
+                                "YEAR"  -> "إحصائيات السنة"
                                 else    -> ""
                             },
                             style = MaterialTheme.typography.labelSmall,
@@ -1157,7 +1157,7 @@ fun SmartDateNavigator(
                 ) {
                     Icon(
                         imageVector = Icons.Default.ChevronLeft,
-                        contentDescription = "ط§ظ„طھط§ظ„ظٹ",
+                        contentDescription = "التالي",
                         tint = if (canGoNext) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f),
                         modifier = Modifier.size(22.dp)
                     )
@@ -1200,13 +1200,13 @@ fun SalaryCycleProjectionCard(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (uiState.hasSalarySource) "طھظˆظ‚ط¹ط§طھ ط§ظ„ط¥ظ†ظپط§ظ‚ ظˆط¯ظˆط±ط© ط§ظ„ط±ط§طھط¨ CCP" else "طھظˆظ‚ط¹ط§طھ ط§ظ„ط¥ظ†ظپط§ظ‚ ظ„ظ„ط´ظ‡ط± ط§ظ„ط­ط§ظ„ظٹ",
+                            text = if (uiState.hasSalarySource) "توقعات الإنفاق ودورة الراتب CCP" else "توقعات الإنفاق للشهر الحالي",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = if (uiState.hasSalarySource) "ط¯ظˆط±ط© ط§ظ„ط±ط§طھط¨: ${uiState.salaryCycleStartLabel} â†گ ${uiState.salaryCycleEndLabel}" 
-                                   else "ط§ظ„ظپطھط±ط©: 1 ط¥ظ„ظ‰ ظ†ظ‡ط§ظٹط© ط§ظ„ط´ظ‡ط±",
+                            text = if (uiState.hasSalarySource) "دورة الراتب: ${uiState.salaryCycleStartLabel} ← ${uiState.salaryCycleEndLabel}" 
+                                   else "الفترة: 1 إلى نهاية الشهر",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextGray
                         )
@@ -1214,8 +1214,8 @@ fun SalaryCycleProjectionCard(
                     HelpIconButton(
                         onClick = {
                             onHelpClick(
-                                "طھظˆظ‚ط¹ط§طھ ط§ظ„ط¥ظ†ظپط§ظ‚ ظˆط¯ظˆط±ط© ط§ظ„ط±ط§طھط¨",
-                                "ظٹظ‚ظٹط³ ظ‡ط°ط§ ط§ظ„ظ…ط¤ط´ط± ط³ط±ط¹ط© ظˆطھظ‚ط¯ظ… ظ…ط¹ط¯ظ„ ط¥ظ†ظپط§ظ‚ظƒ ط§ظ„ظٹظˆظ…ظٹ ط§ظ„ظپط¹ظ„ظٹ ظˆظ…ظ‚ط§ط±ظ†طھظ‡ ط¨ط§ظ„ظ…ظٹط²ط§ظ†ظٹط© ط§ظ„ظ…ط­ط¯ط¯ط© ط£ظˆ ط§ظ„ط±ط§طھط¨ ط§ظ„ظ…ط±ط¬ط¹ظٹ ط¹ظ„ظ‰ ظ…ط¯ط§ط± ط£ظٹط§ظ… ط¯ظˆط±ط© ط§ظ„ط±ط§طھط¨ ط§ظ„ظ…ط§ظ„ظٹ ط§ظ„ظ…طھط¨ظ‚ظٹط©.\n\nط§ظ„ظپط§ط¦ط¯ط©: ظٹطھظ†ط¨ط£ ط¨ط¥ط¬ظ…ط§ظ„ظٹ ظ†ظپظ‚ط§طھظƒ ط¨ظ†ظ‡ط§ظٹط© ط§ظ„ط´ظ‡ط± ط§ظ„ط¬ط§ط±ظٹ ظˆظٹط­ط°ط±ظƒ ظ…ط¨ظƒط±ط§ظ‹ ط¥ط°ط§ ظƒظ†طھ ظ…طھط¬ظ‡ط§ظ‹ ظ„طھط¬ط§ظˆط² ط§ظ„ظ…ظٹط²ط§ظ†ظٹط© ظ„طھطھظ…ظƒظ† ظ…ظ† طھط±ط´ظٹط¯ ظ†ظپظ‚ط§طھظƒ ظˆطھط¹ط¯ظٹظ„ ط³ظ„ظˆظƒ ط§ظ„ط§ط³طھظ‡ظ„ط§ظƒ ظ‚ط¨ظ„ ظپظˆط§طھ ط§ظ„ط£ظˆط§ظ†."
+                                "توقعات الإنفاق ودورة الراتب",
+                                "يقيس هذا المؤشر سرعة وتقدم معدل إنفاقك اليومي الفعلي ومقارنته بالميزانية المحددة أو الراتب المرجعي على مدار أيام دورة الراتب المالي المتبقية.\n\nالفائدة: يتنبأ بإجمالي نفقاتك بنهاية الشهر الجاري ويحذرك مبكراً إذا كنت متجهاً لتجاوز الميزانية لتتمكن من ترشيد نفقاتك وتعديل سلوك الاستهلاك قبل فوات الأوان."
                             )
                         }
                     )
@@ -1227,7 +1227,7 @@ fun SalaryCycleProjectionCard(
                     color = if (uiState.isProjectedToExceedBudget) ExpenseRed.copy(alpha = 0.12f) else IncomeGreen.copy(alpha = 0.12f)
                 ) {
                     Text(
-                        text = if (uiState.isProjectedToExceedBudget) "طھظ†ط¨ظٹظ‡ ط¨ط§ظ„طµط±ظپ" else "ط¥ظ†ظپط§ظ‚ ظ…ط³طھظ‚ط±",
+                        text = if (uiState.isProjectedToExceedBudget) "تنبيه بالصرف" else "إنفاق مستقر",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = if (uiState.isProjectedToExceedBudget) ExpenseRed else IncomeGreen,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
@@ -1242,12 +1242,12 @@ fun SalaryCycleProjectionCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "طھظ‚ط¯ظ… ط§ظ„ط¯ظˆط±ط© ط§ظ„ط²ظ…ظ†ظٹط© (${((uiState.salaryCyclePercentageElapsed) * 100).toInt()}% ظ…ظ† ط§ظ„ط´ظ‡ط±)",
+                        text = "تقدم الدورة الزمنية (${((uiState.salaryCyclePercentageElapsed) * 100).toInt()}% من الشهر)",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextGray
                     )
                     Text(
-                        text = "ظ…طھط¨ظ‚ظٹ ${uiState.daysRemainingInCycle} ظٹظˆظ…",
+                        text = "متبقي ${uiState.daysRemainingInCycle} يوم",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -1272,7 +1272,7 @@ fun SalaryCycleProjectionCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "ط§ظ„ط¥ظ†ظپط§ظ‚ ط§ظ„ظ…طھظˆظ‚ط¹",
+                        text = "الإنفاق المتوقع",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextGray
                     )
@@ -1296,13 +1296,13 @@ fun SalaryCycleProjectionCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (uiState.referenceBudget == uiState.salaryAmount) "ظ…ظٹط²ط§ظ†ظٹط© ط§ظ„ط±ط§طھط¨ ط§ظ„ظ…ط±ط¬ط¹ظٹط©" else "ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ظٹط²ط§ظ†ظٹط§طھ ط§ظ„ظ…ط­ط¯ط¯ط©",
+                        text = if (uiState.referenceBudget == uiState.salaryAmount) "ميزانية الراتب المرجعية" else "إجمالي الميزانيات المحددة",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextGray
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = if (uiState.referenceBudget > 0) FormatterUtils.formatCurrency(uiState.referenceBudget) else "ط؛ظٹط± ظ…ط­ط¯ط¯ط©",
+                        text = if (uiState.referenceBudget > 0) FormatterUtils.formatCurrency(uiState.referenceBudget) else "غير محددة",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -1329,7 +1329,7 @@ fun SalaryCycleProjectionCard(
                                 .background(ExpenseRed, CircleShape)
                         )
                         Text(
-                            text = "ط¨ظ†ط§ط،ظ‹ ط¹ظ„ظ‰ ط³ط±ط¹ط© ط¥ظ†ظپط§ظ‚ظƒطŒ ط³طھطھط¬ط§ظˆط² ط§ظ„ظ…ظٹط²ط§ظ†ظٹط© ط¨ظ€ ${FormatterUtils.formatCurrency(exceedAmount)} ط¨ظ†ظ‡ط§ظٹط© ط§ظ„ط´ظ‡ط±. ط­ط§ظˆظ„ طھط±ط´ظٹط¯ ظ†ظپظ‚ط§طھظƒ ط§ظ„ظƒط¨ظٹط±ط©.",
+                            text = "بناءً على سرعة إنفاقك، ستتجاوز الميزانية بـ ${FormatterUtils.formatCurrency(exceedAmount)} بنهاية الشهر. حاول ترشيد نفقاتك الكبيرة.",
                             style = MaterialTheme.typography.bodySmall,
                             color = ExpenseRed,
                             textAlign = TextAlign.Right,
@@ -1371,12 +1371,12 @@ fun WeekendWeekdaySpendingCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "طھط­ظ„ظٹظ„ ط§ظ„ط¥ظ†ظپط§ظ‚: ط£ظٹط§ظ… ط§ظ„ط¹ظ…ظ„ ظ…ظ‚ط§ط¨ظ„ ظ†ظ‡ط§ظٹط© ط§ظ„ط£ط³ط¨ظˆط¹",
+                        text = "تحليل الإنفاق: أيام العمل مقابل نهاية الأسبوع",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "طھظˆط²ظٹط¹ ط§ظ„ظ†ظپظ‚ط§طھ ط¨ظٹظ† ط£ظٹط§ظ… ط§ظ„ط£ط³ط¨ظˆط¹ ظˆط§ظ„ط¬ظ…ط¹ط©/ط§ظ„ط³ط¨طھ ط¨ط§ظ„ط¬ط²ط§ط¦ط±",
+                        text = "توزيع النفقات بين أيام الأسبوع والجمعة/السبت بالجزائر",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextGray
                     )
@@ -1385,8 +1385,8 @@ fun WeekendWeekdaySpendingCard(
                 HelpIconButton(
                     onClick = {
                         onHelpClick(
-                            "طھط­ظ„ظٹظ„ ط£ظٹط§ظ… ط§ظ„ط¹ظ…ظ„ ظ…ظ‚ط§ط¨ظ„ ط¹ط·ظ„ط© ظ†ظ‡ط§ظٹط© ط§ظ„ط£ط³ط¨ظˆط¹",
-                            "ظٹظ‚ظٹط³ ظ‡ط°ط§ ط§ظ„طھط­ظ„ظٹظ„ ظ…طھظˆط³ط· ط­ط¬ظ… ط¥ظ†ظپط§ظ‚ظƒ ط§ظ„ظ…ط§ظ„ظٹ ظپظٹ ط£ظٹط§ظ… ط§ظ„ط£ط³ط¨ظˆط¹ ط§ظ„ط¹ط§ط¯ظٹط© (ظ…ظ† ط§ظ„ط£ط­ط¯ ط¥ظ„ظ‰ ط§ظ„ط®ظ…ظٹط³) ظ…ظ‚ط§ط±ظ†ط© ط¨ظ…طھظˆط³ط· ط¥ظ†ظپط§ظ‚ظƒ ظپظٹ ط¹ط·ظ„ط© ظ†ظ‡ط§ظٹط© ط§ظ„ط£ط³ط¨ظˆط¹ (ط§ظ„ط¬ظ…ط¹ط© ظˆط§ظ„ط³ط¨طھ ط¨ط§ظ„ط¬ط²ط§ط¦ط±).\n\nط§ظ„ظپط§ط¦ط¯ط©: ظٹظˆط¶ط­ ظ„ظƒ ط³ظ„ظˆظƒظƒ ط§ظ„طھط±ظپظٹظ‡ظٹ ط£ظˆ ط§ظ„ط§ط³طھظ‡ظ„ط§ظƒظٹ ط®ظ„ط§ظ„ ط§ظ„ط¹ط·ظ„ط§طھطŒ ظ…ظ…ط§ ظٹط³ط§ط¹ط¯ظƒ ط¹ظ„ظ‰ ظƒط¨ط­ ط§ظ„ظ…طµط§ط±ظٹظپ ط؛ظٹط± ط§ظ„ط¶ط±ظˆط±ظٹط© ط£ظˆ ط§ظ„ظ…ط¨ط§ظ„ط؛ ظپظٹظ‡ط§ ط®ظ„ط§ظ„ ط¹ط·ظ„ط© ظ†ظ‡ط§ظٹط© ط§ظ„ط£ط³ط¨ظˆط¹."
+                            "تحليل أيام العمل مقابل عطلة نهاية الأسبوع",
+                            "يقيس هذا التحليل متوسط حجم إنفاقك المالي في أيام الأسبوع العادية (من الأحد إلى الخميس) مقارنة بمتوسط إنفاقك في عطلة نهاية الأسبوع (الجمعة والسبت بالجزائر).\n\nالفائدة: يوضح لك سلوكك الترفيهي أو الاستهلاكي خلال العطلات، مما يساعدك على كبح المصاريف غير الضرورية أو المبالغ فيها خلال عطلة نهاية الأسبوع."
                         )
                     }
                 )
@@ -1399,12 +1399,12 @@ fun WeekendWeekdaySpendingCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "ط£ظٹط§ظ… ط§ظ„ط¹ظ…ظ„ (${(uiState.weekdayPercentage * 100).toInt()}%)",
+                        text = "أيام العمل (${(uiState.weekdayPercentage * 100).toInt()}%)",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "ظ†ظ‡ط§ظٹط© ط§ظ„ط£ط³ط¨ظˆط¹ (${(uiState.weekendPercentage * 100).toInt()}%)",
+                        text = "نهاية الأسبوع (${(uiState.weekendPercentage * 100).toInt()}%)",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = SavingsAmber
                     )
@@ -1448,7 +1448,7 @@ fun WeekendWeekdaySpendingCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("ظ…ط¹ط¯ظ„ ط£ظٹط§ظ… ط§ظ„ط¹ظ…ظ„ ط§ظ„ظٹظˆظ…ظٹ", style = MaterialTheme.typography.labelSmall, color = TextGray)
+                        Text("معدل أيام العمل اليومي", style = MaterialTheme.typography.labelSmall, color = TextGray)
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -1462,7 +1462,7 @@ fun WeekendWeekdaySpendingCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(modifier = Modifier.size(8.dp).background(SavingsAmber, CircleShape))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("ظ…ط¹ط¯ظ„ ظ†ظ‡ط§ظٹط© ط§ظ„ط£ط³ط¨ظˆط¹ ط§ظ„ظٹظˆظ…ظٹ", style = MaterialTheme.typography.labelSmall, color = TextGray)
+                        Text("معدل نهاية الأسبوع اليومي", style = MaterialTheme.typography.labelSmall, color = TextGray)
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -1475,9 +1475,9 @@ fun WeekendWeekdaySpendingCard(
 
             // Insights text
             val trendMessage = if (uiState.weekendDailyAverage > uiState.weekdayDailyAverage * 1.3) {
-                "ظ…ط¹ط¯ظ„ ط¥ظ†ظپط§ظ‚ظƒ ط§ظ„ظٹظˆظ…ظٹ ظپظٹ ط¹ط·ظ„ط© ظ†ظ‡ط§ظٹط© ط§ظ„ط£ط³ط¨ظˆط¹ ظ…ط±طھظپط¹ ط¬ط¯ط§ظ‹ ظ…ظ‚ط§ط±ظ†ط© ط¨ط£ظٹط§ظ… ط§ظ„ط¹ظ…ظ„. ط§ط­ط°ط± ظ…ظ† ط§ظ„طھط¨ط°ظٹط± ط®ظ„ط§ظ„ ط§ظ„ط¹ط·ظ„ط©."
+                "معدل إنفاقك اليومي في عطلة نهاية الأسبوع مرتفع جداً مقارنة بأيام العمل. احذر من التبذير خلال العطلة."
             } else {
-                "ظ…ط¹ط¯ظ„ ط¥ظ†ظپط§ظ‚ظƒ ط§ظ„ظٹظˆظ…ظٹ ظ…طھط²ظ† ط¨ظٹظ† ط£ظٹط§ظ… ط§ظ„ط¹ظ…ظ„ ظˆط¹ط·ظ„ط© ظ†ظ‡ط§ظٹط© ط§ظ„ط£ط³ط¨ظˆط¹. ط§ط³طھظ…ط± ظپظٹ ظ‡ط°ط§ ط§ظ„ط§ظ†ط¶ط¨ط§ط· ط§ظ„ظ…ط§ظ„ظٹ."
+                "معدل إنفاقك اليومي متزن بين أيام العمل وعطلة نهاية الأسبوع. استمر في هذا الانضباط المالي."
             }
 
             Row(
@@ -1510,10 +1510,10 @@ fun EmergencyFundRunwayCard(
     modifier: Modifier = Modifier
 ) {
     val (statusLabel, statusColor) = when (uiState.emergencyFundStatus) {
-        "CRITICAL" -> "ط­ط±ظگط¬ (ط£ظ‚ظ„ ظ…ظ† ط´ظ‡ط±)" to ExpenseRed
-        "ACCEPTABLE" -> "ظ…ظ‚ط¨ظˆظ„ (1-3 ط£ط´ظ‡ط±)" to SavingsAmber
-        "SAFE" -> "ط¢ظ…ظ† (3-6 ط£ط´ظ‡ط±)" to IncomeGreen
-        else -> "ظ…ظ…طھط§ط² (+6 ط£ط´ظ‡ط±)" to MaterialTheme.colorScheme.primary
+        "CRITICAL" -> "حرِج (أقل من شهر)" to ExpenseRed
+        "ACCEPTABLE" -> "مقبول (1-3 أشهر)" to SavingsAmber
+        "SAFE" -> "آمن (3-6 أشهر)" to IncomeGreen
+        else -> "ممتاز (+6 أشهر)" to MaterialTheme.colorScheme.primary
     }
 
     Card(
@@ -1542,12 +1542,12 @@ fun EmergencyFundRunwayCard(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "ظ…ط¤ط´ط± طµظ†ط¯ظˆظ‚ ط§ظ„ط·ظˆط§ط±ط¦ ظˆط§ظ„ط£ظ…ط§ظ† ط§ظ„ظ…ط§ظ„ظٹ",
+                            text = "مؤشر صندوق الطوارئ والأمان المالي",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "ظ‚ط¯ط±طھظƒ ط¹ظ„ظ‰ ط§ظ„طµظ…ظˆط¯ ط§ظ„ظ…ط§ظ„ظٹ ظپظٹ ط­ط§ظ„ ط§ظ†ظ‚ط·ط§ط¹ ط§ظ„ط¯ط®ظ„",
+                            text = "قدرتك على الصمود المالي في حال انقطاع الدخل",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextGray
                         )
@@ -1555,8 +1555,8 @@ fun EmergencyFundRunwayCard(
                     HelpIconButton(
                         onClick = {
                             onHelpClick(
-                                "ظ…ط¤ط´ط± طµظ†ط¯ظˆظ‚ ط§ظ„ط·ظˆط§ط±ط¦ ظˆط§ظ„ط£ظ…ط§ظ† ط§ظ„ظ…ط§ظ„ظٹ",
-                                "ظٹظ‚ظٹط³ ظ‡ط°ط§ ط§ظ„ظ…ط¤ط´ط± ط¹ط¯ط¯ ط§ظ„ط£ط´ظ‡ط± ط§ظ„ط§ظپطھط±ط§ط¶ظٹط© ط§ظ„طھظٹ ظٹظ…ظƒظ†ظƒ ط§ظ„ط¹ظٹط´ ظپظٹظ‡ط§ ظ…ط¹طھظ…ط¯ط§ظ‹ ط¨ط§ظ„ظƒط§ظ…ظ„ ط¹ظ„ظ‰ ظ…ط¯ط®ط±ط§طھظƒ ط§ظ„ط­ط§ظ„ظٹط© ظ„طھط؛ط·ظٹط© ظ…طھظˆط³ط· ظ†ظپظ‚ط§طھظƒ ط§ظ„ط´ظ‡ط±ظٹط© ط¥ط°ط§ ط§ظ†ظ‚ط·ط¹ ط¯ط®ظ„ظƒ ظپط¬ط£ط©.\n\nط§ظ„ظپط§ط¦ط¯ط©: ظٹظˆظپط± ظ…ظ‚ظٹط§ط³ط§ظ‹ ط­ظ‚ظٹظ‚ظٹط§ظ‹ ظ„ظ…ط¯ظ‰ ط£ظ…ط§ظ†ظƒ ط§ظ„ظ…ط§ظ„ظٹ ظˆطµظ…ظˆط¯ظƒ ط£ظ…ط§ظ… ط§ظ„ط£ط²ظ…ط§طھ ط§ظ„ظ…ظپط§ط¬ط¦ط© (ظ…ط«ظ„ ظپظ‚ط¯ط§ظ† ط§ظ„ط¹ظ…ظ„ ط£ظˆ ط§ظ„ط·ظˆط§ط±ط¦ ط§ظ„طµط­ظٹط©) ط¯ظˆظ† ط§ظ„ط­ط§ط¬ط© ظ„ظ„ط§ظ‚طھط±ط§ط¶ ط£ظˆ ط§ظ„ط¯ظٹظˆظ†."
+                                "مؤشر صندوق الطوارئ والأمان المالي",
+                                "يقيس هذا المؤشر عدد الأشهر الافتراضية التي يمكنك العيش فيها معتمداً بالكامل على مدخراتك الحالية لتغطية متوسط نفقاتك الشهرية إذا انقطع دخلك فجأة.\n\nالفائدة: يوفر مقياساً حقيقياً لمدى أمانك المالي وصمودك أمام الأزمات المفاجئة (مثل فقدان العمل أو الطوارئ الصحية) دون الحاجة للاقتراض أو الديون."
                             )
                         }
                     )
@@ -1587,7 +1587,7 @@ fun EmergencyFundRunwayCard(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "${String.format(java.util.Locale.US, "%.1f", uiState.emergencyFundRunwayMonths)} ط£ط´ظ‡ط±",
+                        text = "${String.format(java.util.Locale.US, "%.1f", uiState.emergencyFundRunwayMonths)} أشهر",
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontWeight = FontWeight.Black,
                             fontSize = 32.sp
@@ -1595,7 +1595,7 @@ fun EmergencyFundRunwayCard(
                         color = statusColor
                     )
                     Text(
-                        text = "ظ…ط¯ط© طھط؛ط·ظٹط© ط§ظ„ط·ظˆط§ط±ط¦",
+                        text = "مدة تغطية الطوارئ",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextGray
                     )
@@ -1617,7 +1617,7 @@ fun EmergencyFundRunwayCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ط¯ط®ط±ط§طھ:", style = MaterialTheme.typography.labelSmall, color = TextGray)
+                        Text("إجمالي المدخرات:", style = MaterialTheme.typography.labelSmall, color = TextGray)
                         Text(
                             text = FormatterUtils.formatCurrency(uiState.totalSavingsAmount),
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
@@ -1628,7 +1628,7 @@ fun EmergencyFundRunwayCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("ظ…ط¹ط¯ظ„ ط§ظ„ظ…طµط§ط±ظٹظپ ط§ظ„ط´ظ‡ط±ظٹ:", style = MaterialTheme.typography.labelSmall, color = TextGray)
+                        Text("معدل المصاريف الشهري:", style = MaterialTheme.typography.labelSmall, color = TextGray)
                         Text(
                             text = FormatterUtils.formatCurrency(uiState.averageMonthlyExpense),
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
@@ -1641,10 +1641,10 @@ fun EmergencyFundRunwayCard(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
 
             val explanation = when (uiState.emergencyFundStatus) {
-                "CRITICAL" -> "طµظ†ط¯ظˆظ‚ ط·ظˆط§ط±ط¦ظƒ ط§ظ„ط­ط§ظ„ظٹ ط¶ط¹ظٹظپ ط¬ط¯ط§ظ‹ ظˆظ„ط§ ظٹط؛ط·ظٹ ط´ظ‡ط± ظˆط§ط­ط¯ ظ…ظ† ط§ظ„ظ…طµط§ط±ظٹظپ. ظ†ظ†طµط­ظƒ ط¨طھط­ظˆظٹظ„ ظ…ط¨ط§ظ„ط؛ ط¥ط¶ط§ظپظٹط© ظ„ظ„طھظˆظپظٹط± ظپظٹ ط£ظ‚ط±ط¨ ظˆظ‚طھ ظ„طھظپط§ط¯ظٹ ط§ظ„ط£ط²ظ…ط§طھ ط§ظ„ظ…ط§ظ„ظٹط© ط§ظ„ظ…ظپط§ط¬ط¦ط©."
-                "ACCEPTABLE" -> "ظ…ط¯ط®ط±ط§طھظƒ ظ…ظ‚ط¨ظˆظ„ط© ظˆطھط؛ط·ظٹ ط¬ط²ط،ط§ظ‹ ظ…ظ† ط§ط­طھظٹط§ط¬ط§طھظƒ ط§ظ„ظ…ط¤ظ‚طھط©. ظٹظڈظ†طµط­ ط¨ط§ظ„ط¹ظ…ظ„ ط¹ظ„ظ‰ ط²ظٹط§ط¯ط© ط§ظ„ظ…ط¯ط®ط±ط§طھ ظ„طھطµظ„ ط¥ظ„ظ‰ طھط؛ط·ظٹط© 3 ط£ط´ظ‡ط± ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„ ظ„طھط­ظ‚ظٹظ‚ ط£ظ…ط§ظ† ط£ظƒط¨ط±."
-                "SAFE" -> "طھظ‡ط§ظ†ظٹظ†ط§! ظˆط¶ط¹ظƒ ط§ظ„ظ…ط§ظ„ظٹ ط¢ظ…ظ† ط¬ط¯ط§ظ‹. طھط؛ط·ظٹ ظ…ط¯ط®ط±ط§طھظƒ ظ†ظپظ‚ط§طھظƒ ظ„ط¹ط¯ط© ط£ط´ظ‡ط± ظپظٹ ط­ط§ظ„ ط§ظ„ط·ظˆط§ط±ط¦طŒ ظˆظ‡ظˆ ظ…ط§ ظٹظ…ظ†ط­ظƒ ط±ط§ط­ط© ط¨ط§ظ„ ظ…ظ…طھط§ط²ط© ظ„ظ„طھط¹ط§ظ…ظ„ ظ…ط¹ ط£ظٹ ط·ط§ط±ط¦."
-                else -> "ظˆط¶ط¹ظƒ ط§ظ„ظ…ط§ظ„ظٹ ط§ط³طھط«ظ†ط§ط¦ظٹ ظˆظ…ظ…طھط§ط²! ظ„ط¯ظٹظƒ ظˆظپط±ط© ظ…ط§ظ„ظٹط© ظˆطµظ†ط¯ظˆظ‚ ط·ظˆط§ط±ط¦ طµظ„ط¨ ظ„ظ„ط؛ط§ظٹط© ظٹط؛ط·ظٹ ط£ظƒط«ط± ظ…ظ† 6 ط£ط´ظ‡ط± ظ…ظ† ط­ظٹط§طھظƒ ط¯ظˆظ† ط¯ط®ظ„. ط£ظ†طھ طھط³ظٹط± ط¨ط®ط·ظ‰ ط°ظ‡ط¨ظٹط©."
+                "CRITICAL" -> "صندوق طوارئك الحالي ضعيف جداً ولا يغطي شهر واحد من المصاريف. ننصحك بتحويل مبالغ إضافية للتوفير في أقرب وقت لتفادي الأزمات المالية المفاجئة."
+                "ACCEPTABLE" -> "مدخراتك مقبولة وتغطي جزءاً من احتياجاتك المؤقتة. يُنصح بالعمل على زيادة المدخرات لتصل إلى تغطية 3 أشهر على الأقل لتحقيق أمان أكبر."
+                "SAFE" -> "تهانينا! وضعك المالي آمن جداً. تغطي مدخراتك نفقاتك لعدة أشهر في حال الطوارئ، وهو ما يمنحك راحة بال ممتازة للتعامل مع أي طارئ."
+                else -> "وضعك المالي استثنائي وممتاز! لديك وفرة مالية وصندوق طوارئ صلب للغاية يغطي أكثر من 6 أشهر من حياتك دون دخل. أنت تسير بخطى ذهبية."
             }
 
             Row(
@@ -1696,12 +1696,12 @@ fun SavingsChallengesSection(modifier: Modifier = Modifier) {
             ) {
                 Column {
                     Text(
-                        text = "طھط­ط¯ظٹط§طھ ط§ظ„ط§ط¯ط®ط§ط± ظˆط§ظ„طھط­ظپظٹط² ط§ظ„ظ…ط§ظ„ظٹ",
+                        text = "تحديات الادخار والتحفيز المالي",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "ط´ط§ط±ظƒ ظپظٹ ط§ظ„طھط­ط¯ظٹط§طھ ظ„طھظ†ظ…ظٹط© ظ…ط¯ط®ط±ط§طھظƒ ط¨ط·ط±ظٹظ‚ط© طھظپط§ط¹ظ„ظٹط©",
+                        text = "شارك في التحديات لتنمية مدخراتك بطريقة تفاعلية",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextGray
                     )
@@ -1712,7 +1712,7 @@ fun SavingsChallengesSection(modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                 ) {
                     Text(
-                        text = "طھط­ط¯ظٹط§طھ ظ†ط´ط·ط©",
+                        text = "تحديات نشطة",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
@@ -1757,12 +1757,12 @@ fun SavingsChallengesSection(modifier: Modifier = Modifier) {
                             }
                             Column {
                                 Text(
-                                    text = "طھط­ط¯ظٹ ط§ظ„ظ€ 52 ط£ط³ط¨ظˆط¹ط§ظ‹",
+                                    text = "تحدي الـ 52 أسبوعاً",
                                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "ط§ط¯ط®ط± ظ…ط¨ظ„ط؛ط§ظ‹ ظ…طھط²ط§ظٹط¯ط§ظ‹ ظƒظ„ ط£ط³ط¨ظˆط¹",
+                                    text = "ادخر مبلغاً متزايداً كل أسبوع",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = TextGray
                                 )
@@ -1770,7 +1770,7 @@ fun SavingsChallengesSection(modifier: Modifier = Modifier) {
                         }
                         
                         Text(
-                            text = "ط§ظ„ط£ط³ط¨ظˆط¹ 12 / 52",
+                            text = "الأسبوع 12 / 52",
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             color = SavingsAmber
                         )
@@ -1783,12 +1783,12 @@ fun SavingsChallengesSection(modifier: Modifier = Modifier) {
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ظ…ظˆظپط±: 6,000 ط¯ط¬",
+                                text = "المبلغ الموفر: 6,000 دج",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = TextGray
                             )
                             Text(
-                                text = "ط§ظ„ظ‡ط¯ظپ: 26,000 ط¯ط¬",
+                                text = "الهدف: 26,000 دج",
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -1808,7 +1808,7 @@ fun SavingsChallengesSection(modifier: Modifier = Modifier) {
                         onClick = {
                             Toast.makeText(
                                 context,
-                                "طھظ… ط¥ط¶ط§ظپط© 500 ط¯ط¬ ظ„طھط­ط¯ظٹ ط§ظ„ط§ط¯ط®ط§ط± ط§ظ„ط£ط³ط¨ظˆط¹ظٹ ط¨ظ†ط¬ط§ط­! ظˆط§طµظ„ ط§ظ„طھظ‚ط¯ظ… ًںژ¯",
+                                "تم إضافة 500 دج لتحدي الادخار الأسبوعي بنجاح! واصل التقدم 🎯",
                                 Toast.LENGTH_SHORT
                             ).show()
                         },
@@ -1819,7 +1819,7 @@ fun SavingsChallengesSection(modifier: Modifier = Modifier) {
                         colors = ButtonDefaults.buttonColors(containerColor = SavingsAmber)
                     ) {
                         Text(
-                            text = "+ ط§ط¯ط®ط± 500 ط¯ط¬ ظ„ظ‡ط°ط§ ط§ظ„ط£ط³ط¨ظˆط¹",
+                            text = "+ ادخر 500 دج لهذا الأسبوع",
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                             color = Color.White
                         )
@@ -1864,12 +1864,12 @@ fun SavingsChallengesSection(modifier: Modifier = Modifier) {
                             }
                             Column {
                                 Text(
-                                    text = "طھط¬ظ…ظٹط¹ ط§ظ„ظپظƒط© (Spare Change)",
+                                    text = "تجميع الفكة (Spare Change)",
                                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "طھظ‚ط±ظٹط¨ ط§ظ„ظ…ط¹ط§ظ…ظ„ط§طھ ظ„ط£ظ‚ط±ط¨ 50 ط£ظˆ 100 ط¯ط¬ ظˆط§ط¯ط®ط§ط± ط§ظ„ظپط§ط±ظ‚",
+                                    text = "تقريب المعاملات لأقرب 50 أو 100 دج وادخار الفارق",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = TextGray
                                 )
@@ -1885,12 +1885,12 @@ fun SavingsChallengesSection(modifier: Modifier = Modifier) {
                     ) {
                         Column {
                             Text(
-                                text = "ط§ظ„ظپظƒط© ط§ظ„ظ…ط¬ظ…ط¹ط© ظ‡ط°ط§ ط§ظ„ط´ظ‡ط±",
+                                text = "الفكة المجمعة هذا الشهر",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = TextGray
                             )
                             Text(
-                                text = "1,450 ط¯ط¬",
+                                text = "1,450 دج",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
                                 color = IncomeGreen
                             )
@@ -1900,7 +1900,7 @@ fun SavingsChallengesSection(modifier: Modifier = Modifier) {
                             onClick = {
                                 Toast.makeText(
                                     context,
-                                    "طھظ… طھط­ظˆظٹظ„ 1,450 ط¯ط¬ ظ…ظ† ط§ظ„ظپظƒط© ط§ظ„ظ…ط¯ط®ط±ط© ط¥ظ„ظ‰ ط­ط³ط§ط¨ ط§ظ„طھظˆظپظٹط± ط¨ظ†ط¬ط§ط­! ًں’°",
+                                    "تم تحويل 1,450 دج من الفكة المدخرة إلى حساب التوفير بنجاح! 💰",
                                     Toast.LENGTH_SHORT
                                 ).show()
                             },
@@ -1909,7 +1909,7 @@ fun SavingsChallengesSection(modifier: Modifier = Modifier) {
                             modifier = Modifier.height(38.dp)
                         ) {
                             Text(
-                                text = "طھط­ظˆظٹظ„ ظ„ظ„ظ…ط¯ط®ط±ط§طھ",
+                                text = "تحويل للمدخرات",
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                                 color = Color.White
                             )
@@ -1929,11 +1929,11 @@ fun SimplePeriodEmptyState(
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     val periodLabel = when (selectedPeriod) {
-        "DAY"   -> "ظ„ظ‡ط°ط§ ط§ظ„ظٹظˆظ…"
-        "WEEK"  -> "ظ„ظ‡ط°ط§ ط§ظ„ط£ط³ط¨ظˆط¹"
-        "MONTH" -> "ظ„ظ‡ط°ط§ ط§ظ„ط´ظ‡ط±"
-        "YEAR"  -> "ظ„ظ‡ط°ظ‡ ط§ظ„ط³ظ†ط©"
-        else    -> "ظ„ظ‡ط°ظ‡ ط§ظ„ظپطھط±ط©"
+        "DAY"   -> "لهذا اليوم"
+        "WEEK"  -> "لهذا الأسبوع"
+        "MONTH" -> "لهذا الشهر"
+        "YEAR"  -> "لهذه السنة"
+        else    -> "لهذه الفترة"
     }
 
     val periodIcon = when (selectedPeriod) {
@@ -1997,7 +1997,7 @@ fun SimplePeriodEmptyState(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = "ط§ظ„ظ…ط®ط·ط· ط§ظ„ط¨ظٹط§ظ†ظٹ ظ‡ط§ط¯ط¦ $periodLabel",
+                    text = "المخطط البياني هادئ $periodLabel",
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 17.sp
@@ -2006,7 +2006,7 @@ fun SimplePeriodEmptyState(
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "ظ„ظ… طھظ‚ظ… ط¨طھط³ط¬ظٹظ„ ط£ظٹ ظ…ط¹ط§ظ…ظ„ط© $periodLabel. ط£ط¶ظپ ظ…ط¹ط§ظ…ظ„ط§طھظƒ ظ„طھظپط¹ظٹظ„ ط§ظ„طھط­ظ„ظٹظ„ط§طھ ظˆط§ظ„ط±ط³ظˆظ… ط§ظ„ط¨ظٹط§ظ†ظٹط© ط§ظ„طھظپط§ط¹ظ„ظٹط©.",
+                    text = "لم تقم بتسجيل أي معاملة $periodLabel. أضف معاملاتك لتفعيل التحليلات والرسوم البيانية التفاعلية.",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontSize = 13.sp,
                         lineHeight = 20.sp
@@ -2038,7 +2038,7 @@ fun SimplePeriodEmptyState(
                         fontSize = 16.sp
                     )
                     Text(
-                        text = "ظ†طµظٹط­ط©: ظٹظ…ظƒظ†ظƒ ط§ظ„طھظ†ظ‚ظ„ ط¨ظٹظ† ط§ظ„ظپطھط±ط§طھ ط§ظ„ط²ظ…ظ†ظٹط© ظ…ظ† ط§ظ„ط£ط¹ظ„ظ‰ ظ„ط±ط¤ظٹط© ط¥ط­طµط§ط¦ظٹط§طھ ط§ظ„ط£ظٹط§ظ… ط£ظˆ ط§ظ„ط£ط³ط§ط¨ظٹط¹ ط§ظ„ط£ط®ط±ظ‰ ط§ظ„ظ†ط´ط·ط©.",
+                        text = "نصيحة: يمكنك التنقل بين الفترات الزمنية من الأعلى لرؤية إحصائيات الأيام أو الأسابيع الأخرى النشطة.",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                         modifier = Modifier.weight(1f)
@@ -2058,7 +2058,7 @@ fun SimplePeriodEmptyState(
                 colors = ButtonDefaults.buttonColors(containerColor = Primary)
             ) {
                 Text(
-                    text = "+ طھط³ط¬ظٹظ„ ظ…ط¹ط§ظ…ظ„ط© $periodLabel",
+                    text = "+ تسجيل معاملة $periodLabel",
                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                     color = Color.White
                 )

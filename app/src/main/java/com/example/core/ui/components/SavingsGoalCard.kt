@@ -1,4 +1,4 @@
-﻿package com.example.core.ui.components
+package com.example.core.ui.components
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween

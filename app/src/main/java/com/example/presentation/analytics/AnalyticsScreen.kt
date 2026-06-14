@@ -104,11 +104,11 @@ fun AnalyticsScreen(
 
     // Map period key â†’ Arabic display name
     val periodLabel = when (uiState.selectedPeriod) {
-        "ALL"   -> "ط§ظ„ظƒظ„"
-        "DAY"   -> "ط§ظ„ظٹظˆظ…"
-        "WEEK"  -> "ط§ظ„ط£ط³ط¨ظˆط¹"
-        "MONTH" -> "ط§ظ„ط´ظ‡ط±"
-        "YEAR"  -> "ط§ظ„ط³ظ†ط©"
+        "ALL"   -> "الكل"
+        "DAY"   -> "اليوم"
+        "WEEK"  -> "الأسبوع"
+        "MONTH" -> "الشهر"
+        "YEAR"  -> "السنة"
         else    -> uiState.selectedPeriod
     }
 
@@ -147,7 +147,7 @@ fun AnalyticsScreen(
                 
                 AlertDialog(
                     onDismissRequest = { showCustomColorDialog = false },
-                    title = { Text("ط§ط®طھط± ظ„ظˆظ†ط§ظ‹ ظ…ط®طµطµط§ظ‹ ظ„ظ„ظپط¦ط©", fontWeight = FontWeight.Bold) },
+                    title = { Text("اختر لوناً مخصصاً للفئة", fontWeight = FontWeight.Bold) },
                     text = {
                         Column(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -174,7 +174,7 @@ fun AnalyticsScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text("ط§ظ„ط£ط­ظ…ط±", style = MaterialTheme.typography.labelSmall, color = TextGray)
+                                        Text("الأحمر", style = MaterialTheme.typography.labelSmall, color = TextGray)
                                         Text("${(redVal * 255).toInt()}", style = MaterialTheme.typography.labelSmall, color = TextGray)
                                     }
                                     Slider(
@@ -192,7 +192,7 @@ fun AnalyticsScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text("ط§ظ„ط£ط®ط¶ط±", style = MaterialTheme.typography.labelSmall, color = TextGray)
+                                        Text("الأخضر", style = MaterialTheme.typography.labelSmall, color = TextGray)
                                         Text("${(greenVal * 255).toInt()}", style = MaterialTheme.typography.labelSmall, color = TextGray)
                                     }
                                     Slider(
@@ -210,7 +210,7 @@ fun AnalyticsScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text("ط§ظ„ط£ط²ط±ظ‚", style = MaterialTheme.typography.labelSmall, color = TextGray)
+                                        Text("الأزرق", style = MaterialTheme.typography.labelSmall, color = TextGray)
                                         Text("${(blueVal * 255).toInt()}", style = MaterialTheme.typography.labelSmall, color = TextGray)
                                     }
                                     Slider(
@@ -231,12 +231,12 @@ fun AnalyticsScreen(
                             longClickedCategory = category.copy(color = hexString)
                             showCustomColorDialog = false
                         }) {
-                            Text("ط­ظپط¸")
+                            Text("حفظ")
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { showCustomColorDialog = false }) {
-                            Text("ط¥ظ„ط؛ط§ط،")
+                            Text("إلغاء")
                         }
                     }
                 )
@@ -274,7 +274,7 @@ fun AnalyticsScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    text = "ط³ط¬ظ„ ظ…ط¹ط§ظ…ظ„ط§طھ: ${category.categoryName}",
+                                    text = "سجل معاملات: ${category.categoryName}",
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
@@ -293,7 +293,7 @@ fun AnalyticsScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Palette,
-                                        contentDescription = "طھط¹ط¯ظٹظ„ ط§ظ„ظ„ظˆظ†",
+                                        contentDescription = "تعديل اللون",
                                         tint = parsedSelectedColor ?: MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
                                     )
@@ -335,7 +335,7 @@ fun AnalyticsScreen(
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Text(
-                                    text = "ط§ط®طھط± ظ„ظˆظ†ط§ظ‹ ظ„ظ„ظپط¦ط©:",
+                                    text = "اختر لوناً للفئة:",
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                     color = TextGray
                                 )
@@ -408,7 +408,7 @@ fun AnalyticsScreen(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Palette,
-                                                contentDescription = "ظ„ظˆظ† ظ…ط®طµطµ",
+                                                contentDescription = "لون مخصص",
                                                 tint = Color.White,
                                                 modifier = Modifier.size(14.dp)
                                             )
@@ -422,7 +422,7 @@ fun AnalyticsScreen(
                         
                         if (categoryTxs.isEmpty()) {
                             Text(
-                                text = "ظ„ط§ طھظˆط¬ط¯ ظ…ط¹ط§ظ…ظ„ط§طھ ظ„ظ‡ط°ظ‡ ط§ظ„ظپط¦ط©.",
+                                text = "لا توجد معاملات لهذه الفئة.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = TextGray,
                                 textAlign = TextAlign.Center,
@@ -443,7 +443,7 @@ fun AnalyticsScreen(
                                     ) {
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
-                                                text = tx.note ?: "ط¨ط¯ظˆظ† ظ…ظ„ط§ط­ط¸ط©",
+                                                text = tx.note ?: "بدون ملاحظة",
                                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                                 color = MaterialTheme.colorScheme.onSurface,
                                                 maxLines = 1,
@@ -465,7 +465,7 @@ fun AnalyticsScreen(
                                 }
                                 if (categoryTxs.size > 4) {
                                     Text(
-                                        text = "+ ظˆط£ظƒط«ط± ط¨ظ€ ${categoryTxs.size - 4} ط¹ظ…ظ„ظٹط§طھ",
+                                        text = "+ وأكثر بـ ${categoryTxs.size - 4} عمليات",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.primary,
                                         textAlign = TextAlign.Center,
@@ -484,7 +484,7 @@ fun AnalyticsScreen(
                 onDismissRequest = { activeExplanationInfo = null },
                 confirmButton = {
                     TextButton(onClick = { activeExplanationInfo = null }) {
-                        Text("ط­ط³ظ†ط§ظ‹", fontWeight = FontWeight.Bold)
+                        Text("حسناً", fontWeight = FontWeight.Bold)
                     }
                 },
                 title = { 
@@ -507,7 +507,7 @@ fun AnalyticsScreen(
             AlertDialog(
                 onDismissRequest = {},
                 confirmButton = {},
-                title = { Text("ط¬ط§ط±ظٹ طھطµط¯ظٹط± ط§ظ„طھظ‚ط±ظٹط±", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) },
+                title = { Text("جاري تصدير التقرير", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) },
                 text = {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -537,16 +537,16 @@ fun AnalyticsScreen(
                         TextButton(onClick = {
                             fileUri?.let { com.example.core.utils.FileUtils.openPdfFile(context, it) }
                         }) {
-                            Text("ظپطھط­ ط§ظ„طھظ‚ط±ظٹط±")
+                            Text("فتح التقرير")
                         }
                         TextButton(onClick = { viewModel.clearExportState() }) {
-                            Text("ط­ط³ظ†ط§ظ‹")
+                            Text("حسناً")
                         }
                     }
                 },
-                title = { Text("طھظ… ط§ظ„طھطµط¯ظٹط± ط¨ظ†ط¬ط§ط­", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) },
+                title = { Text("تم التصدير بنجاح", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) },
                 text = {
-                    Text("طھظ… ط­ظپط¸ ط§ظ„طھظ‚ط±ظٹط± ط§ظ„ظ…ط§ظ„ظٹ ط§ظ„ط´ط§ظ…ظ„ ط¨طµظٹط؛ط© PDF ط¨ظ†ط¬ط§ط­ ظپظٹ ط§ظ„ظ…ط³ط§ط±:\n\n$fileUri")
+                    Text("تم حفظ التقرير المالي الشامل بصيغة PDF بنجاح في المسار:\n\n$fileUri")
                 }
             )
         }
@@ -556,12 +556,12 @@ fun AnalyticsScreen(
                 onDismissRequest = { viewModel.clearExportState() },
                 confirmButton = {
                     TextButton(onClick = { viewModel.clearExportState() }) {
-                        Text("ط­ط³ظ†ط§ظ‹")
+                        Text("حسناً")
                     }
                 },
-                title = { Text("ظپط´ظ„ طھطµط¯ظٹط± ط§ظ„طھظ‚ط±ظٹط±", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) },
+                title = { Text("فشل تصدير التقرير", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) },
                 text = {
-                    Text("ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، طھطµط¯ظٹط± ط§ظ„طھظ‚ط±ظٹط±:\n\n${uiState.exportError}")
+                    Text("حدث خطأ أثناء تصدير التقرير:\n\n${uiState.exportError}")
                 }
             )
         }
@@ -583,8 +583,8 @@ fun AnalyticsScreen(
             // â”€â”€ Unified Screen Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             item {
                 UnifiedScreenHeader(
-                    title = "ط§ظ„طھظ‚ط§ط±ظٹط± ظˆط§ظ„طھط­ظ„ظٹظ„ط§طھ",
-                    subtitle = "ط­ظ„ظ„ ط³ظ„ظˆظƒظƒ ط§ظ„ط¥ظ†ظپط§ظ‚ظٹ ظˆط­ظ‚ظ‚ ط£ظ‡ط¯ط§ظپظƒ ط§ظ„ط§ط¯ط®ط§ط±ظٹط© ط§ظ„ط°ظƒظٹط©",
+                    title = "التقارير والتحليلات",
+                    subtitle = "حلل سلوكك الإنفاقي وحقق أهدافك الادخارية الذكية",
                     showBackButton = false,
                     actions = {
                         Row(
@@ -601,7 +601,7 @@ fun AnalyticsScreen(
                                      color = Primary.copy(alpha = 0.12f)
                                 ) {
                                     Text(
-                                         text = "ط¹ط±ط¶: $periodLabel",
+                                         text = "عرض: $periodLabel",
                                          style = MaterialTheme.typography.labelSmall,
                                          color = Primary,
                                          modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
@@ -620,7 +620,7 @@ fun AnalyticsScreen(
                             ) {
                                 Icon(
                                      imageVector = Icons.Default.FileDownload,
-                                     contentDescription = "طھطµط¯ظٹط± طھظ‚ط±ظٹط± PDF",
+                                     contentDescription = "تصدير تقرير PDF",
                                      tint = MaterialTheme.colorScheme.primary,
                                      modifier = Modifier.size(18.dp)
                                 )
@@ -729,7 +729,7 @@ fun AnalyticsScreen(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        "ط£ط¹ظ„ظ‰ ط¥ظ†ظپط§ظ‚ ظ…ظپط±ط¯",
+                                        "أعلى إنفاق مفرد",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = TextGray
                                     )
@@ -789,14 +789,14 @@ fun AnalyticsScreen(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        "ظ…ط¹ط¯ظ„ ط§ظ„ط§ط¯ط®ط§ط±",
+                                        "معدل الادخار",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = TextGray
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = "${(uiState.savingsRate * 100).toInt()}% ظ…ط¯ط®ط±",
+                                    text = "${(uiState.savingsRate * 100).toInt()}% مدخر",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = IncomeGreen
@@ -804,9 +804,9 @@ fun AnalyticsScreen(
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     val (msg, icon, iconColor) = when {
-                                        uiState.savingsRate >= 0.2f -> Triple("ط­ط§ظ„ط© ظ…ط§ظ„ظٹط© ظ…ظ…طھط§ط²ط© ظˆظ…ط³طھظ‚ط±ط©", Icons.Default.TrendingUp, IncomeGreen)
-                                        uiState.savingsRate >= 0.1f -> Triple("ط­ط§ظ„ط© ط¬ظٹط¯ط©", Icons.Default.TrendingFlat, SavingsAmber)
-                                        else -> Triple("طھط­طھط§ط¬ ظ„طھظ‚ظ„ظٹظ„ ظ†ظپظ‚ط§طھظƒ", Icons.Default.TrendingDown, ExpenseRed)
+                                        uiState.savingsRate >= 0.2f -> Triple("حالة مالية ممتازة ومستقرة", Icons.Default.TrendingUp, IncomeGreen)
+                                        uiState.savingsRate >= 0.1f -> Triple("حالة جيدة", Icons.Default.TrendingFlat, SavingsAmber)
+                                        else -> Triple("تحتاج لتقليل نفقاتك", Icons.Default.TrendingDown, ExpenseRed)
                                     }
                                     Text(
                                         text = msg,
@@ -892,7 +892,7 @@ fun AnalyticsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "ط§ظ„طھط¯ظپظ‚ ط§ظ„ظ†ظ‚ط¯ظٹ ط§ظ„طھط§ط±ظٹط®ظٹ (ط§ظ„ط¯ط®ظ„ vs ط§ظ„ظ…طµط±ظˆظپ)",
+                                text = "التدفق النقدي التاريخي (الدخل vs المصروف)",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.Bold,
@@ -901,7 +901,7 @@ fun AnalyticsScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             HelpIconButton(
                                 onClick = {
-                                    activeExplanationInfo = "ط§ظ„طھط¯ظپظ‚ ط§ظ„ظ†ظ‚ط¯ظٹ ط§ظ„طھط§ط±ظٹط®ظٹ" to "ظٹظ‚ط§ط±ظ† ظ‡ط°ط§ ط§ظ„ظ…ط®ط·ط· طھط§ط±ظٹط®ظٹط§ظ‹ ط¨ظٹظ† ط§ظ„طھط¯ظپظ‚ط§طھ ط§ظ„ظ†ظ‚ط¯ظٹط© ط§ظ„ط¯ط§ط®ظ„ط© (ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¯ط®ظ„ ط§ظ„ظ…ط§ظ„ظٹ) ظˆط§ظ„طھط¯ظپظ‚ط§طھ ط§ظ„ط®ط§ط±ط¬ط© (ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ†ظپظ‚ط§طھ ظˆط§ظ„ظ…طµط§ط±ظٹظپ) ط¹ظ„ظ‰ ظ…ط¯ط§ط± ط§ظ„ظپطھط±ط§طھ ط§ظ„ط²ظ…ظ†ظٹط© ط§ظ„ط³ط§ط¨ظ‚ط©.\n\nط§ظ„ظپط§ط¦ط¯ط©: ظٹط³ط§ط¹ط¯ظƒ ظپظٹ ط±طµط¯ ط§طھط¬ط§ظ‡ ظ†ظ…ظˆظƒ ط§ظ„ظ…ط§ظ„ظٹط› ظپط¨ظ‚ط§ط، ط¹ظ…ظˆط¯ ط§ظ„ط¯ط®ظ„ ط£ط¹ظ„ظ‰ ط¨ط§ط³طھظ…ط±ط§ط± ظ…ظ† ط¹ظ…ظˆط¯ ط§ظ„ظ…طµط§ط±ظٹظپ ظٹط¶ظ…ظ† ط²ظٹط§ط¯ط© ط«ط±ظˆطھظƒ ظˆط¨ظ†ط§ط، ظ…ظ„ط§ط،ط© ظ…ط§ظ„ظٹط© ظ…طھظٹظ†ط©."
+                                    activeExplanationInfo = "التدفق النقدي التاريخي" to "يقارن هذا المخطط تاريخياً بين التدفقات النقدية الداخلة (إجمالي الدخل المالي) والتدفقات الخارجة (إجمالي النفقات والمصاريف) على مدار الفترات الزمنية السابقة.\n\nالفائدة: يساعدك في رصد اتجاه نموك المالي؛ فبقاء عمود الدخل أعلى باستمرار من عمود المصاريف يضمن زيادة ثروتك وبناء ملاءة مالية متينة."
                                 }
                             )
                         }
@@ -960,7 +960,7 @@ fun AnalyticsScreen(
                                     )
 
                                     // Y-Axis label
-                                    val labelText = "${decimalFormatter.format(amount)} ط¯ط¬"
+                                    val labelText = "${decimalFormatter.format(amount)} دج"
                                     drawIntoCanvas { canvas ->
                                         canvas.nativeCanvas.drawText(
                                             labelText,
@@ -1071,7 +1071,7 @@ fun AnalyticsScreen(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Text(
-                                                    text = "طھظپط§طµظٹظ„ ط§ظ„طھط¯ظپظ‚: ${trend.periodLabel}",
+                                                    text = "تفاصيل التدفق: ${trend.periodLabel}",
                                                     style = MaterialTheme.typography.labelMedium,
                                                     fontWeight = FontWeight.Bold,
                                                     color = MaterialTheme.colorScheme.onSurface
@@ -1082,7 +1082,7 @@ fun AnalyticsScreen(
                                                 ) {
                                                     Icon(
                                                         imageVector = Icons.Default.Close,
-                                                        contentDescription = "ط¥ط؛ظ„ط§ظ‚ ط§ظ„طھظپط§طµظٹظ„",
+                                                        contentDescription = "إغلاق التفاصيل",
                                                         tint = TextGray,
                                                         modifier = Modifier.size(14.dp)
                                                     )
@@ -1094,16 +1094,16 @@ fun AnalyticsScreen(
                                                 horizontalArrangement = Arrangement.SpaceBetween
                                             ) {
                                                 Column {
-                                                    Text("ط§ظ„ط¯ط®ظ„", style = MaterialTheme.typography.labelSmall, color = TextGray)
+                                                    Text("الدخل", style = MaterialTheme.typography.labelSmall, color = TextGray)
                                                     Text(FormatterUtils.formatCurrency(trend.income), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = IncomeGreen)
                                                 }
                                                 Column {
-                                                    Text("ط§ظ„ظ…طµط§ط±ظٹظپ", style = MaterialTheme.typography.labelSmall, color = TextGray)
+                                                    Text("المصاريف", style = MaterialTheme.typography.labelSmall, color = TextGray)
                                                     Text(FormatterUtils.formatCurrency(trend.expense), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = ExpenseRed)
                                                 }
                                                 val diff = trend.income - trend.expense
                                                 Column {
-                                                    Text("ط§ظ„طµط§ظپظٹ", style = MaterialTheme.typography.labelSmall, color = TextGray)
+                                                    Text("الصافي", style = MaterialTheme.typography.labelSmall, color = TextGray)
                                                     Text(
                                                         text = (if (diff >= 0) "+" else "") + FormatterUtils.formatCurrency(diff),
                                                         style = MaterialTheme.typography.bodySmall,
@@ -1133,7 +1133,7 @@ fun AnalyticsScreen(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    "ط§ظ„ط¯ط®ظ„ ط§ظ„ظƒظ„ظٹ",
+                                    "الدخل الكلي",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = TextGray
                                 )
@@ -1146,7 +1146,7 @@ fun AnalyticsScreen(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    "ط§ظ„ظ…طµط§ط±ظٹظپ",
+                                    "المصاريف",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = TextGray
                                 )

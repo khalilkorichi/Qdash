@@ -73,13 +73,13 @@ private fun parseColor(hex: String, primaryColor: Color): Color {
 }
 
 private fun accountTypeLabel(type: AccountType): String = when (type) {
-    AccountType.BARIDIMOB -> "ط¨ط±ظٹط¯ظٹ ظ…ظˆط¨"
+    AccountType.BARIDIMOB -> "بريدي موب"
     AccountType.CCP       -> "CCP"
-    AccountType.CASH      -> "ظ†ظ‚ط¯ظٹ"
-    AccountType.BANK      -> "ط¨ظ†ظƒ"
-    AccountType.SAVINGS   -> "طھظˆظپظٹط±"
-    AccountType.WALLET    -> "ظ…ط­ظپط¸ط©"
-    AccountType.OTHER     -> "ط£ط®ط±ظ‰"
+    AccountType.CASH      -> "نقدي"
+    AccountType.BANK      -> "بنك"
+    AccountType.SAVINGS   -> "توفير"
+    AccountType.WALLET    -> "محفظة"
+    AccountType.OTHER     -> "أخرى"
 }
 
 private fun accountTypeIcon(type: AccountType): androidx.compose.ui.graphics.vector.ImageVector = when (type) {
@@ -160,7 +160,7 @@ fun AccountsScreen(
             scope.launch {
                 snackbarHostState.showSnackbar(
                     message = msg,
-                    actionLabel = "ط­ط³ظ†ط§ظ‹",
+                    actionLabel = "حسناً",
                     duration = SnackbarDuration.Long
                 )
                 viewModel.clearDeleteError()
@@ -201,8 +201,8 @@ fun AccountsScreen(
         ) {
             item {
                 UnifiedScreenHeader(
-                    title = "ط§ظ„ط­ط³ط§ط¨ط§طھ ظˆط§ظ„ظ…ط­ظپط¸ط©",
-                    subtitle = "ط£ط¯ط± ط£ط±طµط¯طھظƒ ط§ظ„ظ…طµط±ظپظٹط© ظˆط§ظ„ظ†ظ‚ط¯ظٹط© ظپظٹ ظ…ظƒط§ظ† ظˆط§ط­ط¯",
+                    title = "الحسابات والمحفظة",
+                    subtitle = "أدر أرصدتك المصرفية والنقدية في مكان واحد",
                     showBackButton = true,
                     onBackClick = onBack
                 )
@@ -243,7 +243,7 @@ fun AccountsScreen(
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
                                                                             Text(
-                                                text = "ط§ظ„ط±طµظٹط¯ ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…طھظˆظپط±",
+                                                text = "الرصيد الإجمالي المتوفر",
                                                 style = MaterialTheme.typography.titleSmall,
                                                 color = Color.White.copy(alpha = 0.8f),
                                                 fontWeight = FontWeight.Medium
@@ -254,7 +254,7 @@ fun AccountsScreen(
                                             ) {
                                                 Icon(
                                                     imageVector = if (showTotalBalance) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                                    contentDescription = "ط¥ط®ظپط§ط،/ط¥ط¸ظ‡ط§ط±",
+                                                    contentDescription = "إخفاء/إظهار",
                                                     tint = Color.White.copy(alpha = 0.8f),
                                                     modifier = Modifier.size(14.dp)
                                                 )
@@ -262,7 +262,7 @@ fun AccountsScreen(
                                         }
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
-                                            text = if (showTotalBalance) "${"%,.0f".format(total)} ط¯ط¬" else "â€¢â€¢â€¢â€¢ ط¯ط¬",
+                                            text = if (showTotalBalance) "${"%,.0f".format(total)} دج" else "•••• دج",
                                             style = MaterialTheme.typography.displayMedium.copy(
                                                 fontSize = 28.sp,
                                                 fontWeight = FontWeight.Black
@@ -295,7 +295,7 @@ fun AccountsScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "${uiState.accounts.size} ط­ط³ط§ط¨ط§طھ ظ…ط§ظ„ظٹط© ظ†ط´ط·ط©",
+                                        text = "${uiState.accounts.size} حسابات مالية نشطة",
                                         style = MaterialTheme.typography.labelMedium,
                                         color = Color.White.copy(alpha = 0.9f),
                                         fontWeight = FontWeight.SemiBold
@@ -305,7 +305,7 @@ fun AccountsScreen(
                                         color = Color.White.copy(alpha = 0.2f)
                                     ) {
                                         Text(
-                                            text = "طھطھط¨ط¹ ظپظˆط±ظٹ",
+                                            text = "تتبع فوري",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = Color.White,
                                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
@@ -337,7 +337,7 @@ fun AccountsScreen(
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("ط­ط³ط§ط¨ ط¬ط¯ظٹط¯", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        Text("حساب جديد", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                     }
                     Button(
                         onClick = { showTransferDialog = true },
@@ -351,7 +351,7 @@ fun AccountsScreen(
                     ) {
                         Icon(Icons.Default.SwapHoriz, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("طھط­ظˆظٹظ„ ظ…ط§ظ„ظٹ", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        Text("تحويل مالي", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -360,7 +360,7 @@ fun AccountsScreen(
             item {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "ط­ط³ط§ط¨ط§طھظٹ ط§ظ„ظ†ط´ط·ط©",
+                    text = "حساباتي النشطة",
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Black
@@ -414,14 +414,14 @@ fun AccountsScreen(
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                "ظ„ط§ طھظˆط¬ط¯ ط­ط³ط§ط¨ط§طھ ط¨ط¹ط¯",
+                                "لا توجد حسابات بعد",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = TextGray,
                                 textAlign = TextAlign.Center
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                "ط§ط¶ط؛ط· ط¹ظ„ظ‰ \"ط­ط³ط§ط¨ ط¬ط¯ظٹط¯\" ظ„ط¥ط¶ط§ظپط© ط­ط³ط§ط¨ظƒ ط§ظ„ط£ظˆظ„",
+                                "اضغط على \"حساب جديد\" لإضافة حسابك الأول",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = TextGray.copy(alpha = 0.7f),
                                 textAlign = TextAlign.Center
@@ -457,7 +457,7 @@ fun AccountsScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    "طھط¹ط¯ظٹظ„ ط§ظ„ط­ط³ط§ط¨",
+                    "تعديل الحساب",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -471,7 +471,7 @@ fun AccountsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("edit_account_name_input"),
-                    label = { Text("ط§ط³ظ… ط§ظ„ط­ط³ط§ط¨") },
+                    label = { Text("اسم الحساب") },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Primary,
                         focusedLabelColor = Primary,
@@ -486,7 +486,7 @@ fun AccountsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("edit_account_balance_input"),
-                    label = { Text("ط§ظ„ط±طµظٹط¯ (ط¯ط¬)") },
+                    label = { Text("الرصيد (دج)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation(),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -499,7 +499,7 @@ fun AccountsScreen(
 
                 // Color picker
                 Text(
-                    "ظ„ظˆظ† ط§ظ„ط­ط³ط§ط¨:",
+                    "لون الحساب:",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold
@@ -549,7 +549,7 @@ fun AccountsScreen(
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = TextGray)
                     ) {
-                        Text("ط¥ظ„ط؛ط§ط،")
+                        Text("إلغاء")
                     }
                     Button(
                         onClick = {
@@ -570,7 +570,7 @@ fun AccountsScreen(
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Primary)
                     ) {
-                        Text("ط­ظپط¸ ط§ظ„طھط¹ط¯ظٹظ„ط§طھ", color = Color.White)
+                        Text("حفظ التعديلات", color = Color.White)
                     }
                 }
             }
@@ -580,14 +580,14 @@ fun AccountsScreen(
     accountToDelete?.let { acc ->
         AppDialog(
             onDismissRequest = { accountToDelete = null },
-            title = "ط­ط°ظپ ط§ظ„ط­ط³ط§ط¨",
-            text = "ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯ ظ…ظ† ط­ط°ظپ ط§ظ„ط­ط³ط§ط¨ \"${acc.name}\"طں ط³ظٹطھظ… ط­ط°ظپ ط§ظ„ط­ط³ط§ط¨ ظ†ظ‡ط§ط¦ظٹط§ظ‹ ط¥ط°ط§ ظ„ظ… طھظƒظ† ظ‡ظ†ط§ظƒ ظ…ط¹ط§ظ…ظ„ط§طھ ظ…ط±طھط¨ط·ط© ط¨ظ‡.",
-            confirmButtonText = "ظ†ط¹ظ…طŒ ط§ط­ط°ظپ",
+            title = "حذف الحساب",
+            text = "هل أنت متأكد من حذف الحساب \"${acc.name}\"؟ سيتم حذف الحساب نهائياً إذا لم تكن هناك معاملات مرتبطة به.",
+            confirmButtonText = "نعم، احذف",
             onConfirm = {
                 viewModel.deleteAccount(acc)
                 accountToDelete = null
             },
-            dismissButtonText = "ط¥ظ„ط؛ط§ط،",
+            dismissButtonText = "إلغاء",
             isDestructive = true,
             icon = {
                 Icon(Icons.Default.Warning, contentDescription = null, tint = ColorTokens.Danger, modifier = Modifier.size(20.dp))
@@ -600,7 +600,7 @@ fun AccountsScreen(
             onDismissRequest = { accountToEmpty = null },
             title = {
                 Text(
-                    "طھظپط±ظٹط؛ ط±طµظٹط¯ ط§ظ„ط­ط³ط§ط¨",
+                    "تفريغ رصيد الحساب",
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Right,
@@ -613,14 +613,14 @@ fun AccountsScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        "ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯ ظ…ظ† طھظپط±ظٹط؛ ط±طµظٹط¯ ط§ظ„ط­ط³ط§ط¨ \"${acc.name}\" ط¨ط§ظ„ظƒط§ظ…ظ„طں ط³ظٹطھظ… طھطµظپظٹط± ط§ظ„ط±طµظٹط¯ ظˆطھط¹ظٹظٹظ†ظ‡ ط¥ظ„ظ‰ 0 ط¯ط¬.",
+                        "هل أنت متأكد من تفريغ رصيد الحساب \"${acc.name}\" بالكامل؟ سيتم تصفير الرصيد وتعيينه إلى 0 دج.",
                         color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Right,
                         modifier = Modifier.fillMaxWidth()
                     )
                     if (countdownSeconds > 0) {
                         Text(
-                            "ظٹط±ط¬ظ‰ ط§ظ„ط§ظ†طھط¸ط§ط± ${countdownSeconds} ط«ظˆط§ظ†ظچ ظ„طھط£ظƒظٹط¯ ط§ظ„ط¹ظ…ظ„ظٹط©...",
+                            "يرجى الانتظار ${countdownSeconds} ثوانٍ لتأكيد العملية...",
                             color = ExpenseRed,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Right,
@@ -628,7 +628,7 @@ fun AccountsScreen(
                         )
                     } else {
                         Text(
-                            "ظٹظ…ظƒظ†ظƒ ط§ظ„ط¢ظ† طھط£ظƒظٹط¯ ط§ظ„ط¹ظ…ظ„ظٹط©.",
+                            "يمكنك الآن تأكيد العملية.",
                             color = IncomeGreen,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Right,
@@ -646,13 +646,13 @@ fun AccountsScreen(
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = ExpenseRed)
                     ) {
-                        Text("طھط£ظƒظٹط¯ طھظپط±ظٹط؛ ط§ظ„ط­ط³ط§ط¨", color = Color.White)
+                        Text("تأكيد تفريغ الحساب", color = Color.White)
                     }
                 }
             },
             dismissButton = {
                 TextButton(onClick = { accountToEmpty = null }) {
-                    Text("ط¥ظ„ط؛ط§ط،", color = MaterialTheme.colorScheme.primary)
+                    Text("إلغاء", color = MaterialTheme.colorScheme.primary)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface
@@ -679,7 +679,7 @@ fun AccountsScreen(
             onDismissRequest = { showTransferDialog = false },
             title = {
                 Text(
-                    "طھط­ظˆظٹظ„ ظ…ط§ظ„ظٹ ط¨ظٹظ† ط§ظ„ط­ط³ط§ط¨ط§طھ",
+                    "تحويل مالي بين الحسابات",
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Right,
@@ -688,7 +688,7 @@ fun AccountsScreen(
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("ط§ظ„ط­ط³ط§ط¨ ط§ظ„ظ…ط±ط³ظ„:", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Text("الحساب المرسل:", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         uiState.accounts.forEach { acc ->
                             val isSelected = currentFrom == acc.id
@@ -711,7 +711,7 @@ fun AccountsScreen(
                         }
                     }
 
-                    Text("ط§ظ„ط­ط³ط§ط¨ ط§ظ„ظ…ط³طھظ„ظ…:", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Text("الحساب المستلم:", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         uiState.accounts.forEach { acc ->
                             val isSelected = currentTo == acc.id
@@ -750,7 +750,7 @@ fun AccountsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("transfer_amount_input"),
-                        placeholder = { Text("ظ…ط¨ظ„ط؛ ط§ظ„طھط­ظˆظٹظ„ (ط¯ط¬)", color = TextGray) },
+                        placeholder = { Text("مبلغ التحويل (دج)", color = TextGray) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation(),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -766,19 +766,19 @@ fun AccountsScreen(
                     onClick = {
                         val amt = transferAmount.toDoubleOrNull() ?: 0.0
                         if (amt > 0) {
-                            viewModel.executeTransfer(currentFrom, currentTo, amt, "طھط­ظˆظٹظ„ ط¯ط§ط®ظ„ظٹ")
+                            viewModel.executeTransfer(currentFrom, currentTo, amt, "تحويل داخلي")
                             showTransferDialog = false
                             transferAmount = ""
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = TransferBlue)
                 ) {
-                    Text("طھظ†ظپظٹط° ط§ظ„طھط­ظˆظٹظ„", color = Color.White)
+                    Text("تنفيذ التحويل", color = Color.White)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showTransferDialog = false }) {
-                    Text("ط¥ظ„ط؛ط§ط،", color = MaterialTheme.colorScheme.primary)
+                    Text("إلغاء", color = MaterialTheme.colorScheme.primary)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface

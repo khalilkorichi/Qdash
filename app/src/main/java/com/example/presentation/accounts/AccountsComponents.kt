@@ -73,13 +73,13 @@ private fun parseColor(hex: String, primaryColor: Color): Color {
 }
 
 private fun accountTypeLabel(type: AccountType): String = when (type) {
-    AccountType.BARIDIMOB -> "ط¨ط±ظٹط¯ظٹ ظ…ظˆط¨"
+    AccountType.BARIDIMOB -> "بريدي موب"
     AccountType.CCP       -> "CCP"
-    AccountType.CASH      -> "ظ†ظ‚ط¯ظٹ"
-    AccountType.BANK      -> "ط¨ظ†ظƒ"
-    AccountType.SAVINGS   -> "طھظˆظپظٹط±"
-    AccountType.WALLET    -> "ظ…ط­ظپط¸ط©"
-    AccountType.OTHER     -> "ط£ط®ط±ظ‰"
+    AccountType.CASH      -> "نقدي"
+    AccountType.BANK      -> "بنك"
+    AccountType.SAVINGS   -> "توفير"
+    AccountType.WALLET    -> "محفظة"
+    AccountType.OTHER     -> "أخرى"
 }
 
 private fun accountTypeIcon(type: AccountType): androidx.compose.ui.graphics.vector.ImageVector = when (type) {
@@ -181,7 +181,7 @@ fun AccountItemCard(
                     if (account.type == AccountType.BARIDIMOB) {
                         androidx.compose.foundation.Image(
                             painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.ic_baridimob),
-                            contentDescription = "ط¨ط±ظٹط¯ظٹ ظ…ظˆط¨",
+                            contentDescription = "بريدي موب",
                             modifier = Modifier.size(36.dp)
                         )
                     } else {
@@ -211,7 +211,7 @@ fun AccountItemCard(
                         )
                         if (account.isDefault) {
                             Spacer(modifier = Modifier.width(6.dp))
-                            Icon(Icons.Default.Star, contentDescription = "ط§ظپطھط±ط§ط¶ظٹ", tint = SavingsAmber, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Star, contentDescription = "افتراضي", tint = SavingsAmber, modifier = Modifier.size(14.dp))
                         }
                     }
                     Spacer(modifier = Modifier.height(6.dp))
@@ -238,7 +238,7 @@ fun AccountItemCard(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(
-                                text = if (showBalance) FormatterUtils.formatCurrency(account.balance) else "â€¢â€¢â€¢â€¢ ط¯ط¬",
+                                text = if (showBalance) FormatterUtils.formatCurrency(account.balance) else "•••• دج",
                                 style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
                                 color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.ExtraBold
@@ -249,7 +249,7 @@ fun AccountItemCard(
                             ) {
                                 Icon(
                                     imageVector = if (showBalance) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                    contentDescription = "ط¥ط®ظپط§ط،/ط¥ط¸ظ‡ط§ط±",
+                                    contentDescription = "إخفاء/إظهار",
                                     tint = TextGray,
                                     modifier = Modifier.size(14.dp)
                                 )
@@ -272,7 +272,7 @@ fun AccountItemCard(
                     ) {
                         Icon(
                             Icons.Default.MoreVert,
-                            contentDescription = "ط®ظٹط§ط±ط§طھ",
+                            contentDescription = "خيارات",
                             tint = TextGray
                         )
                     }
@@ -289,7 +289,7 @@ fun AccountItemCard(
                                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
                                     Icon(Icons.Default.Edit, contentDescription = null, tint = Primary, modifier = Modifier.size(18.dp))
-                                    Text("طھط¹ط¯ظٹظ„", color = MaterialTheme.colorScheme.onSurface)
+                                    Text("تعديل", color = MaterialTheme.colorScheme.onSurface)
                                 }
                             },
                             onClick = {
@@ -304,7 +304,7 @@ fun AccountItemCard(
                                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
                                     Icon(Icons.Default.Inventory2, contentDescription = null, tint = TransferBlue, modifier = Modifier.size(18.dp))
-                                    Text("ط£ط±ط´ظپط©", color = MaterialTheme.colorScheme.onSurface)
+                                    Text("أرشفة", color = MaterialTheme.colorScheme.onSurface)
                                 }
                             },
                             onClick = {
@@ -320,7 +320,7 @@ fun AccountItemCard(
                                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
                                         Icon(Icons.Default.Star, contentDescription = null, tint = SavingsAmber, modifier = Modifier.size(18.dp))
-                                        Text("طھط¹ظٹظٹظ† ظƒط§ظپطھط±ط§ط¶ظٹ", color = MaterialTheme.colorScheme.onSurface)
+                                        Text("تعيين كافتراضي", color = MaterialTheme.colorScheme.onSurface)
                                     }
                                 },
                                 onClick = {
@@ -336,7 +336,7 @@ fun AccountItemCard(
                                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
                                     Icon(Icons.Default.RestartAlt, contentDescription = null, tint = ExpenseRed, modifier = Modifier.size(18.dp))
-                                    Text("طھظپط±ظٹط؛ ط§ظ„ط­ط³ط§ط¨", color = ExpenseRed)
+                                    Text("تفريغ الحساب", color = ExpenseRed)
                                 }
                             },
                             onClick = {
@@ -352,7 +352,7 @@ fun AccountItemCard(
                                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
                                     Icon(Icons.Default.Delete, contentDescription = null, tint = ExpenseRed, modifier = Modifier.size(18.dp))
-                                    Text("ط­ط°ظپ", color = ExpenseRed)
+                                    Text("حذف", color = ExpenseRed)
                                 }
                             },
                             onClick = {
@@ -385,7 +385,7 @@ fun AccountItemCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "ط§ظ„ط¹ظ…ظ„ظٹط§طھ ط§ظ„ط£ط®ظٹط±ط© ظ„ظ‡ط°ط§ ط§ظ„ط­ط³ط§ط¨",
+                            text = "العمليات الأخيرة لهذا الحساب",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = TextGray
@@ -395,7 +395,7 @@ fun AccountItemCard(
                             color = accentColor.copy(alpha = 0.1f)
                         ) {
                             Text(
-                                text = "${filteredTransactions.size} ط¹ظ…ظ„ظٹط§طھ",
+                                text = "${filteredTransactions.size} عمليات",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = accentColor,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
@@ -404,7 +404,7 @@ fun AccountItemCard(
                         }
                     }
 
-                    // Elegant Filter Row (ط§ظ„ظƒظ„ | ط§ظ„ظ…ط¯ط§ط®ظٹظ„ | ط§ظ„ظ…طµط§ط±ظٹظپ)
+                    // Elegant Filter Row (الكل | المداخيل | المصاريف)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -413,9 +413,9 @@ fun AccountItemCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         val filters = listOf(
-                            Triple("ALL", "ط§ظ„ظƒظ„", accentColor),
-                            Triple("INCOME", "ط§ظ„ظ…ط¯ط§ط®ظٹظ„", IncomeGreen),
-                            Triple("EXPENSE", "ط§ظ„ظ…طµط§ط±ظٹظپ", ExpenseRed)
+                            Triple("ALL", "الكل", accentColor),
+                            Triple("INCOME", "المداخيل", IncomeGreen),
+                            Triple("EXPENSE", "المصاريف", ExpenseRed)
                         )
                         
                         filters.forEach { (filterType, label, color) ->
@@ -461,9 +461,9 @@ fun AccountItemCard(
                     if (filteredTransactions.isEmpty()) {
                         Text(
                             text = when (selectedTxFilter) {
-                                "INCOME" -> "ظ„ط§ طھظˆط¬ط¯ ظ…ط¯ط§ط®ظٹظ„ ظ…ط³ط¬ظ„ط© ظ„ظ‡ط°ط§ ط§ظ„ط­ط³ط§ط¨ ط­ط§ظ„ظٹط§ظ‹."
-                                "EXPENSE" -> "ظ„ط§ طھظˆط¬ط¯ ظ…طµط§ط±ظٹظپ ظ…ط³ط¬ظ„ط© ظ„ظ‡ط°ط§ ط§ظ„ط­ط³ط§ط¨ ط­ط§ظ„ظٹط§ظ‹."
-                                else -> "ظ„ط§ طھظˆط¬ط¯ ط¹ظ…ظ„ظٹط§طھ ظ…ط³ط¬ظ„ط© ظ„ظ‡ط°ط§ ط§ظ„ط­ط³ط§ط¨ ط­ط§ظ„ظٹط§ظ‹."
+                                "INCOME" -> "لا توجد مداخيل مسجلة لهذا الحساب حالياً."
+                                "EXPENSE" -> "لا توجد مصاريف مسجلة لهذا الحساب حالياً."
+                                else -> "لا توجد عمليات مسجلة لهذا الحساب حالياً."
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = TextGray.copy(alpha = 0.8f),
@@ -519,7 +519,7 @@ fun AccountItemCard(
 
                                         Column {
                                             Text(
-                                                text = tx.note ?: cat?.name ?: "ط¹ظ…ظ„ظٹط© ظ…ط§ظ„ظٹط©",
+                                                text = tx.note ?: cat?.name ?: "عملية مالية",
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.onSurface,
@@ -577,19 +577,19 @@ fun AddAccountDialog(
     var accColor by remember { mutableStateOf("#6C63FF") }
 
     val accountTypes = listOf(
-        AccountType.BARIDIMOB to "ط¨ط±ظٹط¯ظٹ ظ…ظˆط¨",
+        AccountType.BARIDIMOB to "بريدي موب",
         AccountType.CCP       to "CCP",
-        AccountType.CASH      to "ظ†ظ‚ط¯ظٹ",
-        AccountType.BANK      to "ط¨ظ†ظƒ",
-        AccountType.SAVINGS   to "طھظˆظپظٹط±",
-        AccountType.WALLET    to "ظ…ط­ظپط¸ط©"
+        AccountType.CASH      to "نقدي",
+        AccountType.BANK      to "بنك",
+        AccountType.SAVINGS   to "توفير",
+        AccountType.WALLET    to "محفظة"
     )
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                "ط¥ط¶ط§ظپط© ط­ط³ط§ط¨ ظ…ط§ظ„ظٹ ط¬ط¯ظٹط¯",
+                "إضافة حساب مالي جديد",
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Right,
@@ -604,7 +604,7 @@ fun AddAccountDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("account_name_input"),
-                    placeholder = { Text("ط§ط³ظ… ط§ظ„ط­ط³ط§ط¨ (ظ…ط«ط§ظ„: ط¨ط±ظٹط¯ظٹ ظ…ظˆط¨ ط´ط®طµظٹ)", color = TextGray) },
+                    placeholder = { Text("اسم الحساب (مثال: بريدي موب شخصي)", color = TextGray) },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Primary,
                         focusedTextColor = MaterialTheme.colorScheme.onSurface,
@@ -618,7 +618,7 @@ fun AddAccountDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("account_balance_input"),
-                    placeholder = { Text("ط§ظ„ط±طµظٹط¯ ط§ظ„ط§ظپطھطھط§ط­ظٹ (ط¯ط¬)", color = TextGray) },
+                    placeholder = { Text("الرصيد الافتتاحي (دج)", color = TextGray) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation(),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -628,7 +628,7 @@ fun AddAccountDialog(
                     )
                 )
 
-                Text("ظ†ظˆط¹ ط§ظ„ط­ط³ط§ط¨:", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelLarge)
+                Text("نوع الحساب:", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelLarge)
 
                 // Type selector in 2 rows of 3
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -657,7 +657,7 @@ fun AddAccountDialog(
                     }
                 }
 
-                Text("ط§ظ„ظ„ظˆظ†:", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelLarge)
+                Text("اللون:", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelLarge)
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -703,12 +703,12 @@ fun AddAccountDialog(
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Primary)
             ) {
-                Text("ط­ظپط¸ ط§ظ„ط­ط³ط§ط¨", color = Color.White)
+                Text("حفظ الحساب", color = Color.White)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("ط¥ظ„ط؛ط§ط،", color = MaterialTheme.colorScheme.primary)
+                Text("إلغاء", color = MaterialTheme.colorScheme.primary)
             }
         },
         containerColor = MaterialTheme.colorScheme.surface

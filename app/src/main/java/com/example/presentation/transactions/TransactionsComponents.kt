@@ -128,11 +128,11 @@ fun FinancialActivityCalendar(
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     val monthsArabic = listOf(
-        "ظٹظ†ط§ظٹط±", "ظپط¨ط±ط§ظٹط±", "ظ…ط§ط±ط³", "ط£ط¨ط±ظٹظ„", "ظ…ط§ظٹ", "ظٹظˆظ†ظٹظˆ",
-        "ظٹظˆظ„ظٹظˆ", "ط£ط؛ط³ط·ط³", "ط³ط¨طھظ…ط¨ط±", "ط£ظƒطھظˆط¨ط±", "ظ†ظˆظپظ…ط¨ط±", "ط¯ظٹط³ظ…ط¨ط±"
+        "يناير", "فبراير", "مارس", "أبريل", "ماي", "يونيو",
+        "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
     )
     
-    val daysHeader = listOf("ط³", "ط­", "ظ†", "ط«", "ط±", "ط®", "ط¬")
+    val daysHeader = listOf("س", "ح", "ن", "ث", "ر", "خ", "ج")
     
     val calendar = remember(uiState.visibleYear, uiState.visibleMonth) {
         java.util.Calendar.getInstance().apply {
@@ -211,7 +211,7 @@ fun FinancialActivityCalendar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
-                        contentDescription = "ط§ظ„ط´ظ‡ط± ط§ظ„ط³ط§ط¨ظ‚",
+                        contentDescription = "الشهر السابق",
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -234,7 +234,7 @@ fun FinancialActivityCalendar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.ChevronLeft,
-                        contentDescription = "ط§ظ„ط´ظ‡ط± ط§ظ„طھط§ظ„ظٹ",
+                        contentDescription = "الشهر التالي",
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -552,7 +552,7 @@ fun FinancialActivityCalendar(
                                                             navController?.navigate(route)
                                                         },
                                                         onLongClick = {
-                                                            android.widget.Toast.makeText(context, "ط£ط¶ظپ ط¹ظ…ظ„ظٹط© ظپظٹ ظ‡ط°ط§ ط§ظ„ظٹظˆظ…", android.widget.Toast.LENGTH_SHORT).show()
+                                                            android.widget.Toast.makeText(context, "أضف عملية في هذا اليوم", android.widget.Toast.LENGTH_SHORT).show()
                                                         }
                                                     ),
                                                 contentAlignment = Alignment.Center
@@ -653,7 +653,7 @@ fun SwipeableTransactionRow(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Edit, contentDescription = "طھط¹ط¯ظٹظ„", tint = Color.White)
+                    Icon(Icons.Default.Edit, contentDescription = "تعديل", tint = Color.White)
                 }
 
                 // Delete action (Left in RTL - Red)
@@ -668,7 +668,7 @@ fun SwipeableTransactionRow(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Delete, contentDescription = "ط­ط°ظپ", tint = Color.White)
+                    Icon(Icons.Default.Delete, contentDescription = "حذف", tint = Color.White)
                 }
             }
         }
