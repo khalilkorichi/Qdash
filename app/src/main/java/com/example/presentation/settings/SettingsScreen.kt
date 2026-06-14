@@ -757,7 +757,7 @@ private fun GeneralTab(
                 title = "نسخة التطبيق",
                 subtitle = "قداشّ — الإصدار التجاري",
                 trailing = {
-                    Text("v1.0.0", style = MaterialTheme.typography.labelMedium, color = TextGray)
+                    Text("v${com.example.BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelMedium, color = TextGray)
                 }
             )
 
