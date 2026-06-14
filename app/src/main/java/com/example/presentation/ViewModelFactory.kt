@@ -183,7 +183,8 @@ class ViewModelFactory(
             modelClass.isAssignableFrom(com.example.presentation.update.UpdatesViewModel::class.java) -> {
                 com.example.presentation.update.UpdatesViewModel(
                     container.updateRepository,
-                    container.backupManager
+                    container.backupManager,
+                    context
                 ) as T
             }
             modelClass.isAssignableFrom(SalaryViewModel::class.java) -> {

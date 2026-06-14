@@ -2,6 +2,9 @@ package com.example.core.preferences
 
 import android.content.Context
 import android.content.SharedPreferences
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 /**
  * PreferencesManager wraps all SharedPreferences files used by the application,
@@ -9,9 +12,17 @@ import android.content.SharedPreferences
  * It also handles consolidation of duplicated keys (e.g. show_balance_total) and cross-file issues.
  */
 class PreferencesManager(context: Context) {
-    private val mainPrefs: SharedPreferences = context.applicationContext.getSharedPreferences("kdach_prefs", Context.MODE_PRIVATE)
-    private val dashboardPrefs: SharedPreferences = context.applicationContext.getSharedPreferences("fintrack_prefs", Context.MODE_PRIVATE)
-    private val searchPrefs: SharedPreferences = context.applicationContext.getSharedPreferences("fintrack_search_prefs", Context.MODE_PRIVATE)
+    private val safeContext = context.applicationContext ?: context
+    private val mainPrefs: SharedPreferences = safeContext.getSharedPreferences("kdach_prefs", Context.MODE_PRIVATE)
+    private val dashboardPrefs: SharedPreferences = safeContext.getSharedPreferences("fintrack_prefs", Context.MODE_PRIVATE)
+    private val searchPrefs: SharedPreferences = safeContext.getSharedPreferences("fintrack_search_prefs", Context.MODE_PRIVATE)
+
+    private val _dashboardConfigUpdates = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val dashboardConfigUpdates: SharedFlow<Unit> = _dashboardConfigUpdates.asSharedFlow()
+
+    fun notifyDashboardConfigChanged() {
+        _dashboardConfigUpdates.tryEmit(Unit)
+    }
 
     // A) kdach_prefs Keys
 
@@ -69,6 +80,7 @@ class PreferencesManager(context: Context) {
 
     fun setShowBalanceAcc(accountId: Long, visible: Boolean) {
         mainPrefs.edit().putBoolean("show_balance_acc_$accountId", visible).apply()
+        notifyDashboardConfigChanged()
     }
 
 
@@ -76,11 +88,17 @@ class PreferencesManager(context: Context) {
 
     var walletSetupReminderDismissed: Boolean
         get() = dashboardPrefs.getBoolean("wallet_setup_reminder_dismissed", false)
-        set(value) = dashboardPrefs.edit().putBoolean("wallet_setup_reminder_dismissed", value).apply()
+        set(value) {
+            dashboardPrefs.edit().putBoolean("wallet_setup_reminder_dismissed", value).apply()
+            notifyDashboardConfigChanged()
+        }
 
     var dashboardSectionsOrder: String
         get() = dashboardPrefs.getString("dashboard_sections_order", "split_cards,context_templates,templates,quick_actions,accounts,chart,budget,subscriptions,recent_transactions") ?: "split_cards,context_templates,templates,quick_actions,accounts,chart,budget,subscriptions,recent_transactions"
-        set(value) = dashboardPrefs.edit().putString("dashboard_sections_order", value).apply()
+        set(value) {
+            dashboardPrefs.edit().putString("dashboard_sections_order", value).apply()
+            notifyDashboardConfigChanged()
+        }
 
     fun isSectionVisible(section: String): Boolean {
         return dashboardPrefs.getBoolean("dashboard_show_$section", true)
@@ -88,6 +106,7 @@ class PreferencesManager(context: Context) {
 
     fun setSectionVisible(section: String, visible: Boolean) {
         dashboardPrefs.edit().putBoolean("dashboard_show_$section", visible).apply()
+        notifyDashboardConfigChanged()
     }
 
     var smartCategorySortEnabled: Boolean
@@ -121,6 +140,7 @@ class PreferencesManager(context: Context) {
             if (dashboardPrefs.contains("show_balance_total")) {
                 dashboardPrefs.edit().remove("show_balance_total").apply()
             }
+            notifyDashboardConfigChanged()
         }
 
     // E) Consolidating wallet_setup_skipped to mainPrefs (kdach_prefs)
@@ -142,5 +162,6 @@ class PreferencesManager(context: Context) {
             if (dashboardPrefs.contains("wallet_setup_skipped")) {
                 dashboardPrefs.edit().remove("wallet_setup_skipped").apply()
             }
+            notifyDashboardConfigChanged()
         }
 }

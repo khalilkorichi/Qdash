@@ -743,7 +743,7 @@ fun HomeScreen(
                                         )
                                     }
                                 } else {
-                                    items(uiState.recentTransactions.take(5), key = { it.id }) { tx ->
+                                    items(uiState.recentTransactions.take(4), key = { it.id }) { tx ->
                                         val cat = uiState.categories.firstOrNull { it.id == tx.categoryId }
                                         val accName = uiState.accounts
                                             .firstOrNull { it.id == tx.accountId }?.name ?: "غير معروف"

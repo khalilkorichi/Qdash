@@ -59,7 +59,29 @@ fun UpdatesScreen(
     }
 
     Scaffold(
-        topBar = { FinTrackTopBar(title = "تحديثات التطبيق", showBackButton = true, onBackClick = onBack) },
+        topBar = {
+            FinTrackTopBar(
+                title = "تحديثات التطبيق",
+                showBackButton = true,
+                onBackClick = onBack,
+                actions = {
+                    val state = uiState
+                    if (state !is UpdateUiState.Checking &&
+                        state !is UpdateUiState.Downloading &&
+                        state !is UpdateUiState.Paused &&
+                        state !is UpdateUiState.BackupInProgress &&
+                        state !is UpdateUiState.BackupSuccess) {
+                        IconButton(onClick = { viewModel.checkForUpdates() }) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "إعادة الفحص",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+            )
+        },
         containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize()
     ) { paddingValues ->
@@ -179,6 +201,57 @@ fun UpdatesScreen(
                                         .clip(CircleShape),
                                     color = MaterialTheme.colorScheme.primary
                                 )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            OutlinedButton(
+                                onClick = { viewModel.pauseDownload(state.info) },
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                            ) {
+                                Icon(Icons.Default.Pause, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("إيقاف مؤقت", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+                is UpdateUiState.Paused -> {
+                    UpdateCard(info = state.info)
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("تم إيقاف التحميل مؤقتاً", fontWeight = FontWeight.Bold)
+                                Text("${state.progress}%", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            }
+                            LinearProgressIndicator(
+                                progress = { state.progress / 100f },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp)
+                                    .clip(CircleShape),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Button(
+                                onClick = { viewModel.resumeDownload(state.info) },
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.PlayArrow, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("استئناف التحميل", fontWeight = FontWeight.Bold)
                             }
                         }
                     }

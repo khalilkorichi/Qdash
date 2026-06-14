@@ -23,6 +23,12 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -338,6 +344,10 @@ fun SettingsScreen(
         var visibleMap by remember {
             mutableStateOf(uiState.dashboardSectionsVisibility.toMutableMap())
         }
+        var draggedIndex by remember { mutableStateOf<Int?>(null) }
+        var dragOffsetY by remember { mutableStateOf(0f) }
+        val density = LocalDensity.current
+        val itemHeightPx = with(density) { 70.dp.toPx() }
 
         AlertDialog(
             onDismissRequest = { showDashboardCustomizationDialog = false },
@@ -360,7 +370,7 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        "استخدم الأزرار لتغيير الترتيب، والمفاتيح لإظهار أو إخفاء أي قسم.",
+                        "استخدم مقبض السحب (☰) لترتيب العناصر بالسحب والإفلات، أو الأسهم، والمفاتيح لإظهار/إخفاء أي قسم.",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextGray,
                         textAlign = TextAlign.Right,
@@ -382,12 +392,27 @@ fun SettingsScreen(
                             else -> section
                         }
 
+                        val isDragging = draggedIndex == index
+                        val offsetY = if (isDragging) dragOffsetY else 0f
+
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .offset { IntOffset(0, offsetY.roundToInt()) }
+                                .zIndex(if (isDragging) 10f else 1f),
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                containerColor = if (isDragging) 
+                                    MaterialTheme.colorScheme.surfaceVariant 
+                                else 
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                             ),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                            border = BorderStroke(
+                                1.dp, 
+                                if (isDragging) 
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                else 
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                            )
                         ) {
                             Row(
                                 modifier = Modifier
@@ -400,6 +425,50 @@ fun SettingsScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Menu,
+                                        contentDescription = "سحب للترتيب",
+                                        tint = if (isDragging) Primary else TextGray.copy(alpha = 0.6f),
+                                        modifier = Modifier
+                                            .padding(end = 4.dp)
+                                            .size(24.dp)
+                                            .pointerInput(index) {
+                                                detectDragGestures(
+                                                    onDragStart = {
+                                                        draggedIndex = index
+                                                        dragOffsetY = 0f
+                                                    },
+                                                    onDrag = { change, dragAmount ->
+                                                        change.consume()
+                                                        dragOffsetY += dragAmount.y
+                                                        
+                                                        val targetIndex = draggedIndex
+                                                        if (targetIndex != null) {
+                                                            val offsetIndexDiff = (dragOffsetY / itemHeightPx).roundToInt()
+                                                            val newIndex = (targetIndex + offsetIndexDiff).coerceIn(0, sectionsOrder.size - 1)
+                                                            if (newIndex != targetIndex) {
+                                                                val newList = sectionsOrder.toMutableList()
+                                                                val temp = newList[targetIndex]
+                                                                newList[targetIndex] = newList[newIndex]
+                                                                newList[newIndex] = temp
+                                                                sectionsOrder = newList
+                                                                draggedIndex = newIndex
+                                                                dragOffsetY -= offsetIndexDiff * itemHeightPx
+                                                            }
+                                                        }
+                                                    },
+                                                    onDragEnd = {
+                                                        draggedIndex = null
+                                                        dragOffsetY = 0f
+                                                    },
+                                                    onDragCancel = {
+                                                        draggedIndex = null
+                                                        dragOffsetY = 0f
+                                                    }
+                                                )
+                                            }
+                                    )
+
                                     IconButton(
                                         onClick = {
                                             if (index > 0) {

@@ -26,7 +26,7 @@ sealed class DownloadState {
 
 interface UpdateRepository {
     suspend fun checkForUpdates(): Result<UpdateInfo>
-    fun downloadApk(url: String): Flow<DownloadState>
+    fun downloadApk(url: String, startBytes: Long = 0L): Flow<DownloadState>
     fun verifyApkSha256(file: File, expectedSha256: String): Boolean
     suspend fun copyApkToDownloads(file: File, filename: String): Uri?
     suspend fun backupDataBeforeUpdate(backupManager: BackupManager): Result<Uri>

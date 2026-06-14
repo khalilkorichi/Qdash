@@ -54,6 +54,9 @@ class HomeViewModel(
 
     private val _chartPeriod = MutableStateFlow("WEEK")
 
+    private val dashboardConfigChangedTrigger = preferencesManager.dashboardConfigUpdates
+        .onStart { emit(Unit) }
+
     private val dashboardFlow = combine(
         accountRepository.getAllAccounts(),
         _chartPeriod.flatMapLatest { period ->
@@ -68,11 +71,12 @@ class HomeViewModel(
             val startDate = minOf(startOfPreviousMonth, calculateStartDateForPeriod(period))
             transactionRepository.getTransactionsByDateRange(startDate, Long.MAX_VALUE)
         },
-        transactionRepository.getRecentTransactions(10),
+        transactionRepository.getRecentTransactions(4),
         categoryRepository.getAllCategories(),
         subscriptionRepository.getAllSubscriptions(),
         templateRepository.getPinnedTemplates(),
-        _chartPeriod
+        _chartPeriod,
+        dashboardConfigChangedTrigger
     ) { array ->
         val accounts = array[0] as List<Account>
         val transactions = array[1] as List<Transaction>

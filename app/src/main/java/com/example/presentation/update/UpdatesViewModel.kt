@@ -24,6 +24,7 @@ sealed class UpdateUiState {
     data class NoUpdate(val localVersion: String) : UpdateUiState()
     data class UpdateAvailable(val info: UpdateInfo) : UpdateUiState()
     data class Downloading(val info: UpdateInfo, val progress: Int) : UpdateUiState()
+    data class Paused(val info: UpdateInfo, val progress: Int) : UpdateUiState()
     data class DownloadFailed(val info: UpdateInfo, val error: String) : UpdateUiState()
     data class ReadyToInstall(val info: UpdateInfo, val localApkFile: File) : UpdateUiState()
     data class BackupInProgress(val info: UpdateInfo, val localApkFile: File) : UpdateUiState()
@@ -40,7 +41,8 @@ enum class FallbackStep {
 
 class UpdatesViewModel(
     private val repository: UpdateRepository,
-    private val backupManager: BackupManager
+    private val backupManager: BackupManager,
+    private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<UpdateUiState>(UpdateUiState.Idle)
@@ -49,6 +51,8 @@ class UpdatesViewModel(
     private var wasInstallationTriggered = false
     private var lastTriggeredApkFile: File? = null
     private var lastUpdateInfo: UpdateInfo? = null
+    private var downloadJob: kotlinx.coroutines.Job? = null
+    private var currentProgress = 0
 
     init {
         checkForUpdates()
@@ -73,14 +77,27 @@ class UpdatesViewModel(
     }
 
     fun downloadUpdate(info: UpdateInfo) {
-        viewModelScope.launch {
-            repository.downloadApk(info.apkUrl).collect { downloadState ->
+        val startBytes = if (_uiState.value is UpdateUiState.Paused) {
+            File(context.cacheDir, "Qdash-update-temp.apk").let { if (it.exists()) it.length() else 0L }
+        } else {
+            File(context.cacheDir, "Qdash-update-temp.apk").let { if (it.exists()) it.delete() }
+            0L
+        }
+
+        downloadJob?.cancel()
+        downloadJob = viewModelScope.launch {
+            repository.downloadApk(info.apkUrl, startBytes).collect { downloadState ->
                 when (downloadState) {
                     is DownloadState.Idle -> {
-                        _uiState.value = UpdateUiState.Downloading(info, 0)
+                        if (_uiState.value !is UpdateUiState.Downloading) {
+                            val initialPercent = if (info.apkSize > 0) (startBytes * 100 / info.apkSize).toInt().coerceIn(0, 100) else 0
+                            _uiState.value = UpdateUiState.Downloading(info, initialPercent)
+                        }
                     }
                     is DownloadState.Progress -> {
-                        _uiState.value = UpdateUiState.Downloading(info, downloadState.percentage)
+                        val percentage = if (downloadState.percentage >= 0) downloadState.percentage else currentProgress
+                        currentProgress = percentage
+                        _uiState.value = UpdateUiState.Downloading(info, percentage)
                     }
                     is DownloadState.Success -> {
                         // Checksum validation
@@ -102,6 +119,15 @@ class UpdatesViewModel(
                 }
             }
         }
+    }
+
+    fun pauseDownload(info: UpdateInfo) {
+        downloadJob?.cancel()
+        _uiState.value = UpdateUiState.Paused(info, currentProgress)
+    }
+
+    fun resumeDownload(info: UpdateInfo) {
+        downloadUpdate(info)
     }
 
     fun triggerSafetyBackupAndInstall(context: Context, info: UpdateInfo, file: File) {

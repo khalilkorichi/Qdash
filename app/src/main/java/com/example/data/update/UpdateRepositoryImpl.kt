@@ -139,20 +139,31 @@ class UpdateRepositoryImpl(
         }
     }
 
-    override fun downloadApk(url: String): Flow<DownloadState> = flow {
-        emit(DownloadState.Progress(0))
+    override fun downloadApk(url: String, startBytes: Long): Flow<DownloadState> = flow {
+        emit(DownloadState.Progress(if (startBytes > 0L) -2 else 0))
         try {
-            val request = Request.Builder().url(url).build()
+            val requestBuilder = Request.Builder().url(url)
+            if (startBytes > 0L) {
+                requestBuilder.addHeader("Range", "bytes=$startBytes-")
+            }
+            val request = requestBuilder.build()
             val response = downloadHttpClient.newCall(request).execute()
             if (!response.isSuccessful) {
                 throw java.io.IOException("فشل تحميل الملف: ${response.message}")
             }
             val body = response.body ?: throw java.io.IOException("محتوى الملف فارغ.")
-            val contentLength = body.contentLength()
+            val remainingLength = body.contentLength()
+            val totalLength = if (startBytes > 0L && (response.code == 206 || response.code == 200)) {
+                if (response.code == 206) remainingLength + startBytes else remainingLength
+            } else {
+                remainingLength
+            }
+            
             val tempFile = File(context.cacheDir, "Qdash-update-temp.apk")
+            val isAppend = startBytes > 0L && response.code == 206
             
             body.byteStream().use { input ->
-                FileOutputStream(tempFile).use { output ->
+                FileOutputStream(tempFile, isAppend).use { output ->
                     val buffer = ByteArray(8192)
                     var bytesRead: Int
                     var totalBytesRead = 0L
@@ -161,8 +172,9 @@ class UpdateRepositoryImpl(
                     while (input.read(buffer).also { bytesRead = it } != -1) {
                         output.write(buffer, 0, bytesRead)
                         totalBytesRead += bytesRead
-                        if (contentLength > 0) {
-                            val progress = ((totalBytesRead * 100) / contentLength).toInt()
+                        val currentTotalRead = totalBytesRead + (if (isAppend) startBytes else 0L)
+                        if (totalLength > 0) {
+                            val progress = ((currentTotalRead * 100) / totalLength).toInt()
                             if (progress > lastEmittedProgress) {
                                 emit(DownloadState.Progress(progress))
                                 lastEmittedProgress = progress

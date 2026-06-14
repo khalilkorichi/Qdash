@@ -1,11 +1,11 @@
 {
-  "versionCode": 3,
-  "versionName": "1.0.0.03",
-  "updateIdentity": 103,
-  "publishedAt": "2026-06-14T17:55:00Z",
+  "versionCode": 5,
+  "versionName": "1.0.0.05",
+  "updateIdentity": 105,
+  "publishedAt": "2026-06-14T17:45:00Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 23515203,
-  "apkSha256": "f84b7ec9dff78fe208542e8c8002a5e4f1802f359bbad68428589685d8c8ec28",
+  "apkSize": 23553390,
+  "apkSha256": "d546ba6f56b820ceee0542430e0e72296810f9cdd39dfa2ea743b00cbe2d2c36",
   "mandatory": false,
-  "releaseNotes": "تحديث الإصدار إلى v1.0.0.03: تحسين انسيابية حركة الانتقال بين الصفحات لحل مشكلة الـ Lag، وتعديل أزرار أقسام الإعدادات لتظهر بتصميم عائم واحترافي بدون ظلال، وتحسين سرعة تشغيل وإقلاع التطبيق عبر تهيئة تفضيلات النظام استباقياً في الخلفية."
+  "releaseNotes": "تحديث الإصدار إلى v1.0.0.05: معالجة مشكلة وميض صناديق الحوار عبر التهيئة المحلية المباشرة لاتجاه النصوص، وإتاحة إعادة ترتيب أقسام الصفحة الرئيسية فورياً وبطريقة السحب والإفلات، مع تحسين سرعة تحميل الواجهة بتحديد حد أقصى للعمليات الأخيرة."
 }

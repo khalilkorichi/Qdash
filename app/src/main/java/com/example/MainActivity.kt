@@ -11,6 +11,17 @@ import com.example.presentation.app.FinTrackApp
 import com.example.presentation.navigation.Screen
 
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        val container = (newBase.applicationContext as? FinTrackApp)?.container
+        val prefs = container?.preferencesManager ?: com.example.core.preferences.PreferencesManager(newBase)
+        val locale = java.util.Locale(prefs.appLanguage)
+        java.util.Locale.setDefault(locale)
+        val config = newBase.resources.configuration
+        config.setLocale(locale)
+        config.setLayoutDirection(locale)
+        super.attachBaseContext(newBase.createConfigurationContext(config))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
