@@ -1,11 +1,11 @@
 {
-  "versionCode": 6,
-  "versionName": "10.0.06",
-  "updateIdentity": 106,
-  "publishedAt": "2026-06-15T00:45:00Z",
+  "versionCode": 7,
+  "versionName": "10.0.07",
+  "updateIdentity": 107,
+  "publishedAt": "2026-06-15T01:00:00Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
   "apkSize": 23312332,
-  "apkSha256": "732bfd4a0ef4f5aae8c5643445f286c5102bfc211289d7f6accd3a63a089e5c1",
+  "apkSha256": "196a078541c9a9d88bb7404d432cf33eca7ef5496721f03b841570b159b1425a",
   "mandatory": false,
-  "releaseNotes": "تحديث الإصدار إلى v10.0.06: إضافة خيار استعادة الترتيب الافتراضي لأقسام الصفحة الرئيسية، ودعم التبديل بين الأرقام الغربية والشرقية في كامل التطبيق، مع تسريع تحميل الواجهة وإظهار هياكل التحميل فوراً."
+  "releaseNotes": "تحديث الإصدار إلى v10.0.07: إضافة تدرج شفاف أسفل آخر معاملة في الصفحة الرئيسية مع زر للاستعراض الكامل، وتفعيل نظام الإشعار التلقائي عند توفر تحديث جديد للتطبيق."
 }

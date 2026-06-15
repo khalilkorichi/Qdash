@@ -6,6 +6,10 @@ import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.example.presentation.ViewModelFactory
 import com.example.presentation.app.FinTrackApp
 import com.example.presentation.navigation.Screen
@@ -44,6 +48,28 @@ class MainActivity : ComponentActivity() {
         // Initialize formatting prefs once at startup
         com.example.core.utils.FormatterUtils.hideDecimals = prefs.hideDecimalsEnabled
         com.example.core.utils.FormatterUtils.useWesternNumerals = prefs.useWesternNumerals
+
+        // Automatic update checking on application cold start
+        val updateRepository = container.updateRepository
+        val notificationRepository = container.notificationRepository
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                delay(3000) // 3-second delay to let the app finish drawing the home screen
+                updateRepository.checkForUpdates().onSuccess { updateInfo ->
+                    if (updateInfo.hasUpdate && prefs.lastNotifiedUpdateVersion != updateInfo.versionName) {
+                        prefs.lastNotifiedUpdateVersion = updateInfo.versionName
+                        val notification = com.example.domain.model.AppNotification(
+                            title = "تحديث جديد متوفر! 🎉",
+                            message = "إصدار جديد من التطبيق (${updateInfo.versionName}) متوفر الآن للتحميل.",
+                            type = com.example.domain.model.NotificationType.TIP
+                        )
+                        notificationRepository.insertNotification(notification)
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
 
         setContent {
             FinTrackApp(

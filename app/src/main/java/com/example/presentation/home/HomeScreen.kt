@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -743,19 +744,87 @@ fun HomeScreen(
                                         )
                                     }
                                 } else {
-                                    items(uiState.recentTransactions.take(4), key = { it.id }) { tx ->
+                                    val displayedTxs = uiState.recentTransactions.take(4)
+                                    itemsIndexed(displayedTxs, key = { _, tx -> tx.id }) { index, tx ->
                                         val cat = uiState.categories.firstOrNull { it.id == tx.categoryId }
                                         val accName = uiState.accounts
                                             .firstOrNull { it.id == tx.accountId }?.name ?: "غير معروف"
-                                        TransactionItem(
-                                            transaction = tx,
-                                            category = cat,
-                                            accountName = accName,
+                                        val isLast = index == displayedTxs.lastIndex
+
+                                        if (isLast) {
+                                            Box(modifier = Modifier.fillMaxWidth()) {
+                                                TransactionItem(
+                                                    transaction = tx,
+                                                    category = cat,
+                                                    accountName = accName,
+                                                    onClick = onViewAllTransactionsClick,
+                                                    modifier = Modifier
+                                                        .padding(horizontal = 16.dp)
+                                                        .padding(bottom = 8.dp)
+                                                )
+                                                Box(
+                                                    modifier = Modifier
+                                                        .matchParentSize()
+                                                        .padding(horizontal = 16.dp)
+                                                        .padding(bottom = 8.dp)
+                                                        .clip(RoundedCornerShape(16.dp))
+                                                        .background(
+                                                            Brush.verticalGradient(
+                                                                colors = listOf(
+                                                                    Color.Transparent,
+                                                                    MaterialTheme.colorScheme.background.copy(alpha = 0.3f),
+                                                                    MaterialTheme.colorScheme.background.copy(alpha = 0.8f),
+                                                                    MaterialTheme.colorScheme.background
+                                                                )
+                                                            )
+                                                        )
+                                                        .clickable { onViewAllTransactionsClick() }
+                                                )
+                                            }
+                                        } else {
+                                            TransactionItem(
+                                                transaction = tx,
+                                                category = cat,
+                                                accountName = accName,
+                                                onClick = onViewAllTransactionsClick,
+                                                modifier = Modifier
+                                                    .padding(horizontal = 16.dp)
+                                                    .padding(bottom = 8.dp)
+                                            )
+                                        }
+                                    }
+
+                                    item {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        OutlinedButton(
                                             onClick = onViewAllTransactionsClick,
                                             modifier = Modifier
+                                                .fillMaxWidth()
                                                 .padding(horizontal = 16.dp)
-                                                .padding(bottom = 8.dp)
-                                        )
+                                                .padding(bottom = 16.dp),
+                                            shape = RoundedCornerShape(12.dp),
+                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.Center,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "عرض السجل الكامل للمعاملات",
+                                                    style = MaterialTheme.typography.labelLarge,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = Primary
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Icon(
+                                                    imageVector = Icons.Default.KeyboardArrowLeft,
+                                                    contentDescription = null,
+                                                    tint = Primary,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
