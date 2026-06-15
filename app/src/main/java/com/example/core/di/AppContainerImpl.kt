@@ -27,6 +27,7 @@ class AppContainerImpl(private val context: Context) : AppContainer {
             "kdach_database"
         )
         .addMigrations(*ALL_MIGRATIONS)
+        .fallbackToDestructiveMigration()
         .addCallback(object : androidx.room.RoomDatabase.Callback() {
             override fun onOpen(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 super.onOpen(db)
@@ -276,6 +277,10 @@ class AppContainerImpl(private val context: Context) : AppContainer {
 
     override val backupRepository: com.example.domain.repository.BackupRepository by lazy {
         BackupRepositoryImpl(database)
+    }
+
+    override val postalProfileRepository: com.example.domain.repository.PostalProfileRepository by lazy {
+        PostalProfileRepositoryImpl(database.postalProfileDao())
     }
 
     init {

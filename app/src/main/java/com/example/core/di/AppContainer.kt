@@ -39,6 +39,7 @@ interface AppContainer {
     val notificationRepository: NotificationRepository
     val financialPlanRepository: FinancialPlanRepository
     val aiRepository: AiRepository
+    val postalProfileRepository: PostalProfileRepository
 
 
     // Savings Use Cases

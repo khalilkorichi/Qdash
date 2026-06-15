@@ -22,6 +22,7 @@ import com.example.presentation.plans.FinancialPlansViewModel
 import com.example.presentation.backup.BackupViewModel
 import com.example.presentation.templates.TemplatesViewModel
 import com.example.presentation.ai.AiChatViewModel
+import com.example.presentation.simulator.DocumentSimulatorViewModel
 import com.example.data.backup.BackupManager
 
 class ViewModelFactory(
@@ -198,6 +199,11 @@ class ViewModelFactory(
                 com.example.presentation.onboarding.OnboardingViewModel(
                     container.accountRepository,
                     container.preferencesManager
+                ) as T
+            }
+            modelClass.isAssignableFrom(DocumentSimulatorViewModel::class.java) -> {
+                DocumentSimulatorViewModel(
+                    container.postalProfileRepository
                 ) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

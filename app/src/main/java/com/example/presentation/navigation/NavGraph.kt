@@ -45,6 +45,12 @@ import com.example.presentation.plans.FinancialPlansViewModel
 import com.example.presentation.templates.TemplatesViewModel
 import com.example.presentation.templates.TemplatesScreen
 import com.example.presentation.templates.CreateEditTemplateScreen
+import com.example.presentation.simulator.DocumentSimulatorEntryScreen
+import com.example.presentation.simulator.DocumentSimulatorScreen
+import com.example.presentation.simulator.PostalProfilesScreen
+import com.example.presentation.simulator.CreateEditPostalProfileScreen
+import com.example.presentation.simulator.DocumentSimulatorViewModel
+import com.example.presentation.simulator.DocumentType
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -173,6 +179,9 @@ internal fun FinTrackNavGraph(
                 },
                 onSearchClick = {
                     navController.navigate(Screen.Search.route)
+                },
+                onDocumentSimulatorClick = {
+                    navController.navigate(Screen.DocumentSimulatorEntry.route)
                 }
             )
         }
@@ -435,6 +444,62 @@ internal fun FinTrackNavGraph(
                 viewModel(factory = factory)
             com.example.presentation.update.UpdatesScreen(
                 viewModel = updatesViewModel,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.DocumentSimulatorEntry.route) {
+            val simulatorViewModel: DocumentSimulatorViewModel = viewModel(factory = factory)
+            DocumentSimulatorEntryScreen(
+                onSelectDocType = { docType ->
+                    simulatorViewModel.selectDocumentType(docType)
+                    navController.navigate(Screen.DocumentSimulator.route)
+                },
+                onManageProfiles = {
+                    navController.navigate(Screen.PostalProfiles.route)
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.DocumentSimulator.route) {
+            val simulatorViewModel: DocumentSimulatorViewModel = viewModel(factory = factory)
+            DocumentSimulatorScreen(
+                viewModel = simulatorViewModel,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.PostalProfiles.route) {
+            val simulatorViewModel: DocumentSimulatorViewModel = viewModel(factory = factory)
+            PostalProfilesScreen(
+                viewModel = simulatorViewModel,
+                onAddProfile = {
+                    navController.navigate(Screen.CreateEditPostalProfile.createRoute())
+                },
+                onEditProfile = { id ->
+                    navController.navigate(Screen.CreateEditPostalProfile.createRoute(id))
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.CreateEditPostalProfile.route,
+            arguments = listOf(
+                androidx.navigation.navArgument("profileId") {
+                    type = androidx.navigation.NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val profileIdStr = backStackEntry.arguments?.getString("profileId")
+            val profileId = profileIdStr?.toLongOrNull()
+            val simulatorViewModel: DocumentSimulatorViewModel = viewModel(factory = factory)
+            CreateEditPostalProfileScreen(
+                viewModel = simulatorViewModel,
+                profileId = profileId,
                 onBack = { navController.popBackStack() }
             )
         }

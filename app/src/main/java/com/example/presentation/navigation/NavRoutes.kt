@@ -67,6 +67,14 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
 
     // AI Chat Screen
     object AiChat : Screen("ai_chat", "المساعد الذكي قداشّ", Icons.Default.Android)
+
+    // Document Simulator Features
+    object DocumentSimulatorEntry : Screen("document_simulator_entry", "المساعد البريدي المالي", Icons.Default.Description)
+    object DocumentSimulator : Screen("document_simulator", "محاكي الوثائق البريدية")
+    object PostalProfiles : Screen("postal_profiles", "ملفات الحسابات البريدية", Icons.Default.People)
+    object CreateEditPostalProfile : Screen("create_edit_postal_profile?profileId={profileId}", "ملف حساب بريدي") {
+        fun createRoute(profileId: Long? = null) = "create_edit_postal_profile" + if (profileId != null) "?profileId=$profileId" else ""
+    }
 }
 
 val mainBottomNavScreens = listOf(

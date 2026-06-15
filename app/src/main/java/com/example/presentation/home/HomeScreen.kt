@@ -44,6 +44,7 @@ import com.example.domain.model.Transaction
 import com.example.domain.model.AccountType
 import com.example.domain.model.TransactionType
 import com.example.ui.theme.*
+import com.example.presentation.navigation.Screen
 import com.example.presentation.components.radialmenu.AddActionFabContainer
 import com.example.ui.designsystem.components.*
 import com.example.ui.designsystem.tokens.*
@@ -69,6 +70,7 @@ fun HomeScreen(
     onAddDebtClick: () -> Unit = {},
     onNotificationClick: () -> Unit = {},
     onSearchClick: () -> Unit = {},
+    onDocumentSimulatorClick: () -> Unit = {},
     unreadCount: Int = 0,
     modifier: Modifier = Modifier
 ) {
@@ -389,6 +391,32 @@ fun HomeScreen(
                                                 ),
                                                 iconColor = ExpenseRed,
                                                 onClick = onSubscriptionsClick
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            QuickActionTile(
+                                                modifier = Modifier.weight(1f),
+                                                icon = Icons.Default.Description,
+                                                label = "المساعد البريدي",
+                                                iconBg = Brush.linearGradient(
+                                                    listOf(IncomeGreen.copy(alpha = 0.25f), IncomeGreen.copy(alpha = 0.08f))
+                                                ),
+                                                iconColor = IncomeGreen,
+                                                onClick = onDocumentSimulatorClick
+                                            )
+                                            QuickActionTile(
+                                                modifier = Modifier.weight(1f),
+                                                icon = Icons.Default.Android,
+                                                label = "المساعد الذكي AI",
+                                                iconBg = Brush.linearGradient(
+                                                    listOf(Primary.copy(alpha = 0.25f), Primary.copy(alpha = 0.08f))
+                                                ),
+                                                iconColor = Primary,
+                                                onClick = { navController?.navigate(Screen.AiChat.route) }
                                             )
                                         }
                                     }

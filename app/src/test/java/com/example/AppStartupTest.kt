@@ -50,7 +50,8 @@ class AppStartupTest {
             container.categoryRepository,
             container.subscriptionRepository,
             container.incomeRepository,
-            container.transactionTemplateRepository
+            container.transactionTemplateRepository,
+            container.preferencesManager
         )
         assertNotNull(homeViewModel)
 
@@ -61,15 +62,17 @@ class AppStartupTest {
             container.incomeRepository,
             container.getCategorySuggestionUseCase,
             container.learnCategoryMappingUseCase,
-            container.database,
-            container.transactionTemplateRepository
+            container.budgetGoalRepository,
+            container.transactionTemplateRepository,
+            container.preferencesManager
         )
         assertNotNull(transactionsViewModel)
 
         val accountsViewModel = AccountsViewModel(
             container.accountRepository,
             container.transactionRepository,
-            container.categoryRepository
+            container.categoryRepository,
+            container.preferencesManager
         )
         assertNotNull(accountsViewModel)
 
@@ -123,7 +126,8 @@ class AppStartupTest {
             container.incomeRepository,
             container.savingRepository,
             container.subscriptionRepository,
-            container.database,
+            container.backupRepository,
+            container.preferencesManager,
             context
         )
         assertNotNull(settingsViewModel)
