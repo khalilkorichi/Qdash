@@ -1,11 +1,11 @@
 {
-  "versionCode": 7,
-  "versionName": "10.0.07",
-  "updateIdentity": 107,
-  "publishedAt": "2026-06-15T01:00:00Z",
+  "versionCode": 8,
+  "versionName": "1.0.0.08",
+  "updateIdentity": 108,
+  "publishedAt": "2026-06-15T04:30:00Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 23312332,
-  "apkSha256": "196a078541c9a9d88bb7404d432cf33eca7ef5496721f03b841570b159b1425a",
+  "apkSize": 24114924,
+  "apkSha256": "e1043df452c250c9189586e9016e543ab416211ddfa58d0ca5508dd73a08286b",
   "mandatory": false,
-  "releaseNotes": "تحديث الإصدار إلى v10.0.07: إضافة تدرج شفاف أسفل آخر معاملة في الصفحة الرئيسية مع زر للاستعراض الكامل، وتفعيل نظام الإشعار التلقائي عند توفر تحديث جديد للتطبيق."
+  "releaseNotes": "تحديث الإصدار إلى v1.0.0.08: إضافة جدول المبالغ الجاهزة التفاعلي للمبالغ الأكثر تداولاً في الجزائر، ودعم التنسيق المالي التلقائي المضاد للتزوير للمبالغ بالأرقام (#20.000,00#)، وتعديل محاذاة وتصميم نموذج استمارة SFP 01 بشكل مطابق للاستمارة البريدية الحقيقية."
 }

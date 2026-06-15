@@ -1012,7 +1012,7 @@ fun FillFormPanel(
             }
 
             // 1. Amount Input & Assistance
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = uiState.chequeAmount,
                     onValueChange = { viewModel.updateChequeAmount(it) },
@@ -1029,52 +1029,71 @@ fun FillFormPanel(
                     }
                 )
 
-                // Spoken dialect helper
                 val amt = uiState.chequeAmount.toDoubleOrNull()
                 if (amt != null && amt > 0) {
-                    val colloquial = AmountConversionEngine.getAlgerianColloquialWords(amt)
+                    val formatted   = AmountConversionEngine.formatAmountToPostal(amt)
+                    val colloquial  = AmountConversionEngine.getAlgerianColloquialWords(amt)
                     val officialWords = AmountConversionEngine.convertToArabicWords(amt)
-                    
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                            .padding(8.dp)
+
+                    // ── Anti-fraud formatted display ──
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF0D47A1).copy(alpha = 0.08f)),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        Column {
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("التنسيق المالي المضاد للتزوير:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    text = "#$formatted#",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Black,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = Color(0xFF0D47A1)
+                                    )
+                                )
+                            }
+                            Divider(color = Color(0xFF0D47A1).copy(alpha = 0.15f))
                             Text(
-                                text = "العامية: $colloquial",
+                                text = "بالعامية: $colloquial",
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.secondary
                             )
-                            Spacer(modifier = Modifier.height(2.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "الفصحى: $officialWords",
+                                    text = "بالفصحى: $officialWords",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.weight(1f)
                                 )
-                                Text(
-                                    text = "نسخ",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary),
+                                Surface(
                                     modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
                                         .clickable {
-                                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                            val clip = android.content.ClipData.newPlainText("amount_words", officialWords)
-                                            clipboard.setPrimaryClip(clip)
-                                            Toast.makeText(context, "تم النسخ الحروف الفصحى!", Toast.LENGTH_SHORT).show()
-                                        }
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
+                                            val cb = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                            cb.setPrimaryClip(android.content.ClipData.newPlainText("words", officialWords))
+                                            Toast.makeText(context, "تم نسخ الحروف!", Toast.LENGTH_SHORT).show()
+                                        },
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Text("نسخ", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary))
+                                }
                             }
                         }
                     }
                 }
+
+                // ── Cheat Sheet ──
+                AmountCheatSheetPanel(onAmountSelected = { viewModel.updateChequeAmount(it) })
             }
 
             // 2. Beneficiary Input
@@ -1192,33 +1211,87 @@ fun FillFormPanel(
             }
 
             // Amount Sfp
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = uiState.sfpAmount,
                     onValueChange = { viewModel.updateSfpAmount(it) },
                     label = { Text("المبلغ بالدينار (DA)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    trailingIcon = {
+                        if (uiState.sfpAmount.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.updateSfpAmount("") }) {
+                                Icon(Icons.Default.Clear, contentDescription = "مسح")
+                            }
+                        }
+                    }
                 )
 
-                // Dialect helper
                 val sfpAmt = uiState.sfpAmount.toDoubleOrNull()
                 if (sfpAmt != null && sfpAmt > 0) {
-                    val colloquial = AmountConversionEngine.getAlgerianColloquialWords(sfpAmt)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                            .padding(8.dp)
+                    val formatted     = AmountConversionEngine.formatAmountToPostal(sfpAmt)
+                    val colloquial    = AmountConversionEngine.getAlgerianColloquialWords(sfpAmt)
+                    val officialWords = AmountConversionEngine.convertToArabicWords(sfpAmt)
+
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF0D47A1).copy(alpha = 0.08f)),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text(
-                            text = "العامية: $colloquial",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.secondary
-                        )
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("التنسيق المالي المضاد للتزوير:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    text = "#$formatted#",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Black,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = Color(0xFF0D47A1)
+                                    )
+                                )
+                            }
+                            Divider(color = Color(0xFF0D47A1).copy(alpha = 0.15f))
+                            Text(
+                                text = "بالعامية: $colloquial",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "بالفصحى: $officialWords",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Surface(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .clickable {
+                                            val cb = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                            cb.setPrimaryClip(android.content.ClipData.newPlainText("words", officialWords))
+                                            Toast.makeText(context, "تم نسخ الحروف!", Toast.LENGTH_SHORT).show()
+                                        },
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Text("نسخ", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary))
+                                }
+                            }
+                        }
                     }
                 }
+
+                // ── Cheat Sheet ──
+                AmountCheatSheetPanel(onAmountSelected = { viewModel.updateSfpAmount(it) })
             }
 
             // Sender Nom & Prénom
@@ -1291,6 +1364,152 @@ fun FillFormPanel(
                     modifier = Modifier.weight(1.2f),
                     shape = RoundedCornerShape(10.dp)
                 )
+            }
+        }
+    }
+}
+
+// --- Amount Cheat Sheet Panel ---
+@Composable
+fun AmountCheatSheetPanel(
+    onAmountSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // Most common amounts in Algeria (in DA, as dinar values)
+    val amounts = listOf(
+        1_000.0   to "1.000 DA – ألف دينار",
+        2_000.0   to "2.000 DA – ألفين دينار",
+        5_000.0   to "5.000 DA – خمسة آلاف",
+        10_000.0  to "10.000 DA – عشرة آلاف",
+        20_000.0  to "20.000 DA – عشرون ألف",
+        30_000.0  to "30.000 DA – ثلاثون ألف",
+        50_000.0  to "50.000 DA – خمسون ألف",
+        100_000.0 to "100.000 DA – مئة ألف",
+        150_000.0 to "150.000 DA – مئة وخمسون ألف",
+        200_000.0 to "200.000 DA – مئتا ألف"
+    )
+
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            // Header row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.TableChart,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "جدول المبالغ الجاهزة",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            AnimatedVisibility(visible = expanded) {
+                Column(modifier = Modifier.padding(top = 10.dp)) {
+                    Text(
+                        text = "اضغط على أي مبلغ لتعبئته تلقائياً في الوثيقة",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    // Table header
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("المبلغ بالأرقام", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), modifier = Modifier.weight(1.2f))
+                        Text("تنسيق مضاد للتزوير", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), modifier = Modifier.weight(1.3f), textAlign = TextAlign.Center)
+                        Text("بالعامية", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), modifier = Modifier.weight(1f), textAlign = TextAlign.End)
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    amounts.forEachIndexed { index, (amount, label) ->
+                        val formatted   = AmountConversionEngine.formatAmountToPostal(amount)
+                        val colloquial  = AmountConversionEngine.getAlgerianColloquialWords(amount)
+                        val rowBg = if (index % 2 == 0)
+                            MaterialTheme.colorScheme.surface
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(rowBg)
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable { onAmountSelected(amount.toLong().toString()) }
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                                modifier = Modifier.weight(1.2f),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "#$formatted#",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1565C0)
+                                ),
+                                modifier = Modifier.weight(1.3f),
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = colloquial,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                modifier = Modifier.weight(1f),
+                                textAlign = TextAlign.End,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        if (index < amounts.size - 1) {
+                            Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), thickness = 0.5.dp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "💡 انقر على أي صف لتعبئة المبلغ فوراً في الوثيقة",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
     }

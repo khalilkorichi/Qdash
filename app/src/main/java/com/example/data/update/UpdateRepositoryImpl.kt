@@ -84,8 +84,9 @@ class UpdateRepositoryImpl(
                 val isNewerVersion = isVersionNewer(localVersionName, remoteVersionName)
                 val isSameVersionAndNewerIdentity = (remoteVersionName.removePrefix("v").trim() == localVersionName.removePrefix("v").trim()) && (remoteIdentity > localIdentity)
                 val isNewerBuildDate = remoteTime > localBuildTime && (remoteVersionName.removePrefix("v").trim() == localVersionName.removePrefix("v").trim())
+                val isIdentityNewer = remoteIdentity > localIdentity
 
-                val hasUpdate = isNewerVersion || isSameVersionAndNewerIdentity || isNewerBuildDate
+                val hasUpdate = isNewerVersion || isSameVersionAndNewerIdentity || isNewerBuildDate || isIdentityNewer
                 
                 return@withContext Result.success(
                     UpdateInfo(
