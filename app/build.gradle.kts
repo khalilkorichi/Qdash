@@ -15,7 +15,7 @@ android {
     minSdk = 24
     targetSdk = 36
     versionCode = 8
-    versionName = "1.0.0.08"
+    versionName = "10.0.08"
     buildConfigField("Long", "BUILD_TIMESTAMP", "${System.currentTimeMillis()}L")
     buildConfigField("Long", "UPDATE_IDENTITY", "108L")
 
