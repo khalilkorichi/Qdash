@@ -269,7 +269,7 @@ fun AddTransactionScreen(
     var templatePinned by remember { mutableStateOf(false) }
     var showEmojiPicker by remember { mutableStateOf(false) }
 
-    val operatorsList = setOf("+", "-", "أ—", "أ·")
+    val operatorsList = setOf("+", "-", "×", "÷")
 
     // Compute a clean display string for the expression with thousands separator commas on digits
     val displayAmount: String = remember(rawAmount) {
@@ -1368,9 +1368,9 @@ fun AddTransactionScreen(
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 private fun handleNumpadKey(current: String, key: String): String {
-    val operators = setOf("+", "-", "أ—", "أ·")
+    val operators = setOf("+", "-", "×", "÷")
     return when (key) {
-        "âŒ«" -> {
+        "⌫" -> {
             if (current.length <= 1) "0"
             else {
                 // If ending with operator and spaces, drop last 3 characters " op "
@@ -1398,7 +1398,7 @@ private fun handleNumpadKey(current: String, key: String): String {
                 }
             }
         }
-        "+", "-", "أ—", "أ·" -> {
+        "+", "-", "×", "÷" -> {
             if (current.isEmpty()) "0"
             else {
                 val trimmed = current.trim()
