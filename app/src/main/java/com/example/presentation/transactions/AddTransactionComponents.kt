@@ -42,34 +42,55 @@ import com.example.core.utils.FormatterUtils
 // ─────────────────────────────────────────────────────────
 
 private fun numberToArabicWordsDZ(amount: Double): Pair<String, String> {
-    if (amount <= 0) return Pair("", "")
+    val totalCentimes = Math.round(amount * 100.0)
+    if (totalCentimes <= 0) return Pair("", "")
     
-    val wholePart = amount.toLong()
+    val dinars = totalCentimes / 100
+    val cents = totalCentimes % 100
     
     // Dinar representation
-    val dinarText = if (wholePart > 0) {
-        val words = convertWholeNumber(wholePart)
-        val suffix = when {
-            wholePart == 1L -> " دينار"
-            wholePart == 2L -> " ديناران"
-            wholePart in 3..10 -> " دنانير"
-            else -> " دينار"
+    val dinarText = when {
+        dinars > 0 && cents > 0 -> {
+            val dinarPart = when (dinars) {
+                1L -> "دينار واحد"
+                2L -> "ديناران"
+                in 3..10 -> "${convertWholeNumber(dinars)} دنانير"
+                else -> "${convertWholeNumber(dinars)} دينار"
+            }
+            val centsPart = when (cents) {
+                1L -> "سنتيم واحد"
+                2L -> "سنتيمان"
+                in 3..10 -> "${convertWholeNumber(cents)} سنتيمات"
+                else -> "${convertWholeNumber(cents)} سنتيم"
+            }
+            "$dinarPart و$centsPart"
         }
-        "$words$suffix"
-    } else ""
+        dinars > 0 -> {
+            when (dinars) {
+                1L -> "دينار واحد"
+                2L -> "ديناران"
+                in 3..10 -> "${convertWholeNumber(dinars)} دنانير"
+                else -> "${convertWholeNumber(dinars)} دينار"
+            }
+        }
+        cents > 0 -> {
+            when (cents) {
+                1L -> "سنتيم واحد"
+                2L -> "سنتيمان"
+                in 3..10 -> "${convertWholeNumber(cents)} سنتيمات"
+                else -> "${convertWholeNumber(cents)} سنتيم"
+            }
+        }
+        else -> ""
+    }
     
-    // Centime representation (×100) - as Algerians speak daily
-    val centimeValue = wholePart * 100
-    val centimeText = if (centimeValue > 0) {
-        val words = convertWholeNumber(centimeValue)
-        val suffix = when {
-            centimeValue == 1L -> " سنتيم"
-            centimeValue == 2L -> " سنتيمان"
-            centimeValue in 3..10 -> " سنتيمات"
-            else -> " سنتيم"
-        }
-        "$words$suffix"
-    } else ""
+    // Centime representation (Algerian colloquial style)
+    val centimeText = when (totalCentimes) {
+        1L -> "سنتيم واحد"
+        2L -> "سنتيمان"
+        in 3..10 -> "${convertWholeNumber(totalCentimes)} سنتيمات"
+        else -> "${convertWholeNumber(totalCentimes)} سنتيم"
+    }
     
     return Pair(dinarText, centimeText)
 }
@@ -240,11 +261,24 @@ fun AmountDisplayCard(
     onTap: () -> Unit
 ) {
     val numericAmount = remember(displayAmount, livePreviewAmount) {
-        if (livePreviewAmount.isNotEmpty()) {
-            livePreviewAmount.replace(",", "").replace(" ", "").toDoubleOrNull() ?: 0.0
-        } else {
-            displayAmount.replace(",", "").replace(" ", "").toDoubleOrNull() ?: 0.0
-        }
+        val rawStr = if (livePreviewAmount.isNotEmpty()) livePreviewAmount else displayAmount
+        val normalizedStr = rawStr.map { char ->
+            when (char) {
+                '٠' -> '0'
+                '١' -> '1'
+                '٢' -> '2'
+                '٣' -> '3'
+                '٤' -> '4'
+                '٥' -> '5'
+                '٦' -> '6'
+                '٧' -> '7'
+                '٨' -> '8'
+                '٩' -> '9'
+                else -> char
+            }
+        }.joinToString("")
+        val cleaned = normalizedStr.replace("\\s".toRegex(), "").replace(",", "")
+        cleaned.toDoubleOrNull() ?: 0.0
     }
     val amountWords = remember(numericAmount) {
         numberToArabicWordsDZ(numericAmount)
@@ -282,7 +316,7 @@ fun AmountDisplayCard(
                 horizontalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = displayAmount,
+                    text = com.example.core.utils.FormatterUtils.convertNumerals(displayAmount),
                     style = MaterialTheme.typography.displayLarge.copy(
                         fontSize = if (displayAmount.length > 12) 28.sp else 38.sp
                     ),
@@ -324,7 +358,7 @@ fun AmountDisplayCard(
             if (livePreviewAmount.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "= $livePreviewAmount دج",
+                    text = "= ${com.example.core.utils.FormatterUtils.convertNumerals(livePreviewAmount)} دج",
                     style = MaterialTheme.typography.titleMedium,
                     color = accentColor,
                     fontWeight = FontWeight.Bold
@@ -532,7 +566,7 @@ fun NumPad(onKeyPress: (String) -> Unit) {
                                 )
                             } else {
                                 Text(
-                                    text = key,
+                                    text = com.example.core.utils.FormatterUtils.convertNumerals(key),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = textColor
@@ -573,7 +607,7 @@ fun NumPad(onKeyPress: (String) -> Unit) {
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = key,
+                            text = com.example.core.utils.FormatterUtils.convertNumerals(key),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = textColor

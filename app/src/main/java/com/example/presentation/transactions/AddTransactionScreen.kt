@@ -22,6 +22,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -73,12 +76,12 @@ fun AddTransactionScreen(
     val showAmountWords = uiState.isAmountWordsEnabled
 
     // â”€â”€ Local state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    var rawAmount by remember { mutableStateOf("0") }
-    var showAddCategoryDialog by remember { mutableStateOf(false) }
-    var isAddingSubcategory by remember { mutableStateOf(false) }
-    var newCategoryName by remember { mutableStateOf("") }
-    var newCategoryIcon by remember { mutableStateOf("📁") }
-    var newCategoryColor by remember { mutableStateOf("#8B5CF6") }
+    var rawAmount by rememberSaveable { mutableStateOf("0") }
+    var showAddCategoryDialog by rememberSaveable { mutableStateOf(false) }
+    var isAddingSubcategory by rememberSaveable { mutableStateOf(false) }
+    var newCategoryName by rememberSaveable { mutableStateOf("") }
+    var newCategoryIcon by rememberSaveable { mutableStateOf("📁") }
+    var newCategoryColor by rememberSaveable { mutableStateOf("#8B5CF6") }
 
     val curatedColors = listOf(
         "#8B5CF6", // Violet
@@ -91,8 +94,8 @@ fun AddTransactionScreen(
         "#64748B"  // Slate
     )
 
-    var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
-    var subcategoryId by remember { mutableStateOf<Long?>(null) }
+    var selectedCategoryId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var subcategoryId by rememberSaveable { mutableStateOf<Long?>(null) }
 
     // Auto-select newly created category or subcategory
     var previousCategories by remember { mutableStateOf<List<com.example.domain.model.Category>>(emptyList()) }
@@ -113,15 +116,21 @@ fun AddTransactionScreen(
         }
         previousCategories = uiState.categories
     }
-    var note by remember { mutableStateOf("") }
-    var isRecurring by remember { mutableStateOf(false) }
-    var recurringPeriod by remember { mutableStateOf("MONTHLY") }
-    var selectedTags by remember { mutableStateOf<List<String>>(emptyList()) }
-    var isKeypadExpanded by remember { mutableStateOf(true) }
-    var transactionDate by remember { mutableStateOf(initialDate ?: System.currentTimeMillis()) }
-    var showDatePicker by remember { mutableStateOf(false) }
+    var note by rememberSaveable { mutableStateOf("") }
+    var isRecurring by rememberSaveable { mutableStateOf(false) }
+    var recurringPeriod by rememberSaveable { mutableStateOf("MONTHLY") }
+    var selectedTags by rememberSaveable(saver = Saver<MutableState<List<String>>, String>(
+        save = { it.value.joinToString(",") },
+        restore = { mutableStateOf(it.split(",").filter { tag -> tag.isNotBlank() }) }
+    )) { mutableStateOf<List<String>>(emptyList()) }
+    var isKeypadExpanded by rememberSaveable { mutableStateOf(true) }
+    var transactionDate by rememberSaveable { mutableStateOf(initialDate ?: System.currentTimeMillis()) }
+    var showDatePicker by rememberSaveable { mutableStateOf(false) }
 
-    var type by remember {
+    var type by rememberSaveable(saver = Saver<MutableState<TransactionType>, String>(
+        save = { it.value.name },
+        restore = { mutableStateOf(TransactionType.valueOf(it)) }
+    )) {
         mutableStateOf(
             when (initialType) {
                 "INCOME"   -> TransactionType.INCOME
@@ -131,8 +140,11 @@ fun AddTransactionScreen(
         )
     }
 
-    var selectedAccountId   by remember { mutableStateOf<Long?>(null) }
-    var toAccountId         by remember { mutableStateOf<Long?>(null) }
+    var selectedAccountId   by rememberSaveable { mutableStateOf<Long?>(null) }
+    var toAccountId         by rememberSaveable { mutableStateOf<Long?>(null) }
+
+    var hasLoadedInitialData by rememberSaveable { mutableStateOf(false) }
+    var hasLoadedDraft by rememberSaveable { mutableStateOf(false) }
 
     val parsedAmount = remember(rawAmount) {
         com.example.core.utils.CalculatorParser.evaluate(rawAmount)
@@ -169,7 +181,7 @@ fun AddTransactionScreen(
 
     // Reactively load transaction details if in edit mode
     LaunchedEffect(uiState.transactions, transactionId) {
-        if (transactionId != null && uiState.transactions.isNotEmpty()) {
+        if (!hasLoadedInitialData && transactionId != null && uiState.transactions.isNotEmpty()) {
             val transaction = uiState.transactions.find { it.id == transactionId }
             if (transaction != null) {
                 rawAmount = transaction.amount.toString().replace(".0", "")
@@ -197,13 +209,14 @@ fun AddTransactionScreen(
                 toAccountId = transaction.toAccountId
                 transactionDate = transaction.date
                 isKeypadExpanded = false
+                hasLoadedInitialData = true
             }
         }
     }
 
     // Reactively load pre-fill details from draftJson
     LaunchedEffect(draftJson) {
-        if (!draftJson.isNullOrBlank()) {
+        if (!hasLoadedDraft && !draftJson.isNullOrBlank()) {
             try {
                 // Quick parse JSON string without heavy library dependency
                 val cleanedJson = draftJson.trim().removePrefix("{").removeSuffix("}").trim()
@@ -243,6 +256,7 @@ fun AddTransactionScreen(
                 toAccountId = parsedTargetAccountId
                 note = parsedNotes ?: ""
                 isKeypadExpanded = false
+                hasLoadedDraft = true
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -678,7 +692,7 @@ fun AddTransactionScreen(
                 )
             }
 
-            // â”€â”€ Source account picker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // —— Source account picker —————————————————
             if (uiState.accounts.isNotEmpty()) {
                 Column {
                     SectionLabel(
@@ -696,12 +710,17 @@ fun AddTransactionScreen(
                         disabledId = null,
                         expectedBalances = expectedBalances,
                         parsedAmount = parsedAmount,
-                        onSelect = { selectedAccountId = it }
+                        onSelect = { newSourceId ->
+                            if (type == TransactionType.TRANSFER && toAccountId == newSourceId) {
+                                toAccountId = selectedAccountId
+                            }
+                            selectedAccountId = newSourceId
+                        }
                     )
                 }
             }
 
-            // â”€â”€ Destination account (Transfer only) â”€â”€â”€â”€â”€â”€â”€
+            // —— Destination account (Transfer only) ———————
             if (type == TransactionType.TRANSFER && uiState.accounts.isNotEmpty()) {
                 Column {
                     SectionLabel(text = "إلى حساب")
@@ -710,10 +729,15 @@ fun AddTransactionScreen(
                         accounts = uiState.accounts,
                         selectedId = toAccountId,
                         accentColor = TransferBlue,
-                        disabledId = selectedAccountId,
+                        disabledId = null,
                         expectedBalances = expectedBalances,
                         parsedAmount = parsedAmount,
-                        onSelect = { toAccountId = it }
+                        onSelect = { newDestId ->
+                            if (selectedAccountId == newDestId) {
+                                selectedAccountId = toAccountId
+                            }
+                            toAccountId = newDestId
+                        }
                     )
                 }
             }
@@ -1074,7 +1098,8 @@ fun AddTransactionScreen(
                             onBack()
                         }
                     },
-                    enabled = com.example.core.utils.CalculatorParser.evaluate(rawAmount) > 0.0,
+                    enabled = com.example.core.utils.CalculatorParser.evaluate(rawAmount) > 0.0 &&
+                            (type != TransactionType.TRANSFER || selectedAccountId != toAccountId),
                     modifier = Modifier
                         .weight(if (transactionId == null) 1.5f else 1f)
                         .height(50.dp)
