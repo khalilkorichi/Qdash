@@ -277,7 +277,18 @@ fun AmountDisplayCard(
                 else -> char
             }
         }.joinToString("")
-        val cleaned = normalizedStr.replace("\\s".toRegex(), "").replace(",", "")
+        val symbols = java.text.DecimalFormatSymbols.getInstance()
+        val groupingSep = symbols.groupingSeparator.toString()
+        val decimalSep = symbols.decimalSeparator.toString()
+        val cleaned = normalizedStr
+            .replace(groupingSep, "")
+            .replace(decimalSep, ".")
+            .replace("٬", "")
+            .replace(",", "")
+            .replace(" ", "")
+            .replace("\u00A0", "")
+            .replace("\u202F", "")
+            .replace("\\s".toRegex(), "")
         cleaned.toDoubleOrNull() ?: 0.0
     }
     val amountWords = remember(numericAmount) {
