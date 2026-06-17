@@ -28,6 +28,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -121,11 +123,11 @@ fun AccountsScreen(
     val showTotalBalance = uiState.showBalances
 
     // Add Account state
-    var showAddAccountDialog by remember { mutableStateOf(false) }
-    var showTransferDialog by remember { mutableStateOf(false) }
+    var showAddAccountDialog by rememberSaveable { mutableStateOf(false) }
+    var showTransferDialog by rememberSaveable { mutableStateOf(false) }
 
     // Edit Account bottom sheet state
-    var showEditSheet by remember { mutableStateOf(false) }
+    var showEditSheet by rememberSaveable { mutableStateOf(false) }
 
     // Delete confirmation state
     var accountToDelete by remember { mutableStateOf<Account?>(null) }
@@ -143,9 +145,9 @@ fun AccountsScreen(
     }
 
     // Transfer variables
-    var fromAccountId by remember { mutableStateOf<Long?>(null) }
-    var toAccountId by remember { mutableStateOf<Long?>(null) }
-    var transferAmount by remember { mutableStateOf("") }
+    var fromAccountId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var toAccountId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var transferAmount by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(uiState.accounts) {
         if (uiState.accounts.isNotEmpty() && fromAccountId == null) {
@@ -553,7 +555,7 @@ fun AccountsScreen(
                     }
                     Button(
                         onClick = {
-                            val bal = editBalance.toDoubleOrNull() ?: acc.balance
+                            val bal = com.example.core.utils.FormatterUtils.normalizeAmount(editBalance).toDoubleOrNull() ?: acc.balance
                             if (editName.isNotBlank()) {
                                 viewModel.editAccount(
                                     acc.copy(
@@ -764,7 +766,7 @@ fun AccountsScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        val amt = transferAmount.toDoubleOrNull() ?: 0.0
+                        val amt = com.example.core.utils.FormatterUtils.normalizeAmount(transferAmount).toDoubleOrNull() ?: 0.0
                         if (amt > 0) {
                             viewModel.executeTransfer(currentFrom, currentTo, amt, "تحويل داخلي")
                             showTransferDialog = false

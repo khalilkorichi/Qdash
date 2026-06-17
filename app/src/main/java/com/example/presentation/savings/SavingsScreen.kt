@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,24 +61,24 @@ fun SavingsScreen(
     var activeGoalForDetails by remember { mutableStateOf<SavingGoal?>(null) }
     
     // Form and action states
-    var showAddGoalDialog by remember { mutableStateOf(false) }
+    var showAddGoalDialog by rememberSaveable { mutableStateOf(false) }
     var showEditGoalDialog by remember { mutableStateOf<SavingGoal?>(null) }
     var showDepositDialog by remember { mutableStateOf<SavingGoal?>(null) }
     var showWithdrawDialog by remember { mutableStateOf<SavingGoal?>(null) }
     
     // Add/Edit Goal Form inputs
-    var goalName by remember { mutableStateOf("") }
-    var goalTarget by remember { mutableStateOf("") }
-    var goalColor by remember { mutableStateOf("#4CAF50") }
-    var goalStrategy by remember { mutableStateOf("manual") }
-    var selectedAccountId by remember { mutableStateOf<Long?>(null) }
+    var goalName by rememberSaveable { mutableStateOf("") }
+    var goalTarget by rememberSaveable { mutableStateOf("") }
+    var goalColor by rememberSaveable { mutableStateOf("#4CAF50") }
+    var goalStrategy by rememberSaveable { mutableStateOf("manual") }
+    var selectedAccountId by rememberSaveable { mutableStateOf<Long?>(null) }
 
     // Contribution inputs
-    var contributionAmount by remember { mutableStateOf("") }
-    var contributionNote by remember { mutableStateOf("") }
-    var selectedContribAccountId by remember { mutableStateOf<Long?>(null) }
-    var contributionDate by remember { mutableStateOf(System.currentTimeMillis()) }
-    var showContribDatePicker by remember { mutableStateOf(false) }
+    var contributionAmount by rememberSaveable { mutableStateOf("") }
+    var contributionNote by rememberSaveable { mutableStateOf("") }
+    var selectedContribAccountId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var contributionDate by rememberSaveable { mutableStateOf(System.currentTimeMillis()) }
+    var showContribDatePicker by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(uiState.accounts) {
         if (uiState.accounts.isNotEmpty() && selectedAccountId == null) {
@@ -300,7 +301,7 @@ fun SavingsScreen(
                     confirmButton = {
                         Button(
                             onClick = {
-                                val target = goalTarget.toDoubleOrNull() ?: 0.0
+                                val target = FormatterUtils.normalizeAmount(goalTarget).toDoubleOrNull() ?: 0.0
                                 if (goalName.isBlank()) {
                                     Toast.makeText(context, "الرجاء إدخال اسم الهدف الادخاري", Toast.LENGTH_SHORT).show()
                                 } else if (goalTarget.isBlank() || target <= 0.0) {
@@ -380,7 +381,7 @@ fun SavingsScreen(
                     confirmButton = {
                         Button(
                             onClick = {
-                                val target = goalTarget.toDoubleOrNull() ?: 0.0
+                                val target = FormatterUtils.normalizeAmount(goalTarget).toDoubleOrNull() ?: 0.0
                                 if (goalName.isBlank()) {
                                     Toast.makeText(context, "الرجاء إدخال اسم الهدف الادخاري", Toast.LENGTH_SHORT).show()
                                 } else if (goalTarget.isBlank() || target <= 0.0) {
@@ -535,7 +536,7 @@ fun SavingsScreen(
                     confirmButton = {
                         Button(
                             onClick = {
-                                val amount = contributionAmount.toDoubleOrNull() ?: 0.0
+                                val amount = FormatterUtils.normalizeAmount(contributionAmount).toDoubleOrNull() ?: 0.0
                                 if (contributionAmount.isBlank() || amount <= 0.0) {
                                     Toast.makeText(context, "الرجاء إدخال مبلغ إيداع صالح أكبر من الصفر", Toast.LENGTH_SHORT).show()
                                 } else if (selectedContribAccountId == null) {
@@ -688,7 +689,7 @@ fun SavingsScreen(
                     confirmButton = {
                         Button(
                             onClick = {
-                                val amount = contributionAmount.toDoubleOrNull() ?: 0.0
+                                val amount = FormatterUtils.normalizeAmount(contributionAmount).toDoubleOrNull() ?: 0.0
                                 if (contributionAmount.isBlank() || amount <= 0.0) {
                                     Toast.makeText(context, "الرجاء إدخال مبلغ سحب صالح أكبر من الصفر", Toast.LENGTH_SHORT).show()
                                 } else if (selectedContribAccountId == null) {

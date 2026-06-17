@@ -28,6 +28,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -571,10 +573,13 @@ fun AddAccountDialog(
             "#EC4899" to Color(0xFFEC4899)
         )
     }
-    var accName by remember { mutableStateOf("") }
-    var accType by remember { mutableStateOf(AccountType.BARIDIMOB) }
-    var accBalance by remember { mutableStateOf("") }
-    var accColor by remember { mutableStateOf("#6C63FF") }
+    var accName by rememberSaveable { mutableStateOf("") }
+    var accType by rememberSaveable(saver = Saver<MutableState<AccountType>, String>(
+        save = { it.value.name },
+        restore = { mutableStateOf(AccountType.valueOf(it)) }
+    )) { mutableStateOf(AccountType.BARIDIMOB) }
+    var accBalance by rememberSaveable { mutableStateOf("") }
+    var accColor by rememberSaveable { mutableStateOf("#6C63FF") }
 
     val accountTypes = listOf(
         AccountType.BARIDIMOB to "بريدي موب",
@@ -688,7 +693,7 @@ fun AddAccountDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val bal = accBalance.toDoubleOrNull() ?: 0.0
+                    val bal = com.example.core.utils.FormatterUtils.normalizeAmount(accBalance).toDoubleOrNull() ?: 0.0
                     if (accName.isNotBlank() && bal >= 0) {
                         val icon = when (accType) {
                             AccountType.BARIDIMOB -> "phonelink_ring"
