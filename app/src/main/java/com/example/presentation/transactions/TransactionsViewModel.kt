@@ -252,6 +252,7 @@ class TransactionsViewModel(
 
                     val filtered = txs.filter { tx ->
                         val matchesQuery = filters.query.isBlank() || tx.note?.contains(filters.query, ignoreCase = true) == true
+                        val matchesType = filters.type == null || tx.type == filters.type
                         val matchesCat = filters.categoryId == null || tx.categoryId == filters.categoryId
                         val matchesAcc = filters.accountId == null || tx.accountId == filters.accountId
                         val matchesCalendarDate = selectedDate?.let { sel -> tx.date >= sel && tx.date < sel + 86400000L } ?: true
@@ -264,7 +265,7 @@ class TransactionsViewModel(
                         val matchesStartDate = filters.filterStartDate == null || tx.date >= filters.filterStartDate
                         val matchesEndDate = filters.filterEndDate == null || tx.date <= filters.filterEndDate
 
-                        matchesQuery && matchesCat && matchesAcc && matchesCalendarDate && matchesLarge && matchesBaridi && matchesMinAmount && matchesStartDate && matchesEndDate
+                        matchesQuery && matchesType && matchesCat && matchesAcc && matchesCalendarDate && matchesLarge && matchesBaridi && matchesMinAmount && matchesStartDate && matchesEndDate
                     }
                     
                     _uiState.value.copy(

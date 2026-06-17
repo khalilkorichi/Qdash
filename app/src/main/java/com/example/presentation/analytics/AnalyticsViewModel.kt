@@ -73,7 +73,25 @@ data class AnalyticsUiState(
     val exportError: String? = null,
     val isDatabaseEmpty: Boolean = false,
     val transactions: List<Transaction> = emptyList(),
-    val categories: List<Category> = emptyList()
+    val categories: List<Category> = emptyList(),
+
+    // Dashboard & Comparison State
+    val dashboardTab: Int = 0, // 0 = General Analytics, 1 = Dashboard & Comparison
+    val dashboardPeriod: String = "MONTHLY", // "MONTHLY", "ANNUALLY"
+    val dashboardMonth: Int = java.util.Calendar.getInstance().get(java.util.Calendar.MONTH),
+    val dashboardYear: Int = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR),
+    val compareMonthA: Int = java.util.Calendar.getInstance().get(java.util.Calendar.MONTH),
+    val compareYearA: Int = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR),
+    val compareMonthB: Int = run {
+        val cal = java.util.Calendar.getInstance()
+        cal.add(java.util.Calendar.MONTH, -1)
+        cal.get(java.util.Calendar.MONTH)
+    },
+    val compareYearB: Int = run {
+        val cal = java.util.Calendar.getInstance()
+        cal.add(java.util.Calendar.MONTH, -1)
+        cal.get(java.util.Calendar.YEAR)
+    }
 )
 
 class AnalyticsViewModel(
@@ -115,6 +133,30 @@ class AnalyticsViewModel(
     fun setYear(year: Int) {
         _uiState.update { it.copy(selectedYear = year) }
         loadAnalytics()
+    }
+
+    fun setDashboardTab(tab: Int) {
+        _uiState.update { it.copy(dashboardTab = tab) }
+    }
+
+    fun setDashboardPeriod(period: String) {
+        _uiState.update { it.copy(dashboardPeriod = period) }
+    }
+
+    fun setDashboardMonth(month: Int) {
+        _uiState.update { it.copy(dashboardMonth = month) }
+    }
+
+    fun setDashboardYear(year: Int) {
+        _uiState.update { it.copy(dashboardYear = year) }
+    }
+
+    fun setCompareMonthA(month: Int, year: Int) {
+        _uiState.update { it.copy(compareMonthA = month, compareYearA = year) }
+    }
+
+    fun setCompareMonthB(month: Int, year: Int) {
+        _uiState.update { it.copy(compareMonthB = month, compareYearB = year) }
     }
 
     fun navigatePrev() {

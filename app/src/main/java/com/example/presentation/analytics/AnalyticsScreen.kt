@@ -79,6 +79,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.ui.geometry.Size
 import kotlin.math.asin
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,7 +99,35 @@ fun AnalyticsScreen(
     val scope = rememberCoroutineScope()
     var longClickJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
+    // Compute Dashboard statistics reactively
+    val dashboardTransactions = remember(uiState.transactions, uiState.dashboardPeriod, uiState.dashboardMonth, uiState.dashboardYear) {
+        uiState.transactions.filter { tx ->
+            val cal = Calendar.getInstance().apply { timeInMillis = tx.date }
+            if (uiState.dashboardPeriod == "MONTHLY") {
+                cal.get(Calendar.MONTH) == uiState.dashboardMonth && cal.get(Calendar.YEAR) == uiState.dashboardYear
+            } else {
+                cal.get(Calendar.YEAR) == uiState.dashboardYear
+            }
+        }
+    }
+
+    val dashIncome = remember(dashboardTransactions) {
+        dashboardTransactions.filter { it.type == com.example.domain.model.TransactionType.INCOME }.sumOf { it.amount }
+    }
+    
+    val dashExpenses = remember(dashboardTransactions) {
+        dashboardTransactions.filter { it.type == com.example.domain.model.TransactionType.EXPENSE }.sumOf { it.amount }
+    }
+
     LaunchedEffect(uiState.spendingsByCategory) {
+        selectedCategory = null
+    }
+
+    LaunchedEffect(uiState.dashboardTab) {
+        selectedCategory = null
+    }
+
+    LaunchedEffect(uiState.dashboardTab) {
         selectedCategory = null
     }
 
@@ -592,7 +621,7 @@ fun AnalyticsScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             androidx.compose.animation.AnimatedVisibility(
-                                visible = uiState.spendingsByCategory.isNotEmpty(),
+                                visible = uiState.spendingsByCategory.isNotEmpty() && uiState.dashboardTab == 0,
                                 enter = androidx.compose.animation.fadeIn(animationSpec = tween(350)),
                                 exit = androidx.compose.animation.fadeOut(animationSpec = tween(350))
                             ) {
@@ -630,15 +659,67 @@ fun AnalyticsScreen(
                 )
             }
 
-            // â”€â”€ 2. Unified Smart Date Navigator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Main Tab Switcher ───────────────────
             item {
-                SmartDateNavigator(
-                    uiState = uiState,
-                    onPeriodChange = { viewModel.setPeriod(it) },
-                    onPrev = { viewModel.navigatePrev() },
-                    onNext = { viewModel.navigateNext() }
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.18f),
+                            RoundedCornerShape(16.dp)
+                        )
+                        .padding(5.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    val tabs = listOf("التقارير العامة", "لوحة التحكم والمقارنة")
+                    tabs.forEachIndexed { index, label ->
+                        val isSelected = uiState.dashboardTab == index
+                        val tabBg by animateColorAsState(
+                            targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            animationSpec = tween(200), label = "tabBg_$index"
+                        )
+                        val tabText by animateColorAsState(
+                            targetValue = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                            animationSpec = tween(200), label = "tabText_$index"
+                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(11.dp))
+                                .background(tabBg)
+                                .clickable { viewModel.setDashboardTab(index) }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 13.sp,
+                                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                color = tabText
+                            )
+                        }
+                    }
+                }
             }
+
+            if (uiState.dashboardTab == 0) {
+                // ── GENERAL REPORTS TAB ───────────────────
+
+                // â”€â”€ 2. Unified Smart Date Navigator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                item {
+                    SmartDateNavigator(
+                        uiState = uiState,
+                        onPeriodChange = { viewModel.setPeriod(it) },
+                        onPrev = { viewModel.navigatePrev() },
+                        onNext = { viewModel.navigateNext() }
+                    )
+                }
 
             // â”€â”€ 2.5 Salary Cycle & Spend Projection Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if (!uiState.isLoading && uiState.selectedPeriod == "MONTH" && uiState.spendingsByCategory.isNotEmpty()) {
@@ -1191,6 +1272,166 @@ fun AnalyticsScreen(
             if (!uiState.isLoading && uiState.spendingsByCategory.isNotEmpty()) {
                 item {
                     SavingsChallengesSection()
+                }
+            }
+
+            } else {
+                // ── INTERACTIVE DASHBOARD TAB ───────────────────
+
+                // 1. Dashboard filter header & Period switcher
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Monthly vs Annually Segmented Pill Switcher
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.18f)),
+                            modifier = Modifier.weight(1.1f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(3.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val periods = listOf("MONTHLY" to "شهرياً", "ANNUALLY" to "سنوياً")
+                                periods.forEach { (key, label) ->
+                                    val isSelected = uiState.dashboardPeriod == key
+                                    val bg by animateColorAsState(
+                                        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                        label = "periodBg_$key"
+                                    )
+                                    val txt by animateColorAsState(
+                                        targetValue = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                        label = "periodTxt_$key"
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(9.dp))
+                                            .background(bg)
+                                            .clickable { viewModel.setDashboardPeriod(key) }
+                                            .padding(vertical = 8.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = txt
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Date Selector Button
+                        var showDashboardDatePicker by remember { mutableStateOf(false) }
+                        val arabicMonths = remember {
+                            arrayOf(
+                                "جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان",
+                                "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+                            )
+                        }
+                        val pickerLabel = if (uiState.dashboardPeriod == "MONTHLY") {
+                            "${arabicMonths[uiState.dashboardMonth]} ${uiState.dashboardYear}"
+                        } else {
+                            "سنة ${uiState.dashboardYear}"
+                        }
+
+                        Button(
+                            onClick = { showDashboardDatePicker = true },
+                            modifier = Modifier.weight(1f).height(40.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.DateRange, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                Text(
+                                    text = pickerLabel,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        if (showDashboardDatePicker) {
+                            if (uiState.dashboardPeriod == "MONTHLY") {
+                                MonthYearPickerDialog(
+                                    initialMonth = uiState.dashboardMonth,
+                                    initialYear = uiState.dashboardYear,
+                                    onDismiss = { showDashboardDatePicker = false },
+                                    onConfirm = { m, y ->
+                                        viewModel.setDashboardMonth(m)
+                                        viewModel.setDashboardYear(y)
+                                        showDashboardDatePicker = false
+                                    }
+                                )
+                            } else {
+                                YearPickerDialog(
+                                    initialYear = uiState.dashboardYear,
+                                    onDismiss = { showDashboardDatePicker = false },
+                                    onConfirm = { y ->
+                                        viewModel.setDashboardYear(y)
+                                        showDashboardDatePicker = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // 3. Render Dashboard overview card
+                item {
+                    DashboardOverviewCard(
+                        totalIncome = dashIncome,
+                        totalExpenses = dashExpenses,
+                        onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
+                    )
+                }
+
+                // 4. Render category expense vs income charts
+                item {
+                    CategoryVsIncomeChartCard(
+                        transactions = dashboardTransactions,
+                        categories = uiState.categories,
+                        totalIncome = dashIncome,
+                        selectedCategory = selectedCategory,
+                        onSelectedCategoryChange = { selectedCategory = it },
+                        onHelpClick = { title, desc -> activeExplanationInfo = title to desc },
+                        onCategoryLongClick = { category ->
+                            longClickJob?.cancel()
+                            longClickedCategory = category
+                            longClickJob = scope.launch {
+                                kotlinx.coroutines.delay(3000)
+                                longClickedCategory = null
+                            }
+                        }
+                    )
+                }
+
+                // 5. Render Month Comparison Card
+                item {
+                    MonthComparisonCard(
+                        transactions = uiState.transactions,
+                        categories = uiState.categories,
+                        compareMonthA = uiState.compareMonthA,
+                        compareYearA = uiState.compareYearA,
+                        compareMonthB = uiState.compareMonthB,
+                        compareYearB = uiState.compareYearB,
+                        onMonthAChange = { m, y -> viewModel.setCompareMonthA(m, y) },
+                        onMonthBChange = { m, y -> viewModel.setCompareMonthB(m, y) },
+                        onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
+                    )
                 }
             }
 

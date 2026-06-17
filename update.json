@@ -1,11 +1,11 @@
 {
-  "versionCode": 8,
-  "versionName": "1.0.0.08",
-  "updateIdentity": 108,
-  "publishedAt": "2026-06-15T04:30:00Z",
+  "versionCode": 9,
+  "versionName": "1.0.0.09",
+  "updateIdentity": 109,
+  "publishedAt": "2026-06-17T11:27:00Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 23574476,
-  "apkSha256": "d4fa7baf28091f8801316d3701b84ad57b71b3e04de5db915defe22c7c91568c",
+  "apkSize": 23771080,
+  "apkSha256": "12356e01ce2478d94a2c6a14fef672b842852feea03e275fa02ca5833ae39113",
   "mandatory": false,
-  "releaseNotes": "تحديث الإصدار إلى v1.0.0.08: إضافة جدول المبالغ الجاهزة التفاعلي للمبالغ الأكثر تداولاً في الجزائر، ودعم التنسيق المالي التلقائي المضاد للتزوير للمبالغ بالأرقام (#20.000,00#)، وتعديل محاذاة وتصميم نموذج استمارة SFP 01 بشكل مطابق للاستمارة البريدية الحقيقية."
+  "releaseNotes": "تحديث الإصدار إلى v1.0.0.09: تصميم وإضافة لوحة تحكم (Dashboard) تفاعلية بالكامل لصفحة الإحصائيات تتضمن رسوماً بيانية دائرية (Pie/Donut Charts) ومخططات الأعمدة (Bar Charts) لعرض نسبة المصاريف لكل فئة مقارنة بالدخل الكلي شهرياً وسنوياً، مع ميزة مقارنة المصاريف وتتبع التغيرات بدقة بين الأشهر المختلفة باستخدام مخطط الأعمدة المزدوج المتجاور (Grouped Bar Chart) الداعم للتمرير الأفقي."
 }

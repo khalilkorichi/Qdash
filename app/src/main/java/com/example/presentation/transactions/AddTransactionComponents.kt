@@ -36,6 +36,17 @@ import com.example.domain.model.Transaction
 import com.example.domain.model.TransactionType
 import com.example.ui.theme.*
 import com.example.core.utils.FormatterUtils
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.interaction.MutableInteractionSource
 
 // ─────────────────────────────────────────────────────────
 //  Helper functions for currency in words (Algerian DZ)
@@ -254,6 +265,8 @@ fun TypeSelectorBar(
 
 @Composable
 fun AmountDisplayCard(
+    rawAmountValue: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
     displayAmount: String,
     livePreviewAmount: String,
     accentColor: Color,
@@ -324,16 +337,31 @@ fun AmountDisplayCard(
             Spacer(modifier = Modifier.height(4.dp))
             Row(
                 verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.Center
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = com.example.core.utils.FormatterUtils.convertNumerals(displayAmount),
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        fontSize = if (displayAmount.length > 12) 28.sp else 38.sp
+                val focusRequester = remember { FocusRequester() }
+                BasicTextField(
+                    value = rawAmountValue,
+                    onValueChange = onValueChange,
+                    readOnly = true,
+                    textStyle = MaterialTheme.typography.displayLarge.copy(
+                        fontSize = if (rawAmountValue.text.length > 12) 28.sp else 38.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.ExtraBold,
+                        textAlign = TextAlign.Center
                     ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.ExtraBold,
-                    textAlign = TextAlign.Center
+                    cursorBrush = SolidColor(accentColor),
+                    visualTransformation = FormulaThousandsSeparatorTransformation(),
+                    modifier = Modifier
+                        .focusRequester(focusRequester)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            focusRequester.requestFocus()
+                            onTap()
+                        }
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
@@ -1114,3 +1142,122 @@ fun RowScope.QuickDateButton(
         )
     }
 }
+
+class FormulaThousandsSeparatorTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val originalText = text.text
+        if (originalText.isEmpty()) {
+            return TransformedText(text, OffsetMapping.Identity)
+        }
+
+        val operators = setOf("+", "-", "×", "÷")
+        val parts = originalText.split(" ")
+        
+        val transformedParts = ArrayList<String>()
+        val originalToTransformedMap = ArrayList<Int>()
+        val transformedToOriginalMap = ArrayList<Int>()
+        
+        var originalOffset = 0
+        var transformedOffset = 0
+        
+        for (i in parts.indices) {
+            val part = parts[i]
+            if (i > 0) {
+                transformedParts.add(" ")
+                originalToTransformedMap.add(transformedOffset)
+                transformedToOriginalMap.add(originalOffset)
+                originalOffset += 1
+                transformedOffset += 1
+            }
+            
+            if (operators.contains(part) || part.isEmpty()) {
+                for (j in part.indices) {
+                    originalToTransformedMap.add(transformedOffset + j)
+                    transformedToOriginalMap.add(originalOffset + j)
+                }
+                transformedParts.add(part)
+                originalOffset += part.length
+                transformedOffset += part.length
+            } else {
+                val subParts = part.split(".")
+                val integerPart = subParts[0]
+                val decimalPart = if (subParts.size > 1) subParts[1] else null
+                
+                val formattedInteger = try {
+                    val longVal = integerPart.toLongOrNull()
+                    if (longVal != null) {
+                        java.text.DecimalFormat("#,###").format(longVal)
+                    } else {
+                        integerPart
+                    }
+                } catch (e: Exception) {
+                    integerPart
+                }
+                
+                val formattedPart = buildString {
+                    append(formattedInteger)
+                    if (decimalPart != null) {
+                        append(".")
+                        append(decimalPart)
+                    } else if (part.endsWith(".")) {
+                        append(".")
+                    }
+                }
+                
+                var origIntIdx = 0
+                var transIntIdx = 0
+                val partOrigToTrans = IntArray(part.length + 1)
+                val partTransToOrig = IntArray(formattedPart.length + 1)
+                
+                while (origIntIdx < part.length && transIntIdx < formattedPart.length) {
+                    val charTrans = formattedPart[transIntIdx]
+                    if (charTrans == ',') {
+                        partTransToOrig[transIntIdx] = origIntIdx
+                        transIntIdx++
+                    } else {
+                        partOrigToTrans[origIntIdx] = transIntIdx
+                        partTransToOrig[transIntIdx] = origIntIdx
+                        origIntIdx++
+                        transIntIdx++
+                    }
+                }
+                partOrigToTrans[part.length] = formattedPart.length
+                partTransToOrig[formattedPart.length] = part.length
+                
+                for (j in 0 until part.length) {
+                    originalToTransformedMap.add(transformedOffset + partOrigToTrans[j])
+                }
+                for (j in 0 until formattedPart.length) {
+                    transformedToOriginalMap.add(originalOffset + partTransToOrig[j])
+                }
+                
+                transformedParts.add(formattedPart)
+                originalOffset += part.length
+                transformedOffset += formattedPart.length
+            }
+        }
+        
+        originalToTransformedMap.add(transformedOffset)
+        transformedToOriginalMap.add(originalOffset)
+        
+        val transformedString = transformedParts.joinToString("")
+        
+        val offsetMapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int {
+                val clamped = offset.coerceIn(0, originalText.length)
+                return originalToTransformedMap[clamped]
+            }
+
+            override fun transformedToOriginal(offset: Int): Int {
+                val clamped = offset.coerceIn(0, transformedString.length)
+                return transformedToOriginalMap[clamped]
+            }
+        }
+        
+        return TransformedText(
+            text = AnnotatedString(transformedString),
+            offsetMapping = offsetMapping
+        )
+    }
+}
+

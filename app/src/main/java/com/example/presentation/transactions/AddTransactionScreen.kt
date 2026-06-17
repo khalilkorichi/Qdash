@@ -25,6 +25,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.Saver
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,7 +58,7 @@ import kotlinx.coroutines.delay
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  AddTransactionScreen
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ————————————————————————————————————————————————————————————————————————————————
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -76,7 +78,10 @@ fun AddTransactionScreen(
     val showAmountWords = uiState.isAmountWordsEnabled
 
     // â”€â”€ Local state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    var rawAmount by rememberSaveable { mutableStateOf("0") }
+    var rawAmountValue by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+        mutableStateOf(TextFieldValue("0", selection = TextRange(1)))
+    }
+    val rawAmount = rawAmountValue.text
     var showAddCategoryDialog by rememberSaveable { mutableStateOf(false) }
     var isAddingSubcategory by rememberSaveable { mutableStateOf(false) }
     var newCategoryName by rememberSaveable { mutableStateOf("") }
@@ -184,7 +189,8 @@ fun AddTransactionScreen(
         if (!hasLoadedInitialData && transactionId != null && uiState.transactions.isNotEmpty()) {
             val transaction = uiState.transactions.find { it.id == transactionId }
             if (transaction != null) {
-                rawAmount = transaction.amount.toString().replace(".0", "")
+                val amtStr = transaction.amount.toString().replace(".0", "")
+                rawAmountValue = TextFieldValue(amtStr, selection = TextRange(amtStr.length))
                 note = transaction.note ?: ""
                 isRecurring = transaction.isRecurring
                 recurringPeriod = transaction.recurringPeriod ?: "MONTHLY"
@@ -248,7 +254,8 @@ fun AddTransactionScreen(
                     }
                 }
                 
-                rawAmount = if (parsedAmount > 0.0) parsedAmount.toString().replace(".0", "") else "0"
+                val amtStr = if (parsedAmount > 0.0) parsedAmount.toString().replace(".0", "") else "0"
+                rawAmountValue = TextFieldValue(amtStr, selection = TextRange(amtStr.length))
                 type = parsedType
                 selectedCategoryId = parsedCatId
                 subcategoryId = parsedSubcatId
@@ -401,6 +408,8 @@ fun AddTransactionScreen(
 
             // Amount display card
             AmountDisplayCard(
+                rawAmountValue = rawAmountValue,
+                onValueChange = { rawAmountValue = it },
                 displayAmount = displayAmount,
                 livePreviewAmount = livePreviewAmount,
                 accentColor = typeAccentColor,
@@ -995,7 +1004,7 @@ fun AddTransactionScreen(
             ) {
                 NumPad(
                     onKeyPress = { key ->
-                        rawAmount = handleNumpadKey(rawAmount, key)
+                        rawAmountValue = handleNumpadKey(rawAmountValue, key)
                     }
                 )
             }
@@ -1367,73 +1376,146 @@ fun AddTransactionScreen(
 //  Numpad key handler (pure function, easy to test)
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-private fun handleNumpadKey(current: String, key: String): String {
+private fun handleNumpadKey(value: TextFieldValue, key: String): TextFieldValue {
     val operators = setOf("+", "-", "×", "÷")
-    return when (key) {
-        "⌫" -> {
-            if (current.length <= 1) "0"
-            else {
-                // If ending with operator and spaces, drop last 3 characters " op "
-                if (current.endsWith(" ")) {
-                    val trimmed = current.trimEnd()
-                    if (trimmed.isNotEmpty() && operators.contains(trimmed.last().toString())) {
-                        trimmed.dropLast(1).trimEnd()
-                    } else {
-                        current.dropLast(1)
-                    }
-                } else {
-                    current.dropLast(1)
+    val text = value.text
+    val selection = value.selection
+    val start = selection.min
+    val end = selection.max
+
+    fun insertAtCursor(insertText: String): TextFieldValue {
+        val newText = text.substring(0, start) + insertText + text.substring(end)
+        val newCursor = start + insertText.length
+        return TextFieldValue(newText, selection = TextRange(newCursor))
+    }
+
+    fun isValidDecimalPlaces(t: String): Boolean {
+        val tokens = t.split(" ")
+        for (token in tokens) {
+            val dotIndex = token.indexOf('.')
+            if (dotIndex != -1) {
+                if (token.length - 1 - dotIndex > 2) {
+                    return false
                 }
             }
         }
-        "C" -> "0"
-        "00" -> {
-            if (current == "0") "0"
-            else {
-                val trimmed = current.trim()
-                if (trimmed.isNotEmpty() && operators.contains(trimmed.last().toString())) {
-                    current + "0"
-                } else {
-                    current + "00"
+        return true
+    }
+
+    fun getTokenAtIndex(t: String, index: Int): String {
+        var cumulativeLength = 0
+        val tokens = t.split(" ")
+        for (token in tokens) {
+            val tokenLength = token.length
+            if (index >= cumulativeLength && index <= cumulativeLength + tokenLength) {
+                return token
+            }
+            cumulativeLength += tokenLength + 1
+        }
+        return tokens.lastOrNull() ?: ""
+    }
+
+    return when (key) {
+        "⌫" -> {
+            if (!selection.collapsed) {
+                val newText = text.substring(0, start) + text.substring(end)
+                val finalVal = if (newText.isEmpty()) "0" else newText
+                val newCursor = if (newText.isEmpty()) 1 else start
+                TextFieldValue(finalVal, selection = TextRange(newCursor))
+            } else {
+                if (start == 0) value
+                else {
+                    val beforeCursor = text.substring(0, start)
+                    if (beforeCursor.endsWith(" ") && beforeCursor.length >= 3) {
+                        val opChar = beforeCursor[beforeCursor.length - 2].toString()
+                        val spaceBefore = beforeCursor[beforeCursor.length - 3]
+                        if (operators.contains(opChar) && spaceBefore == ' ') {
+                            val newText = text.substring(0, start - 3) + text.substring(start)
+                            val finalVal = if (newText.isEmpty()) "0" else newText
+                            val newCursor = if (newText.isEmpty()) 1 else (start - 3)
+                            return TextFieldValue(finalVal, selection = TextRange(newCursor))
+                        }
+                    }
+                    val newText = text.substring(0, start - 1) + text.substring(start)
+                    val finalVal = if (newText.isEmpty()) "0" else newText
+                    val newCursor = if (newText.isEmpty()) 1 else (start - 1)
+                    TextFieldValue(finalVal, selection = TextRange(newCursor))
                 }
+            }
+        }
+        "C" -> TextFieldValue("0", selection = TextRange(1))
+        "00" -> {
+            if (text == "0" || text.isEmpty()) {
+                TextFieldValue("0", selection = TextRange(1))
+            } else {
+                val beforeCursor = text.substring(0, start)
+                val trimmedBefore = beforeCursor.trimEnd()
+                val isAfterOperator = trimmedBefore.isNotEmpty() && operators.contains(trimmedBefore.last().toString())
+                val textToInsert = if (isAfterOperator) "0" else "00"
+                
+                val result = insertAtCursor(textToInsert)
+                if (isValidDecimalPlaces(result.text)) result else value
             }
         }
         "+", "-", "×", "÷" -> {
-            if (current.isEmpty()) "0"
-            else {
-                val trimmed = current.trim()
-                val lastChar = if (trimmed.isNotEmpty()) trimmed.last().toString() else ""
-                if (operators.contains(lastChar)) {
-                    // Replace operator: drop " op " (3 chars) and append new " op "
-                    current.trimEnd().dropLast(1).trimEnd() + " $key "
+            if (text.isEmpty()) {
+                TextFieldValue("0", selection = TextRange(1))
+            } else {
+                val beforeCursor = text.substring(0, start)
+                val trimmedBefore = beforeCursor.trimEnd()
+                if (trimmedBefore.isNotEmpty() && operators.contains(trimmedBefore.last().toString())) {
+                    val opIndex = trimmedBefore.length - 1
+                    val textBeforeOp = text.substring(0, opIndex)
+                    val textAfterOp = text.substring(opIndex + 1)
+                    val cleanAfterOp = if (textAfterOp.startsWith(" ")) textAfterOp.substring(1) else textAfterOp
+                    val newText = textBeforeOp + "$key " + cleanAfterOp
+                    val newCursor = textBeforeOp.length + "$key ".length
+                    TextFieldValue(newText, selection = TextRange(newCursor))
                 } else {
-                    current + " $key "
+                    val afterCursor = text.substring(end)
+                    val cleanBefore = beforeCursor.trimEnd()
+                    val cleanAfter = afterCursor.trimStart()
+                    val prefix = if (cleanBefore.isEmpty()) "0" else cleanBefore
+                    val newText = prefix + " $key " + cleanAfter
+                    val newCursor = prefix.length + " $key ".length
+                    TextFieldValue(newText, selection = TextRange(newCursor))
                 }
             }
         }
         "." -> {
-            val parts = current.split(" ")
-            val lastToken = parts.lastOrNull() ?: ""
-            if (lastToken.contains(".") || operators.contains(lastToken)) current
-            else if (lastToken.isEmpty()) current + "0."
-            else current + "."
+            val currentToken = getTokenAtIndex(text, start)
+            if (currentToken.contains(".") || operators.contains(currentToken)) {
+                value
+            } else if (currentToken.isEmpty()) {
+                insertAtCursor("0.")
+            } else {
+                insertAtCursor(".")
+            }
         }
         "=" -> {
-            val eval = com.example.core.utils.CalculatorParser.evaluate(current)
-            if (eval % 1 == 0.0) {
+            val eval = com.example.core.utils.CalculatorParser.evaluate(text)
+            val evalResult = if (eval % 1 == 0.0) {
                 eval.toInt().toString()
             } else {
                 "%.2f".format(eval).replace(",", ".")
             }
+            TextFieldValue(evalResult, selection = TextRange(evalResult.length))
         }
         else -> { // Digit keys "0" - "9"
-            if (current == "0") key
-            else {
-                val parts = current.split(" ")
-                val lastToken = parts.lastOrNull() ?: ""
-                val dotIndex = lastToken.indexOf('.')
-                if (dotIndex != -1 && lastToken.length - dotIndex > 2) current
-                else current + key
+            if (text == "0") {
+                TextFieldValue(key, selection = TextRange(1))
+            } else {
+                val currentToken = getTokenAtIndex(text, start)
+                if (currentToken == "0") {
+                    val zeroIndex = if (start > 0 && text[start - 1] == '0') start - 1 else start
+                    val newText = text.substring(0, zeroIndex) + key + text.substring(zeroIndex + 1)
+                    val newCursor = zeroIndex + 1
+                    val result = TextFieldValue(newText, selection = TextRange(newCursor))
+                    if (isValidDecimalPlaces(result.text)) result else value
+                } else {
+                    val result = insertAtCursor(key)
+                    if (isValidDecimalPlaces(result.text)) result else value
+                }
             }
         }
     }

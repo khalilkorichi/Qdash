@@ -1,4 +1,4 @@
-﻿package com.example.presentation.transactions
+package com.example.presentation.transactions
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
@@ -362,6 +362,86 @@ fun TransactionsScreen(
                                     ),
                                     modifier = Modifier.height(chipHeight).padding(horizontal = 2.dp)
                                 )
+                            }
+
+                            val activeCategories = remember(uiState.categories, uiState.transactions, uiState.selectedType) {
+                                val activeIds = uiState.transactions
+                                    .filter { tx -> uiState.selectedType == null || tx.type == uiState.selectedType }
+                                    .map { it.categoryId }
+                                    .toSet()
+                                uiState.categories.filter { it.id in activeIds }
+                            }
+
+                            if (activeCategories.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)))
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Text(
+                                    text = "تصفية حسب الفئة",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = TextGray,
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                                    textAlign = TextAlign.Start
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                
+                                LazyRow(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    contentPadding = PaddingValues(horizontal = 4.dp)
+                                ) {
+                                    item {
+                                        val isAllSelected = uiState.selectedCategoryId == null
+                                        val containerColor = if (isAllSelected) Primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                        val contentColor = if (isAllSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                                        
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(20.dp))
+                                                .background(containerColor)
+                                                .clickable { viewModel.onCategorySelected(null) }
+                                                .padding(horizontal = 16.dp, vertical = 10.dp)
+                                                .testTag("category_chip_all"),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.FilterList,
+                                                    contentDescription = null,
+                                                    tint = if (isAllSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    text = "كل الفئات",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = contentColor
+                                                )
+                                            }
+                                        }
+                                    }
+                                    
+                                    items(activeCategories, key = { it.id }) { category ->
+                                        CategoryChip(
+                                            category = category,
+                                            isSelected = uiState.selectedCategoryId == category.id,
+                                            onClick = {
+                                                if (uiState.selectedCategoryId == category.id) {
+                                                    viewModel.onCategorySelected(null)
+                                                } else {
+                                                    viewModel.onCategorySelected(category.id)
+                                                }
+                                            },
+                                            modifier = Modifier.height(38.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
