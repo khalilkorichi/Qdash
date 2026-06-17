@@ -789,11 +789,36 @@ fun IncomeExpenseSplitCards(
                             )
                         }
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "الدخل",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextGray
-                        )
+                        Column {
+                            Text(
+                                text = "الدخل",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextGray
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            // Income change percent badge
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background((if (incomeChangePercent >= 0) IncomeGreen else ExpenseRed).copy(alpha = 0.1f))
+                                    .padding(horizontal = 5.dp, vertical = 1.5.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (incomeChangePercent >= 0) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                                    contentDescription = null,
+                                    tint = if (incomeChangePercent >= 0) IncomeGreen else ExpenseRed,
+                                    modifier = Modifier.size(8.dp)
+                                )
+                                Text(
+                                    text = String.format(java.util.Locale.US, "%.1f%%", kotlin.math.abs(incomeChangePercent)),
+                                    fontSize = 8.sp,
+                                    color = if (incomeChangePercent >= 0) IncomeGreen else ExpenseRed,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
@@ -802,31 +827,6 @@ fun IncomeExpenseSplitCards(
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.ExtraBold
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    
-                    // Income change percent badge
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background((if (incomeChangePercent >= 0) IncomeGreen else ExpenseRed).copy(alpha = 0.1f))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (incomeChangePercent >= 0) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-                            contentDescription = null,
-                            tint = if (incomeChangePercent >= 0) IncomeGreen else ExpenseRed,
-                            modifier = Modifier.size(10.dp)
-                        )
-                        Text(
-                            text = String.format(java.util.Locale.US, "%.1f%%", kotlin.math.abs(incomeChangePercent)),
-                            fontSize = 9.sp,
-                            color = if (incomeChangePercent >= 0) IncomeGreen else ExpenseRed,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
                     Spacer(modifier = Modifier.height(12.dp))
                     Box(
                         modifier = Modifier
@@ -871,11 +871,37 @@ fun IncomeExpenseSplitCards(
                             )
                         }
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "المصاريف",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextGray
-                        )
+                        Column {
+                            Text(
+                                text = "المصاريف",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextGray
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            // Expense change percent badge (decrease is green/good, increase is red/bad)
+                            val isExpenseDecreased = expenseChangePercent <= 0
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background((if (isExpenseDecreased) IncomeGreen else ExpenseRed).copy(alpha = 0.1f))
+                                    .padding(horizontal = 5.dp, vertical = 1.5.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (expenseChangePercent >= 0) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                                    contentDescription = null,
+                                    tint = if (isExpenseDecreased) IncomeGreen else ExpenseRed,
+                                    modifier = Modifier.size(8.dp)
+                                )
+                                Text(
+                                    text = String.format(java.util.Locale.US, "%.1f%%", kotlin.math.abs(expenseChangePercent)),
+                                    fontSize = 8.sp,
+                                    color = if (isExpenseDecreased) IncomeGreen else ExpenseRed,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
@@ -884,32 +910,6 @@ fun IncomeExpenseSplitCards(
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.ExtraBold
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    
-                    // Expense change percent badge (decrease is green/good, increase is red/bad)
-                    val isExpenseDecreased = expenseChangePercent <= 0
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background((if (isExpenseDecreased) IncomeGreen else ExpenseRed).copy(alpha = 0.1f))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (expenseChangePercent >= 0) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-                            contentDescription = null,
-                            tint = if (isExpenseDecreased) IncomeGreen else ExpenseRed,
-                            modifier = Modifier.size(10.dp)
-                        )
-                        Text(
-                            text = String.format(java.util.Locale.US, "%.1f%%", kotlin.math.abs(expenseChangePercent)),
-                            fontSize = 9.sp,
-                            color = if (isExpenseDecreased) IncomeGreen else ExpenseRed,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
                     Spacer(modifier = Modifier.height(12.dp))
                     Box(
                         modifier = Modifier
