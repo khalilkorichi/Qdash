@@ -24,10 +24,23 @@ sealed class DownloadState {
     data class Error(val throwable: Throwable) : DownloadState()
 }
 
+sealed class CheckingStep {
+    object Idle : CheckingStep()
+    object ReadingLocalVersion : CheckingStep()
+    object FetchingManifest : CheckingStep()
+    object FetchingReleaseFallback : CheckingStep()
+    object ComparingVersions : CheckingStep()
+    data class Success(val info: UpdateInfo) : CheckingStep()
+    data class Error(val message: String) : CheckingStep()
+}
+
 interface UpdateRepository {
-    suspend fun checkForUpdates(): Result<UpdateInfo>
+    suspend fun checkForUpdates(onStep: suspend (CheckingStep) -> Unit = {}): Result<UpdateInfo>
     fun downloadApk(url: String, startBytes: Long = 0L): Flow<DownloadState>
     fun verifyApkSha256(file: File, expectedSha256: String): Boolean
     suspend fun copyApkToDownloads(file: File, filename: String): Uri?
     suspend fun backupDataBeforeUpdate(backupManager: BackupManager): Result<Uri>
+    suspend fun saveDownloadedApk(file: File, versionName: String): File
+    suspend fun getDownloadedApks(): List<File>
+    suspend fun deleteDownloadedApk(file: File): Boolean
 }

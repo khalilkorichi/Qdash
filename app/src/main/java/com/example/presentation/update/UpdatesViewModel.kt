@@ -13,6 +13,7 @@ import com.example.data.backup.BackupManager
 import com.example.data.update.DownloadState
 import com.example.data.update.UpdateInfo
 import com.example.data.update.UpdateRepository
+import com.example.data.update.CheckingStep
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -39,6 +40,20 @@ enum class FallbackStep {
     UNINSTALL
 }
 
+enum class CheckStepStatus {
+    PENDING, RUNNING, COMPLETED, FAILED
+}
+
+data class CheckStepItem(
+    val type: CheckingStepType,
+    val title: String,
+    val status: CheckStepStatus
+)
+
+enum class CheckingStepType {
+    READ_LOCAL, FETCH_MANIFEST, FETCH_RELEASE, COMPARE
+}
+
 class UpdatesViewModel(
     private val repository: UpdateRepository,
     private val backupManager: BackupManager,
@@ -48,6 +63,12 @@ class UpdatesViewModel(
     private val _uiState = MutableStateFlow<UpdateUiState>(UpdateUiState.Idle)
     val uiState = _uiState.asStateFlow()
 
+    private val _checkingSteps = MutableStateFlow<List<CheckStepItem>>(emptyList())
+    val checkingSteps = _checkingSteps.asStateFlow()
+
+    private val _downloadedApks = MutableStateFlow<List<File>>(emptyList())
+    val downloadedApks = _downloadedApks.asStateFlow()
+
     private var wasInstallationTriggered = false
     private var lastTriggeredApkFile: File? = null
     private var lastUpdateInfo: UpdateInfo? = null
@@ -55,28 +76,97 @@ class UpdatesViewModel(
     private var currentProgress = 0
 
     init {
+        loadDownloadedApks()
         checkForUpdates()
+    }
+
+    fun loadDownloadedApks() {
+        viewModelScope.launch {
+            _downloadedApks.value = repository.getDownloadedApks()
+        }
+    }
+
+    private fun initCheckingSteps() {
+        _checkingSteps.value = listOf(
+            CheckStepItem(CheckingStepType.READ_LOCAL, "قراءة معلومات النسخة المحلية", CheckStepStatus.PENDING),
+            CheckStepItem(CheckingStepType.FETCH_MANIFEST, "الاتصال بالخادم وجلب ملف التحديث السريع", CheckStepStatus.PENDING),
+            CheckStepItem(CheckingStepType.FETCH_RELEASE, "التحقق الاحتياطي من خادم الإصدارات", CheckStepStatus.PENDING),
+            CheckStepItem(CheckingStepType.COMPARE, "مقارنة الإصدارات وتحديد النتيجة النهائية", CheckStepStatus.PENDING)
+        )
+    }
+
+    private fun updateStepStatus(type: CheckingStepType, status: CheckStepStatus) {
+        _checkingSteps.value = _checkingSteps.value.map {
+            if (it.type == type) it.copy(status = status) else it
+        }
     }
 
     fun checkForUpdates() {
         viewModelScope.launch {
+            initCheckingSteps()
             _uiState.value = UpdateUiState.Checking
-            repository.checkForUpdates()
-                .onSuccess { info ->
-                    if (info.hasUpdate) {
-                        _uiState.value = UpdateUiState.UpdateAvailable(info)
-                    } else {
-                        val versionStr = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
-                        _uiState.value = UpdateUiState.NoUpdate(versionStr)
+            repository.checkForUpdates { step ->
+                when (step) {
+                    is CheckingStep.ReadingLocalVersion -> {
+                        updateStepStatus(CheckingStepType.READ_LOCAL, CheckStepStatus.RUNNING)
                     }
+                    is CheckingStep.FetchingManifest -> {
+                        updateStepStatus(CheckingStepType.READ_LOCAL, CheckStepStatus.COMPLETED)
+                        updateStepStatus(CheckingStepType.FETCH_MANIFEST, CheckStepStatus.RUNNING)
+                    }
+                    is CheckingStep.FetchingReleaseFallback -> {
+                        updateStepStatus(CheckingStepType.FETCH_MANIFEST, CheckStepStatus.FAILED)
+                        updateStepStatus(CheckingStepType.FETCH_RELEASE, CheckStepStatus.RUNNING)
+                    }
+                    is CheckingStep.ComparingVersions -> {
+                        val currentSteps = _checkingSteps.value
+                        val manifestStep = currentSteps.find { it.type == CheckingStepType.FETCH_MANIFEST }
+                        if (manifestStep?.status == CheckStepStatus.RUNNING) {
+                            updateStepStatus(CheckingStepType.FETCH_MANIFEST, CheckStepStatus.COMPLETED)
+                            updateStepStatus(CheckingStepType.FETCH_RELEASE, CheckStepStatus.COMPLETED)
+                        } else {
+                            updateStepStatus(CheckingStepType.FETCH_RELEASE, CheckStepStatus.COMPLETED)
+                        }
+                        updateStepStatus(CheckingStepType.COMPARE, CheckStepStatus.RUNNING)
+                    }
+                    is CheckingStep.Success -> {
+                        updateStepStatus(CheckingStepType.COMPARE, CheckStepStatus.COMPLETED)
+                        kotlinx.coroutines.delay(400)
+                        
+                        val info = step.info
+                        if (info.hasUpdate) {
+                            _uiState.value = UpdateUiState.UpdateAvailable(info)
+                        } else {
+                            val versionStr = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
+                            _uiState.value = UpdateUiState.NoUpdate(versionStr)
+                        }
+                    }
+                    is CheckingStep.Error -> {
+                        updateStepStatus(CheckingStepType.COMPARE, CheckStepStatus.FAILED)
+                        _uiState.value = UpdateUiState.Error(step.message)
+                    }
+                    else -> {}
                 }
-                .onFailure { error ->
-                    _uiState.value = UpdateUiState.Error(error.localizedMessage ?: "فشل التحقق من التحديثات")
-                }
+            }
+        }
+    }
+
+    private fun hasEnoughSpace(requiredBytes: Long): Boolean {
+        return try {
+            val stat = android.os.StatFs(context.cacheDir.path)
+            val availableBytes = stat.availableBlocksLong * stat.blockSizeLong
+            availableBytes > requiredBytes
+        } catch (e: Exception) {
+            true
         }
     }
 
     fun downloadUpdate(info: UpdateInfo) {
+        if (info.apkSize > 0 && !hasEnoughSpace(info.apkSize + 10 * 1024 * 1024)) {
+            _uiState.value = UpdateUiState.DownloadFailed(info, "مساحة التخزين غير كافية لتحميل هذا التحديث. يرجى توفير مساحة إضافية.")
+            return
+        }
+
         val startBytes = if (_uiState.value is UpdateUiState.Paused) {
             File(context.cacheDir, "Qdash-update-temp.apk").let { if (it.exists()) it.length() else 0L }
         } else {
@@ -100,7 +190,6 @@ class UpdatesViewModel(
                         _uiState.value = UpdateUiState.Downloading(info, percentage)
                     }
                     is DownloadState.Success -> {
-                        // Checksum validation
                         val isValid = if (!info.apkSha256.isNullOrBlank()) {
                             repository.verifyApkSha256(downloadState.file, info.apkSha256)
                         } else {
@@ -108,7 +197,11 @@ class UpdatesViewModel(
                         }
 
                         if (isValid) {
-                            _uiState.value = UpdateUiState.ReadyToInstall(info, downloadState.file)
+                            viewModelScope.launch {
+                                val savedFile = repository.saveDownloadedApk(downloadState.file, info.versionName)
+                                _uiState.value = UpdateUiState.ReadyToInstall(info, savedFile)
+                                loadDownloadedApks()
+                            }
                         } else {
                             _uiState.value = UpdateUiState.DownloadFailed(info, "فشلت عملية التحقق من سلامة الملف (SHA256 Mismatch).")
                         }
@@ -119,6 +212,30 @@ class UpdatesViewModel(
                 }
             }
         }
+    }
+
+    fun deleteDownloadedApk(file: File) {
+        viewModelScope.launch {
+            val success = repository.deleteDownloadedApk(file)
+            if (success) {
+                loadDownloadedApks()
+            }
+        }
+    }
+
+    fun installDownloadedApk(context: Context, file: File, versionName: String) {
+        val dummyInfo = UpdateInfo(
+            hasUpdate = false,
+            versionCode = 0,
+            versionName = versionName,
+            updateIdentity = file.lastModified(),
+            apkUrl = "",
+            apkSize = file.length(),
+            apkSha256 = null,
+            mandatory = false,
+            releaseNotes = null
+        )
+        triggerSafetyBackupAndInstall(context, dummyInfo, file)
     }
 
     fun pauseDownload(info: UpdateInfo) {

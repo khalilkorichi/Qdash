@@ -12,6 +12,7 @@ import com.example.data.backup.BackupManager
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -55,10 +56,14 @@ class UpdateRepositoryImpl(
 
     private val client: GitHubReleaseClient = retrofit.create(GitHubReleaseClient::class.java)
 
-    override suspend fun checkForUpdates(): Result<UpdateInfo> = withContext(Dispatchers.IO) {
+    override suspend fun checkForUpdates(onStep: suspend (CheckingStep) -> Unit): Result<UpdateInfo> = withContext(Dispatchers.IO) {
         try {
-            // 1. Try to fetch custom update.json manifest from raw GitHub CDN
-            val manifestUrl = "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/update.json"
+            onStep(CheckingStep.ReadingLocalVersion)
+            delay(400) // Small delay for premium UX feel / readability
+
+            // 1. Try to fetch custom update.json manifest from raw GitHub CDN with cache buster
+            onStep(CheckingStep.FetchingManifest)
+            val manifestUrl = "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/update.json?t=${System.currentTimeMillis()}"
             val manifest = try {
                 client.fetchUpdateManifest(manifestUrl)
             } catch (e: Exception) {
@@ -70,40 +75,46 @@ class UpdateRepositoryImpl(
             }
             val localBuildTime = BuildConfig.BUILD_TIMESTAMP
             val localVersionName = BuildConfig.VERSION_NAME
+            val localVersionCode = BuildConfig.VERSION_CODE
+            val localIdentity = BuildConfig.UPDATE_IDENTITY
 
             if (manifest != null) {
+                onStep(CheckingStep.ComparingVersions)
+                delay(400)
+                
                 val remoteTime = try {
                     format.parse(manifest.publishedAt)?.time ?: 0L
                 } catch (e: Exception) {
                     0L
                 }
-                val localIdentity = BuildConfig.UPDATE_IDENTITY
                 val remoteIdentity = manifest.updateIdentity
                 val remoteVersionName = manifest.versionName
 
+                val isNewerVersionCode = manifest.versionCode > localVersionCode
                 val isNewerVersion = isVersionNewer(localVersionName, remoteVersionName)
                 val isSameVersionAndNewerIdentity = (remoteVersionName.removePrefix("v").trim() == localVersionName.removePrefix("v").trim()) && (remoteIdentity > localIdentity)
                 val isNewerBuildDate = remoteTime > localBuildTime && (remoteVersionName.removePrefix("v").trim() == localVersionName.removePrefix("v").trim())
                 val isIdentityNewer = remoteIdentity > localIdentity
 
-                val hasUpdate = isNewerVersion || isSameVersionAndNewerIdentity || isNewerBuildDate || isIdentityNewer
+                val hasUpdate = isNewerVersionCode || isNewerVersion || isSameVersionAndNewerIdentity || isNewerBuildDate || isIdentityNewer
                 
-                return@withContext Result.success(
-                    UpdateInfo(
-                        hasUpdate = hasUpdate,
-                        versionCode = manifest.versionCode,
-                        versionName = manifest.versionName,
-                        updateIdentity = manifest.updateIdentity,
-                        apkUrl = manifest.apkUrl,
-                        apkSize = manifest.apkSize,
-                        apkSha256 = manifest.apkSha256,
-                        mandatory = manifest.mandatory,
-                        releaseNotes = manifest.releaseNotes
-                    )
+                val updateInfo = UpdateInfo(
+                    hasUpdate = hasUpdate,
+                    versionCode = manifest.versionCode,
+                    versionName = manifest.versionName,
+                    updateIdentity = manifest.updateIdentity,
+                    apkUrl = manifest.apkUrl,
+                    apkSize = manifest.apkSize,
+                    apkSha256 = manifest.apkSha256,
+                    mandatory = manifest.mandatory,
+                    releaseNotes = manifest.releaseNotes
                 )
+                onStep(CheckingStep.Success(updateInfo))
+                return@withContext Result.success(updateInfo)
             }
 
             // 2. Fallback to GitHub Releases API if update.json doesn't exist/fails
+            onStep(CheckingStep.FetchingReleaseFallback)
             val latestRelease = client.fetchLatestRelease()
             val apkAsset = latestRelease.assets.firstOrNull { it.name.endsWith(".apk") }
                 ?: return@withContext Result.failure(Exception("لم يتم العثور على ملف APK في إصدارات GitHub."))
@@ -117,25 +128,29 @@ class UpdateRepositoryImpl(
                 0L
             }
 
+            onStep(CheckingStep.ComparingVersions)
+            delay(400)
+
             val isNewerVersion = isVersionNewer(localVersionName, cleanTagName)
             val isNewerBuildDate = remoteTime > localBuildTime && (cleanTagName == localVersionName.removePrefix("v").trim())
 
             val hasUpdate = isNewerVersion || isNewerBuildDate
 
-            Result.success(
-                UpdateInfo(
-                    hasUpdate = hasUpdate,
-                    versionCode = 1, // Default fallback
-                    versionName = cleanTagName,
-                    updateIdentity = remoteTime,
-                    apkUrl = apkAsset.browserDownloadUrl,
-                    apkSize = apkAsset.size,
-                    apkSha256 = null,
-                    mandatory = false,
-                    releaseNotes = latestRelease.body
-                )
+            val updateInfo = UpdateInfo(
+                hasUpdate = hasUpdate,
+                versionCode = 1, // Default fallback
+                versionName = cleanTagName,
+                updateIdentity = remoteTime,
+                apkUrl = apkAsset.browserDownloadUrl,
+                apkSize = apkAsset.size,
+                apkSha256 = null,
+                mandatory = false,
+                releaseNotes = latestRelease.body
             )
+            onStep(CheckingStep.Success(updateInfo))
+            Result.success(updateInfo)
         } catch (e: Exception) {
+            onStep(CheckingStep.Error(e.localizedMessage ?: "حدث خطأ أثناء فحص التحديثات"))
             Result.failure(e)
         }
     }
@@ -275,6 +290,32 @@ class UpdateRepositoryImpl(
             }
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    override suspend fun saveDownloadedApk(file: File, versionName: String): File = withContext(Dispatchers.IO) {
+        val updatesDir = File(context.filesDir, "updates")
+        if (!updatesDir.exists()) {
+            updatesDir.mkdirs()
+        }
+        val destFile = File(updatesDir, "Qdash-v$versionName.apk")
+        file.copyTo(destFile, overwrite = true)
+        destFile
+    }
+
+    override suspend fun getDownloadedApks(): List<File> = withContext(Dispatchers.IO) {
+        val updatesDir = File(context.filesDir, "updates")
+        if (!updatesDir.exists()) return@withContext emptyList()
+        updatesDir.listFiles { file -> file.extension == "apk" && file.name.startsWith("Qdash-v") }
+            ?.sortedByDescending { it.lastModified() }
+            ?.toList() ?: emptyList()
+    }
+
+    override suspend fun deleteDownloadedApk(file: File): Boolean = withContext(Dispatchers.IO) {
+        try {
+            if (file.exists()) file.delete() else false
+        } catch (e: Exception) {
+            false
         }
     }
 

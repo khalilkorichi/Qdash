@@ -1,6 +1,7 @@
 package com.example.presentation.update
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
@@ -58,11 +59,27 @@ fun UpdatesScreen(
         }
     }
 
+    val isMandatory = remember(uiState) {
+        when (val state = uiState) {
+            is UpdateUiState.UpdateAvailable -> state.info.mandatory
+            is UpdateUiState.Downloading -> state.info.mandatory
+            is UpdateUiState.Paused -> state.info.mandatory
+            is UpdateUiState.ReadyToInstall -> state.info.mandatory
+            is UpdateUiState.BackupInProgress -> state.info.mandatory
+            is UpdateUiState.BackupSuccess -> state.info.mandatory
+            else -> false
+        }
+    }
+
+    BackHandler(enabled = isMandatory) {
+        // Intercept and do nothing to prevent back navigation if mandatory update is active
+    }
+
     Scaffold(
         topBar = {
             FinTrackTopBar(
                 title = "تحديثات التطبيق",
-                showBackButton = true,
+                showBackButton = !isMandatory,
                 onBackClick = onBack,
                 actions = {
                     val state = uiState
@@ -111,13 +128,81 @@ fun UpdatesScreen(
                     }
                 }
                 is UpdateUiState.Checking -> {
-                    StatusHero(
-                        icon = Icons.Default.Sync,
-                        iconColor = MaterialTheme.colorScheme.primary,
-                        title = "جاري التحقق...",
-                        subtitle = "يرجى الانتظار، نتواصل مع خوادم GitHub"
-                    )
-                    CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                    val steps by viewModel.checkingSteps.collectAsState()
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        StatusHero(
+                            icon = Icons.Default.Sync,
+                            iconColor = MaterialTheme.colorScheme.primary,
+                            title = "جاري التحقق من التحديثات...",
+                            subtitle = "نحن نقوم الآن بالاتصال بالخادم للبحث عن إصدارات جديدة"
+                        )
+                        
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                steps.forEach { step ->
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        when (step.status) {
+                                            CheckStepStatus.PENDING -> {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(20.dp)
+                                                        .border(1.5.dp, TextGray.copy(alpha = 0.4f), CircleShape)
+                                                )
+                                            }
+                                            CheckStepStatus.RUNNING -> {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(20.dp),
+                                                    strokeWidth = 2.dp,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                            CheckStepStatus.COMPLETED -> {
+                                                Icon(
+                                                    imageVector = Icons.Default.CheckCircle,
+                                                    contentDescription = null,
+                                                    tint = IncomeGreen,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                            CheckStepStatus.FAILED -> {
+                                                Icon(
+                                                    imageVector = Icons.Default.Cancel,
+                                                    contentDescription = null,
+                                                    tint = ExpenseRed,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                        }
+                                        Text(
+                                            text = step.title,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = if (step.status == CheckStepStatus.RUNNING) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (step.status == CheckStepStatus.RUNNING) MaterialTheme.colorScheme.primary
+                                                    else if (step.status == CheckStepStatus.PENDING) TextGray.copy(alpha = 0.6f)
+                                                    else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
                 is UpdateUiState.NoUpdate -> {
                     StatusHero(
@@ -335,6 +420,24 @@ fun UpdatesScreen(
                     ) {
                         Text("إعادة المحاولة", fontWeight = FontWeight.Bold)
                     }
+                }
+            }
+
+            val state = uiState
+            if (state !is UpdateUiState.Checking &&
+                state !is UpdateUiState.Downloading &&
+                state !is UpdateUiState.Paused &&
+                state !is UpdateUiState.BackupInProgress &&
+                state !is UpdateUiState.BackupSuccess) {
+                
+                val downloadedApks by viewModel.downloadedApks.collectAsState()
+                if (downloadedApks.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    DownloadedUpdatesSection(
+                        downloadedApks = downloadedApks,
+                        onInstall = { file, version -> viewModel.installDownloadedApk(context, file, version) },
+                        onDelete = { file -> viewModel.deleteDownloadedApk(file) }
+                    )
                 }
             }
         }
@@ -634,5 +737,122 @@ private fun FallbackStepItem(
                 actionButton()
             }
         }
+    }
+}
+
+@Composable
+private fun DownloadedUpdatesSection(
+    downloadedApks: List<File>,
+    onInstall: (File, String) -> Unit,
+    onDelete: (File) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (downloadedApks.isEmpty()) return
+
+    var fileToDelete by remember { mutableStateOf<File?>(null) }
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = "النسخ المنزلة سابقاً",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
+
+        downloadedApks.forEach { file ->
+            val versionName = remember(file.name) {
+                file.name.removePrefix("Qdash-v").removeSuffix(".apk")
+            }
+            
+            val fileSize = remember(file) {
+                String.format("%.2f MB", file.length().toDouble() / (1024 * 1024))
+            }
+            val downloadDate = remember(file) {
+                val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
+                sdf.format(java.util.Date(file.lastModified()))
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Folder,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "إصدار v$versionName",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = fileSize, style = MaterialTheme.typography.bodySmall, color = TextGray)
+                            Box(modifier = Modifier.size(3.dp).background(TextGray.copy(alpha = 0.5f), CircleShape))
+                            Text(text = downloadDate, style = MaterialTheme.typography.bodySmall, color = TextGray)
+                        }
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        IconButton(
+                            onClick = { onInstall(file, versionName) },
+                            colors = IconButtonDefaults.iconButtonColors(contentColor = IncomeGreen)
+                        ) {
+                            Icon(Icons.Default.OpenInNew, contentDescription = "تثبيت")
+                        }
+                        IconButton(
+                            onClick = { fileToDelete = file },
+                            colors = IconButtonDefaults.iconButtonColors(contentColor = ExpenseRed)
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = "حذف")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (fileToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { fileToDelete = null },
+            title = { Text("حذف ملف التحديث", fontWeight = FontWeight.Bold) },
+            text = { Text("هل أنت متأكد من رغبتك في حذف هذا الملف لتحرير مساحة التخزين؟ لن تتمكن من تثبيته إلا بعد إعادة تحميله.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        fileToDelete?.let { onDelete(it) }
+                        fileToDelete = null
+                    }
+                ) {
+                    Text("حذف", color = ExpenseRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { fileToDelete = null }) {
+                    Text("إلغاء")
+                }
+            }
+        )
     }
 }
