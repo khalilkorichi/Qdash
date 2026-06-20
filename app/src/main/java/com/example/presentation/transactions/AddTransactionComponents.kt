@@ -53,6 +53,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalTextInputService
 
 // ─────────────────────────────────────────────────────────
 //  Helper functions for currency in words (Algerian DZ)
@@ -347,34 +348,45 @@ fun AmountDisplayCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 val focusRequester = remember { FocusRequester() }
-                BasicTextField(
-                    value = rawAmountValue,
-                    onValueChange = onValueChange,
-                    readOnly = true,
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.displayLarge.copy(
-                        fontSize = if (rawAmountValue.text.length > 12) 28.sp else 38.sp,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.ExtraBold,
-                        textAlign = TextAlign.Center,
-                        localeList = if (com.example.core.utils.FormatterUtils.useWesternNumerals) {
-                            androidx.compose.ui.text.intl.LocaleList("en")
-                        } else {
-                            androidx.compose.ui.text.intl.LocaleList("ar")
-                        }
-                    ),
-                    cursorBrush = SolidColor(accentColor),
-                    visualTransformation = FormulaThousandsSeparatorTransformation(),
-                    modifier = Modifier
-                        .focusRequester(focusRequester)
-                        .pointerInput(Unit) {
-                            awaitEachGesture {
-                                awaitFirstDown(requireUnconsumed = false)
-                                focusRequester.requestFocus()
-                                onTap()
+                CompositionLocalProvider(LocalTextInputService provides null) {
+                    BasicTextField(
+                        value = rawAmountValue,
+                        onValueChange = onValueChange,
+                        readOnly = false,
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.displayLarge.copy(
+                            fontSize = if (rawAmountValue.text.length > 12) 28.sp else 38.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.ExtraBold,
+                            textAlign = TextAlign.Center,
+                            localeList = if (com.example.core.utils.FormatterUtils.useWesternNumerals) {
+                                androidx.compose.ui.text.intl.LocaleList("en")
+                            } else {
+                                androidx.compose.ui.text.intl.LocaleList("ar")
                             }
-                        }
-                )
+                        ),
+                        cursorBrush = SolidColor(accentColor),
+                        visualTransformation = FormulaThousandsSeparatorTransformation(),
+                        modifier = Modifier
+                            .focusRequester(focusRequester)
+                            .onFocusChanged { focusState ->
+                                if (focusState.isFocused) {
+                                    onValueChange(
+                                        rawAmountValue.copy(
+                                            selection = TextRange(0, rawAmountValue.text.length)
+                                        )
+                                    )
+                                }
+                            }
+                            .pointerInput(Unit) {
+                                awaitEachGesture {
+                                    awaitFirstDown(requireUnconsumed = false)
+                                    focusRequester.requestFocus()
+                                    onTap()
+                                }
+                            }
+                    )
+                }
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "دج",
