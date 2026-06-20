@@ -103,6 +103,8 @@ fun AccountsScreen(
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     val PrimaryDark = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primaryContainer else com.example.ui.theme.PrimaryDark
+    val isDark = isSystemInDarkTheme()
+    val gradientColors = if (isDark) listOf(Primary, PrimaryDark) else listOf(Primary, Primary)
     val accountColorPalette = remember(Primary) {
         listOf(
             "#6C63FF" to Primary,
@@ -228,7 +230,7 @@ fun AccountsScreen(
                                 .fillMaxWidth()
                                 .background(
                                     Brush.verticalGradient(
-                                        colors = listOf(Primary, PrimaryDark)
+                                        colors = gradientColors
                                     )
                                 )
                                 .padding(24.dp)
@@ -264,7 +266,7 @@ fun AccountsScreen(
                                         }
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
-                                            text = if (showTotalBalance) "${"%,.0f".format(total)} دج" else "•••• دج",
+                                            text = if (showTotalBalance) FormatterUtils.formatCurrency(total) else "•••• دج",
                                             style = MaterialTheme.typography.displayMedium.copy(
                                                 fontSize = 28.sp,
                                                 fontWeight = FontWeight.Black
@@ -297,7 +299,7 @@ fun AccountsScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "${uiState.accounts.size} حسابات مالية نشطة",
+                                        text = FormatterUtils.convertNumerals("${uiState.accounts.size} حسابات مالية نشطة"),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = Color.White.copy(alpha = 0.9f),
                                         fontWeight = FontWeight.SemiBold

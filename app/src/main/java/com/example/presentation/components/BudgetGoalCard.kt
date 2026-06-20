@@ -41,9 +41,9 @@ fun BudgetGoalCard(
         BudgetStatus.EXCEEDED -> ExpenseRed
     }
 
-    val dzdAmountLimit = "${String.format("%,.0f", budget.amountLimit)} د.ج"
-    val dzdAmountSpent = "${String.format("%,.0f", budget.spentAmount)} د.ج"
-    val dzdRemaining = "${String.format("%,.0f", budget.remainingAmount.coerceAtLeast(0.0))} د.ج"
+    val dzdAmountLimit = com.example.core.utils.FormatterUtils.convertNumerals("${String.format("%,.0f", budget.amountLimit)} د.ج")
+    val dzdAmountSpent = com.example.core.utils.FormatterUtils.convertNumerals("${String.format("%,.0f", budget.spentAmount)} د.ج")
+    val dzdRemaining = com.example.core.utils.FormatterUtils.convertNumerals("${String.format("%,.0f", budget.remainingAmount.coerceAtLeast(0.0))} د.ج")
 
     val now = System.currentTimeMillis()
     val totalDuration = budget.endDate - now
@@ -51,7 +51,7 @@ fun BudgetGoalCard(
         "انتهت المدة"
     } else {
         val days = TimeUnit.MILLISECONDS.toDays(totalDuration)
-        if (days == 0L) "ينتهي اليوم" else "متبقي $days يوم"
+        if (days == 0L) "ينتهي اليوم" else com.example.core.utils.FormatterUtils.convertNumerals("متبقي $days يوم")
     }
 
     val typeLabel = when (budget.budgetType) {
@@ -178,13 +178,13 @@ fun BudgetGoalCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (budget.remainingAmount < 0) "المبلغ المتجاوز: ${String.format("%,.0f", -budget.remainingAmount)} د.ج" else "المتبقي: $dzdRemaining",
+                    text = if (budget.remainingAmount < 0) com.example.core.utils.FormatterUtils.convertNumerals("المبلغ المتجاوز: ${String.format("%,.0f", -budget.remainingAmount)} د.ج") else "المتبقي: $dzdRemaining",
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                     color = if (budget.remainingAmount < 0) ExpenseRed else IncomeGreen
                 )
 
                 Text(
-                    text = "${(budget.usagePercent * 100).toInt()}%",
+                    text = com.example.core.utils.FormatterUtils.convertNumerals("${(budget.usagePercent * 100).toInt()}%"),
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                     color = progressColor
                 )

@@ -71,9 +71,9 @@ fun BudgetGoalDetailsScreen(
         return
     }
 
-    val dzdAmountLimit = "${String.format("%,.0f", budget.amountLimit)} د.ج"
-    val dzdAmountSpent = "${String.format("%,.0f", budget.spentAmount)} د.ج"
-    val dzdRemaining = "${String.format("%,.0f", budget.remainingAmount.coerceAtLeast(0.0))} د.ج"
+    val dzdAmountLimit = com.example.core.utils.FormatterUtils.convertNumerals("${String.format("%,.0f", budget.amountLimit)} د.ج")
+    val dzdAmountSpent = com.example.core.utils.FormatterUtils.convertNumerals("${String.format("%,.0f", budget.spentAmount)} د.ج")
+    val dzdRemaining = com.example.core.utils.FormatterUtils.convertNumerals("${String.format("%,.0f", budget.remainingAmount.coerceAtLeast(0.0))} د.ج")
 
     val now = System.currentTimeMillis()
     val totalDuration = budget.endDate - now
@@ -85,10 +85,10 @@ fun BudgetGoalDetailsScreen(
     } else {
         0.0
     }
-    val dzdDailySuggestion = "${String.format("%,.0f", dailySuggestion)} د.ج"
+    val dzdDailySuggestion = com.example.core.utils.FormatterUtils.convertNumerals("${String.format("%,.0f", dailySuggestion)} د.ج")
 
     val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
-    val periodStr = "${dateFormat.format(Date(budget.startDate))} - ${dateFormat.format(Date(budget.endDate))}"
+    val periodStr = com.example.core.utils.FormatterUtils.convertNumerals("${dateFormat.format(Date(budget.startDate))} - ${dateFormat.format(Date(budget.endDate))}")
 
     val customColor = try {
         Color(android.graphics.Color.parseColor(budget.color))

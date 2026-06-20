@@ -499,7 +499,7 @@ fun DebtsMainContent(
                         Text("إجمالي التزامات الديون القائمة", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.6f))
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "${String.format(Locale.getDefault(), "%,d", totalRemaining.toLong())} د.ج",
+                            text = com.example.core.utils.FormatterUtils.convertNumerals("${String.format(Locale.getDefault(), "%,d", totalRemaining.toLong())} د.ج"),
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color.White
@@ -619,7 +619,7 @@ fun DebtsMainContent(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("الفترة المقدرة للتصفية: ${String.format(Locale.getDefault(), "%.1f", currentStratResult.durationInMonths)} شهر", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = ExpenseRed)
+                            Text(com.example.core.utils.FormatterUtils.convertNumerals("الفترة المقدرة للتصفية: ${String.format(Locale.getDefault(), "%.1f", currentStratResult.durationInMonths)} شهر"), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = ExpenseRed)
                             Text("جاهز للتصفية الكاملة!", style = MaterialTheme.typography.bodySmall, color = TextGray)
                         }
                     }
@@ -646,7 +646,7 @@ fun DebtsMainContent(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(Icons.Default.Info, contentDescription = null, tint = ExpenseRed, modifier = Modifier.size(20.dp))
-                                Text(insightText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                                Text(com.example.core.utils.FormatterUtils.convertNumerals(insightText), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
                             }
                         }
                     }

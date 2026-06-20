@@ -766,7 +766,7 @@ fun SavingsDashboardContent(
                         Text("إجمالي مدخراتك بالمشروعات", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.8f))
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "${String.format(Locale.getDefault(), "%,d", totalSaved.toLong())} د.ج",
+                            text = com.example.core.utils.FormatterUtils.convertNumerals("${String.format(Locale.getDefault(), "%,d", totalSaved.toLong())} د.ج"),
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color.White
@@ -844,7 +844,7 @@ fun SavingsDashboardContent(
                                     )
                                 }
                                 Text(
-                                    text = insight.text,
+                                    text = com.example.core.utils.FormatterUtils.convertNumerals(insight.text),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.weight(1f)

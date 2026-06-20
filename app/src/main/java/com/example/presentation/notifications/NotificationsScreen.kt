@@ -76,13 +76,14 @@ private fun timeAgo(timestamp: Long): String {
     val minutes = diff / 60_000
     val hours = minutes / 60
     val days = hours / 24
-    return when {
+    val result = when {
         minutes < 1    -> "الآن"
         minutes < 60   -> "منذ $minutes دقيقة"
         hours < 24     -> "منذ $hours ساعة"
         days == 1L     -> "منذ يوم"
         else           -> "منذ $days أيام"
     }
+    return com.example.core.utils.FormatterUtils.convertNumerals(result)
 }
 
 // ---------------------------------------------------------------------------
@@ -150,7 +151,7 @@ fun NotificationsScreen(
                                 color = Primary.copy(alpha = 0.12f)
                             ) {
                                 Text(
-                                    text = "${uiState.unreadCount} جديدة",
+                                    text = com.example.core.utils.FormatterUtils.convertNumerals("${uiState.unreadCount} جديدة"),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Primary,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
@@ -231,7 +232,7 @@ private fun NotificationsTopBar(
                         color = Primary
                     ) {
                         Text(
-                            text = "$unreadCount",
+                            text = com.example.core.utils.FormatterUtils.convertNumerals(unreadCount.toString()),
                             color = MaterialTheme.colorScheme.onPrimary,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,

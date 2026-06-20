@@ -130,7 +130,7 @@ fun BudgetGoalsScreen(
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "${String.format("%,.0f", totalLimit)} د.ج",
+                                        text = com.example.core.utils.FormatterUtils.convertNumerals("${String.format("%,.0f", totalLimit)} د.ج"),
                                         style = MaterialTheme.typography.titleMedium,
                                         color = Color.White,
                                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
@@ -144,7 +144,7 @@ fun BudgetGoalsScreen(
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "${String.format("%,.0f", totalSpent)} د.ج",
+                                        text = com.example.core.utils.FormatterUtils.convertNumerals("${String.format("%,.0f", totalSpent)} د.ج"),
                                         style = MaterialTheme.typography.titleMedium,
                                         color = Color.White,
                                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
@@ -158,7 +158,7 @@ fun BudgetGoalsScreen(
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "${String.format("%,.0f", (totalLimit - totalSpent).coerceAtLeast(0.0))} د.ج",
+                                        text = com.example.core.utils.FormatterUtils.convertNumerals("${String.format("%,.0f", (totalLimit - totalSpent).coerceAtLeast(0.0))} د.ج"),
                                         style = MaterialTheme.typography.titleMedium,
                                         color = Color.White,
                                         fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold

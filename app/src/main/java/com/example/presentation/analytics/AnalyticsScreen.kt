@@ -862,11 +862,15 @@ fun AnalyticsScreen(
                                     )
                             )
                             Column(modifier = Modifier.padding(16.dp)) {
+                                val savingsRatePercent = (uiState.savingsRate * 100).toInt()
+                                val rateColor = if (savingsRatePercent >= 0) IncomeGreen else ExpenseRed
+                                val rateText = if (savingsRatePercent >= 0) "+$savingsRatePercent%" else "$savingsRatePercent%"
+
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Box(
                                         modifier = Modifier
                                             .size(8.dp)
-                                            .background(IncomeGreen, CircleShape)
+                                            .background(rateColor, CircleShape)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
@@ -877,10 +881,10 @@ fun AnalyticsScreen(
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = "${(uiState.savingsRate * 100).toInt()}% مدخر",
+                                    text = rateText,
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = IncomeGreen
+                                    color = rateColor
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically) {

@@ -63,9 +63,7 @@ private fun parseHex(hex: String): Color {
 }
 
 private fun formatAmount(amount: Double): String {
-    val nf = NumberFormat.getNumberInstance(Locale.US)
-    nf.maximumFractionDigits = 0
-    return "${nf.format(amount)} دج"
+    return com.example.core.utils.FormatterUtils.formatCurrency(amount)
 }
 
 @Composable

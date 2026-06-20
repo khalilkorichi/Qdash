@@ -525,7 +525,7 @@ private fun UpdateCard(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
                     Text("حجم الملف", style = MaterialTheme.typography.labelSmall, color = TextGray)
-                    val sizeInMb = String.format("%.2f MB", info.apkSize.toDouble() / (1024 * 1024))
+                    val sizeInMb = com.example.core.utils.FormatterUtils.convertNumerals(String.format("%.2f MB", info.apkSize.toDouble() / (1024 * 1024)))
                     Text(sizeInMb, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                 }
                 Column(horizontalAlignment = Alignment.End) {
@@ -768,11 +768,11 @@ private fun DownloadedUpdatesSection(
             }
             
             val fileSize = remember(file) {
-                String.format("%.2f MB", file.length().toDouble() / (1024 * 1024))
+                com.example.core.utils.FormatterUtils.convertNumerals(String.format("%.2f MB", file.length().toDouble() / (1024 * 1024)))
             }
             val downloadDate = remember(file) {
                 val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
-                sdf.format(java.util.Date(file.lastModified()))
+                com.example.core.utils.FormatterUtils.convertNumerals(sdf.format(java.util.Date(file.lastModified())))
             }
 
             Card(

@@ -38,14 +38,12 @@ import java.util.*
 // Helpers
 // ---------------------------------------------------------------------------
 private fun formatAmount(amount: Double): String {
-    val nf = NumberFormat.getNumberInstance(Locale("ar", "DZ"))
-    nf.maximumFractionDigits = 2
-    return "${nf.format(amount)} دج"
+    return com.example.core.utils.FormatterUtils.formatCurrency(amount)
 }
 
 private fun formatDate(timestamp: Long): String {
     val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-    return sdf.format(Date(timestamp))
+    return com.example.core.utils.FormatterUtils.convertNumerals(sdf.format(Date(timestamp)))
 }
 
 private fun categoryTypeLabel(type: CategoryType) = when (type) {

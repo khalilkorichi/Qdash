@@ -1589,7 +1589,7 @@ fun EmergencyFundRunwayCard(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "${String.format(java.util.Locale.US, "%.1f", uiState.emergencyFundRunwayMonths)} أشهر",
+                        text = FormatterUtils.convertNumerals("${String.format(java.util.Locale.US, "%.1f", uiState.emergencyFundRunwayMonths)} أشهر"),
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontWeight = FontWeight.Black,
                             fontSize = 32.sp

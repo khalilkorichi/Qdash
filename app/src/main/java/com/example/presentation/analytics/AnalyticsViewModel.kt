@@ -341,8 +341,7 @@ class AnalyticsViewModel(
 
                     // Savings rate
                     val incomeSum = periodTransactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
-                    val savings = (incomeSum - totalExpensesSum).coerceAtLeast(0.0)
-                    val rate = if (incomeSum > 0) (savings / incomeSum).toFloat() else 0f
+                    val rate = if (incomeSum > 0) ((incomeSum - totalExpensesSum) / incomeSum).toFloat() else 0f
 
                     // Global budget limits
                     val limitTotal = categories.filter { it.type == CategoryType.EXPENSE && it.budgetLimit != null }.sumOf { it.budgetLimit ?: 0.0 }

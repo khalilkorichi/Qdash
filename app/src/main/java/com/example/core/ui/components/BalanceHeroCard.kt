@@ -149,16 +149,18 @@ fun BalanceHeroCard(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // Savings progress indicator
-                    val savingsRatio = if (monthlyIncome > 0) ((monthlyIncome - monthlyExpense) / monthlyIncome).coerceIn(0.0, 1.0).toFloat() else 0f
+                    val savingsRatio = if (monthlyIncome > 0) ((monthlyIncome - monthlyExpense) / monthlyIncome).toFloat() else 0f
+                    val savingsPercent = (savingsRatio * 100).toInt()
+                    val savingsPercentText = if (savingsPercent >= 0) "+$savingsPercent%" else "$savingsPercent%"
                     LinearProgressIndicator(
-                        progress = { savingsRatio },
+                        progress = { savingsRatio.coerceIn(0f, 1f) },
                         modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape),
-                        color = IncomeGreen,
+                        color = if (savingsPercent >= 0) IncomeGreen else ExpenseRed,
                         trackColor = Color.White.copy(alpha = 0.15f)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "معدل الادخار: ${(savingsRatio * 100).toInt()}%",
+                        text = "معدل الادخار: $savingsPercentText",
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.White.copy(alpha = 0.6f)
                     )

@@ -87,7 +87,7 @@ class NotificationsViewModel(
                 val label = when {
                     midnight.timeInMillis == today.timeInMillis -> "اليوم"
                     midnight.timeInMillis == yesterday.timeInMillis -> "أمس"
-                    else -> sdf.format(Date(notification.timestamp))
+                    else -> com.example.core.utils.FormatterUtils.convertNumerals(sdf.format(Date(notification.timestamp)))
                 }
                 result.getOrPut(label) { mutableListOf() }.add(notification)
             }

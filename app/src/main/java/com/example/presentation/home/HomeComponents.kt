@@ -390,8 +390,14 @@ fun PremiumTopBalanceCard(
                     }
 
                     // Percentage change / savings rate badge (matching image "+8.56%")
-                    val savingsRatio = if (monthlyIncome > 0) ((monthlyIncome - monthlyExpense) / monthlyIncome).coerceIn(0.0, 1.0).toFloat() else 0f
+                    val savingsRatio = if (monthlyIncome > 0) ((monthlyIncome - monthlyExpense) / monthlyIncome).toFloat() else 0f
                     val savingsPercent = (savingsRatio * 100).toInt()
+                    val badgeText = if (savingsPercent >= 0) "+$savingsPercent%" else "$savingsPercent%"
+                    val badgeColor = when {
+                        savingsPercent > 0 -> IncomeGreen
+                        savingsPercent < 0 -> ExpenseRed
+                        else -> Primary
+                    }
 
                     Surface(
                         shape = RoundedCornerShape(100.dp),
@@ -399,10 +405,10 @@ fun PremiumTopBalanceCard(
                         modifier = Modifier.padding(start = 4.dp)
                     ) {
                         Text(
-                            text = "+$savingsPercent%",
+                            text = badgeText,
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = if (savingsPercent > 0) IncomeGreen else Primary
+                                color = badgeColor
                             ),
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                         )
@@ -516,10 +522,10 @@ fun IncomeExpenseSplitCards(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Savings rate card
-        val savingsRatio = if (monthlyIncome > 0) ((monthlyIncome - monthlyExpense) / monthlyIncome).coerceIn(0.0, 1.0).toFloat() else 0f
+        val savingsRatio = if (monthlyIncome > 0) ((monthlyIncome - monthlyExpense) / monthlyIncome).toFloat() else 0f
         var animationTriggered by remember { mutableStateOf(false) }
         val animatedProgress by animateFloatAsState(
-            targetValue = if (animationTriggered) savingsRatio else 0f,
+            targetValue = if (animationTriggered) savingsRatio.coerceIn(0f, 1f) else 0f,
             animationSpec = tween(durationMillis = 1500, easing = FastOutSlowInEasing),
             label = "SavingsProgressAnimation"
         )
@@ -545,16 +551,18 @@ fun IncomeExpenseSplitCards(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier.size(54.dp)
                 ) {
+                    val savingsPercent = (savingsRatio * 100).toInt()
+                    val indicatorColor = if (savingsPercent >= 0) IncomeGreen else ExpenseRed
                     CircularProgressIndicator(
                         progress = { animatedProgress },
                         modifier = Modifier.fillMaxSize(),
-                        color = IncomeGreen,
+                        color = indicatorColor,
                         strokeWidth = 5.dp,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant,
                         strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
                     )
                     Text(
-                        text = "${(animatedProgress * 100).toInt()}%",
+                        text = if (savingsPercent >= 0) "+$savingsPercent%" else "$savingsPercent%",
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -648,7 +656,7 @@ fun IncomeExpenseSplitCards(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("إجمالي الدخل:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
+                                    Text("إجمالي الدخل الشهري:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
                                     Text(
                                         text = FormatterUtils.formatCurrency(monthlyIncome),
                                         style = MaterialTheme.typography.bodyMedium,
@@ -660,7 +668,7 @@ fun IncomeExpenseSplitCards(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("إجمالي المصاريف:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
+                                    Text("إجمالي المصاريف الشهرية:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
                                     Text(
                                         text = FormatterUtils.formatCurrency(monthlyExpense),
                                         style = MaterialTheme.typography.bodyMedium,
@@ -668,18 +676,45 @@ fun IncomeExpenseSplitCards(
                                         color = ExpenseRed
                                     )
                                 }
-                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("الصافي المدخر:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
+                                    Text("معدل الادخار الشهري:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
+                                    val savingsPercent = (savingsRatio * 100).toInt()
+                                    val rateText = if (savingsPercent >= 0) "+$savingsPercent%" else "$savingsPercent%"
+                                    Text(
+                                        text = rateText,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (savingsPercent >= 0) IncomeGreen else ExpenseRed
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("الفائض/العجز الشهري:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
                                     val netSaved = monthlyIncome - monthlyExpense
                                     Text(
                                         text = FormatterUtils.formatCurrency(netSaved),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = if (netSaved >= 0) IncomeGreen else ExpenseRed
+                                    )
+                                }
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("الرصيد الحالي المتوفر:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
+                                    val currentAvailableBalance = accounts.sumOf { it.balance }
+                                    Text(
+                                        text = FormatterUtils.formatCurrency(currentAvailableBalance),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }
@@ -740,7 +775,7 @@ fun IncomeExpenseSplitCards(
                             }
                         } else {
                             Text(
-                                text = "لا توجد تحويلات مباشرة لحسابات الادخار هذا الشهر. الادخار يمثل الفارق الإيجابي بين مداخيلك ومصاريفك.",
+                                text = "لا توجد تحويلات مباشرة لحسابات الادخار هذا الشهر. الفائض يمثل الفارق الإيجابي بين مداخيلك ومصاريفك.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextGray,
                                 textAlign = TextAlign.Center,
@@ -812,7 +847,7 @@ fun IncomeExpenseSplitCards(
                                     modifier = Modifier.size(8.dp)
                                 )
                                 Text(
-                                    text = String.format(java.util.Locale.US, "%.1f%%", kotlin.math.abs(incomeChangePercent)),
+                                    text = FormatterUtils.convertNumerals(String.format(java.util.Locale.US, "%.1f%%", kotlin.math.abs(incomeChangePercent))),
                                     fontSize = 8.sp,
                                     color = if (incomeChangePercent >= 0) IncomeGreen else ExpenseRed,
                                     fontWeight = FontWeight.Bold
@@ -895,7 +930,7 @@ fun IncomeExpenseSplitCards(
                                     modifier = Modifier.size(8.dp)
                                 )
                                 Text(
-                                    text = String.format(java.util.Locale.US, "%.1f%%", kotlin.math.abs(expenseChangePercent)),
+                                    text = FormatterUtils.convertNumerals(String.format(java.util.Locale.US, "%.1f%%", kotlin.math.abs(expenseChangePercent))),
                                     fontSize = 8.sp,
                                     color = if (isExpenseDecreased) IncomeGreen else ExpenseRed,
                                     fontWeight = FontWeight.Bold
