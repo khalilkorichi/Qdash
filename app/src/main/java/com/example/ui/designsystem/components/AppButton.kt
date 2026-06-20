@@ -52,7 +52,7 @@ fun AppButton(
         label = "button_scale"
     )
 
-    val isDark = isSystemInDarkTheme()
+    val isDark = MaterialTheme.colorScheme.background != ColorTokens.BackgroundLight
 
     // Colors mapping based on variant and intent
     val intentColor = when (intent) {

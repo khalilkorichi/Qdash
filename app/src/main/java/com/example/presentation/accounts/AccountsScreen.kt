@@ -102,8 +102,8 @@ fun AccountsScreen(
     modifier: Modifier = Modifier
 ) {
     val Primary = MaterialTheme.colorScheme.primary
-    val PrimaryDark = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primaryContainer else com.example.ui.theme.PrimaryDark
-    val isDark = isSystemInDarkTheme()
+    val isDark = MaterialTheme.colorScheme.background != ColorTokens.BackgroundLight
+    val PrimaryDark = if (isDark) MaterialTheme.colorScheme.primaryContainer else com.example.ui.theme.PrimaryDark
     val gradientColors = if (isDark) listOf(Primary, PrimaryDark) else listOf(Primary, Primary)
     val accountColorPalette = remember(Primary) {
         listOf(

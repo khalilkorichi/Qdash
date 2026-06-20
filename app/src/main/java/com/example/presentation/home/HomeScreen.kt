@@ -921,7 +921,7 @@ fun HomeScreen(
                         },
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (isSystemInDarkTheme()) {
+                        containerColor = if (MaterialTheme.colorScheme.background != ColorTokens.BackgroundLight) {
                             ColorTokens.ElevatedSurfaceDark
                         } else {
                             ColorTokens.Primary
@@ -1064,7 +1064,7 @@ fun HomeScreen(
                                         com.example.domain.model.AccountType.CCP -> Color(0xFFF59E0B)
                                         com.example.domain.model.AccountType.CASH -> Color(0xFF22C55E)
                                         com.example.domain.model.AccountType.SAVINGS -> Color(0xFF3B82F6)
-                                        else -> if (isSystemInDarkTheme()) ColorTokens.TextSecondaryDark else Primary
+                                        else -> if (MaterialTheme.colorScheme.background != ColorTokens.BackgroundLight) ColorTokens.TextSecondaryDark else Primary
                                     }
 
                                     Surface(

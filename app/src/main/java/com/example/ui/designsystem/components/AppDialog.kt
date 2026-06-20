@@ -64,7 +64,7 @@ fun AppDialog(
                     ),
                 shape = ShapeTokens.Xl,
                 colors = CardDefaults.cardColors(
-                    containerColor = if (androidx.compose.foundation.isSystemInDarkTheme()) {
+                    containerColor = if (MaterialTheme.colorScheme.background != com.example.ui.designsystem.tokens.ColorTokens.BackgroundLight) {
                         com.example.ui.theme.ElevatedSurfaceDark
                     } else {
                         MaterialTheme.colorScheme.surface

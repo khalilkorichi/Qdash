@@ -63,8 +63,7 @@ fun Modifier.shimmerEffect(
     val isPowerSaveMode = remember(powerManager) { 
         powerManager?.isPowerSaveMode ?: false 
     }
-    
-    val isDark = isSystemInDarkTheme()
+    val isDark = MaterialTheme.colorScheme.background != com.example.ui.designsystem.tokens.ColorTokens.BackgroundLight
     
     // Power-saving mode mitigation: halt animation cycles entirely
     if (isPowerSaveMode) {

@@ -23,7 +23,7 @@ fun AppBottomSheet(
     shape: RoundedCornerShape = ShapeTokens.Xl,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isDark = MaterialTheme.colorScheme.background != com.example.ui.designsystem.tokens.ColorTokens.BackgroundLight
     val bottomSheetBg = if (isDark) com.example.ui.theme.ElevatedSurfaceDark else MaterialTheme.colorScheme.surface
 
     if (sheetState != null) {
