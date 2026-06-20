@@ -1,11 +1,11 @@
 {
-  "versionCode": 11,
-  "versionName": "1.0.0.11",
-  "updateIdentity": 111,
-  "publishedAt": "2026-06-20T18:25:00Z",
+  "versionCode": 12,
+  "versionName": "1.0.0.12",
+  "updateIdentity": 112,
+  "publishedAt": "2026-06-20T20:10:00Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 23771084,
-  "apkSha256": "e752bba082bc3825a74b785a14b6befca28de7610e63a36e1dc3f6573a7365e4",
+  "apkSize": 24036612,
+  "apkSha256": "ed5bf3048ea13dff22ac29f106a5e7cd7e70b9f156db66c9a42c95d86107d07e",
   "mandatory": false,
-  "releaseNotes": "تحديث الإصدار إلى v1.0.0.11: حل مشكلة عدم تطبيق الوضع النهاري بالكامل (Glow Gradient وغيره من الألوان) على الهواتف والأجهزة المادية التي تستخدم السمة الداكنة للنظام ولكن تم تعيين التطبيق يدوياً على الوضع النهاري. تم استبدال الفحص المعتمد على السمة الخاصة بالنظام بفحص متجاوب ومباشر لسمة التطبيق الحالية، مع رفع رقم إصدار التطبيق."
+  "releaseNotes": "تحديث الإصدار إلى v1.0.0.12: إضافة شريط التحديث الذكي التفاعلي أسفل التطبيق بثلاث مراحل (التنبيه الذكي، التحميل الخلفي مع شريط التقدم، التثبيت الفوري) مع تحسين تجربة المستخدم وتعطيل فحص Play Protect لتسهيل التحديثات المباشرة."
 }
