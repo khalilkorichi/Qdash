@@ -36,6 +36,10 @@ import com.example.domain.model.Transaction
 import com.example.domain.model.TransactionType
 import com.example.ui.theme.*
 import com.example.core.utils.FormatterUtils
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.OffsetMapping
@@ -43,10 +47,12 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 
 // ─────────────────────────────────────────────────────────
 //  Helper functions for currency in words (Algerian DZ)
@@ -345,22 +351,28 @@ fun AmountDisplayCard(
                     value = rawAmountValue,
                     onValueChange = onValueChange,
                     readOnly = true,
+                    singleLine = true,
                     textStyle = MaterialTheme.typography.displayLarge.copy(
                         fontSize = if (rawAmountValue.text.length > 12) 28.sp else 38.sp,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.ExtraBold,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        localeList = if (com.example.core.utils.FormatterUtils.useWesternNumerals) {
+                            androidx.compose.ui.text.intl.LocaleList("en")
+                        } else {
+                            androidx.compose.ui.text.intl.LocaleList("ar")
+                        }
                     ),
                     cursorBrush = SolidColor(accentColor),
                     visualTransformation = FormulaThousandsSeparatorTransformation(),
                     modifier = Modifier
                         .focusRequester(focusRequester)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) {
-                            focusRequester.requestFocus()
-                            onTap()
+                        .pointerInput(Unit) {
+                            awaitEachGesture {
+                                awaitFirstDown(requireUnconsumed = false)
+                                focusRequester.requestFocus()
+                                onTap()
+                            }
                         }
                 )
                 Spacer(modifier = Modifier.width(4.dp))
@@ -398,7 +410,13 @@ fun AmountDisplayCard(
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = "= ${com.example.core.utils.FormatterUtils.convertNumerals(livePreviewAmount)} دج",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        localeList = if (com.example.core.utils.FormatterUtils.useWesternNumerals) {
+                            androidx.compose.ui.text.intl.LocaleList("en")
+                        } else {
+                            androidx.compose.ui.text.intl.LocaleList("ar")
+                        }
+                    ),
                     color = accentColor,
                     fontWeight = FontWeight.Bold
                 )
@@ -458,7 +476,13 @@ fun AccountPickerRow(
                 )
                 Text(
                     text = FormatterUtils.formatCurrency(acc.balance),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        localeList = if (com.example.core.utils.FormatterUtils.useWesternNumerals) {
+                            androidx.compose.ui.text.intl.LocaleList("en")
+                        } else {
+                            androidx.compose.ui.text.intl.LocaleList("ar")
+                        }
+                    ),
                     fontWeight = FontWeight.Medium,
                     color = when {
                         isDisabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
@@ -476,7 +500,14 @@ fun AccountPickerRow(
                     val isPlus = expectedBalance > acc.balance
                     Text(
                         text = "➔ " + FormatterUtils.formatCurrency(expectedBalance),
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 9.sp,
+                            localeList = if (com.example.core.utils.FormatterUtils.useWesternNumerals) {
+                                androidx.compose.ui.text.intl.LocaleList("en")
+                            } else {
+                                androidx.compose.ui.text.intl.LocaleList("ar")
+                            }
+                        ),
                         fontWeight = FontWeight.Bold,
                         color = if (isPlus) IncomeGreen else ExpenseRed,
                         textAlign = TextAlign.Center,
@@ -538,8 +569,14 @@ fun KeypadToggleBar(
             )
         }
         Text(
-            text = "$currentAmount دج",
-            style = MaterialTheme.typography.labelLarge,
+            text = "${com.example.core.utils.FormatterUtils.convertNumerals(currentAmount)} دج",
+            style = MaterialTheme.typography.labelLarge.copy(
+                localeList = if (com.example.core.utils.FormatterUtils.useWesternNumerals) {
+                    androidx.compose.ui.text.intl.LocaleList("en")
+                } else {
+                    androidx.compose.ui.text.intl.LocaleList("ar")
+                }
+            ),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Bold
         )
@@ -1144,6 +1181,9 @@ fun RowScope.QuickDateButton(
 }
 
 class FormulaThousandsSeparatorTransformation : VisualTransformation {
+    private val westernSymbols = java.text.DecimalFormatSymbols(java.util.Locale.US)
+    private val westernFormatter = java.text.DecimalFormat("#,###", westernSymbols)
+
     override fun filter(text: AnnotatedString): TransformedText {
         val originalText = text.text
         if (originalText.isEmpty()) {
@@ -1186,7 +1226,7 @@ class FormulaThousandsSeparatorTransformation : VisualTransformation {
                 val formattedInteger = try {
                     val longVal = integerPart.toLongOrNull()
                     if (longVal != null) {
-                        java.text.DecimalFormat("#,###").format(longVal)
+                        westernFormatter.format(longVal)
                     } else {
                         integerPart
                     }
@@ -1240,7 +1280,7 @@ class FormulaThousandsSeparatorTransformation : VisualTransformation {
         originalToTransformedMap.add(transformedOffset)
         transformedToOriginalMap.add(originalOffset)
         
-        val transformedString = transformedParts.joinToString("")
+        val transformedString = FormatterUtils.convertNumerals(transformedParts.joinToString(""))
         
         val offsetMapping = object : OffsetMapping {
             override fun originalToTransformed(offset: Int): Int {
@@ -1260,4 +1300,5 @@ class FormulaThousandsSeparatorTransformation : VisualTransformation {
         )
     }
 }
+
 

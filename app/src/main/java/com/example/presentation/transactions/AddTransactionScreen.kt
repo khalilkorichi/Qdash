@@ -280,7 +280,7 @@ fun AddTransactionScreen(
 
     // Compute a clean display string for the expression with thousands separator commas on digits
     val displayAmount: String = remember(rawAmount) {
-        if (rawAmount == "0" || rawAmount.isEmpty()) {
+        val result = if (rawAmount == "0" || rawAmount.isEmpty()) {
             "0"
         } else {
             val parts = rawAmount.split(" ")
@@ -315,6 +315,7 @@ fun AddTransactionScreen(
                 }
             }.joinToString(" ")
         }
+        com.example.core.utils.FormatterUtils.convertNumerals(result)
     }
 
     // Compute live evaluated preview
@@ -322,7 +323,7 @@ fun AddTransactionScreen(
         operatorsList.any { rawAmount.contains(it) }
     }
     val livePreviewAmount: String = remember(rawAmount) {
-        if (hasOperators) {
+        val result = if (hasOperators) {
             val eval = com.example.core.utils.CalculatorParser.evaluate(rawAmount)
             if (eval % 1 == 0.0) {
                 java.text.DecimalFormat("#,###").format(eval.toLong())
@@ -332,6 +333,7 @@ fun AddTransactionScreen(
         } else {
             ""
         }
+        com.example.core.utils.FormatterUtils.convertNumerals(result)
     }
 
     // Auto-select first fitting category/account on first load or type switch
@@ -409,7 +411,13 @@ fun AddTransactionScreen(
             // Amount display card
             AmountDisplayCard(
                 rawAmountValue = rawAmountValue,
-                onValueChange = { rawAmountValue = it },
+                onValueChange = { newValue ->
+                    rawAmountValue = if (newValue.text == rawAmountValue.text) {
+                        newValue
+                    } else {
+                        sanitizeAmountTextFieldValue(newValue)
+                    }
+                },
                 displayAmount = displayAmount,
                 livePreviewAmount = livePreviewAmount,
                 accentColor = typeAccentColor,
@@ -1376,6 +1384,85 @@ fun AddTransactionScreen(
 //  Numpad key handler (pure function, easy to test)
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+private fun sanitizeAmountTextFieldValue(value: TextFieldValue): TextFieldValue {
+    fun normalize(input: String): String {
+        val operators = setOf('+', '-', '×', '÷')
+        val output = StringBuilder()
+        var hasDecimalInToken = false
+        var decimalPlaces = 0
+
+        fun appendOperator(operator: Char) {
+            while (output.endsWith(" ")) output.deleteCharAt(output.lastIndex)
+            val last = output.lastOrNull()
+            if (output.isEmpty()) {
+                output.append('0')
+            } else if (last != null && operators.contains(last)) {
+                output.deleteCharAt(output.lastIndex)
+                while (output.endsWith(" ")) output.deleteCharAt(output.lastIndex)
+            }
+            output.append(' ').append(operator).append(' ')
+            hasDecimalInToken = false
+            decimalPlaces = 0
+        }
+
+        input.forEach { char ->
+            when (char) {
+                in '0'..'9' -> {
+                    if (!hasDecimalInToken || decimalPlaces < 2) {
+                        output.append(char)
+                        if (hasDecimalInToken) decimalPlaces++
+                    }
+                }
+                '٠' -> output.append('0')
+                '١' -> output.append('1')
+                '٢' -> output.append('2')
+                '٣' -> output.append('3')
+                '٤' -> output.append('4')
+                '٥' -> output.append('5')
+                '٦' -> output.append('6')
+                '٧' -> output.append('7')
+                '٨' -> output.append('8')
+                '٩' -> output.append('9')
+                '.', '٫' -> {
+                    if (!hasDecimalInToken) {
+                        val tokenStart = output.isEmpty() || output.endsWith(" ")
+                        if (tokenStart) output.append('0')
+                        output.append('.')
+                        hasDecimalInToken = true
+                        decimalPlaces = 0
+                    }
+                }
+                '+', '-' -> appendOperator(char)
+                '×', '*' -> appendOperator('×')
+                '÷', '/' -> appendOperator('÷')
+                ',', '٬', ' ', '\u00A0', '\u202F' -> Unit
+            }
+        }
+
+        val normalized = output.toString()
+        if (normalized.isBlank()) return "0"
+
+        return normalized.split(' ').joinToString(" ") { token ->
+            when {
+                token.length == 1 && operators.contains(token.first()) -> token
+                token.contains('.') -> {
+                    val parts = token.split('.', limit = 2)
+                    val integerPart = parts[0].trimStart('0').ifEmpty { "0" }
+                    val decimalPart = parts.getOrNull(1).orEmpty().take(2)
+                    "$integerPart.$decimalPart"
+                }
+                token.isNotEmpty() -> token.trimStart('0').ifEmpty { "0" }
+                else -> token
+            }
+        }
+    }
+
+    val sanitizedText = normalize(value.text)
+    val selectionStart = normalize(value.text.take(value.selection.min)).length.coerceIn(0, sanitizedText.length)
+    val selectionEnd = normalize(value.text.take(value.selection.max)).length.coerceIn(0, sanitizedText.length)
+    return TextFieldValue(sanitizedText, selection = TextRange(selectionStart, selectionEnd))
+}
+
 private fun handleNumpadKey(value: TextFieldValue, key: String): TextFieldValue {
     val operators = setOf("+", "-", "×", "÷")
     val text = value.text
@@ -1534,3 +1621,4 @@ private fun getStartOfDay(millis: Long): Long {
     cal.set(java.util.Calendar.MILLISECOND, 0)
     return cal.timeInMillis
 }
+
