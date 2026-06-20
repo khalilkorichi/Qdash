@@ -3,12 +3,16 @@ package com.example.presentation.app
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -21,6 +25,9 @@ import com.example.presentation.navigation.LocalNavController
 import com.example.presentation.navigation.Screen
 import com.example.presentation.navigation.mainBottomNavScreens
 import com.example.presentation.settings.SettingsViewModel
+import com.example.presentation.update.UpdatesViewModel
+import com.example.presentation.update.UpdateUiState
+import com.example.presentation.update.UpdateBottomBar
 
 /**
  * FinTrackAppShell — isolated composable that owns the NavController and
@@ -36,6 +43,17 @@ internal fun FinTrackAppShell(
 ) {
     val navController = rememberNavController()
     val scope = rememberCoroutineScope()
+
+    // Shared Updates View Model for global background updating
+    val updatesViewModel: UpdatesViewModel = viewModel(factory = factory)
+    val updateUiState by updatesViewModel.uiState.collectAsState()
+    var isUpdateDismissed by remember(updateUiState) { mutableStateOf(false) }
+    val showUpdateBar = remember(updateUiState) {
+        updateUiState !is UpdateUiState.Idle &&
+        updateUiState !is UpdateUiState.Checking &&
+        updateUiState !is UpdateUiState.NoUpdate
+    }
+    val isUpdateBarVisible = showUpdateBar && !isUpdateDismissed
 
     // currentRoute is now observed INSIDE the shell, not at root level.
     // Only the shell and its children recompose on navigation changes.
@@ -59,7 +77,32 @@ internal fun FinTrackAppShell(
                     container = container,
                     settingsViewModel = settingsViewModel,
                     startDestination = startDestination,
+                    updatesViewModel = updatesViewModel,
                     scope = scope
+                )
+            }
+
+            // ── Global In-App Update Bottom Bar ──────────────────────────────
+            val context = LocalContext.current
+            AnimatedVisibility(
+                visible = isBottomScreen && isUpdateBarVisible,
+                enter = slideInVertically(initialOffsetY = { it }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
+                exit = slideOutVertically(targetOffsetY = { it }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300)),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = 92.dp)
+            ) {
+                UpdateBottomBar(
+                    uiState = updateUiState,
+                    onUpdateClick = { updatesViewModel.downloadUpdate(it) },
+                    onPauseClick = { updatesViewModel.pauseDownload(it) },
+                    onResumeClick = { updatesViewModel.resumeDownload(it) },
+                    onInstallClick = { info, file ->
+                        updatesViewModel.triggerSafetyBackupAndInstall(context, info, file)
+                    },
+                    onDismiss = { isUpdateDismissed = true },
+                    onNavigateToUpdates = { navController.navigate(Screen.Updates.route) }
                 )
             }
 
@@ -97,6 +140,12 @@ internal fun FinTrackAppShell(
             val aiChatViewModel: com.example.presentation.ai.AiChatViewModel = viewModel(factory = factory)
             val aiChatState by aiChatViewModel.uiState.collectAsState()
 
+            val aiBubbleBottomPadding by animateDpAsState(
+                targetValue = if (isBottomScreen && isUpdateBarVisible) 172.dp else 96.dp,
+                animationSpec = tween(300),
+                label = "ai_bubble_bottom_padding"
+            )
+
             AnimatedVisibility(
                 visible = isBottomScreen,
                 enter = fadeIn(animationSpec = tween(200)),
@@ -106,7 +155,7 @@ internal fun FinTrackAppShell(
                     modifier = Modifier
                         .fillMaxSize()
                         .navigationBarsPadding()
-                        .padding(bottom = 96.dp, start = 16.dp, end = 16.dp),
+                        .padding(bottom = aiBubbleBottomPadding, start = 16.dp, end = 16.dp),
                     contentAlignment = Alignment.BottomEnd // Left side in RTL
                 ) {
                     if (!aiChatState.isMiniChatOpen) {

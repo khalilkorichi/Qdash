@@ -67,6 +67,7 @@ class UpdateRepositoryImpl(
             val manifest = try {
                 client.fetchUpdateManifest(manifestUrl)
             } catch (e: Exception) {
+                android.util.Log.e("UpdateRepository", "Error fetching manifest from $manifestUrl", e)
                 null
             }
 

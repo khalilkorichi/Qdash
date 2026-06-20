@@ -71,6 +71,7 @@ internal fun FinTrackNavGraph(
     container: AppContainer,
     settingsViewModel: SettingsViewModel,
     startDestination: String,
+    updatesViewModel: com.example.presentation.update.UpdatesViewModel,
     scope: CoroutineScope,
     modifier: Modifier = Modifier
 ) {
@@ -440,8 +441,6 @@ internal fun FinTrackNavGraph(
         }
 
         composable(Screen.Updates.route) {
-            val updatesViewModel: com.example.presentation.update.UpdatesViewModel =
-                viewModel(factory = factory)
             com.example.presentation.update.UpdatesScreen(
                 viewModel = updatesViewModel,
                 onBack = { navController.popBackStack() }
