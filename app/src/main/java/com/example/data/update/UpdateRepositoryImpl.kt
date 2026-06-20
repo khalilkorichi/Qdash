@@ -93,10 +93,8 @@ class UpdateRepositoryImpl(
                 val isNewerVersionCode = manifest.versionCode > localVersionCode
                 val isNewerVersion = isVersionNewer(localVersionName, remoteVersionName)
                 val isSameVersionAndNewerIdentity = (remoteVersionName.removePrefix("v").trim() == localVersionName.removePrefix("v").trim()) && (remoteIdentity > localIdentity)
-                val isNewerBuildDate = remoteTime > localBuildTime && (remoteVersionName.removePrefix("v").trim() == localVersionName.removePrefix("v").trim())
-                val isIdentityNewer = remoteIdentity > localIdentity
 
-                val hasUpdate = isNewerVersionCode || isNewerVersion || isSameVersionAndNewerIdentity || isNewerBuildDate || isIdentityNewer
+                val hasUpdate = isNewerVersionCode || isNewerVersion || isSameVersionAndNewerIdentity
                 
                 val updateInfo = UpdateInfo(
                     hasUpdate = hasUpdate,
@@ -132,9 +130,8 @@ class UpdateRepositoryImpl(
             delay(400)
 
             val isNewerVersion = isVersionNewer(localVersionName, cleanTagName)
-            val isNewerBuildDate = remoteTime > localBuildTime && (cleanTagName == localVersionName.removePrefix("v").trim())
 
-            val hasUpdate = isNewerVersion || isNewerBuildDate
+            val hasUpdate = isNewerVersion
 
             val updateInfo = UpdateInfo(
                 hasUpdate = hasUpdate,

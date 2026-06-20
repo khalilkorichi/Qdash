@@ -4,8 +4,8 @@
   "updateIdentity": 110,
   "publishedAt": "2026-06-20T18:00:00Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 23771080,
-  "apkSha256": "d01536821acea9d7c528df44649a9f233b7e7d758b4de8e6624f7c1f3a32bb37",
+  "apkSize": 24068212,
+  "apkSha256": "d85d932d0d8b1c19f81891915af9b775e9b36ebaf11d7d2ea27a04396d16fe25",
   "mandatory": false,
   "releaseNotes": "تحديث الإصدار إلى v1.0.0.10: حل مشكلة ظهور الأرقام الهندية والشرقية بالخطأ وفرض الأرقام الغربية طبقاً للإعدادات في كافة شاشات التطبيق (الديون، الادخار، الإحصائيات، الخطط المالية، البحث، التحديثات، والإشعارات)، وإزالة تدرج الخلفية اللامع (Glow) من بطاقة الرصيد المتوفر في صفحة الحسابات عند تفعيل الوضع النهاري ليصبح لوناً داكناً مسطحاً ومريحاً للعين."
 }

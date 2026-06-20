@@ -56,7 +56,12 @@ class MainActivity : ComponentActivity() {
             try {
                 delay(3000) // 3-second delay to let the app finish drawing the home screen
                 updateRepository.checkForUpdates().onSuccess { updateInfo ->
-                    if (updateInfo.hasUpdate && prefs.lastNotifiedUpdateVersion != updateInfo.versionName) {
+                    val localVersionName = BuildConfig.VERSION_NAME
+                    val localVersionCode = BuildConfig.VERSION_CODE
+                    val isNewerVersion = isVersionNewer(localVersionName, updateInfo.versionName)
+                    val isNewerVersionCode = updateInfo.versionCode > localVersionCode
+                    
+                    if (updateInfo.hasUpdate && (isNewerVersion || isNewerVersionCode) && prefs.lastNotifiedUpdateVersion != updateInfo.versionName) {
                         prefs.lastNotifiedUpdateVersion = updateInfo.versionName
                         val notification = com.example.domain.model.AppNotification(
                             title = "تحديث جديد متوفر! 🎉",
@@ -79,5 +84,18 @@ class MainActivity : ComponentActivity() {
                 isFirstLaunch = isFirstLaunch
             )
         }
+    }
+
+    private fun isVersionNewer(local: String, remote: String): Boolean {
+        val localParts = local.removePrefix("v").split(".").map { it.toIntOrNull() ?: 0 }
+        val remoteParts = remote.removePrefix("v").split(".").map { it.toIntOrNull() ?: 0 }
+        val maxLength = maxOf(localParts.size, remoteParts.size)
+        for (i in 0 until maxLength) {
+            val localVal = localParts.getOrElse(i) { 0 }
+            val remoteVal = remoteParts.getOrElse(i) { 0 }
+            if (remoteVal > localVal) return true
+            if (localVal > remoteVal) return false
+        }
+        return false
     }
 }
