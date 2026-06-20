@@ -1169,508 +1169,7 @@ fun SmartDateNavigator(
     }
 }
 
-@Composable
-fun SalaryCycleProjectionCard(
-    uiState: AnalyticsUiState,
-    onHelpClick: (String, String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = if (uiState.hasSalarySource) "توقعات الإنفاق ودورة الراتب CCP" else "توقعات الإنفاق للشهر الحالي",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = if (uiState.hasSalarySource) "دورة الراتب: ${uiState.salaryCycleStartLabel} ← ${uiState.salaryCycleEndLabel}" 
-                                   else "الفترة: 1 إلى نهاية الشهر",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextGray
-                        )
-                    }
-                    HelpIconButton(
-                        onClick = {
-                            onHelpClick(
-                                "توقعات الإنفاق ودورة الراتب",
-                                "يقيس هذا المؤشر سرعة وتقدم معدل إنفاقك اليومي الفعلي ومقارنته بالميزانية المحددة أو الراتب المرجعي على مدار أيام دورة الراتب المالي المتبقية.\n\nالفائدة: يتنبأ بإجمالي نفقاتك بنهاية الشهر الجاري ويحذرك مبكراً إذا كنت متجهاً لتجاوز الميزانية لتتمكن من ترشيد نفقاتك وتعديل سلوك الاستهلاك قبل فوات الأوان."
-                            )
-                        }
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = if (uiState.isProjectedToExceedBudget) ExpenseRed.copy(alpha = 0.12f) else IncomeGreen.copy(alpha = 0.12f)
-                ) {
-                    Text(
-                        text = if (uiState.isProjectedToExceedBudget) "تنبيه بالصرف" else "إنفاق مستقر",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = if (uiState.isProjectedToExceedBudget) ExpenseRed else IncomeGreen,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
-                }
-            }
 
-            // Progress Bar and Info
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "تقدم الدورة الزمنية (${((uiState.salaryCyclePercentageElapsed) * 100).toInt()}% من الشهر)",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextGray
-                    )
-                    Text(
-                        text = "متبقي ${uiState.daysRemainingInCycle} يوم",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                LinearProgressIndicator(
-                    progress = { uiState.salaryCyclePercentageElapsed },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(CircleShape),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                )
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
-
-            // Projections grid
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "الإنفاق المتوقع",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextGray
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = FormatterUtils.formatCurrency(uiState.projectedEndMonthSpending),
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Black,
-                            color = if (uiState.isProjectedToExceedBudget) ExpenseRed else MaterialTheme.colorScheme.onSurface
-                        )
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(40.dp)
-                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = if (uiState.referenceBudget == uiState.salaryAmount) "ميزانية الراتب المرجعية" else "إجمالي الميزانيات المحددة",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextGray
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = if (uiState.referenceBudget > 0) FormatterUtils.formatCurrency(uiState.referenceBudget) else "غير محددة",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-
-            // Exceed Warning Banner
-            if (uiState.isProjectedToExceedBudget && uiState.referenceBudget > 0) {
-                val exceedAmount = uiState.projectedEndMonthSpending - uiState.referenceBudget
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = ExpenseRed.copy(alpha = 0.08f),
-                    border = BorderStroke(1.dp, ExpenseRed.copy(alpha = 0.15f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .background(ExpenseRed, CircleShape)
-                        )
-                        Text(
-                            text = "بناءً على سرعة إنفاقك، ستتجاوز الميزانية بـ ${FormatterUtils.formatCurrency(exceedAmount)} بنهاية الشهر. حاول ترشيد نفقاتك الكبيرة.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = ExpenseRed,
-                            textAlign = TextAlign.Right,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun WeekendWeekdaySpendingCard(
-    uiState: AnalyticsUiState,
-    onHelpClick: (String, String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    if (!uiState.hasWeekendData) return
-
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "تحليل الإنفاق: أيام العمل مقابل نهاية الأسبوع",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "توزيع النفقات بين أيام الأسبوع والجمعة/السبت بالجزائر",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextGray
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                HelpIconButton(
-                    onClick = {
-                        onHelpClick(
-                            "تحليل أيام العمل مقابل عطلة نهاية الأسبوع",
-                            "يقيس هذا التحليل متوسط حجم إنفاقك المالي في أيام الأسبوع العادية (من الأحد إلى الخميس) مقارنة بمتوسط إنفاقك في عطلة نهاية الأسبوع (الجمعة والسبت بالجزائر).\n\nالفائدة: يوضح لك سلوكك الترفيهي أو الاستهلاكي خلال العطلات، مما يساعدك على كبح المصاريف غير الضرورية أو المبالغ فيها خلال عطلة نهاية الأسبوع."
-                        )
-                    }
-                )
-            }
-
-            // Ratio Bar Indicator
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "أيام العمل (${(uiState.weekdayPercentage * 100).toInt()}%)",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "نهاية الأسبوع (${(uiState.weekendPercentage * 100).toInt()}%)",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = SavingsAmber
-                    )
-                }
-
-                // Dual progress bar
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(12.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
-                ) {
-                    if (uiState.weekdayPercentage > 0f) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .weight(uiState.weekdayPercentage.coerceAtLeast(0.01f))
-                                .background(MaterialTheme.colorScheme.primary)
-                        )
-                    }
-                    if (uiState.weekendPercentage > 0f) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .weight(uiState.weekendPercentage.coerceAtLeast(0.01f))
-                                .background(SavingsAmber)
-                        )
-                    }
-                }
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
-
-            // Averages Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("معدل أيام العمل اليومي", style = MaterialTheme.typography.labelSmall, color = TextGray)
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = FormatterUtils.formatCurrency(uiState.weekdayDailyAverage),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(8.dp).background(SavingsAmber, CircleShape))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("معدل نهاية الأسبوع اليومي", style = MaterialTheme.typography.labelSmall, color = TextGray)
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = FormatterUtils.formatCurrency(uiState.weekendDailyAverage),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-
-            // Insights text
-            val trendMessage = if (uiState.weekendDailyAverage > uiState.weekdayDailyAverage * 1.3) {
-                "معدل إنفاقك اليومي في عطلة نهاية الأسبوع مرتفع جداً مقارنة بأيام العمل. احذر من التبذير خلال العطلة."
-            } else {
-                "معدل إنفاقك اليومي متزن بين أيام العمل وعطلة نهاية الأسبوع. استمر في هذا الانضباط المالي."
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.Top
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                    modifier = Modifier.size(16.dp).padding(top = 2.dp)
-                )
-                Text(
-                    text = trendMessage,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                    textAlign = TextAlign.Right,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun EmergencyFundRunwayCard(
-    uiState: AnalyticsUiState,
-    onHelpClick: (String, String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val (statusLabel, statusColor) = when (uiState.emergencyFundStatus) {
-        "CRITICAL" -> "حرِج (أقل من شهر)" to ExpenseRed
-        "ACCEPTABLE" -> "مقبول (1-3 أشهر)" to SavingsAmber
-        "SAFE" -> "آمن (3-6 أشهر)" to IncomeGreen
-        else -> "ممتاز (+6 أشهر)" to MaterialTheme.colorScheme.primary
-    }
-
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "مؤشر صندوق الطوارئ والأمان المالي",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "قدرتك على الصمود المالي في حال انقطاع الدخل",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextGray
-                        )
-                    }
-                    HelpIconButton(
-                        onClick = {
-                            onHelpClick(
-                                "مؤشر صندوق الطوارئ والأمان المالي",
-                                "يقيس هذا المؤشر عدد الأشهر الافتراضية التي يمكنك العيش فيها معتمداً بالكامل على مدخراتك الحالية لتغطية متوسط نفقاتك الشهرية إذا انقطع دخلك فجأة.\n\nالفائدة: يوفر مقياساً حقيقياً لمدى أمانك المالي وصمودك أمام الأزمات المفاجئة (مثل فقدان العمل أو الطوارئ الصحية) دون الحاجة للاقتراض أو الديون."
-                            )
-                        }
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = statusColor.copy(alpha = 0.12f)
-                ) {
-                    Text(
-                        text = statusLabel,
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = statusColor,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Large numeric representation
-                Column(
-                    modifier = Modifier.weight(1.2f),
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = FormatterUtils.convertNumerals("${String.format(java.util.Locale.US, "%.1f", uiState.emergencyFundRunwayMonths)} أشهر"),
-                        style = MaterialTheme.typography.headlineLarge.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = 32.sp
-                        ),
-                        color = statusColor
-                    )
-                    Text(
-                        text = "مدة تغطية الطوارئ",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextGray
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(60.dp)
-                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                )
-
-                // Details
-                Column(
-                    modifier = Modifier.weight(2f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("إجمالي المدخرات:", style = MaterialTheme.typography.labelSmall, color = TextGray)
-                        Text(
-                            text = FormatterUtils.formatCurrency(uiState.totalSavingsAmount),
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("معدل المصاريف الشهري:", style = MaterialTheme.typography.labelSmall, color = TextGray)
-                        Text(
-                            text = FormatterUtils.formatCurrency(uiState.averageMonthlyExpense),
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
-
-            val explanation = when (uiState.emergencyFundStatus) {
-                "CRITICAL" -> "صندوق طوارئك الحالي ضعيف جداً ولا يغطي شهر واحد من المصاريف. ننصحك بتحويل مبالغ إضافية للتوفير في أقرب وقت لتفادي الأزمات المالية المفاجئة."
-                "ACCEPTABLE" -> "مدخراتك مقبولة وتغطي جزءاً من احتياجاتك المؤقتة. يُنصح بالعمل على زيادة المدخرات لتصل إلى تغطية 3 أشهر على الأقل لتحقيق أمان أكبر."
-                "SAFE" -> "تهانينا! وضعك المالي آمن جداً. تغطي مدخراتك نفقاتك لعدة أشهر في حال الطوارئ، وهو ما يمنحك راحة بال ممتازة للتعامل مع أي طارئ."
-                else -> "وضعك المالي استثنائي وممتاز! لديك وفرة مالية وصندوق طوارئ صلب للغاية يغطي أكثر من 6 أشهر من حياتك دون دخل. أنت تسير بخطى ذهبية."
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.Top
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = null,
-                    tint = statusColor.copy(alpha = 0.7f),
-                    modifier = Modifier.size(16.dp).padding(top = 2.dp)
-                )
-                Text(
-                    text = explanation,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                    textAlign = TextAlign.Right,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-    }
-}
 
 @Composable
 fun SavingsChallengesSection(modifier: Modifier = Modifier) {
@@ -2093,8 +1592,513 @@ fun HelpIconButton(
     }
 }
 
+@Composable
+fun EmergencyFundCard(
+    uiState: com.example.presentation.analytics.AnalyticsUiState,
+    onHelpClick: (String, String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (uiState.spendingsByCategory.isEmpty()) return
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            val (statusLabel, statusColor) = when (uiState.emergencyFundStatus) {
+                "CRITICAL" -> "حرِج (أقل من شهر)" to ExpenseRed
+                "ACCEPTABLE" -> "مقبول (1-3 أشهر)" to SavingsAmber
+                "SAFE" -> "آمن (3-6 أشهر)" to IncomeGreen
+                else -> "ممتاز (+6 أشهر)" to MaterialTheme.colorScheme.primary
+            }
+
+            // Inner Header/Title
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "مؤشر صندوق الطوارئ والأمان المالي",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "قدرتك على الصمود المالي في حال انقطاع الدخل",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextGray
+                    )
+                }
+                HelpIconButton(
+                    onClick = {
+                        onHelpClick(
+                            "مؤشر صندوق الطوارئ والأمان المالي",
+                            "يقيس هذا المؤشر عدد الأشهر الافتراضية التي يمكنك العيش فيها معتمداً بالكامل على مدخراتك الحالية لتغطية متوسط نفقاتك الشهرية إذا انقطع دخلك فجأة.\n\nالفائدة: يوفر مقياساً حقيقياً لمدى أمانك المالي وصمودك أمام الأزمات المفاجئة (مثل فقدان العمل أو الطوارئ الصحية) دون الحاجة للاقتراض أو الديون."
+                        )
+                    }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = statusColor.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        text = statusLabel,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = statusColor,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Large numeric representation
+                Column(
+                    modifier = Modifier.weight(1.2f),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = FormatterUtils.convertNumerals("${String.format(java.util.Locale.US, "%.1f", uiState.emergencyFundRunwayMonths)} أشهر"),
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontWeight = FontWeight.Black,
+                            fontSize = 30.sp
+                        ),
+                        color = statusColor
+                    )
+                    Text(
+                        text = "مدة تغطية الطوارئ",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextGray
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(60.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                )
+
+                // Details
+                Column(
+                    modifier = Modifier.weight(2f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("إجمالي المدخرات:", style = MaterialTheme.typography.labelSmall, color = TextGray)
+                        Text(
+                            text = FormatterUtils.formatCurrency(uiState.totalSavingsAmount),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("معدل المصاريف الشهري:", style = MaterialTheme.typography.labelSmall, color = TextGray)
+                        Text(
+                            text = FormatterUtils.formatCurrency(uiState.averageMonthlyExpense),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+
+            val explanation = when (uiState.emergencyFundStatus) {
+                "CRITICAL" -> "صندوق طوارئك الحالي ضعيف جداً ولا يغطي شهر واحد من المصاريف. ننصحك بتحويل مبالغ إضافية للتوفير في أقرب وقت لتفادي الأزمات المالية المفاجئة."
+                "ACCEPTABLE" -> "مدخراتك مقبولة وتغطي جزءاً من احتياجاتك المؤقتة. يُنصح بالعمل على زيادة المدخرات لتصل إلى تغطية 3 أشهر على الأقل لتحقيق أمان أكبر."
+                "SAFE" -> "تهانينا! وضعك المالي آمن جداً. تغطي مدخراتك نفقاتك لعدة أشهر في حال الطوارئ، وهو ما يمنحك راحة بال ممتازة للتعامل مع أي طارئ."
+                else -> "وضعك المالي استثنائي وممتاز! لديك وفرة مالية وصندوق طوارئ صلب للغاية يغطي أكثر من 6 أشهر من حياتك دون دخل. أنت تسير بخطى ذهبية."
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = statusColor.copy(alpha = 0.7f),
+                    modifier = Modifier.size(16.dp).padding(top = 2.dp)
+                )
+                Text(
+                    text = explanation,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SalaryCycleCard(
+    uiState: com.example.presentation.analytics.AnalyticsUiState,
+    onHelpClick: (String, String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (uiState.selectedPeriod != "MONTH" || uiState.spendingsByCategory.isEmpty()) return
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Inner Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (uiState.hasSalarySource) "توقعات الإنفاق ودورة الراتب CCP" else "توقعات الإنفاق للشهر الحالي",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = if (uiState.hasSalarySource) "دورة الراتب: ${uiState.salaryCycleStartLabel} ← ${uiState.salaryCycleEndLabel}" 
+                               else "الفترة: 1 إلى نهاية الشهر",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextGray
+                    )
+                }
+                HelpIconButton(
+                    onClick = {
+                        onHelpClick(
+                            "توقعات الإنفاق ودورة الراتب",
+                            "يقيس هذا المؤشر سرعة وتقدم معدل إنفاقك اليومي الفعلي ومقارنته بالميزانية المحددة أو الراتب المرجعي على مدار أيام دورة الراتب المالي المتبقية.\n\nالفائدة: يتنبأ بإجمالي نفقاتك بنهاية الشهر الجاري ويحذرك مبكراً إذا كنت متجهاً لتجاوز الميزانية لتتمكن من ترشيد نفقاتك وتعديل سلوك الاستهلاك قبل فوات الأوان."
+                        )
+                    }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (uiState.isProjectedToExceedBudget) ExpenseRed.copy(alpha = 0.12f) else IncomeGreen.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        text = if (uiState.isProjectedToExceedBudget) "تنبيه بالصرف" else "إنفاق مستقر",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = if (uiState.isProjectedToExceedBudget) ExpenseRed else IncomeGreen,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+            }
+
+            // Progress Bar and Info
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "تقدم الدورة الزمنية (${((uiState.salaryCyclePercentageElapsed) * 100).toInt()}% من الشهر)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextGray
+                    )
+                    Text(
+                        text = "متبقي ${uiState.daysRemainingInCycle} يوم",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                LinearProgressIndicator(
+                    progress = { uiState.salaryCyclePercentageElapsed },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(CircleShape),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                )
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+
+            // Projections grid
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "الإنفاق المتوقع",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextGray
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = FormatterUtils.formatCurrency(uiState.projectedEndMonthSpending),
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Black,
+                            color = if (uiState.isProjectedToExceedBudget) ExpenseRed else MaterialTheme.colorScheme.onSurface
+                        )
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(40.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (uiState.referenceBudget == uiState.salaryAmount) "ميزانية الراتب المرجعية" else "إجمالي الميزانيات المحددة",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextGray
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = if (uiState.referenceBudget > 0) FormatterUtils.formatCurrency(uiState.referenceBudget) else "غير محددة",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            // Exceed Warning Banner
+            if (uiState.isProjectedToExceedBudget && uiState.referenceBudget > 0) {
+                val exceedAmount = uiState.projectedEndMonthSpending - uiState.referenceBudget
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = ExpenseRed.copy(alpha = 0.08f),
+                    border = BorderStroke(1.dp, ExpenseRed.copy(alpha = 0.15f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(ExpenseRed, CircleShape)
+                        )
+                        Text(
+                            text = "بناءً على سرعة إنفاقك، ستتجاوز الميزانية بـ ${FormatterUtils.formatCurrency(exceedAmount)} بنهاية الشهر. حاول ترشيد نفقاتك الكبيرة.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ExpenseRed,
+                            textAlign = TextAlign.Right,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun WeekendWeekdayCard(
+    uiState: com.example.presentation.analytics.AnalyticsUiState,
+    onHelpClick: (String, String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (!uiState.hasWeekendData || uiState.spendingsByCategory.isEmpty()) return
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            val weekdayAvg = uiState.weekdayDailyAverage
+            val weekendAvg = uiState.weekendDailyAverage
+            val weekdayPercent = uiState.weekdayPercentage
+            val weekendPercent = uiState.weekendPercentage
+
+            // Inner Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "تحليل الإنفاق: أيام العمل مقابل نهاية الأسبوع",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "توزيع النفقات بين أيام الأسبوع والجمعة/السبت بالجزائر",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextGray
+                    )
+                }
+                HelpIconButton(
+                    onClick = {
+                        onHelpClick(
+                            "تحليل أيام العمل مقابل عطلة نهاية الأسبوع",
+                            "يقيس هذا التحليل متوسط حجم إنفاقك المالي في أيام الأسبوع العادية (من الأحد إلى الخميس) مقارنة بمتوسط إنفاقك في عطلة نهاية الأسبوع (الجمعة والسبت بالجزائر).\n\nالفائدة: يوضح لك سلوكك الترفيهي أو الاستهلاكي خلال العطلات، مما يساعدك على كبح المصاريف غير الضرورية أو المبالغ فيها خلال عطلة نهاية الأسبوع."
+                        )
+                    }
+                )
+            }
+
+            // Ratio Bar Indicator
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "أيام العمل (${(weekdayPercent * 100).toInt()}%)",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "عطلة نهاية الأسبوع (${(weekendPercent * 100).toInt()}%)",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = SavingsAmber
+                    )
+                }
+
+                // Dual progress bar
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(10.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                ) {
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .weight(weekdayPercent.coerceAtLeast(0.01f))
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .weight(weekendPercent.coerceAtLeast(0.01f))
+                                .background(SavingsAmber)
+                        )
+                    }
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+
+            // Info details row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("متوسط يوم العمل (الأحد - الخميس)", style = MaterialTheme.typography.labelSmall, color = TextGray)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = FormatterUtils.formatCurrency(weekdayAvg),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(40.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("متوسط يوم العطلة (الجمعة والسبت)", style = MaterialTheme.typography.labelSmall, color = TextGray)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = FormatterUtils.formatCurrency(weekendAvg),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            // Suggestion banner
+            val ratioText = when {
+                weekendAvg > weekdayAvg * 1.5 -> "إنفاقك في عطلة نهاية الأسبوع مرتفع جداً مقارنة بالأيام العادية. حاول رصد نفقات الترفيه والتسوق في عطلة نهاية الأسبوع لتقليل الهدر."
+                weekendAvg > weekdayAvg -> "إنفاقك في العطلة أعلى بقليل من الأيام العادية. هذا طبيعي للترويح عن النفس، لكن احرص على البقاء ضمن حدود الميزانية."
+                else -> "إنفاقك متوازن ومنضبط للغاية خلال العطلة مقارنة بأيام العمل. استمر في هذا الأداء المالي الرائع والمستقر."
+            }
+
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = ratioText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+}
+
 enum class ChartViewMode {
     DONUT,
     BAR
 }
+
 

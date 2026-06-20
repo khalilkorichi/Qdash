@@ -1,11 +1,11 @@
 {
-  "versionCode": 12,
-  "versionName": "1.0.0.12",
-  "updateIdentity": 112,
-  "publishedAt": "2026-06-20T20:10:00Z",
+  "versionCode": 13,
+  "versionName": "1.0.0.13",
+  "updateIdentity": 113,
+  "publishedAt": "2026-06-20T23:25:00Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 24036612,
-  "apkSha256": "ed5bf3048ea13dff22ac29f106a5e7cd7e70b9f156db66c9a42c95d86107d07e",
+  "apkSize": 23787464,
+  "apkSha256": "d055170c2d07f198feed585782d44bcc3c561092e9db292ded8201a2c237dcbd",
   "mandatory": false,
-  "releaseNotes": "تحديث الإصدار إلى v1.0.0.12: إضافة شريط التحديث الذكي التفاعلي أسفل التطبيق بثلاث مراحل (التنبيه الذكي، التحميل الخلفي مع شريط التقدم، التثبيت الفوري) مع تحسين تجربة المستخدم وتعطيل فحص Play Protect لتسهيل التحديثات المباشرة."
+  "releaseNotes": "تحديث الإصدار إلى v1.0.0.13: فصل قسم التحليلات الذكية إلى علامات تبويب متخصصة، نقل قسم 'تحديات الادخار' إلى تبويب 'الادخار' المستقل، واختصار عناوين علامات التبويب لتحسين تصميم ومقروئية صفحة الإحصائيات."
 }

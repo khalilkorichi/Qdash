@@ -677,7 +677,7 @@ fun AnalyticsScreen(
                         .padding(5.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    val tabs = listOf("التقارير العامة", "لوحة التحكم والمقارنة")
+                    val tabs = listOf("التقارير", "المقارنة", "التحليلات", "الادخار")
                     tabs.forEachIndexed { index, label ->
                         val isSelected = uiState.dashboardTab == index
                         val tabBg by animateColorAsState(
@@ -722,14 +722,7 @@ fun AnalyticsScreen(
                 }
 
             // â”€â”€ 2.5 Salary Cycle & Spend Projection Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            if (!uiState.isLoading && uiState.selectedPeriod == "MONTH" && uiState.spendingsByCategory.isNotEmpty()) {
-                item {
-                    SalaryCycleProjectionCard(
-                        uiState = uiState,
-                        onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
-                    )
-                }
-            }
+
 
             // â”€â”€ 3. Donut Chart Card (top-5 legend + progress bars) â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if (uiState.isLoading) {
@@ -912,24 +905,7 @@ fun AnalyticsScreen(
                 }
             }
             }
-            if (!uiState.isLoading && uiState.spendingsByCategory.isNotEmpty()) {
-                item {
-                    EmergencyFundRunwayCard(
-                        uiState = uiState,
-                        onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
-                    )
-                }
-            }
 
-            // â”€â”€ 4.5 Weekend vs Weekday Spending Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            if (!uiState.isLoading && uiState.spendingsByCategory.isNotEmpty()) {
-                item {
-                    WeekendWeekdaySpendingCard(
-                        uiState = uiState,
-                        onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
-                    )
-                }
-            }
 
             // â”€â”€ 5. Bar Chart â€” rounded bars, 200dp canvas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if (uiState.isLoading) {
@@ -1273,13 +1249,9 @@ fun AnalyticsScreen(
 
             // Deleted category ranking list to prevent duplication with the legend inside InteractiveDonutCard
 
-            if (!uiState.isLoading && uiState.spendingsByCategory.isNotEmpty()) {
-                item {
-                    SavingsChallengesSection()
-                }
-            }
 
-            } else {
+
+            } else if (uiState.dashboardTab == 1) {
                 // ── INTERACTIVE DASHBOARD TAB ───────────────────
 
                 // 1. Dashboard filter header & Period switcher
@@ -1403,25 +1375,7 @@ fun AnalyticsScreen(
                     )
                 }
 
-                // 4. Render category expense vs income charts
-                item {
-                    CategoryVsIncomeChartCard(
-                        transactions = dashboardTransactions,
-                        categories = uiState.categories,
-                        totalIncome = dashIncome,
-                        selectedCategory = selectedCategory,
-                        onSelectedCategoryChange = { selectedCategory = it },
-                        onHelpClick = { title, desc -> activeExplanationInfo = title to desc },
-                        onCategoryLongClick = { category ->
-                            longClickJob?.cancel()
-                            longClickedCategory = category
-                            longClickJob = scope.launch {
-                                kotlinx.coroutines.delay(3000)
-                                longClickedCategory = null
-                            }
-                        }
-                    )
-                }
+
 
                 // 5. Render Month Comparison Card
                 item {
@@ -1436,6 +1390,37 @@ fun AnalyticsScreen(
                         onMonthBChange = { m, y -> viewModel.setCompareMonthB(m, y) },
                         onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
                     )
+                }
+            } else if (uiState.dashboardTab == 2) {
+                // ── SMART INSIGHTS TAB ───────────────────
+                item { Spacer(modifier = Modifier.height(8.dp)) }
+                item {
+                    EmergencyFundCard(
+                        uiState = uiState,
+                        onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
+                    )
+                }
+                item { Spacer(modifier = Modifier.height(16.dp)) }
+                item {
+                    SalaryCycleCard(
+                        uiState = uiState,
+                        onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
+                    )
+                }
+                item { Spacer(modifier = Modifier.height(16.dp)) }
+                item {
+                    WeekendWeekdayCard(
+                        uiState = uiState,
+                        onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
+                    )
+                }
+            } else if (uiState.dashboardTab == 3) {
+                // ── SAVINGS TAB ───────────────────
+                item { Spacer(modifier = Modifier.height(16.dp)) }
+                if (!uiState.isLoading && uiState.spendingsByCategory.isNotEmpty()) {
+                    item {
+                        SavingsChallengesSection()
+                    }
                 }
             }
 
