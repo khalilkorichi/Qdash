@@ -1400,14 +1400,16 @@ fun AnalyticsScreen(
                         onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
                     )
                 }
-                item { Spacer(modifier = Modifier.height(16.dp)) }
-                item {
-                    SalaryCycleCard(
-                        uiState = uiState,
-                        onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
-                    )
+                if (uiState.selectedPeriod == "MONTH" && uiState.spendingsByCategory.isNotEmpty()) {
+                    item { Spacer(modifier = Modifier.height(10.dp)) }
+                    item {
+                        SalaryCycleCard(
+                            uiState = uiState,
+                            onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
+                        )
+                    }
                 }
-                item { Spacer(modifier = Modifier.height(16.dp)) }
+                item { Spacer(modifier = Modifier.height(10.dp)) }
                 item {
                     WeekendWeekdayCard(
                         uiState = uiState,

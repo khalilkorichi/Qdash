@@ -310,9 +310,18 @@ class AnalyticsViewModel(
                         "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
                     )
 
-                    // Compute trend for the last 5 months
+                    // Compute trend for the last 5 months — always using full calendar months
+                    // to avoid partial-month bias when the current day != 1
+                    val todayCal = Calendar.getInstance().apply {
+                        set(Calendar.DAY_OF_MONTH, 1)
+                        set(Calendar.HOUR_OF_DAY, 0)
+                        set(Calendar.MINUTE, 0)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+
                     for (monthOffset in 4 downTo 0) {
-                        val targetCal = Calendar.getInstance().apply {
+                        val targetCal = (todayCal.clone() as Calendar).apply {
                             add(Calendar.MONTH, -monthOffset)
                         }
                         val yr = targetCal.get(Calendar.YEAR)
@@ -323,10 +332,16 @@ class AnalyticsViewModel(
                             val range = getSalaryCycleRangeForAnchor(salaryDay, mth, yr)
                             transactions.filter { it.date in range.first.timeInMillis..range.second.timeInMillis }
                         } else {
-                            transactions.filter { tx ->
-                                val txCal = Calendar.getInstance().apply { timeInMillis = tx.date }
-                                txCal.get(Calendar.YEAR) == yr && txCal.get(Calendar.MONTH) == mth
-                            }
+                            // Use full month: from 00:00:00 of day 1 to 23:59:59 of last day
+                            val monthStart = targetCal.timeInMillis
+                            val monthEnd = (targetCal.clone() as Calendar).apply {
+                                set(Calendar.DAY_OF_MONTH, getActualMaximum(Calendar.DAY_OF_MONTH))
+                                set(Calendar.HOUR_OF_DAY, 23)
+                                set(Calendar.MINUTE, 59)
+                                set(Calendar.SECOND, 59)
+                                set(Calendar.MILLISECOND, 999)
+                            }.timeInMillis
+                            transactions.filter { it.date in monthStart..monthEnd }
                         }
 
                         val incomeSum = monthTxs.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
