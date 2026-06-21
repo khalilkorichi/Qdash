@@ -1,6 +1,7 @@
 package com.example.data.backup
 
 import android.content.Context
+import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import android.os.Build
 import com.example.data.local.AppDatabase
@@ -31,6 +32,7 @@ class BackupManager(
                     zos.closeEntry()
 
                     // 2. Perform a Room database checkpoint and close database cleanly
+                    database.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(FULL)").close()
                     database.close()
 
                     // 3. Write Room database files (db, shm, wal)
@@ -101,10 +103,39 @@ class BackupManager(
                 return@withContext Result.failure(Exception("ملف النسخ الاحتياطي غير صالح أو غير متوافق."))
             }
 
-            // 2. Perform a safe backup of the current database before replacing it
+            // 2. Extract to staging first; live files are replaced only after validation.
             val dbFile = context.getDatabasePath(dbName)
             val shmFile = File(dbFile.path + "-shm")
             val walFile = File(dbFile.path + "-wal")
+            val stagingDir = File(context.cacheDir, "backup_restore_staging").apply {
+                deleteRecursively()
+                mkdirs()
+            }
+            val stagedDbFile = File(stagingDir, "app.db")
+            val stagedShmFile = File(stagingDir, "app.db-shm")
+            val stagedWalFile = File(stagingDir, "app.db-wal")
+            val stagedAttachmentsDir = File(stagingDir, "attachments").apply { mkdirs() }
+
+            resolver.openInputStream(inputUri)?.use { inputStream ->
+                ZipInputStream(BufferedInputStream(inputStream)).use { zis ->
+                    var entry = zis.nextEntry
+                    while (entry != null) {
+                        when (entry.name) {
+                            "database/app.db" -> stagedDbFile.outputStream().use { output -> zis.copyTo(output) }
+                            "database/app.db-shm" -> stagedShmFile.outputStream().use { output -> zis.copyTo(output) }
+                            "database/app.db-wal" -> stagedWalFile.outputStream().use { output -> zis.copyTo(output) }
+                            else -> if (entry.name.startsWith("attachments/")) {
+                                copyAttachmentEntrySafely(zis, entry, stagedAttachmentsDir)
+                            }
+                        }
+                        entry = zis.nextEntry
+                    }
+                }
+            }
+
+            validateStagedDatabase(stagedDbFile)
+
+            database.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(FULL)").close()
 
             if (dbFile.exists()) {
                 tempDbFile = File(context.cacheDir, "temp_backup.db")
@@ -122,32 +153,15 @@ class BackupManager(
             // 3. Close the active Room database instance to release file locks
             database.close()
 
-            // 4. Overwrite databases from Zip entries
-            resolver.openInputStream(inputUri)?.use { inputStream ->
-                ZipInputStream(BufferedInputStream(inputStream)).use { zis ->
-                    var entry = zis.nextEntry
-                    while (entry != null) {
-                        when (entry.name) {
-                            "database/app.db" -> {
-                                dbFile.outputStream().use { output -> zis.copyTo(output) }
-                            }
-                            "database/app.db-shm" -> {
-                                shmFile.outputStream().use { output -> zis.copyTo(output) }
-                            }
-                            "database/app.db-wal" -> {
-                                walFile.outputStream().use { output -> zis.copyTo(output) }
-                            }
-                            else -> {
-                                if (entry.name.startsWith("attachments/")) {
-                                    val fileName = entry.name.substringAfter("attachments/")
-                                    val destFile = File(File(context.filesDir, "attachments"), fileName)
-                                    destFile.parentFile?.mkdirs()
-                                    destFile.outputStream().use { output -> zis.copyTo(output) }
-                                }
-                            }
-                        }
-                        entry = zis.nextEntry
-                    }
+            // 4. Overwrite databases from validated staging files
+            stagedDbFile.copyTo(dbFile, overwrite = true)
+            if (stagedShmFile.exists()) stagedShmFile.copyTo(shmFile, overwrite = true) else shmFile.delete()
+            if (stagedWalFile.exists()) stagedWalFile.copyTo(walFile, overwrite = true) else walFile.delete()
+
+            val attachmentsDir = File(context.filesDir, "attachments").apply { mkdirs() }
+            stagedAttachmentsDir.listFiles()?.forEach { stagedAttachment ->
+                if (stagedAttachment.isFile) {
+                    stagedAttachment.copyTo(File(attachmentsDir, stagedAttachment.name), overwrite = true)
                 }
             }
 
@@ -155,6 +169,7 @@ class BackupManager(
             tempDbFile?.delete()
             tempShmFile?.delete()
             tempWalFile?.delete()
+            stagingDir.deleteRecursively()
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -174,6 +189,7 @@ class BackupManager(
                 it.copyTo(walFile, overwrite = true)
                 it.delete()
             }
+            File(context.cacheDir, "backup_restore_staging").deleteRecursively()
             Result.failure(e)
         }
     }
@@ -192,6 +208,44 @@ class BackupManager(
             put("deviceInfo", "${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})")
         }
         return json.toString(4)
+    }
+
+    private fun copyAttachmentEntrySafely(zis: ZipInputStream, entry: ZipEntry, attachmentsDir: File) {
+        if (entry.isDirectory) return
+        val fileName = entry.name.substringAfter("attachments/")
+        require(fileName.isNotBlank()) { "Invalid attachment entry." }
+        require(!fileName.contains("..") && !File(fileName).isAbsolute) { "Invalid attachment path." }
+
+        val canonicalDir = attachmentsDir.canonicalFile
+        val destFile = File(canonicalDir, fileName).canonicalFile
+        require(destFile.path.startsWith(canonicalDir.path + File.separator)) {
+            "Attachment path escapes backup directory."
+        }
+
+        destFile.parentFile?.mkdirs()
+        destFile.outputStream().use { output -> zis.copyTo(output) }
+    }
+
+    private fun validateStagedDatabase(stagedDbFile: File) {
+        require(stagedDbFile.exists() && stagedDbFile.length() > 0L) {
+            "ملف قاعدة البيانات غير موجود داخل النسخة الاحتياطية."
+        }
+
+        SQLiteDatabase.openDatabase(stagedDbFile.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+            db.rawQuery("PRAGMA integrity_check", null).use { cursor ->
+                require(cursor.moveToFirst() && cursor.getString(0).equals("ok", ignoreCase = true)) {
+                    "قاعدة البيانات داخل النسخة الاحتياطية تالفة."
+                }
+            }
+            require(db.version <= database.openHelper.readableDatabase.version) {
+                "نسخة قاعدة البيانات في الملف أحدث من النسخة المدعومة."
+            }
+            listOf("accounts", "categories", "transactions").forEach { table ->
+                db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name=?", arrayOf(table)).use { cursor ->
+                    require(cursor.moveToFirst()) { "النسخة الاحتياطية تفتقد جدول $table." }
+                }
+            }
+        }
     }
 
     private fun validateManifest(content: String): Boolean {

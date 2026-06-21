@@ -72,6 +72,7 @@ internal fun FinTrackNavGraph(
     settingsViewModel: SettingsViewModel,
     startDestination: String,
     updatesViewModel: com.example.presentation.update.UpdatesViewModel,
+    aiChatViewModel: com.example.presentation.ai.AiChatViewModel,
     scope: CoroutineScope,
     modifier: Modifier = Modifier
 ) {
@@ -353,7 +354,6 @@ internal fun FinTrackNavGraph(
         }
 
         composable(Screen.AiChat.route) {
-            val aiChatViewModel: com.example.presentation.ai.AiChatViewModel = viewModel(factory = factory)
             com.example.presentation.ai.AiChatScreen(
                 viewModel = aiChatViewModel,
                 onBack = { navController.popBackStack() }
@@ -448,11 +448,9 @@ internal fun FinTrackNavGraph(
         }
 
         composable(Screen.DocumentSimulatorEntry.route) {
-            val simulatorViewModel: DocumentSimulatorViewModel = viewModel(factory = factory)
             DocumentSimulatorEntryScreen(
                 onSelectDocType = { docType ->
-                    simulatorViewModel.selectDocumentType(docType)
-                    navController.navigate(Screen.DocumentSimulator.route)
+                    navController.navigate(Screen.DocumentSimulator.createRoute(docType.name))
                 },
                 onManageProfiles = {
                     navController.navigate(Screen.PostalProfiles.route)
@@ -461,8 +459,21 @@ internal fun FinTrackNavGraph(
             )
         }
 
-        composable(Screen.DocumentSimulator.route) {
+        composable(
+            route = Screen.DocumentSimulator.route,
+            arguments = listOf(
+                androidx.navigation.navArgument("docType") {
+                    type = androidx.navigation.NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
             val simulatorViewModel: DocumentSimulatorViewModel = viewModel(factory = factory)
+            val docType = backStackEntry.arguments?.getString("docType")
+                ?.let { runCatching { DocumentType.valueOf(it) }.getOrNull() }
+                ?: DocumentType.CHEQUE
+            LaunchedEffect(docType) {
+                simulatorViewModel.selectDocumentType(docType)
+            }
             DocumentSimulatorScreen(
                 viewModel = simulatorViewModel,
                 onBack = { navController.popBackStack() }

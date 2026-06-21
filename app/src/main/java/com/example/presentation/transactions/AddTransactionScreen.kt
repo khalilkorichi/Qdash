@@ -52,6 +52,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import android.widget.Toast
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 
@@ -73,6 +74,7 @@ fun AddTransactionScreen(
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     val uiState by viewModel.uiState.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     val showAmountWords = uiState.isAmountWordsEnabled
@@ -182,6 +184,27 @@ fun AddTransactionScreen(
         } else {
             null
         }
+    }
+
+    val effectiveCategoryId = subcategoryId ?: selectedCategoryId
+    val effectiveAccountId = selectedAccountId
+        ?: uiState.accounts.find { it.isDefault }?.id
+        ?: uiState.accounts.firstOrNull()?.id
+    val canSaveTransaction = parsedAmount > 0.0 &&
+        effectiveCategoryId != null &&
+        effectiveAccountId != null &&
+        (type != TransactionType.TRANSFER || (toAccountId != null && effectiveAccountId != toAccountId)) &&
+        !uiState.isSaving
+
+    LaunchedEffect(uiState.saveCompleted) {
+        if (uiState.saveCompleted) {
+            viewModel.consumeSaveCompleted()
+            onBack()
+        }
+    }
+
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
     }
 
     // Reactively load transaction details if in edit mode
@@ -1070,20 +1093,20 @@ fun AddTransactionScreen(
                             } else {
                                 haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                             }
+                            val categoryId = effectiveCategoryId
+                            val accountId = effectiveAccountId
+                            if (categoryId == null || accountId == null) {
+                                Toast.makeText(context, "يرجى اختيار حساب وفئة صالحين قبل الحفظ.", Toast.LENGTH_LONG).show()
+                                return@Button
+                            }
+
                             if (transactionId != null) {
                                 viewModel.updateTransaction(
                                     id = transactionId,
                                     amount = parsedAmount,
                                     type = type,
-                                    categoryId = if (type == TransactionType.TRANSFER) {
-                                        12L
-                                    } else {
-                                        subcategoryId ?: selectedCategoryId ?: 1L
-                                    },
-                                    accountId = selectedAccountId 
-                                        ?: uiState.accounts.find { it.isDefault }?.id 
-                                        ?: uiState.accounts.firstOrNull()?.id 
-                                        ?: 1L,
+                                    categoryId = categoryId,
+                                    accountId = accountId,
                                     toAccountId = if (type == TransactionType.TRANSFER) toAccountId else null,
                                     note = note.ifBlank { null },
                                     date = transactionDate,
@@ -1095,15 +1118,8 @@ fun AddTransactionScreen(
                                 viewModel.addTransaction(
                                     amount = parsedAmount,
                                     type = type,
-                                    categoryId = if (type == TransactionType.TRANSFER) {
-                                        12L
-                                    } else {
-                                        subcategoryId ?: selectedCategoryId ?: 1L
-                                    },
-                                    accountId = selectedAccountId 
-                                        ?: uiState.accounts.find { it.isDefault }?.id 
-                                        ?: uiState.accounts.firstOrNull()?.id 
-                                        ?: 1L,
+                                    categoryId = categoryId,
+                                    accountId = accountId,
                                     toAccountId = if (type == TransactionType.TRANSFER) toAccountId else null,
                                     note = note.ifBlank { null },
                                     date = transactionDate,
@@ -1112,11 +1128,9 @@ fun AddTransactionScreen(
                                     tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null
                                 )
                             }
-                            onBack()
                         }
                     },
-                    enabled = com.example.core.utils.CalculatorParser.evaluate(rawAmount) > 0.0 &&
-                            (type != TransactionType.TRANSFER || selectedAccountId != toAccountId),
+                    enabled = canSaveTransaction,
                     modifier = Modifier
                         .weight(if (transactionId == null) 1.5f else 1f)
                         .height(50.dp)

@@ -57,6 +57,9 @@ interface TransactionDao {
     @Query("DELETE FROM transactions WHERE id IN (:transactionIds)")
     suspend fun deleteTransactionsBulk(transactionIds: List<Long>)
 
+    @Query("SELECT * FROM transactions WHERE id IN (:transactionIds)")
+    suspend fun getTransactionsByIds(transactionIds: List<Long>): List<TransactionEntity>
+
     @Query("UPDATE transactions SET categoryId = :targetCategoryId WHERE categoryId = :sourceCategoryId")
     suspend fun mergeTransactionsCategory(sourceCategoryId: Long, targetCategoryId: Long)
 }
@@ -82,7 +85,7 @@ interface AccountDao {
     suspend fun clearDefaultFlag()
 
     @Query("UPDATE accounts SET isDefault = 1 WHERE id = :id")
-    suspend fun setDefaultAccount(id: Long)
+    suspend fun setDefaultAccount(id: Long): Int
 
     @Query("UPDATE accounts SET isArchived = 1 WHERE id = :id")
     suspend fun archiveAccount(id: Long)

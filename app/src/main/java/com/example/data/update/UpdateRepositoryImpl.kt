@@ -80,6 +80,9 @@ class UpdateRepositoryImpl(
             val localIdentity = BuildConfig.UPDATE_IDENTITY
 
             if (manifest != null) {
+                require(manifest.apkSha256.isNotBlank() && manifest.apkSha256.matches(Regex("(?i)[a-f0-9]{64}"))) {
+                    "ملف التحديث لا يحتوي على SHA-256 صالح."
+                }
                 onStep(CheckingStep.ComparingVersions)
                 delay(400)
                 
@@ -134,6 +137,12 @@ class UpdateRepositoryImpl(
 
             val hasUpdate = isNewerVersion
 
+            val sha256 = latestRelease.body
+                ?.lineSequence()
+                ?.mapNotNull { line -> Regex("(?i)sha-?256\\s*[:=]\\s*([a-f0-9]{64})").find(line)?.groupValues?.get(1) }
+                ?.firstOrNull()
+                ?: throw IllegalStateException("لا يحتوي إصدار GitHub على SHA-256 صالح لملف APK.")
+
             val updateInfo = UpdateInfo(
                 hasUpdate = hasUpdate,
                 versionCode = 1, // Default fallback
@@ -141,7 +150,7 @@ class UpdateRepositoryImpl(
                 updateIdentity = remoteTime,
                 apkUrl = apkAsset.browserDownloadUrl,
                 apkSize = apkAsset.size,
-                apkSha256 = null,
+                apkSha256 = sha256,
                 mandatory = false,
                 releaseNotes = latestRelease.body
             )
@@ -175,6 +184,15 @@ class UpdateRepositoryImpl(
             
             val tempFile = File(context.cacheDir, "Qdash-update-temp.apk")
             val isAppend = startBytes > 0L && response.code == 206
+            if (startBytes > 0L && response.code == 200 && tempFile.exists()) {
+                tempFile.delete()
+            }
+            if (startBytes > 0L && response.code == 206) {
+                val contentRange = response.header("Content-Range")
+                require(contentRange?.startsWith("bytes $startBytes-") == true) {
+                    "الخادم أعاد نطاق تحميل غير متوافق."
+                }
+            }
             
             body.byteStream().use { input ->
                 FileOutputStream(tempFile, isAppend).use { output ->

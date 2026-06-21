@@ -133,7 +133,25 @@ class TransactionRepositoryImpl(
     }
 
     override suspend fun deleteTransactionsBulk(ids: List<Long>) = database.withTransaction {
+        val transactions = transactionDao.getTransactionsByIds(ids)
+        val affectedDates = mutableSetOf<Long>()
+        transactions.forEach { tx ->
+            val account = accountDao.getAccountById(tx.accountId)
+            if (account != null) {
+                val revertOffset = if (tx.type == TransactionType.EXPENSE.name || tx.type == TransactionType.TRANSFER.name) tx.amount else -tx.amount
+                accountDao.updateAccount(account.copy(balance = account.balance + revertOffset))
+            }
+
+            if (tx.type == TransactionType.TRANSFER.name && tx.toAccountId != null) {
+                val destAccount = accountDao.getAccountById(tx.toAccountId)
+                if (destAccount != null) {
+                    accountDao.updateAccount(destAccount.copy(balance = destAccount.balance - tx.amount))
+                }
+            }
+            affectedDates.add(tx.date)
+        }
         transactionDao.deleteTransactionsBulk(ids)
+        affectedDates.forEach { syncAggregateForDate(it) }
     }
 
     override suspend fun updateTransactionsCategoryBulk(ids: List<Long>, newCategoryId: Long) = database.withTransaction {
@@ -176,6 +194,7 @@ class TransactionRepositoryImpl(
 }
 
 class AccountRepositoryImpl(
+    private val database: com.example.data.local.AppDatabase,
     private val accountDao: AccountDao,
     private val transactionDao: TransactionDao
 ) : AccountRepository {
@@ -211,9 +230,11 @@ class AccountRepositoryImpl(
         accountDao.unarchiveAccount(id)
     }
 
-    override suspend fun setDefaultAccount(id: Long) {
+    override suspend fun setDefaultAccount(id: Long) = database.withTransaction {
+        accountDao.getAccountById(id) ?: throw IllegalArgumentException("الحساب المحدد غير موجود.")
         accountDao.clearDefaultFlag()
-        accountDao.setDefaultAccount(id)
+        val updatedRows = accountDao.setDefaultAccount(id)
+        require(updatedRows == 1) { "تعذر تعيين الحساب الافتراضي." }
     }
 
     override suspend fun getTransactionCountForAccount(id: Long): Int {
@@ -222,6 +243,7 @@ class AccountRepositoryImpl(
 }
 
 class CategoryRepositoryImpl(
+    private val database: com.example.data.local.AppDatabase,
     private val categoryDao: CategoryDao,
     private val transactionDao: TransactionDao,
     private val budgetGoalDao: BudgetGoalDao
@@ -270,13 +292,15 @@ class CategoryRepositoryImpl(
         categoryDao.deleteSubcategoriesForParent(parentId)
     }
 
-    override suspend fun mergeCategories(sourceCategoryId: Long, targetCategoryId: Long) {
+    override suspend fun mergeCategories(sourceCategoryId: Long, targetCategoryId: Long) = database.withTransaction {
+        require(sourceCategoryId != targetCategoryId) { "لا يمكن دمج الفئة مع نفسها." }
+        val sourceCat = categoryDao.getCategoryById(sourceCategoryId)
+            ?: throw IllegalArgumentException("الفئة المصدر غير موجودة.")
+        categoryDao.getCategoryById(targetCategoryId)
+            ?: throw IllegalArgumentException("الفئة الهدف غير موجودة.")
         transactionDao.mergeTransactionsCategory(sourceCategoryId, targetCategoryId)
         budgetGoalDao.mergeBudgetGoalsCategory(sourceCategoryId, targetCategoryId)
-        val sourceCat = categoryDao.getCategoryById(sourceCategoryId)
-        if (sourceCat != null) {
-            categoryDao.deleteCategory(sourceCat)
-        }
+        categoryDao.deleteCategory(sourceCat)
     }
 }
 
@@ -380,4 +404,3 @@ class SubscriptionRepositoryImpl(
         subscriptionDao.deleteSubscription(subscription.toEntity())
     }
 }
-

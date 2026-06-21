@@ -12,7 +12,7 @@ data class UpdateInfo(
     val updateIdentity: Long,
     val apkUrl: String,
     val apkSize: Long,
-    val apkSha256: String?,
+    val apkSha256: String,
     val mandatory: Boolean,
     val releaseNotes: String?
 )

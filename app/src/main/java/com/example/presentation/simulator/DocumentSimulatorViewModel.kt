@@ -6,6 +6,7 @@ import com.example.domain.model.PostalProfile
 import com.example.domain.model.PostalProfileRole
 import com.example.domain.repository.PostalProfileRepository
 import com.example.domain.usecase.simulator.AmountConversionEngine
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -64,6 +65,7 @@ class DocumentSimulatorViewModel(
 
     private val _uiState = MutableStateFlow(DocumentSimulatorUiState())
     val uiState: StateFlow<DocumentSimulatorUiState> = _uiState.asStateFlow()
+    private var profilesJob: Job? = null
 
     init {
         loadSavedProfiles()
@@ -71,7 +73,8 @@ class DocumentSimulatorViewModel(
     }
 
     private fun loadSavedProfiles() {
-        viewModelScope.launch {
+        profilesJob?.cancel()
+        profilesJob = viewModelScope.launch {
             postalProfileRepository.getAllProfiles().collect { list ->
                 _uiState.update { it.copy(savedProfiles = list) }
                 validateCurrentDocument()
@@ -313,21 +316,18 @@ class DocumentSimulatorViewModel(
             } else {
                 postalProfileRepository.updateProfile(profile)
             }
-            loadSavedProfiles()
         }
     }
 
     fun deletePostalProfile(profile: PostalProfile) {
         viewModelScope.launch {
             postalProfileRepository.deleteProfile(profile)
-            loadSavedProfiles()
         }
     }
 
     fun toggleProfileFavorite(profile: PostalProfile) {
         viewModelScope.launch {
             postalProfileRepository.updateProfile(profile.copy(isFavorite = !profile.isFavorite))
-            loadSavedProfiles()
         }
     }
 
@@ -346,7 +346,7 @@ class DocumentSimulatorViewModel(
             if (state.chequeAmount.isBlank()) {
                 errMap["chequeAmount"] = "المبلغ مطلوب بالأرقام"
             } else {
-                val amt = state.chequeAmount.toDoubleOrNull()
+                val amt = parseAmount(state.chequeAmount)
                 if (amt == null || amt <= 0) {
                     errMap["chequeAmount"] = "أدخل مبلغاً صحيحاً أكبر من الصفر"
                 } else {
@@ -422,7 +422,7 @@ class DocumentSimulatorViewModel(
             if (state.sfpAmount.isBlank()) {
                 errMap["sfpAmount"] = "المبلغ مطلوب"
             } else {
-                val amt = state.sfpAmount.toDoubleOrNull()
+                val amt = parseAmount(state.sfpAmount)
                 if (amt == null || amt <= 0) {
                     errMap["sfpAmount"] = "أدخل مبلغاً صحيحاً أكبر من الصفر"
                 } else {
@@ -478,6 +478,17 @@ class DocumentSimulatorViewModel(
                 completionPercentage = percentage
             )
         }
+    }
+
+    private fun parseAmount(value: String): Double? {
+        val compact = value.trim().replace(" ", "")
+        if (compact.isBlank()) return null
+        val normalized = if (compact.count { it == ',' } == 1 && !compact.contains('.')) {
+            compact.replace(',', '.')
+        } else {
+            compact.replace(",", "")
+        }
+        return normalized.toDoubleOrNull()
     }
 
     private fun getGuideFieldName(docType: DocumentType, step: Int): String? {

@@ -47,6 +47,7 @@ internal fun FinTrackAppShell(
     // Shared Updates View Model for global background updating
     val updatesViewModel: UpdatesViewModel = viewModel(factory = factory)
     val updateUiState by updatesViewModel.uiState.collectAsState()
+    val aiChatViewModel: com.example.presentation.ai.AiChatViewModel = viewModel(factory = factory)
     var isUpdateDismissed by remember(updateUiState) { mutableStateOf(false) }
     val showUpdateBar = remember(updateUiState) {
         updateUiState !is UpdateUiState.Idle &&
@@ -78,6 +79,7 @@ internal fun FinTrackAppShell(
                     settingsViewModel = settingsViewModel,
                     startDestination = startDestination,
                     updatesViewModel = updatesViewModel,
+                    aiChatViewModel = aiChatViewModel,
                     scope = scope
                 )
             }
@@ -137,7 +139,6 @@ internal fun FinTrackAppShell(
             }
 
             // ── Global AI Chat Floating Bubble Overlay (Bottom-Left) ──────────
-            val aiChatViewModel: com.example.presentation.ai.AiChatViewModel = viewModel(factory = factory)
             val aiChatState by aiChatViewModel.uiState.collectAsState()
 
             val aiBubbleBottomPadding by animateDpAsState(

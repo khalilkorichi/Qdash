@@ -33,6 +33,8 @@ data class TransactionsUiState(
     val filterBaridiMobOnly: Boolean = false,
     
     val isLoading: Boolean = false,
+    val isSaving: Boolean = false,
+    val saveCompleted: Boolean = false,
     val error: String? = null,
 
     // Advanced Filters
@@ -123,6 +125,10 @@ class TransactionsViewModel(
 
     private val _uiState = MutableStateFlow(TransactionsUiState())
     val uiState: StateFlow<TransactionsUiState> = _uiState.asStateFlow()
+
+    fun consumeSaveCompleted() {
+        _uiState.update { it.copy(saveCompleted = false) }
+    }
 
     private val _searchQuery = MutableStateFlow("")
     private val _selectedType = MutableStateFlow<TransactionType?>(null)
@@ -391,41 +397,45 @@ class TransactionsViewModel(
         tags: String? = null
     ) {
         viewModelScope.launch {
-            val transaction = Transaction(
-                amount = amount,
-                type = type,
-                categoryId = categoryId,
-                accountId = accountId,
-                toAccountId = toAccountId,
-                note = note,
-                date = date,
-                isRecurring = isRecurring,
-                recurringPeriod = recurringPeriod,
-                tags = tags
-            )
-            transactionRepository.insertTransaction(transaction)
+            _uiState.update { it.copy(isSaving = true, saveCompleted = false, error = null) }
+            try {
+                val transaction = Transaction(
+                    amount = amount,
+                    type = type,
+                    categoryId = categoryId,
+                    accountId = accountId,
+                    toAccountId = toAccountId,
+                    note = note,
+                    date = date,
+                    isRecurring = isRecurring,
+                    recurringPeriod = recurringPeriod,
+                    tags = tags
+                )
+                transactionRepository.insertTransaction(transaction)
 
-            if (type == TransactionType.INCOME) {
-                val category = _uiState.value.categories.find { it.id == categoryId }
-                if (category?.name?.contains("راتب") == true || category?.name?.contains("الراتب") == true) {
-                    val sources = incomeRepository.getAllIncomeSources().firstOrNull() ?: emptyList()
-                    val existingSalary = sources.find { it.type == "SALARY" && it.accountId == accountId }
-                    if (existingSalary == null) {
-                        val cal = java.util.Calendar.getInstance().apply { timeInMillis = date }
-                        incomeRepository.insertIncomeSource(
-                            IncomeSource(
-                                name = note?.takeIf { it.isNotBlank() } ?: "الراتب الشهري",
-                                amount = amount,
-                                type = "SALARY",
-                                accountId = accountId,
-                                dayOfMonth = cal.get(java.util.Calendar.DAY_OF_MONTH),
-                                isActive = true
+                if (type == TransactionType.INCOME) {
+                    val category = _uiState.value.categories.find { it.id == categoryId }
+                    if (category?.name?.contains("راتب") == true || category?.name?.contains("الراتب") == true) {
+                        val sources = incomeRepository.getAllIncomeSources().firstOrNull() ?: emptyList()
+                        val existingSalary = sources.find { it.type == "SALARY" && it.accountId == accountId }
+                        if (existingSalary == null) {
+                            val cal = java.util.Calendar.getInstance().apply { timeInMillis = date }
+                            incomeRepository.insertIncomeSource(
+                                IncomeSource(
+                                    name = note?.takeIf { it.isNotBlank() } ?: "الراتب الشهري",
+                                    amount = amount,
+                                    type = "SALARY",
+                                    accountId = accountId,
+                                    dayOfMonth = cal.get(java.util.Calendar.DAY_OF_MONTH),
+                                    isActive = true
+                                )
                             )
-                        )
-                    } else {
-                        // Optional: update existing salary amount if it differs? We leave it as is for now.
+                        }
                     }
                 }
+                _uiState.update { it.copy(isSaving = false, saveCompleted = true) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isSaving = false, error = e.localizedMessage ?: "تعذر حفظ العملية.") }
             }
         }
     }
@@ -444,20 +454,26 @@ class TransactionsViewModel(
         tags: String? = null
     ) {
         viewModelScope.launch {
-            val transaction = Transaction(
-                id = id,
-                amount = amount,
-                type = type,
-                categoryId = categoryId,
-                accountId = accountId,
-                toAccountId = toAccountId,
-                note = note,
-                date = date,
-                isRecurring = isRecurring,
-                recurringPeriod = recurringPeriod,
-                tags = tags
-            )
-            transactionRepository.updateTransaction(transaction)
+            _uiState.update { it.copy(isSaving = true, saveCompleted = false, error = null) }
+            try {
+                val transaction = Transaction(
+                    id = id,
+                    amount = amount,
+                    type = type,
+                    categoryId = categoryId,
+                    accountId = accountId,
+                    toAccountId = toAccountId,
+                    note = note,
+                    date = date,
+                    isRecurring = isRecurring,
+                    recurringPeriod = recurringPeriod,
+                    tags = tags
+                )
+                transactionRepository.updateTransaction(transaction)
+                _uiState.update { it.copy(isSaving = false, saveCompleted = true) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isSaving = false, error = e.localizedMessage ?: "تعذر حفظ العملية.") }
+            }
         }
     }
 

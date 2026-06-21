@@ -13,7 +13,7 @@ data class UpdateManifest(
     @Json(name = "publishedAt") val publishedAt: String,
     @Json(name = "apkUrl") val apkUrl: String,
     @Json(name = "apkSize") val apkSize: Long,
-    @Json(name = "apkSha256") val apkSha256: String?,
+    @Json(name = "apkSha256") val apkSha256: String,
     @Json(name = "mandatory") val mandatory: Boolean,
     @Json(name = "releaseNotes") val releaseNotes: String?
 )

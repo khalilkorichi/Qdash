@@ -190,11 +190,7 @@ class UpdatesViewModel(
                         _uiState.value = UpdateUiState.Downloading(info, percentage)
                     }
                     is DownloadState.Success -> {
-                        val isValid = if (!info.apkSha256.isNullOrBlank()) {
-                            repository.verifyApkSha256(downloadState.file, info.apkSha256)
-                        } else {
-                            true
-                        }
+                        val isValid = repository.verifyApkSha256(downloadState.file, info.apkSha256)
 
                         if (isValid) {
                             viewModelScope.launch {
@@ -231,7 +227,7 @@ class UpdatesViewModel(
             updateIdentity = file.lastModified(),
             apkUrl = "",
             apkSize = file.length(),
-            apkSha256 = null,
+            apkSha256 = "",
             mandatory = false,
             releaseNotes = null
         )
@@ -257,10 +253,10 @@ class UpdatesViewModel(
                     installUpdate(context, info, file)
                 }
                 .onFailure { error ->
-                    // Even if backup fails, we let the user install, but warning them
-                    _uiState.value = UpdateUiState.ReadyToInstall(info, file)
-                    // We will launch installation anyway as user choice
-                    installUpdate(context, info, file)
+                    _uiState.value = UpdateUiState.DownloadFailed(
+                        info,
+                        error.localizedMessage ?: "فشل إنشاء نسخة احتياطية قبل التحديث."
+                    )
                 }
         }
     }
