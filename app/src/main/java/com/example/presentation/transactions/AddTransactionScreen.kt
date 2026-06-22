@@ -910,6 +910,28 @@ fun AddTransactionScreen(
 
             // â”€â”€ Smart category suggestion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             val suggestedCat = uiState.suggestedCategory
+            val newSuggestion = uiState.currentSuggestion
+            if (suggestedCat == null && newSuggestion?.newCategoryName != null && type == TransactionType.EXPENSE) {
+                com.example.presentation.components.SuggestedNewCategoryCard(
+                    newCategoryName = newSuggestion.newCategoryName,
+                    newCategoryColor = newSuggestion.newCategoryColor ?: "#7f7f7f",
+                    newCategoryIcon = newSuggestion.newCategoryIcon ?: "category",
+                    confidenceScore = newSuggestion.confidenceScore,
+                    onAcceptAndCreate = {
+                        viewModel.createCategoryAndSelect(
+                            name = newSuggestion.newCategoryName,
+                            typeStr = newSuggestion.newCategoryType ?: "EXPENSE",
+                            color = newSuggestion.newCategoryColor ?: "#7f7f7f",
+                            icon = newSuggestion.newCategoryIcon ?: "category",
+                            onCreated = { id ->
+                                selectedCategoryId = id
+                                viewModel.learnMapping(note, id)
+                                viewModel.clearSuggestion()
+                            }
+                        )
+                    }
+                )
+            }
             val confidence = uiState.currentSuggestion?.confidenceScore ?: 0.85f
             if (suggestedCat != null && type == TransactionType.EXPENSE) {
                 com.example.presentation.components.SuggestedCategoryCard(

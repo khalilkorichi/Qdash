@@ -51,7 +51,8 @@ class AppStartupTest {
             container.subscriptionRepository,
             container.incomeRepository,
             container.transactionTemplateRepository,
-            container.preferencesManager
+            container.preferencesManager,
+            container.aiRepository
         )
         assertNotNull(homeViewModel)
 

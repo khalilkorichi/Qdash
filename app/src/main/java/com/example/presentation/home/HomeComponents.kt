@@ -1113,6 +1113,7 @@ private data class ContextTemplateData(
 @Composable
 fun ContextAwareTemplateCard(
     categories: List<com.example.domain.model.Category>,
+    aiTimeSuggestion: com.example.domain.model.ContextAwareSuggestion? = null,
     onSelectTemplate: (String) -> Unit
 ) {
     val currentHour = remember { java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY) }
@@ -1152,18 +1153,42 @@ fun ContextAwareTemplateCard(
             )
         }
     }
-    val icon = templateData.icon
-    val suggestionText = templateData.suggestionText
-    val targetKeyword = templateData.targetKeyword
-    val defaultAmount = templateData.defaultAmount
     
-    val note = templateData.note
-    val title = templateData.title
+    val icon = if (aiTimeSuggestion != null) {
+        when (aiTimeSuggestion.iconName) {
+            "LightMode" -> Icons.Default.LightMode
+            "Coffee" -> Icons.Default.Coffee
+            "ShoppingCart" -> Icons.Default.ShoppingCart
+            "NightsStay" -> Icons.Default.NightsStay
+            "AutoAwesome" -> Icons.Default.AutoAwesome
+            else -> Icons.Default.AutoAwesome
+        }
+    } else {
+        templateData.icon
+    }
+    
+    val titleLabel = if (aiTimeSuggestion != null) "اقتراح ذكي بالذكاء الاصطناعي ✨" else "اقتراح ذكي حسب الوقت"
+    val suggestionText = aiTimeSuggestion?.suggestionText ?: templateData.suggestionText
+    val targetKeyword = aiTimeSuggestion?.targetKeyword ?: templateData.targetKeyword
+    val defaultAmount = aiTimeSuggestion?.defaultAmount ?: templateData.defaultAmount
+    val note = aiTimeSuggestion?.note ?: templateData.note
 
-    val targetCategory = categories.find { it.name.contains(targetKeyword) }
+    val targetCategory = categories.find { it.name.contains(targetKeyword, ignoreCase = true) }
     val categoryId = targetCategory?.id
 
     val Primary = MaterialTheme.colorScheme.primary
+    val Secondary = MaterialTheme.colorScheme.secondary
+    val tintColor = if (aiTimeSuggestion != null) Secondary else Primary
+    val cardBgColor = if (aiTimeSuggestion != null) {
+        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.12f)
+    } else {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.12f)
+    }
+    val borderColor = if (aiTimeSuggestion != null) {
+        Secondary.copy(alpha = 0.2f)
+    } else {
+        Primary.copy(alpha = 0.15f)
+    }
 
     Card(
         modifier = Modifier
@@ -1171,9 +1196,9 @@ fun ContextAwareTemplateCard(
             .padding(horizontal = 16.dp),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.12f)
+            containerColor = cardBgColor
         ),
-        border = BorderStroke(1.dp, Primary.copy(alpha = 0.15f))
+        border = BorderStroke(1.dp, borderColor)
     ) {
         Column(
             modifier = Modifier
@@ -1187,21 +1212,21 @@ fun ContextAwareTemplateCard(
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .background(Primary.copy(alpha = 0.1f), CircleShape),
+                        .background(tintColor.copy(alpha = 0.1f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = Primary,
+                        tint = tintColor,
                         modifier = Modifier.size(20.dp)
                     )
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "اقتراح ذكي حسب الوقت",
+                        text = titleLabel,
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = Primary
+                        color = tintColor
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
@@ -1222,7 +1247,7 @@ fun ContextAwareTemplateCard(
                         val draft = """{"amount":$defaultAmount,"type":"EXPENSE","categoryId":${categoryId ?: "null"},"notes":"$note"}"""
                         onSelectTemplate(draft)
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                    colors = ButtonDefaults.buttonColors(containerColor = tintColor),
                     shape = RoundedCornerShape(10.dp),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
                 ) {
@@ -1237,6 +1262,89 @@ fun ContextAwareTemplateCard(
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = Color.White
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AiProactiveInsightsSection(
+    insights: List<String>,
+    modifier: Modifier = Modifier
+) {
+    if (insights.isEmpty()) return
+    
+    val Secondary = MaterialTheme.colorScheme.secondary
+    
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.AutoAwesome,
+                contentDescription = null,
+                tint = Secondary,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = "تحليلات وتوقعات ذكية",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp)
+        ) {
+            items(insights) { insight ->
+                Card(
+                    modifier = Modifier.width(280.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.08f)
+                    ),
+                    border = BorderStroke(1.dp, Secondary.copy(alpha = 0.15f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(Secondary.copy(alpha = 0.1f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Insights,
+                                contentDescription = null,
+                                tint = Secondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Text(
+                            text = FormatterUtils.convertNumerals(insight),
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }

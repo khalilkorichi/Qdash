@@ -233,3 +233,13 @@ fun TransferRecord.toEntity() = TransferEntity(
     referenceId = referenceId,
     createdAt = createdAt
 )
+
+data class ContextAwareSuggestion(
+    val title: String,
+    val suggestionText: String,
+    val note: String,
+    val defaultAmount: Double,
+    val targetKeyword: String,
+    val iconName: String
+)
+

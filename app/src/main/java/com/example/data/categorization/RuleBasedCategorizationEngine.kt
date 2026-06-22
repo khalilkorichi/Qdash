@@ -10,7 +10,8 @@ import kotlinx.coroutines.flow.first
 class RuleBasedCategorizationEngine(
     private val categoryDao: CategoryDao,
     private val categoryRuleDao: CategoryRuleDao,
-    private val userCategoryMappingDao: UserCategoryMappingDao
+    private val userCategoryMappingDao: UserCategoryMappingDao,
+    private val aiRepository: com.example.domain.repository.AiRepository
 ) : CategorizationEngine {
 
     private val matcher = KeywordMatcher()
@@ -77,6 +78,65 @@ class RuleBasedCategorizationEngine(
                     )
                 }
             }
+        }
+
+        // 4. AI-Based Fallback
+        try {
+            val systemCategories = categoryDao.getAllCategories().first()
+            val categoriesListStr = systemCategories.map { "${it.id}: ${it.name} (${it.type})" }.joinToString("\n")
+            val prompt = """
+                You are a smart financial categorizer. Classify the transaction title "$title" (amount: ${amount ?: "unknown"}) into exactly one of these category IDs if it is a reasonable fit (confidence > 0.5):
+                $categoriesListStr
+                
+                If one of these existing categories is a good fit, return ONLY a valid JSON object in this format:
+                {
+                  "categoryId": Long,
+                  "confidence": Float,
+                  "suggestNewCategory": false
+                }
+                
+                If NO existing category is a good match and a new category is needed to describe this transaction properly, suggest a new category name (in Arabic), type (EXPENSE or INCOME), a hex color string, and a standard material design icon name:
+                {
+                  "categoryId": null,
+                  "confidence": Float,
+                  "suggestNewCategory": true,
+                  "newCategoryName": "Suggested Name (Arabic)",
+                  "newCategoryType": "EXPENSE",
+                  "newCategoryColor": "#HexColorString",
+                  "newCategoryIcon": "IconName (e.g. sports_esports, build, account_balance)"
+                }
+            """.trimIndent()
+
+            val response = aiRepository.generateResponse(prompt, "gemini-2.5-flash")
+            val replyText = response.replyText
+            val cleanJson = replyText.substringAfter("{").substringBeforeLast("}").let { "{$it}" }
+            val json = org.json.JSONObject(cleanJson)
+            
+            val suggestNew = json.optBoolean("suggestNewCategory", false)
+            val confidence = json.optDouble("confidence", 0.8).toFloat()
+            
+            if (suggestNew) {
+                return CategorySuggestion(
+                    suggestedCategoryId = null,
+                    suggestionSource = SuggestionSource.AI,
+                    confidenceScore = confidence,
+                    userAcceptedSuggestion = false,
+                    newCategoryName = json.optString("newCategoryName", null),
+                    newCategoryType = json.optString("newCategoryType", "EXPENSE"),
+                    newCategoryColor = json.optString("newCategoryColor", "#E0E0E0"),
+                    newCategoryIcon = json.optString("newCategoryIcon", "category")
+                )
+            } else if (!json.isNull("categoryId")) {
+                val categoryId = json.getLong("categoryId")
+                return CategorySuggestion(
+                    suggestedCategoryId = categoryId,
+                    suggestionSource = SuggestionSource.AI,
+                    confidenceScore = confidence,
+                    userAcceptedSuggestion = false
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
 
         return CategorySuggestion(null, SuggestionSource.NONE, 0.0f)

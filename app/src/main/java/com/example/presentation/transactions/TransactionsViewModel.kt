@@ -364,6 +364,25 @@ class TransactionsViewModel(
         }
     }
 
+    fun createCategoryAndSelect(name: String, typeStr: String, color: String, icon: String, onCreated: (Long) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val catType = if (typeStr == "INCOME") CategoryType.INCOME else CategoryType.EXPENSE
+                val newCat = Category(
+                    name = name,
+                    type = catType,
+                    color = color,
+                    icon = icon,
+                    isSystem = false
+                )
+                val id = categoryRepository.insertCategory(newCat)
+                onCreated(id)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     fun onSearchQueryChanged(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
         _searchQuery.value = query

@@ -76,7 +76,8 @@ class AppContainerImpl(private val context: Context) : AppContainer {
         com.example.data.categorization.RuleBasedCategorizationEngine(
             database.categoryDao(),
             database.categoryRuleDao(),
-            database.userCategoryMappingDao()
+            database.userCategoryMappingDao(),
+            aiRepository
         )
     }
 

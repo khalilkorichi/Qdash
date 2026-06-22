@@ -50,7 +50,8 @@ class ViewModelFactory(
                     container.subscriptionRepository,
                     container.incomeRepository,
                     container.transactionTemplateRepository,
-                    container.preferencesManager
+                    container.preferencesManager,
+                    container.aiRepository
                 ) as T
             }
             modelClass.isAssignableFrom(TransactionsViewModel::class.java) -> {

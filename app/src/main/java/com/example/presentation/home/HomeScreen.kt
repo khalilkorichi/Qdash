@@ -224,10 +224,16 @@ fun HomeScreen(
                                 item {
                                     ContextAwareTemplateCard(
                                         categories = uiState.categories,
+                                        aiTimeSuggestion = uiState.aiTimeSuggestion,
                                         onSelectTemplate = { json ->
                                             navController?.navigate(com.example.presentation.navigation.Screen.AddTransaction.createRoute("EXPENSE", draft = json))
                                         }
                                     )
+                                }
+                                if (uiState.proactiveInsights.isNotEmpty()) {
+                                    item {
+                                        AiProactiveInsightsSection(insights = uiState.proactiveInsights)
+                                    }
                                 }
                             }
                             "templates" -> {

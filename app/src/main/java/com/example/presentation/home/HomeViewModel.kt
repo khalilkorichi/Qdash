@@ -7,6 +7,10 @@ import com.example.domain.model.*
 import com.example.domain.repository.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import org.json.JSONArray
 import java.util.Calendar
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -36,7 +40,9 @@ data class HomeUiState(
     val showBalances: Boolean = true,
     val showWalletReminder: Boolean = false,
     val visibleSections: List<String> = emptyList(),
-    val accountBalancesVisibility: Map<Long, Boolean> = emptyMap()
+    val accountBalancesVisibility: Map<Long, Boolean> = emptyMap(),
+    val aiTimeSuggestion: ContextAwareSuggestion? = null,
+    val proactiveInsights: List<String> = emptyList()
 )
 
 class HomeViewModel(
@@ -46,7 +52,8 @@ class HomeViewModel(
     private val subscriptionRepository: SubscriptionRepository,
     private val incomeRepository: IncomeRepository,
     private val templateRepository: TransactionTemplateRepository,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val aiRepository: com.example.domain.repository.AiRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -283,13 +290,17 @@ class HomeViewModel(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 dashboardFlow.collect { state ->
-                    _uiState.value = state
+                    _uiState.value = state.copy(
+                        aiTimeSuggestion = _uiState.value.aiTimeSuggestion,
+                        proactiveInsights = _uiState.value.proactiveInsights
+                    )
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = e.localizedMessage) }
             }
         }
         processAutomaticSalaryAndRenewals()
+        fetchAiInsightsAndSuggestions()
     }
 
     private fun calculateStartDateForPeriod(period: String): Long {
@@ -334,8 +345,129 @@ class HomeViewModel(
     fun refresh() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
+            fetchAiInsightsAndSuggestions()
             kotlinx.coroutines.delay(600)
             _uiState.update { it.copy(isRefreshing = false) }
+        }
+    }
+
+    private fun fetchAiInsightsAndSuggestions() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val accounts = accountRepository.getAllAccounts().first()
+                val categories = categoryRepository.getAllCategories().first()
+                val recentTxs = transactionRepository.getRecentTransactions(20).first()
+                
+                // Fetch context suggestion
+                launch {
+                    try {
+                        val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+                        val dayOfWeek = SimpleDateFormat("EEEE", Locale("ar")).format(java.util.Date())
+                        val categoriesListStr = categories.map { "${it.id}: ${it.name} (${it.type.name})" }.joinToString("\n")
+                        val recentTxsStr = recentTxs.map { 
+                            val dateStr = SimpleDateFormat("dd/MM HH:mm", Locale.US).format(java.util.Date(it.date))
+                            "Date: $dateStr, Type: ${it.type.name}, Category ID: ${it.categoryId}, Amount: ${it.amount} DZD, Note: ${it.note}"
+                        }.joinToString("\n")
+
+                        val prompt = """
+                            You are a context-aware smart assistant for an Algerian financial app. Suggest a transaction template (draft) that the user is most likely to record right now.
+                            Current local time information: Hour: $currentHour (0-23), Day of week: $dayOfWeek.
+                            Available categories in database:
+                            $categoriesListStr
+
+                            User's recent transaction history:
+                            $recentTxsStr
+
+                            Based on the current time and history, determine the most relevant transaction they might want to log. If no strong pattern exists, use the hour of the day to suggest a common transaction (e.g., morning coffee/commute, afternoon lunch, evening groceries/bills, night recharge).
+                            Return exactly a valid JSON object in this format (do not wrap in markdown unless it is standard json):
+                            {
+                              "title": "Short Title (Arabic)",
+                              "suggestionText": "Short friendly suggestion question in Arabic",
+                              "note": "Default note/description in Arabic",
+                              "defaultAmount": Double,
+                              "targetKeyword": "A keyword from the category name that best matches this transaction",
+                              "iconName": "One of: LightMode, Coffee, ShoppingCart, NightsStay, AutoAwesome"
+                            }
+                        """.trimIndent()
+
+                        val response = aiRepository.generateResponse(prompt, "gemini-2.5-flash")
+                        val replyText = response.replyText
+                        val cleanJson = replyText.substringAfter("{").substringBeforeLast("}").let { "{$it}" }
+                        val json = JSONObject(cleanJson)
+                        
+                        val aiSuggestion = ContextAwareSuggestion(
+                            title = json.getString("title"),
+                            suggestionText = json.getString("suggestionText"),
+                            note = json.getString("note"),
+                            defaultAmount = json.getDouble("defaultAmount"),
+                            targetKeyword = json.getString("targetKeyword"),
+                            iconName = json.getString("iconName")
+                        )
+                        _uiState.update { it.copy(aiTimeSuggestion = aiSuggestion) }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+
+                // Fetch insights
+                launch {
+                    try {
+                        val totalBal = accounts.sumOf { it.balance }
+                        val currentMonthStartCal = Calendar.getInstance().apply {
+                            set(Calendar.DAY_OF_MONTH, 1)
+                            set(Calendar.HOUR_OF_DAY, 0)
+                            set(Calendar.MINUTE, 0)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }
+                        val currentMonthStart = currentMonthStartCal.timeInMillis
+                        val allTransactions = transactionRepository.getAllTransactions().first()
+                        val thisMonthTxs = allTransactions.filter { it.date >= currentMonthStart }
+                        val thisMonthExpense = thisMonthTxs.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
+                        val thisMonthIncome = thisMonthTxs.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
+
+                        val recentTxsStr = recentTxs.map { 
+                            val dateStr = SimpleDateFormat("dd/MM HH:mm", Locale.US).format(java.util.Date(it.date))
+                            "Date: $dateStr, Type: ${it.type.name}, Category ID: ${it.categoryId}, Amount: ${it.amount} DZD, Note: ${it.note}"
+                        }.joinToString("\n")
+
+                        val prompt = """
+                            You are an advanced AI financial analyst for an Algerian budget and savings app.
+                            Analyze the user's financial status:
+                            - Current Total Balance: $totalBal DZD
+                            - This Month Income: $thisMonthIncome DZD
+                            - This Month Expense: $thisMonthExpense DZD
+                            - Recent transactions:
+                            $recentTxsStr
+
+                            Provide exactly 2 or 3 highly personalized, actionable insights, savings tips, or behavior predictions in Arabic based on their actual spending patterns.
+                            Ensure they are friendly, realistic for Algeria, and directly refer to their numbers or categories. Keep each tip to one concise sentence. Use emojis.
+                            
+                            Return exactly a valid JSON array of strings, for example:
+                            [
+                              "💡 لاحظت أنك تنفق بكثرة على ...",
+                              "📉 بناءً على وتيرة صرفك الحالية ..."
+                            ]
+                        """.trimIndent()
+
+                        val response = aiRepository.generateResponse(prompt, "gemini-2.5-flash")
+                        val replyText = response.replyText
+                        val cleanJson = replyText.substringAfter("[").substringBeforeLast("]").let { "[$it]" }
+                        val jsonArray = JSONArray(cleanJson)
+                        val insights = mutableListOf<String>()
+                        for (i in 0 until jsonArray.length()) {
+                            insights.add(jsonArray.getString(i))
+                        }
+                        if (insights.isNotEmpty()) {
+                            _uiState.update { it.copy(proactiveInsights = insights) }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
