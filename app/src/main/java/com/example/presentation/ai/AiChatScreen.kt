@@ -1,5 +1,6 @@
 package com.example.presentation.ai
 
+import com.example.domain.model.Transaction
 import android.Manifest
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.presentation.ai.components.ChatBubbleItem
 import com.example.presentation.ai.components.SpeechRecognizerHelper
+import com.example.presentation.ai.components.AppErrorBanner
 import com.example.ui.theme.TextGray
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -567,8 +569,19 @@ fun AiChatScreen(
                                 items(messagesForDate) { message ->
                                     ChatBubbleItem(
                                         message = message,
+                                        accounts = uiState.accounts,
+                                        categories = uiState.categories,
                                         onConfirmDraft = { viewModel.confirmDraft(message.id) },
-                                        onCancelDraft = { viewModel.cancelDraft(message.id) }
+                                        onCancelDraft = { viewModel.cancelDraft(message.id) },
+                                        onUpdateDraftField = { field, value ->
+                                            viewModel.updateDraftField(message.id, field, value)
+                                        },
+                                        onConfirmTransfer = { viewModel.confirmTransfer(message.id) },
+                                        onCancelTransfer = { viewModel.cancelTransfer(message.id) },
+                                        onSaveLowBalanceLimit = { limit -> viewModel.saveLowBalanceLimit(message.id, limit) },
+                                        onUpdateLowBalanceLimitField = { limit -> viewModel.updateLowBalanceLimitField(message.id, limit) },
+                                        onDuplicateTransaction = { viewModel.duplicateTransaction(it) },
+                                        onStartEditingTransaction = { msgId, tx -> viewModel.startEditingTransaction(msgId, tx) }
                                     )
                                 }
                             }
@@ -625,6 +638,15 @@ fun AiChatScreen(
                             }
                         }
                     }
+                }
+
+                // Error Banner
+                if (uiState.error != null) {
+                    AppErrorBanner(
+                        errorState = uiState.error!!,
+                        onRetryClick = { viewModel.retryLastMessage() },
+                        onDismissClick = { viewModel.dismissError() }
+                    )
                 }
 
                 // Message Input Row

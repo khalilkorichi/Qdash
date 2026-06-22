@@ -448,7 +448,9 @@ internal fun FinTrackNavGraph(
         }
 
         composable(Screen.DocumentSimulatorEntry.route) {
+            val simulatorViewModel: DocumentSimulatorViewModel = viewModel(factory = factory)
             DocumentSimulatorEntryScreen(
+                viewModel = simulatorViewModel,
                 onSelectDocType = { docType ->
                     navController.navigate(Screen.DocumentSimulator.createRoute(docType.name))
                 },

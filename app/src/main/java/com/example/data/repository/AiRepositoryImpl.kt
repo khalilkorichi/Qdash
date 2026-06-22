@@ -5,6 +5,7 @@ import com.example.domain.model.AiChatMessage
 import com.example.domain.model.ChatSender
 import com.example.domain.model.toDomain
 import com.example.domain.model.toEntity
+import com.example.domain.model.AiFailureException
 import com.example.domain.repository.*
 import com.example.domain.model.Transaction
 import com.example.domain.model.TransactionType
@@ -144,14 +145,21 @@ class AiRepositoryImpl(
     }
 
     override suspend fun generateAiResponse(sessionTitle: String, userPrompt: String, modelId: String): String {
-        // First insert the user's message in the DB
-        insertMessage(
-            AiChatMessage(
-                sender = ChatSender.USER,
-                message = userPrompt,
-                sessionTitle = sessionTitle
+        // Prevent inserting duplicate user prompt when retrying a failed attempt
+        val history = getMessagesBySession(sessionTitle).first()
+        val isLastAlreadyThisPrompt = history.isNotEmpty() && 
+                history.last().sender == ChatSender.USER && 
+                history.last().message.trim() == userPrompt.trim()
+
+        if (!isLastAlreadyThisPrompt) {
+            insertMessage(
+                AiChatMessage(
+                    sender = ChatSender.USER,
+                    message = userPrompt,
+                    sessionTitle = sessionTitle
+                )
             )
-        )
+        }
 
         val apiKey = getApiKey()
         val aiResponse = if (modelId.startsWith("gemini-")) {
@@ -210,6 +218,25 @@ class AiRepositoryImpl(
             
             val messagesArray = JSONArray()
             // Do not add system instruction for glm-5.1 as it triggers safety filters (sensitive words detected)
+            if (modelId != "glm-5.1") {
+                messagesArray.put(
+                    JSONObject().apply {
+                        put("role", "system")
+                        put("content", """
+                            أنت مساعد مالي ذكي ومحترف جداً لتطبيق قداشّ (Kdach) لإدارة المصاريف والميزانيات في الجزائر.
+                            قواعد السلوك والعمل:
+                            1. تفاعل مع المستخدم بلغة عربية فصحى، مهذبة، وواضحة جداً.
+                            2. عند طلب المستخدم تسجيل معاملة مادية (مصروف، دخل، أو تحويل)، قم أولاً بالبحث عن الفئات الحالية باستخدام أداة `get_categories` والحسابات الحالية باستخدام أداة `get_accounts`.
+                            3. طابق المعاملة مع أقرب فئة موجودة مسبقاً في التطبيق دائماً كأولوية قصوى لتجنب تكرار وتضخم الفئات بشكل غير مبرر (مثال: إذا كان النشاط 'بقالة' أو 'أكل' طابقه مع فئة 'المواد الغذائية' أو 'الطعام' المتوفرة).
+                            4. لا تقم بإنشاء فئة جديدة باستخدام أداة `create_category` إلا إذا كان النشاط مختلفاً تماماً عن كل الفئات المتوفرة ولا يمكن إدراجه تحت أي منها إطلاقاً.
+                            5. تصرف بمسؤولية واحترافية عالية، وقدم نصائح مالية مفيدة ومختصرة عند الحاجة.
+                            6. قم بتقسيم إجاباتك المعقدة أو التحليلات التي تحتوي على أفكار متعددة أو خطوات عمل منفصلة إلى عدة فقرات/خطوات وافصل بين كل جزء والذي يليه بالرمز `[NEXT]`.
+                            7. عندما يسأل المستخدم عن "الرصيد" أو "كم رصيدي" بشكل عام (دون تحديد حساب معيّن مثل CCP أو البنك)، يجب أن يكون الرد الافتراضي هو عرض إجمالي رصيد المحفظة (مجموع أرصدة كل الحسابات) أولاً كإجابة ذكية ومباشرة، مع إضافة اقتراح واضح وذكي في نهاية الرد يقترح إمكانية الاستعلام عن كل حساب على حدة، بصياغة مثل: "يمكنني أيضاً عرض تفاصيل كل حساب على حدة عند الطلب".
+                            8. إذا طلب المستخدم رصيد حساب معيّن أو فئة حساب معيّنة (مثل: "رصيد CCP" أو "حساب البنك" أو "النقدي/كاش" أو "محفظتي/Wallet")، يجب عرض تفاصيل رصيد هذا الحساب المحدد فقط دون البقية.
+                        """.trimIndent())
+                    }
+                )
+            }
             
             for (msg in filteredHistory) {
                 val role = if (msg.sender == ChatSender.USER) "user" else "assistant"
@@ -244,20 +271,24 @@ class AiRepositoryImpl(
                 .post(requestBodyJson.toString().toRequestBody(jsonMediaType))
                 .build()
 
-            val response = okHttpClient.newCall(request).execute()
+            val response = try {
+                okHttpClient.newCall(request).execute()
+            } catch (e: java.io.IOException) {
+                throw AiFailureException.NetworkFailure("فشل في الاتصال بخادم الذكاء الاصطناعي: ${e.localizedMessage}", e)
+            }
             if (!response.isSuccessful) {
-                return@withContext "Error calling Agent Router API: ${response.code} ${response.message}"
+                throw AiFailureException.AiServiceFailure("فشل استجابة خادم الذكاء الاصطناعي برمز: ${response.code} ${response.message}")
             }
 
-            val responseBody = response.body?.string() ?: return@withContext "Empty response from Agent Router API"
+            val responseBody = response.body?.string() ?: throw AiFailureException.AiServiceFailure("تلقيت استجابة فارغة من خادم الذكاء الاصطناعي.")
             val responseJson = JSONObject(responseBody)
             val choices = responseJson.optJSONArray("choices")
             if (choices == null || choices.length() == 0) {
-                return@withContext "No response generated by Agent Router."
+                throw AiFailureException.AiServiceFailure("لم يتم إنشاء استجابة بواسطة الذكاء الاصطناعي.")
             }
 
             val choiceObj = choices.getJSONObject(0)
-            val messageObj = choiceObj.optJSONObject("message") ?: return@withContext "تلقيت ردًا فارغًا من الخادم."
+            val messageObj = choiceObj.optJSONObject("message") ?: throw AiFailureException.AiServiceFailure("تلقيت ردًا فارغًا من الخادم.")
             
             if (messageObj.has("tool_calls")) {
                 val toolCalls = messageObj.getJSONArray("tool_calls")
@@ -300,26 +331,30 @@ class AiRepositoryImpl(
                         .post(followUpRequestBodyJson.toString().toRequestBody(jsonMediaType))
                         .build()
 
-                    val followUpResponse = okHttpClient.newCall(followUpRequest).execute()
+                    val followUpResponse = try {
+                        okHttpClient.newCall(followUpRequest).execute()
+                    } catch (e: java.io.IOException) {
+                        throw AiFailureException.NetworkFailure("فشل في الاتصال بالخادم أثناء معالجة الأداة: ${e.localizedMessage}", e)
+                    }
                     if (!followUpResponse.isSuccessful) {
-                        return@withContext "Error resolving tool call with Agent Router API: ${followUpResponse.code} ${followUpResponse.message}"
+                        throw AiFailureException.AiServiceFailure("فشل الخادم أثناء معالجة الأداة برمز الخطأ: ${followUpResponse.code} ${followUpResponse.message}")
                     }
 
                     val followUpResponseBody = followUpResponse.body?.string() ?: ""
                     val followUpResponseJson = JSONObject(followUpResponseBody)
                     val finalChoices = followUpResponseJson.optJSONArray("choices")
                     if (finalChoices == null || finalChoices.length() == 0) {
-                        return@withContext "فشل المساعد في معالجة نتيجة الأداة."
+                        throw AiFailureException.AiServiceFailure("فشل المساعد في معالجة نتيجة الأداة.")
                     }
-                    val finalMessage = finalChoices.getJSONObject(0).optJSONObject("message") ?: return@withContext "رد فارغ بعد استدعاء الأداة."
+                    val finalMessage = finalChoices.getJSONObject(0).optJSONObject("message") ?: throw AiFailureException.AiServiceFailure("رد فارغ بعد استدعاء الأداة.")
                     return@withContext finalMessage.optString("content", "لم يتم إرجاع أي نص.")
                 }
             }
 
             messageObj.optString("content", "لم يتم إرجاع أي نص.")
         } catch (e: Exception) {
-            e.printStackTrace()
-            "Failed to contact Agent Router Assistant: ${e.localizedMessage}."
+            if (e is AiFailureException) throw e
+            throw AiFailureException.AiServiceFailure("فشل الاتصال بالمساعد الذكي: ${e.localizedMessage}", e)
         }
     }
 
@@ -442,6 +477,8 @@ class AiRepositoryImpl(
                         4. لا تقم بإنشاء فئة جديدة باستخدام أداة `create_category` إلا إذا كان النشاط مختلفاً تماماً عن كل الفئات المتوفرة ولا يمكن إدراجه تحت أي منها إطلاقاً.
                         5. تصرف بمسؤولية واحترافية عالية، وقدم نصائح مالية مفيدة ومختصرة عند الحاجة.
                         6. قم بتقسيم إجاباتك المعقدة أو التحليلات التي تحتوي على أفكار متعددة أو خطوات عمل منفصلة إلى عدة فقرات/خطوات وافصل بين كل جزء والذي يليه بالرمز `[NEXT]` (مثال: 'الخطوة الأولى... [NEXT] الخطوة الثانية...'). هذا يتيح للتطبيق عرضها على شكل رسائل متسلسلة لتعزيز فهم المستخدم.
+                        7. عندما يسأل المستخدم عن "الرصيد" أو "كم رصيدي" بشكل عام (دون تحديد حساب معيّن مثل CCP أو البنك)، يجب أن يكون الرد الافتراضي هو عرض إجمالي رصيد المحفظة (مجموع أرصدة كل الحسابات) أولاً كإجابة ذكية ومباشرة، مع إضافة اقتراح واضح وذكي في نهاية الرد يقترح إمكانية الاستعلام عن كل حساب على حدة، بصياغة مثل: "يمكنني أيضاً عرض تفاصيل كل حساب على حدة عند الطلب".
+                        8. إذا طلب المستخدم رصيد حساب معيّن أو فئة حساب معيّنة (مثل: "رصيد CCP" أو "حساب البنك" أو "النقدي/كاش" أو "محفظتي/Wallet")، يجب عرض تفاصيل رصيد هذا الحساب المحدد فقط دون البقية.
                     """.trimIndent())
                 }))
             }
@@ -459,22 +496,26 @@ class AiRepositoryImpl(
                 .post(requestBodyJson.toString().toRequestBody(jsonMediaType))
                 .build()
 
-            val response = okHttpClient.newCall(request).execute()
+            val response = try {
+                okHttpClient.newCall(request).execute()
+            } catch (e: java.io.IOException) {
+                throw AiFailureException.NetworkFailure("فشل في الاتصال بخادم Google Gemini: ${e.localizedMessage}", e)
+            }
             if (!response.isSuccessful) {
-                return@withContext "Error calling Gemini API: ${response.code} ${response.message}"
+                throw AiFailureException.AiServiceFailure("فشل استجابة خادم Google Gemini برمز: ${response.code} ${response.message}")
             }
 
-            val responseBody = response.body?.string() ?: return@withContext "Empty response from Gemini API"
+            val responseBody = response.body?.string() ?: throw AiFailureException.AiServiceFailure("تلقيت استجابة فارغة من خادم Google Gemini.")
             val responseJson = JSONObject(responseBody)
             val candidates = responseJson.optJSONArray("candidates")
             if (candidates == null || candidates.length() == 0) {
-                return@withContext "No response generated by the model."
+                throw AiFailureException.AiServiceFailure("لم يتم إنشاء استجابة بواسطة Google Gemini.")
             }
 
-            val contentObj = candidates.getJSONObject(0).optJSONObject("content") ?: return@withContext "تلقيت ردًا فارغًا من الخادم."
+            val contentObj = candidates.getJSONObject(0).optJSONObject("content") ?: throw AiFailureException.AiServiceFailure("تلقيت ردًا فارغًا من الخادم.")
             val parts = contentObj.optJSONArray("parts")
             if (parts == null || parts.length() == 0) {
-                return@withContext "تلقيت ردًا فارغًا بدون محتوى نصي."
+                throw AiFailureException.AiServiceFailure("تلقيت ردًا فارغًا بدون محتوى نصي.")
             }
             val firstPart = parts.getJSONObject(0)
 
@@ -524,29 +565,33 @@ class AiRepositoryImpl(
                     .post(followUpRequestBody.toString().toRequestBody(jsonMediaType))
                     .build()
 
-                val followUpResponse = okHttpClient.newCall(followUpRequest).execute()
+                val followUpResponse = try {
+                    okHttpClient.newCall(followUpRequest).execute()
+                } catch (e: java.io.IOException) {
+                    throw AiFailureException.NetworkFailure("فشل في الاتصال بالخادم أثناء معالجة الأداة: ${e.localizedMessage}", e)
+                }
                 if (!followUpResponse.isSuccessful) {
-                    return@withContext "Error resolving tool call with Gemini API: ${followUpResponse.message}"
+                    throw AiFailureException.AiServiceFailure("فشل خادم Gemini أثناء معالجة الأداة برمز الخطأ: ${followUpResponse.code} ${followUpResponse.message}")
                 }
 
                 val followUpResponseBody = followUpResponse.body?.string() ?: ""
                 val followUpResponseJson = JSONObject(followUpResponseBody)
                 val finalCandidates = followUpResponseJson.optJSONArray("candidates")
                 if (finalCandidates == null || finalCandidates.length() == 0) {
-                    return@withContext "فشل المساعد في معالجة نتيجة الأداة."
+                    throw AiFailureException.AiServiceFailure("فشل المساعد في معالجة نتيجة الأداة.")
                 }
-                val finalContent = finalCandidates.getJSONObject(0).optJSONObject("content") ?: return@withContext "رد فارغ بعد استدعاء الأداة."
+                val finalContent = finalCandidates.getJSONObject(0).optJSONObject("content") ?: throw AiFailureException.AiServiceFailure("رد فارغ بعد استدعاء الأداة.")
                 val finalParts = finalContent.optJSONArray("parts")
                 if (finalParts == null || finalParts.length() == 0) {
-                    return@withContext "رد فارغ بدون محتوى بعد استدعاء الأداة."
+                    throw AiFailureException.AiServiceFailure("رد فارغ بدون محتوى بعد استدعاء الأداة.")
                 }
                 finalParts.getJSONObject(0).optString("text", "لم يتم إرجاع أي نص.")
             } else {
                 firstPart.optString("text", "لم يتم إرجاع أي نص.")
             }
         } catch (e: Exception) {
-            e.printStackTrace()
-            "Failed to contact AI Assistant: ${e.localizedMessage}. Falling back to mock assistant."
+            if (e is AiFailureException) throw e
+            throw AiFailureException.AiServiceFailure("حدث خطأ غير متوقع أثناء الاتصال بـ Gemini: ${e.localizedMessage}", e)
         }
     }
 
@@ -681,17 +726,73 @@ class AiRepositoryImpl(
     private suspend fun simulateMockAiWithTools(prompt: String): String {
         val normalized = prompt.trim().lowercase()
 
-        // 1. Get Accounts mock trigger
-        if (normalized.contains("account") || normalized.contains("حساب")) {
+        // Mock error triggers for testing error banner and retry logic
+        if (normalized.contains("خطأ شبكة") || normalized.contains("network error") || normalized.contains("test_network_fail")) {
+            throw AiFailureException.NetworkFailure("فشل تجريبي في الاتصال بالشبكة (الوضع التجريبي).")
+        }
+        if (normalized.contains("خطأ خادم") || normalized.contains("ai error") || normalized.contains("test_ai_fail")) {
+            throw AiFailureException.AiServiceFailure("فشل تجريبي في استجابة الذكاء الاصطناعي (الوضع التجريبي).")
+        }
+
+        // 1. Get Accounts / Balance mock trigger
+        val isBalanceInquiry = normalized.contains("رصيد") || normalized.contains("الرصيد") || normalized.contains("رصيدي") || normalized.contains("balance")
+        val isAccountInquiry = normalized.contains("account") || normalized.contains("حساب") || normalized.contains("الحسابات")
+
+        if (isBalanceInquiry || isAccountInquiry) {
             val accounts = accountRepository.getAllAccounts().first()
             if (accounts.isEmpty()) {
-                return "You don't have any accounts set up yet."
+                return "ليس لديك أي حسابات مسجلة حالياً."
             }
-            val sb = java.lang.StringBuilder("Here are your current accounts:\n")
-            accounts.forEach { acc ->
-                sb.append("- *${acc.name}* (${acc.type}): **${acc.balance} ${acc.currency}**\n")
+
+            // Check if user specified a particular account type or name in their query
+            val matchedAccount = accounts.firstOrNull { acc ->
+                val accNameLower = acc.name.lowercase()
+                val accTypeLower = acc.type.name.lowercase()
+                
+                normalized.contains(accNameLower) || 
+                normalized.contains(accTypeLower) ||
+                (acc.type == AccountType.CCP && (normalized.contains("ccp") || normalized.contains("سي سي بي") || normalized.contains("البريد"))) ||
+                (acc.type == AccountType.BANK && (normalized.contains("bank") || normalized.contains("بنك") || normalized.contains("البنك"))) ||
+                (acc.type == AccountType.CASH && (normalized.contains("cash") || normalized.contains("كاش") || normalized.contains("نقدي") || normalized.contains("نقد"))) ||
+                (acc.type == AccountType.WALLET && (normalized.contains("wallet") || normalized.contains("محفظة") || normalized.contains("المحفظة"))) ||
+                (acc.type == AccountType.BARIDIMOB && (normalized.contains("baridimob") || normalized.contains("بريدي موب") || normalized.contains("بريدي"))) ||
+                (acc.type == AccountType.SAVINGS && (normalized.contains("savings") || normalized.contains("توفير") || normalized.contains("ادخار")))
             }
-            return sb.toString()
+
+            if (matchedAccount != null) {
+                val typeLabel = when (matchedAccount.type) {
+                    AccountType.BARIDIMOB -> "بريدي موب"
+                    AccountType.CCP -> "CCP"
+                    AccountType.CASH -> "نقدي"
+                    AccountType.BANK -> "بنك"
+                    AccountType.SAVINGS -> "توفير"
+                    AccountType.WALLET -> "محفظة"
+                    AccountType.OTHER -> "أخرى"
+                }
+                return "رصيد حسابك *${matchedAccount.name}* ($typeLabel) هو: **${matchedAccount.balance} ${matchedAccount.currency}**."
+            } else {
+                val totalBalance = accounts.sumOf { it.balance }
+                val currency = accounts.firstOrNull()?.currency ?: "دج"
+                
+                if (isBalanceInquiry && !normalized.contains("تفاصيل") && !normalized.contains("كل") && !normalized.contains("جميع")) {
+                    return "إجمالي رصيد محفظتك هو: **$totalBalance $currency**.\n\nيمكنني أيضاً عرض تفاصيل كل حساب على حدة عند الطلب."
+                } else {
+                    val sb = java.lang.StringBuilder("إجمالي رصيد محفظتك هو: **$totalBalance $currency**.\n\nتفاصيل الحسابات:\n")
+                    accounts.forEach { acc ->
+                        val typeLabel = when (acc.type) {
+                            AccountType.BARIDIMOB -> "بريدي موب"
+                            AccountType.CCP -> "CCP"
+                            AccountType.CASH -> "نقدي"
+                            AccountType.BANK -> "بنك"
+                            AccountType.SAVINGS -> "توفير"
+                            AccountType.WALLET -> "محفظة"
+                            AccountType.OTHER -> "أخرى"
+                        }
+                        sb.append("- *${acc.name}* ($typeLabel): **${acc.balance} ${acc.currency}**\n")
+                    }
+                    return sb.toString()
+                }
+            }
         }
 
         // 2. Get Categories mock trigger

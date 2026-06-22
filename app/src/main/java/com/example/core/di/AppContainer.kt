@@ -89,4 +89,10 @@ interface AppContainer {
 
     // Backup Repository
     val backupRepository: com.example.domain.repository.BackupRepository
+
+    // AI Smart Box Use Cases
+    val getRecentActivitySummaryUseCase: com.example.domain.usecase.ai.GetRecentActivitySummaryUseCase
+    val getWalletDistributionUseCase: com.example.domain.usecase.ai.GetWalletDistributionUseCase
+    val evaluateLowBalanceAlertsUseCase: com.example.domain.usecase.ai.EvaluateLowBalanceAlertsUseCase
+    val getQuickImpactPreviewUseCase: com.example.domain.usecase.ai.GetQuickImpactPreviewUseCase
 }

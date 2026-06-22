@@ -51,7 +51,6 @@ fun DocumentSimulatorScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    var activeTab by remember { mutableStateOf(0) } // 0: Form/Fill, 1: Guide, 2: Checklist
     var showProfilePicker by remember { mutableStateOf(false) }
     var selectedRoleForAutofill by remember { mutableStateOf<PostalProfileRole?>(null) }
 
@@ -61,19 +60,7 @@ fun DocumentSimulatorScreen(
             FinTrackTopBar(
                 title = if (uiState.selectedDocType == DocumentType.CHEQUE) "محاكي الصك البريدي" else "محاكي استمارة SFP 01",
                 showBackButton = true,
-                onBackClick = onBack,
-                actions = {
-                    IconButton(onClick = {
-                        val newType = if (uiState.selectedDocType == DocumentType.CHEQUE) DocumentType.SFP01 else DocumentType.CHEQUE
-                        viewModel.selectDocumentType(newType)
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.SwapHoriz,
-                            contentDescription = "تغيير الوثيقة",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
+                onBackClick = onBack
             )
         }
     ) { innerPadding ->
@@ -82,32 +69,161 @@ fun DocumentSimulatorScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
         ) {
-            // Document Type Switcher / Info
-            DocumentSelectorHeader(
-                selectedType = uiState.selectedDocType,
-                onTypeSelect = { viewModel.selectDocumentType(it) }
-            )
+            // --- 1. Upper Toolbar ---
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Left: Document switcher (premium styled)
+                Row(
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    val isCheque = uiState.selectedDocType == DocumentType.CHEQUE
+                    Surface(
+                        onClick = { viewModel.selectDocumentType(DocumentType.CHEQUE) },
+                        color = if (isCheque) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 12.dp)) {
+                            Text(
+                                text = "صك",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = if (isCheque) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                    
+                    Surface(
+                        onClick = { viewModel.selectDocumentType(DocumentType.SFP01) },
+                        color = if (!isCheque) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 12.dp)) {
+                            Text(
+                                text = "استمارة",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = if (!isCheque) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+                
+                // Right: SVG Action Icons (Guide, Review, Ready-made amounts)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Guide Button
+                    val isGuideActive = uiState.activePanel == SimulatorActivePanel.GUIDE
+                    IconButton(
+                        onClick = { viewModel.toggleActivePanel(SimulatorActivePanel.GUIDE) },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(
+                                if (isGuideActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .border(1.dp, if (isGuideActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MenuBook,
+                            contentDescription = "دليل خطوة بخطوة",
+                            tint = if (isGuideActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    
+                    // Review Button
+                    val isReviewActive = uiState.activePanel == SimulatorActivePanel.REVIEW
+                    BadgedBox(
+                        badge = {
+                            if (uiState.errors.isNotEmpty()) {
+                                Badge { Text(uiState.errors.size.toString()) }
+                            }
+                        }
+                    ) {
+                        IconButton(
+                            onClick = { viewModel.toggleActivePanel(SimulatorActivePanel.REVIEW) },
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(
+                                    if (isReviewActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface,
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .border(1.dp, if (isReviewActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FactCheck,
+                                contentDescription = "مراجعة الوثيقة",
+                                tint = if (isReviewActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            // --- 2. Collapsible Active Panel (Guide / Review) ---
+            AnimatedVisibility(
+                visible = uiState.activePanel != SimulatorActivePanel.NONE,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                ) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        when (uiState.activePanel) {
+                            SimulatorActivePanel.GUIDE -> {
+                                EducationalGuidePanel(
+                                    uiState = uiState,
+                                    viewModel = viewModel
+                                )
+                            }
+                            SimulatorActivePanel.REVIEW -> {
+                                ValidationChecklistPanel(
+                                    uiState = uiState
+                                )
+                            }
+                            else -> {}
+                        }
+                    }
+                }
+            }
 
-            // SFP 01 – Operation type selector OUTSIDE the form (premium styled)
+            // --- 3. Document Simulator Preview Area (Fixed at the top) ---
+            // SFP 01 – Operation type selector (if SFP01)
             if (uiState.selectedDocType == DocumentType.SFP01) {
                 SfpOperationSelectorBar(
                     selectedOperation = uiState.sfpOperation,
                     onOperationSelected = { viewModel.updateSfpOperation(it) },
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
-                Spacer(modifier = Modifier.height(10.dp))
             }
 
-            // Document Simulator Preview (Layer 1 & 2)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .shadow(6.dp, RoundedCornerShape(4.dp))
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .shadow(2.dp, RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
             ) {
                 if (uiState.selectedDocType == DocumentType.CHEQUE) {
                     ChequeVisualView(
@@ -122,75 +238,32 @@ fun DocumentSimulatorScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Interactive Tabs (Mode B + Tools + Guide + Checklist)
-            Card(
+            // --- 4. Scrollable Form Inputs Area (Scrollable at the bottom) ---
+            Box(
                 modifier = Modifier
+                    .weight(1f)
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 12.dp, bottomEnd = 12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-                Column {
-                    TabRow(
-                        selectedTabIndex = activeTab,
-                        containerColor = Color.Transparent,
-                        contentColor = MaterialTheme.colorScheme.primary
-                    ) {
-                        Tab(
-                            selected = activeTab == 0,
-                            onClick = { activeTab = 0 },
-                            text = { Text("تعبئة البيانات", fontWeight = FontWeight.Bold) }
-                        )
-                        Tab(
-                            selected = activeTab == 1,
-                            onClick = { activeTab = 1 },
-                            text = { Text("دليل خطوة بخطوة", fontWeight = FontWeight.Bold) }
-                        )
-                        Tab(
-                            selected = activeTab == 2,
-                            onClick = { activeTab = 2 },
-                            text = {
-                                BadgedBox(badge = {
-                                    if (uiState.errors.isNotEmpty()) {
-                                        Badge { Text(uiState.errors.size.toString()) }
-                                    }
-                                }) {
-                                    Text("مراجعة الوثيقة", fontWeight = FontWeight.Bold)
-                                }
-                            }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    AnimatedContent(
-                        targetState = activeTab,
-                        label = "tab_animation"
-                    ) { tabIndex ->
-                        when (tabIndex) {
-                            0 -> FillFormPanel(
-                                uiState = uiState,
-                                viewModel = viewModel,
-                                onAutofillClick = { role ->
-                                    selectedRoleForAutofill = role
-                                    showProfilePicker = true
-                                }
-                            )
-                            1 -> EducationalGuidePanel(
-                                uiState = uiState,
-                                viewModel = viewModel
-                            )
-                            2 -> ValidationChecklistPanel(
-                                uiState = uiState
-                            )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    FillFormPanel(
+                        uiState = uiState,
+                        viewModel = viewModel,
+                        onAutofillClick = { role ->
+                            selectedRoleForAutofill = role
+                            showProfilePicker = true
                         }
-                    }
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
-
-            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 
@@ -206,6 +279,40 @@ fun DocumentSimulatorScreen(
                 showProfilePicker = false
             }
         )
+    }
+
+    if (uiState.showReadyAmounts) {
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.toggleReadyAmounts(false) },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "المبالغ الجاهزة (التعبئة السريعة)",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                AmountCheatSheetPanel(
+                    onAmountSelected = { amount ->
+                        if (uiState.selectedDocType == DocumentType.CHEQUE) {
+                            viewModel.updateChequeAmount(amount)
+                        } else {
+                            viewModel.updateSfpAmount(amount)
+                        }
+                        viewModel.toggleReadyAmounts(false)
+                    }
+                )
+            }
+        }
     }
 }
 
@@ -1013,21 +1120,43 @@ fun FillFormPanel(
 
             // 1. Amount Input & Assistance
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = uiState.chequeAmount,
-                    onValueChange = { viewModel.updateChequeAmount(it) },
-                    label = { Text("المبلغ بالدينار الجزائري (DA)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    trailingIcon = {
-                        if (uiState.chequeAmount.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.updateChequeAmount("") }) {
-                                Icon(Icons.Default.Clear, contentDescription = "مسح")
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = uiState.chequeAmount,
+                        onValueChange = { viewModel.updateChequeAmount(it) },
+                        label = { Text("المبلغ بالدينار الجزائري (DA)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        trailingIcon = {
+                            if (uiState.chequeAmount.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.updateChequeAmount("") }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "مسح")
+                                }
                             }
                         }
+                    )
+                    
+                    IconButton(
+                        onClick = { viewModel.toggleReadyAmounts(true) },
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .size(50.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocalAtm,
+                            contentDescription = "المبالغ الجاهزة",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
-                )
+                }
 
                 val amt = uiState.chequeAmount.toDoubleOrNull()
                 if (amt != null && amt > 0) {
@@ -1092,8 +1221,6 @@ fun FillFormPanel(
                     }
                 }
 
-                // ── Cheat Sheet ──
-                AmountCheatSheetPanel(onAmountSelected = { viewModel.updateChequeAmount(it) })
             }
 
             // 2. Beneficiary Input
@@ -1212,21 +1339,43 @@ fun FillFormPanel(
 
             // Amount Sfp
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = uiState.sfpAmount,
-                    onValueChange = { viewModel.updateSfpAmount(it) },
-                    label = { Text("المبلغ بالدينار (DA)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    trailingIcon = {
-                        if (uiState.sfpAmount.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.updateSfpAmount("") }) {
-                                Icon(Icons.Default.Clear, contentDescription = "مسح")
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = uiState.sfpAmount,
+                        onValueChange = { viewModel.updateSfpAmount(it) },
+                        label = { Text("المبلغ بالدينار (DA)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        trailingIcon = {
+                            if (uiState.sfpAmount.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.updateSfpAmount("") }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "مسح")
+                                }
                             }
                         }
+                    )
+                    
+                    IconButton(
+                        onClick = { viewModel.toggleReadyAmounts(true) },
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .size(50.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocalAtm,
+                            contentDescription = "المبالغ الجاهزة",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
-                )
+                }
 
                 val sfpAmt = uiState.sfpAmount.toDoubleOrNull()
                 if (sfpAmt != null && sfpAmt > 0) {
@@ -1290,8 +1439,6 @@ fun FillFormPanel(
                     }
                 }
 
-                // ── Cheat Sheet ──
-                AmountCheatSheetPanel(onAmountSelected = { viewModel.updateSfpAmount(it) })
             }
 
             // Sender Nom & Prénom
@@ -1369,13 +1516,11 @@ fun FillFormPanel(
     }
 }
 
-// --- Amount Cheat Sheet Panel ---
 @Composable
 fun AmountCheatSheetPanel(
     onAmountSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Most common amounts in Algeria (in DA, as dinar values)
     val amounts = listOf(
         1_000.0   to "1.000 DA – ألف دينار",
         2_000.0   to "2.000 DA – ألفين دينار",
@@ -1389,127 +1534,80 @@ fun AmountCheatSheetPanel(
         200_000.0 to "200.000 DA – مئتا ألف"
     )
 
-    var expanded by remember { mutableStateOf(false) }
-
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            // Header row
+        Text(
+            text = "اضغط على أي مبلغ لتعبئته تلقائياً في الوثيقة",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
+
+        // Table header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("المبلغ بالأرقام", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), modifier = Modifier.weight(1.2f))
+            Text("تنسيق مضاد للتزوير", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), modifier = Modifier.weight(1.3f), textAlign = TextAlign.Center)
+            Text("بالعامية", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), modifier = Modifier.weight(1f), textAlign = TextAlign.End)
+        }
+
+        Spacer(modifier = Modifier.height(2.dp))
+
+        amounts.forEachIndexed { index, (value, _) ->
+            val formatted = AmountConversionEngine.formatAmountToPostal(value)
+            val colloquial = AmountConversionEngine.getAlgerianColloquialWords(value)
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { expanded = !expanded },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .clip(RoundedCornerShape(6.dp))
+                    .clickable { onAmountSelected(value.toInt().toString()) }
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(
-                        imageVector = Icons.Default.TableChart,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        text = "جدول المبالغ الجاهزة",
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                Icon(
-                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                Text(
+                    text = "${value.toInt()} DA",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.weight(1.2f),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "#$formatted#",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1565C0)
+                    ),
+                    modifier = Modifier.weight(1.3f),
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = colloquial,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.End,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
-            AnimatedVisibility(visible = expanded) {
-                Column(modifier = Modifier.padding(top = 10.dp)) {
-                    Text(
-                        text = "اضغط على أي مبلغ لتعبئته تلقائياً في الوثيقة",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-
-                    // Table header
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), RoundedCornerShape(6.dp))
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("المبلغ بالأرقام", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), modifier = Modifier.weight(1.2f))
-                        Text("تنسيق مضاد للتزوير", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), modifier = Modifier.weight(1.3f), textAlign = TextAlign.Center)
-                        Text("بالعامية", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), modifier = Modifier.weight(1f), textAlign = TextAlign.End)
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    amounts.forEachIndexed { index, (amount, label) ->
-                        val formatted   = AmountConversionEngine.formatAmountToPostal(amount)
-                        val colloquial  = AmountConversionEngine.getAlgerianColloquialWords(amount)
-                        val rowBg = if (index % 2 == 0)
-                            MaterialTheme.colorScheme.surface
-                        else
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(rowBg)
-                                .clip(RoundedCornerShape(4.dp))
-                                .clickable { onAmountSelected(amount.toLong().toString()) }
-                                .padding(horizontal = 10.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                                modifier = Modifier.weight(1.2f),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "#$formatted#",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontFamily = FontFamily.Monospace,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1565C0)
-                                ),
-                                modifier = Modifier.weight(1.3f),
-                                textAlign = TextAlign.Center
-                            )
-                            Text(
-                                text = colloquial,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    color = MaterialTheme.colorScheme.secondary,
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                modifier = Modifier.weight(1f),
-                                textAlign = TextAlign.End,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-
-                        if (index < amounts.size - 1) {
-                            Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), thickness = 0.5.dp)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "💡 انقر على أي صف لتعبئة المبلغ فوراً في الوثيقة",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+            if (index < amounts.size - 1) {
+                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), thickness = 0.5.dp)
             }
         }
     }

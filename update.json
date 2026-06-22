@@ -1,11 +1,11 @@
 {
-  "versionCode": 18,
-  "versionName": "1.0.0.18",
-  "updateIdentity": 119,
-  "publishedAt": "2026-06-22T01:28:00Z",
+  "versionCode": 19,
+  "versionName": "1.0.0.19",
+  "updateIdentity": 120,
+  "publishedAt": "2026-06-22T19:14:00Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 24101162,
-  "apkSha256": "310931826199d51ce29b58c981f3465e935bd366cfe2be44ffcb982680fc3300",
+  "apkSize": 24281382,
+  "apkSha256": "f1517e3a6c64bde172dfd08f8e64cb81ed4cfe8f8d4bfdccf64f1dee09451e82",
   "mandatory": false,
-  "releaseNotes": "تحديث v1.0.0.18 (Build 119): إصلاح مشكلة الرموز الغريبة التي تظهر في شارة اسم الفئة داخل دائرة توزيع المصاريف حسب الفئة، وإصلاح مشكلة اتصال نماذج Google بـ Agent Router بحيث تتصل مباشرة بـ Google API بشكل صحيح مع تحديث المفتاح السري لـ Gemini."
+  "releaseNotes": "تحديث v1.0.0.19 (Build 120): إضافة طبقة مالية ذكية تفاعلية داخل المساعد الذكي تعرض آخر الحركات المالية ومقترح توزيع الرصيد وتنبيه الرصيد المنخفض وتأثير المعاملات على الميزانيات والأهداف والديون مع دعم التعديل اليدوي الكامل للمسودات قبل التنفيذ."
 }

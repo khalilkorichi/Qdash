@@ -283,6 +283,27 @@ class AppContainerImpl(private val context: Context) : AppContainer {
         PostalProfileRepositoryImpl(database.postalProfileDao())
     }
 
+    override val getRecentActivitySummaryUseCase: com.example.domain.usecase.ai.GetRecentActivitySummaryUseCase by lazy {
+        com.example.domain.usecase.ai.GetRecentActivitySummaryUseCase(transactionRepository)
+    }
+
+    override val getWalletDistributionUseCase: com.example.domain.usecase.ai.GetWalletDistributionUseCase by lazy {
+        com.example.domain.usecase.ai.GetWalletDistributionUseCase(accountRepository)
+    }
+
+    override val evaluateLowBalanceAlertsUseCase: com.example.domain.usecase.ai.EvaluateLowBalanceAlertsUseCase by lazy {
+        com.example.domain.usecase.ai.EvaluateLowBalanceAlertsUseCase(accountRepository, preferencesManager)
+    }
+
+    override val getQuickImpactPreviewUseCase: com.example.domain.usecase.ai.GetQuickImpactPreviewUseCase by lazy {
+        com.example.domain.usecase.ai.GetQuickImpactPreviewUseCase(
+            transactionRepository,
+            budgetGoalRepository,
+            savingRepository,
+            debtRepository
+        )
+    }
+
     init {
         // Pre-warm SharedPreferences to avoid main-thread blocking I/O on startup
         preferencesManager

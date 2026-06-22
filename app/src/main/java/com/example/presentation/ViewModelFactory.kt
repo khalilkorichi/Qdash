@@ -39,7 +39,13 @@ class ViewModelFactory(
                     container.transactionRepository,
                     container.accountRepository,
                     container.categoryRepository,
-                    container.preferencesManager
+                    container.preferencesManager,
+                    container.getRecentActivitySummaryUseCase,
+                    container.getWalletDistributionUseCase,
+                    container.evaluateLowBalanceAlertsUseCase,
+                    container.getQuickImpactPreviewUseCase,
+                    container.transferBetweenAccountsUseCase,
+                    container.savingRepository
                 ) as T
             }
             modelClass.isAssignableFrom(HomeViewModel::class.java) -> {

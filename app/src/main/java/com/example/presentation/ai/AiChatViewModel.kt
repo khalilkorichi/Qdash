@@ -8,10 +8,23 @@ import com.example.domain.model.TransactionType
 import com.example.domain.model.ChatSender
 import com.example.domain.model.Account
 import com.example.domain.model.Category
+import com.example.domain.model.TransferRequest
+import com.example.domain.model.RecentActivitySummary
+import com.example.domain.model.WalletDistributionSuggestion
+import com.example.domain.model.LowBalanceAlertState
+import com.example.domain.model.TransferDraftState
+import com.example.domain.model.SelectedAccountDetailsState
+import com.example.domain.model.QuickImpactPreviewState
 import com.example.domain.repository.AiRepository
 import com.example.domain.repository.TransactionRepository
 import com.example.domain.repository.AccountRepository
 import com.example.domain.repository.CategoryRepository
+import com.example.domain.repository.SavingRepository
+import com.example.domain.usecase.ai.GetRecentActivitySummaryUseCase
+import com.example.domain.usecase.ai.GetWalletDistributionUseCase
+import com.example.domain.usecase.ai.EvaluateLowBalanceAlertsUseCase
+import com.example.domain.usecase.ai.GetQuickImpactPreviewUseCase
+import com.example.domain.usecase.transfer.TransferBetweenAccountsUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +39,16 @@ data class AiModelInfo(
     val id: String,
     val name: String,
     val provider: String
+)
+
+enum class AiErrorType {
+    NETWORK_ERROR,
+    AI_ERROR
+}
+
+data class AiErrorState(
+    val type: AiErrorType,
+    val message: String
 )
 
 data class AiChatUiState(
@@ -46,7 +69,13 @@ data class AiChatUiState(
         AiModelInfo("gemini-3.1-pro", "Gemini 3.1 Pro", "Google"),
         AiModelInfo("gemini-3-flash-preview", "Gemini 3 Flash Preview", "Google"),
         AiModelInfo("glm-5.1", "glm-5.1", "Z.ai")
-    )
+    ),
+    // Available accounts and categories — fed into the editable draft dropdowns
+    val accounts: List<Account> = emptyList(),
+    val categories: List<Category> = emptyList(),
+    // Failure state
+    val error: AiErrorState? = null,
+    val lastFailedText: String? = null
 )
 
 class AiChatViewModel(
@@ -54,7 +83,13 @@ class AiChatViewModel(
     private val transactionRepository: TransactionRepository,
     private val accountRepository: AccountRepository,
     private val categoryRepository: CategoryRepository,
-    private val preferencesManager: com.example.core.preferences.PreferencesManager
+    private val preferencesManager: com.example.core.preferences.PreferencesManager,
+    private val getRecentActivitySummaryUseCase: GetRecentActivitySummaryUseCase,
+    private val getWalletDistributionUseCase: GetWalletDistributionUseCase,
+    private val evaluateLowBalanceAlertsUseCase: EvaluateLowBalanceAlertsUseCase,
+    private val getQuickImpactPreviewUseCase: GetQuickImpactPreviewUseCase,
+    private val transferBetweenAccountsUseCase: TransferBetweenAccountsUseCase,
+    private val savingRepository: SavingRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AiChatUiState())
@@ -73,6 +108,18 @@ class AiChatViewModel(
         viewModelScope.launch {
             aiRepository.getAllSessionTitles().collectLatest { sessionList ->
                 _uiState.update { it.copy(sessions = sessionList) }
+            }
+        }
+
+        // Collect accounts and categories for editable draft dropdowns
+        viewModelScope.launch {
+            accountRepository.getAllAccounts().collectLatest { accountList ->
+                _uiState.update { it.copy(accounts = accountList) }
+            }
+        }
+        viewModelScope.launch {
+            categoryRepository.getAllCategories().collectLatest { categoryList ->
+                _uiState.update { it.copy(categories = categoryList) }
             }
         }
 
@@ -111,6 +158,52 @@ class AiChatViewModel(
         }
     }
 
+    /**
+     * Returns true if the AI message text is a general wallet/portfolio balance reply
+     * (not a specific-account balance query).
+     */
+    private fun isGeneralBalanceReply(text: String): Boolean {
+        val lower = text.lowercase()
+        val generalMarkers = listOf(
+            "إجمالي رصيد محفظتك",
+            "إجمالي رصيد",
+            "رصيد محفظتك",
+            "رصيدك الإجمالي",
+            "رصيد محفظتي",
+            "مجموع أرصدتك",
+            "portfolio balance",
+            "total balance"
+        )
+        return generalMarkers.any { lower.contains(it) }
+    }
+
+    /**
+     * Builds a WalletSnapshot from current accounts for embedding in an AI balance message.
+     */
+    private fun buildWalletSnapshot(accounts: List<Account>): WalletSnapshot {
+        val totalBalance = accounts.filter { !it.isArchived }.sumOf { it.balance }
+        val items = accounts.filter { !it.isArchived }.map { acc ->
+            val typeLabel = when (acc.type) {
+                com.example.domain.model.AccountType.BANK -> "بنك"
+                com.example.domain.model.AccountType.CCP -> "CCP"
+                com.example.domain.model.AccountType.BARIDIMOB -> "بريدي موب"
+                com.example.domain.model.AccountType.CASH -> "نقداً"
+                com.example.domain.model.AccountType.SAVINGS -> "ادخار"
+                com.example.domain.model.AccountType.WALLET -> "محفظة"
+                com.example.domain.model.AccountType.OTHER -> "أخرى"
+            }
+            AccountBalanceItem(
+                id = acc.id,
+                name = acc.name,
+                typeLabel = typeLabel,
+                balance = acc.balance,
+                currency = acc.currency,
+                color = acc.color
+            )
+        }
+        return WalletSnapshot(totalBalance = totalBalance, currency = "دج", accounts = items)
+    }
+
     private fun loadSessionMessages(sessionTitle: String) {
         messagesCollectJob?.cancel()
         messagesCollectJob = viewModelScope.launch {
@@ -125,8 +218,39 @@ class AiChatViewModel(
 
             aiRepository.getMessagesBySession(sessionTitle).collectLatest { dbMessages ->
                 val uiMessages = dbMessages.map { msg ->
+                    val isAiMessage = msg.sender == ChatSender.AI
                     // Auto-parse draft transaction if the AI text corresponds to a transaction creation proposal
                     val draftTx = parseDraftTransactionFromText(msg.message, accounts, categories)
+                    // Attach a wallet snapshot when the AI is replying with general balance info
+                    val walletSnapshot = if (isAiMessage && isGeneralBalanceReply(msg.message)) {
+                        buildWalletSnapshot(accounts)
+                    } else null
+
+                    // Context-aware AI smart cards
+                    val recentActivity = if (isAiMessage && (msg.message.contains("آخر") || msg.message.contains("معاملة") || msg.message.contains("حركة"))) {
+                        getRecentActivitySummaryUseCase()
+                    } else null
+
+                    val walletDistribution = if (isAiMessage && msg.message.contains("توزيع")) {
+                        getWalletDistributionUseCase()
+                    } else null
+
+                    val lowBalanceAlert = if (isAiMessage && (msg.message.contains("منخفض") || msg.message.contains("حد"))) {
+                        evaluateLowBalanceAlertsUseCase()
+                    } else null
+
+                    val transferDraft = if (isAiMessage && (msg.message.contains("تحويل") || msg.message.contains("مسودة تحويل"))) {
+                        parseTransferDraftFromText(msg.message, accounts)
+                    } else null
+
+                    val selectedAccountDetails = if (isAiMessage && (msg.message.contains("حساب") && (msg.message.contains("تفاصيل") || msg.message.contains("معلومات")))) {
+                        buildSelectedAccountDetails(msg.message, accounts)
+                    } else null
+
+                    val quickImpactPreview = if (isAiMessage && draftTx != null) {
+                        getQuickImpactPreviewUseCase(draftTx.amount, draftTx.type, draftTx.categoryId, draftTx.accountId)
+                    } else null
+
                     AiChatMessage(
                         id = msg.id.toString(),
                         text = msg.message,
@@ -134,12 +258,67 @@ class AiChatViewModel(
                         timestamp = msg.timestamp,
                         draftTransaction = draftTx,
                         categoryName = categories.find { it.id == draftTx?.categoryId }?.name ?: "غير محدد",
-                        accountName = accounts.firstOrNull()?.name ?: "غير محدد"
+                        accountName = accounts.firstOrNull { it.id == draftTx?.accountId }?.name ?: "غير محدد",
+                        walletSnapshot = walletSnapshot,
+                        recentActivitySummary = recentActivity,
+                        walletDistributionSuggestion = walletDistribution,
+                        lowBalanceAlertState = lowBalanceAlert,
+                        transferDraftState = transferDraft,
+                        selectedAccountDetailsState = selectedAccountDetails,
+                        quickImpactPreviewState = quickImpactPreview,
+                        transferFromAccountName = accounts.find { it.id == (transferDraft?.fromAccountId ?: 0L) }?.name ?: "غير محدد",
+                        transferToAccountName = accounts.find { it.id == (transferDraft?.toAccountId ?: 0L) }?.name ?: "غير محدد"
                     )
                 }
                 _uiState.update { it.copy(messages = uiMessages) }
             }
         }
+    }
+
+    private suspend fun parseTransferDraftFromText(text: String, accounts: List<Account>): TransferDraftState? {
+        val lowerText = text.lowercase()
+        val isTransfer = lowerText.contains("تحويل") || lowerText.contains("حول")
+        if (isTransfer) {
+            val amount = parseDarijaAmount(text) ?: 500.0
+            
+            // Find from account and to account in text
+            var fromAcc = accounts.firstOrNull { lowerText.contains(it.name.lowercase()) }
+            var toAcc = accounts.filter { it.id != fromAcc?.id }.firstOrNull { lowerText.contains(it.name.lowercase()) }
+            
+            if (fromAcc == null) {
+                fromAcc = accounts.firstOrNull()
+            }
+            if (toAcc == null) {
+                toAcc = accounts.firstOrNull { it.id != fromAcc?.id } ?: accounts.firstOrNull()
+            }
+            
+            val note = "تحويل مسجل عن طريق المساعد الذكي"
+            
+            return TransferDraftState(
+                amount = amount,
+                fromAccountId = fromAcc?.id ?: 1L,
+                toAccountId = toAcc?.id ?: 2L,
+                note = note,
+                fromAccountName = fromAcc?.name ?: "غير محدد",
+                toAccountName = toAcc?.name ?: "غير محدد"
+            )
+        }
+        return null
+    }
+
+    private suspend fun buildSelectedAccountDetails(text: String, accounts: List<Account>): SelectedAccountDetailsState? {
+        val matchedAccount = accounts.firstOrNull { acc ->
+            text.lowercase().contains(acc.name.lowercase())
+        } ?: accounts.firstOrNull() ?: return null
+        
+        val recentTxs = transactionRepository.getTransactionsByAccount(matchedAccount.id).first().take(3)
+        val goals = savingRepository.getAllSavingGoals().first().filter { it.accountId == matchedAccount.id }
+        
+        return SelectedAccountDetailsState(
+            account = matchedAccount,
+            recentTransactions = recentTxs,
+            activeGoals = goals
+        )
     }
 
     private fun parseDarijaAmount(text: String): Double? {
@@ -367,7 +546,7 @@ class AiChatViewModel(
         val trimmedText = text.trim()
         if (trimmedText.isEmpty()) return
 
-        _uiState.update { it.copy(inputText = "", isLoading = true) }
+        _uiState.update { it.copy(inputText = "", isLoading = true, error = null, lastFailedText = null) }
 
         viewModelScope.launch {
             var sessionTitle = _uiState.value.currentSessionTitle
@@ -401,15 +580,19 @@ class AiChatViewModel(
                 _uiState.update { it.copy(isLoading = false) }
                 generateProactiveInsights() // Refresh insights dynamically
             } catch (e: Exception) {
-                // If failed, insert error message
-                aiRepository.insertMessage(
-                    com.example.domain.model.AiChatMessage(
-                        sender = ChatSender.AI,
-                        message = "عذراً، حدث خطأ أثناء الاتصال بالخادم: ${e.localizedMessage}",
-                        sessionTitle = sessionTitle
-                    )
-                )
-                _uiState.update { it.copy(isLoading = false) }
+                val errorType = when (e) {
+                    is com.example.domain.model.AiFailureException.NetworkFailure -> AiErrorType.NETWORK_ERROR
+                    else -> AiErrorType.AI_ERROR
+                }
+                val friendlyMessage = when (errorType) {
+                    AiErrorType.NETWORK_ERROR -> "فشل في الاتصال بالشبكة. يرجى التحقق من اتصال الإنترنت وإعادة المحاولة."
+                    AiErrorType.AI_ERROR -> "حدث خطأ في استجابة المساعد الذكي: ${e.localizedMessage ?: "فشل في الاتصال بالخادم"}"
+                }
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    error = AiErrorState(type = errorType, message = friendlyMessage),
+                    lastFailedText = trimmedText
+                ) }
             }
         }
     }
@@ -418,7 +601,16 @@ class AiChatViewModel(
         viewModelScope.launch {
             val targetMsg = _uiState.value.messages.find { it.id == messageId && it.draftTransaction != null }
             if (targetMsg != null && targetMsg.draftTransaction != null) {
-                transactionRepository.insertTransaction(targetMsg.draftTransaction)
+                // Merge edited fields (user overrides) with the original AI-parsed draft
+                val baseDraft = targetMsg.draftTransaction
+                val finalTransaction = baseDraft.copy(
+                    amount = targetMsg.editedAmount ?: baseDraft.amount,
+                    type = targetMsg.editedType ?: baseDraft.type,
+                    note = targetMsg.editedNote ?: baseDraft.note,
+                    categoryId = targetMsg.editedCategoryId ?: baseDraft.categoryId,
+                    accountId = targetMsg.editedAccountId ?: baseDraft.accountId
+                )
+                transactionRepository.insertTransaction(finalTransaction)
                 _uiState.update { state ->
                     state.copy(messages = state.messages.map { msg ->
                         if (msg.id == messageId) msg.copy(isConfirmed = true) else msg
@@ -440,11 +632,150 @@ class AiChatViewModel(
         _uiState.update { it.copy(messages = messages) }
     }
 
+    fun updateDraftField(messageId: String, field: DraftField, value: Any) {
+        _uiState.update { state ->
+            state.copy(messages = state.messages.map { msg ->
+                if (msg.id != messageId) return@map msg
+                when (field) {
+                    DraftField.AMOUNT -> msg.copy(editedAmount = (value as? Double))
+                    DraftField.TYPE -> msg.copy(editedType = (value as? TransactionType))
+                    DraftField.NOTE -> msg.copy(editedNote = (value as? String))
+                    DraftField.CATEGORY_ID -> {
+                        val catId = (value as? Long)
+                        val catName = _uiState.value.categories.find { it.id == catId }?.name
+                        msg.copy(editedCategoryId = catId, categoryName = catName ?: msg.categoryName)
+                    }
+                    DraftField.ACCOUNT_ID -> {
+                        val accId = (value as? Long)
+                        val accName = _uiState.value.accounts.find { it.id == accId }?.name
+                        msg.copy(editedAccountId = accId, accountName = accName ?: msg.accountName)
+                    }
+                    DraftField.TRANSFER_AMOUNT -> msg.copy(editedTransferAmount = (value as? Double))
+                    DraftField.TRANSFER_FROM_ACCOUNT_ID -> {
+                        val accId = (value as? Long)
+                        val name = _uiState.value.accounts.find { it.id == accId }?.name
+                        msg.copy(editedTransferFromAccountId = accId, transferFromAccountName = name ?: msg.transferFromAccountName)
+                    }
+                    DraftField.TRANSFER_TO_ACCOUNT_ID -> {
+                        val accId = (value as? Long)
+                        val name = _uiState.value.accounts.find { it.id == accId }?.name
+                        msg.copy(editedTransferToAccountId = accId, transferToAccountName = name ?: msg.transferToAccountName)
+                    }
+                    DraftField.TRANSFER_NOTE -> msg.copy(editedTransferNote = (value as? String))
+                    DraftField.LOW_BALANCE_LIMIT -> msg.copy(editedLowBalanceLimit = (value as? Double))
+                }
+            })
+        }
+    }
+
+    fun confirmTransfer(messageId: String) {
+        viewModelScope.launch {
+            val targetMsg = _uiState.value.messages.find { it.id == messageId && it.transferDraftState != null }
+            if (targetMsg != null && targetMsg.transferDraftState != null) {
+                val draft = targetMsg.transferDraftState
+                val finalAmount = targetMsg.editedTransferAmount ?: draft.amount
+                val finalFrom = targetMsg.editedTransferFromAccountId ?: draft.fromAccountId
+                val finalTo = targetMsg.editedTransferToAccountId ?: draft.toAccountId
+                val finalNote = targetMsg.editedTransferNote ?: draft.note
+                
+                val req = TransferRequest(
+                    fromAccountId = finalFrom,
+                    toAccountId = finalTo,
+                    amount = finalAmount,
+                    note = finalNote,
+                    date = System.currentTimeMillis()
+                )
+                val success = transferBetweenAccountsUseCase(req)
+                if (success) {
+                    _uiState.update { state ->
+                        state.copy(messages = state.messages.map { msg ->
+                            if (msg.id == messageId) msg.copy(isTransferConfirmed = true) else msg
+                        })
+                    }
+                    generateProactiveInsights()
+                }
+            }
+        }
+    }
+
+    fun cancelTransfer(messageId: String) {
+        _uiState.update { state ->
+            state.copy(messages = state.messages.map { msg ->
+                if (msg.id == messageId) msg.copy(isTransferCancelled = true) else msg
+            })
+        }
+    }
+
+    fun saveLowBalanceLimit(messageId: String, limit: Double) {
+        viewModelScope.launch {
+            preferencesManager.lowBalanceLimit = limit
+            val newState = evaluateLowBalanceAlertsUseCase(limit)
+            _uiState.update { state ->
+                state.copy(messages = state.messages.map { msg ->
+                    if (msg.id == messageId) {
+                        msg.copy(
+                            lowBalanceAlertState = newState,
+                            editedLowBalanceLimit = null
+                        )
+                    } else msg
+                })
+            }
+        }
+    }
+
+    fun updateLowBalanceLimitField(messageId: String, limit: Double) {
+        _uiState.update { state ->
+            state.copy(messages = state.messages.map { msg ->
+                if (msg.id == messageId) {
+                    msg.copy(editedLowBalanceLimit = limit)
+                } else msg
+            })
+        }
+    }
+
+    fun duplicateTransaction(transaction: Transaction) {
+        viewModelScope.launch {
+            val copy = transaction.copy(id = 0, date = System.currentTimeMillis())
+            transactionRepository.insertTransaction(copy)
+            generateProactiveInsights()
+        }
+    }
+
+    fun startEditingTransaction(messageId: String, transaction: Transaction) {
+        _uiState.update { state ->
+            state.copy(messages = state.messages.map { msg ->
+                if (msg.id == messageId) {
+                    msg.copy(
+                        draftTransaction = transaction,
+                        editedAmount = transaction.amount,
+                        editedType = transaction.type,
+                        editedNote = transaction.note,
+                        editedCategoryId = transaction.categoryId,
+                        editedAccountId = transaction.accountId,
+                        isConfirmed = false,
+                        isCancelled = false
+                    )
+                } else msg
+            })
+        }
+    }
+
     fun clearChat() {
         viewModelScope.launch {
             val title = _uiState.value.currentSessionTitle
             aiRepository.clearHistory(title)
             createNewSession()
         }
+    }
+
+    fun retryLastMessage() {
+        val lastText = _uiState.value.lastFailedText
+        if (!lastText.isNullOrBlank()) {
+            sendMessage(lastText)
+        }
+    }
+
+    fun dismissError() {
+        _uiState.update { it.copy(error = null, lastFailedText = null) }
     }
 }

@@ -48,8 +48,17 @@ data class DocumentSimulatorUiState(
     // Validation
     val errors: Map<String, String> = emptyMap(), // fieldName -> message
     val warnings: List<String> = emptyList(),
-    val completionPercentage: Float = 0f
+    val completionPercentage: Float = 0f,
+    
+    // New states
+    val activePanel: SimulatorActivePanel = SimulatorActivePanel.NONE,
+    val showReadyAmounts: Boolean = false,
+    val landingSelectedProfileId: Long? = null
 )
+
+enum class SimulatorActivePanel {
+    NONE, GUIDE, REVIEW
+}
 
 enum class DocumentType {
     CHEQUE, SFP01
@@ -98,8 +107,17 @@ class DocumentSimulatorViewModel(
                 selectedDocType = type,
                 focusedField = null,
                 guideActive = false,
-                currentGuideStep = 0
+                currentGuideStep = 0,
+                activePanel = SimulatorActivePanel.NONE,
+                showReadyAmounts = false
             ) 
+        }
+        val profileId = _uiState.value.landingSelectedProfileId
+        if (profileId != null) {
+            val profile = _uiState.value.savedProfiles.find { it.id == profileId }
+            if (profile != null) {
+                autofillFromProfile(profile, PostalProfileRole.SELF)
+            }
         }
         validateCurrentDocument()
     }
@@ -250,6 +268,30 @@ class DocumentSimulatorViewModel(
             val stepIndex = getStepIndexForField(_uiState.value.selectedDocType, fieldName)
             if (stepIndex != -1) {
                 _uiState.update { it.copy(currentGuideStep = stepIndex, guideActive = true) }
+            }
+        }
+    }
+
+    fun toggleActivePanel(panel: SimulatorActivePanel) {
+        _uiState.update { 
+            val next = if (it.activePanel == panel) SimulatorActivePanel.NONE else panel
+            it.copy(
+                activePanel = next,
+                guideActive = if (next == SimulatorActivePanel.GUIDE) it.guideActive else false
+            )
+        }
+    }
+
+    fun toggleReadyAmounts(show: Boolean) {
+        _uiState.update { it.copy(showReadyAmounts = show) }
+    }
+
+    fun selectLandingProfileId(profileId: Long?) {
+        _uiState.update { it.copy(landingSelectedProfileId = profileId) }
+        if (profileId != null) {
+            val profile = _uiState.value.savedProfiles.find { it.id == profileId }
+            if (profile != null) {
+                autofillFromProfile(profile, PostalProfileRole.SELF)
             }
         }
     }

@@ -176,4 +176,8 @@ class PreferencesManager(context: Context) {
             }
             notifyDashboardConfigChanged()
         }
+
+    var lowBalanceLimit: Double
+        get() = mainPrefs.getFloat("low_balance_limit", 5000.0f).toDouble()
+        set(value) = mainPrefs.edit().putFloat("low_balance_limit", value.toFloat()).apply()
 }

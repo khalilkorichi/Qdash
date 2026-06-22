@@ -23,6 +23,7 @@ import com.example.presentation.components.radialmenu.AddActionFabContainer
 import com.example.presentation.navigation.FinTrackNavGraph
 import com.example.presentation.navigation.LocalNavController
 import com.example.presentation.navigation.Screen
+import com.example.domain.model.Transaction
 import com.example.presentation.navigation.mainBottomNavScreens
 import com.example.presentation.settings.SettingsViewModel
 import com.example.presentation.update.UpdatesViewModel
@@ -187,6 +188,15 @@ internal fun FinTrackAppShell(
                             onSuggestionClick = { aiChatViewModel.selectSuggestion(it) },
                             onConfirmDraft = { aiChatViewModel.confirmDraft(it) },
                             onCancelDraft = { aiChatViewModel.cancelDraft(it) },
+                            onUpdateDraftField = { msgId, field, value ->
+                                aiChatViewModel.updateDraftField(msgId, field, value)
+                            },
+                            onConfirmTransfer = { aiChatViewModel.confirmTransfer(it) },
+                            onCancelTransfer = { aiChatViewModel.cancelTransfer(it) },
+                            onSaveLowBalanceLimit = { msgId, limit -> aiChatViewModel.saveLowBalanceLimit(msgId, limit) },
+                            onUpdateLowBalanceLimitField = { msgId, limit -> aiChatViewModel.updateLowBalanceLimitField(msgId, limit) },
+                            onDuplicateTransaction = { aiChatViewModel.duplicateTransaction(it) },
+                            onStartEditingTransaction = { msgId, tx -> aiChatViewModel.startEditingTransaction(msgId, tx) },
                             onFullScreenClick = {
                                 aiChatViewModel.toggleMiniChat()
                                 navController.navigate(Screen.AiChat.route)
@@ -194,7 +204,12 @@ internal fun FinTrackAppShell(
                             onCloseClick = { aiChatViewModel.toggleMiniChat() },
                             selectedModelId = aiChatState.selectedModelId,
                             models = aiChatState.models,
-                            onModelSelected = { aiChatViewModel.selectModel(it) }
+                            onModelSelected = { aiChatViewModel.selectModel(it) },
+                            accounts = aiChatState.accounts,
+                            categories = aiChatState.categories,
+                            error = aiChatState.error,
+                            onRetryClick = { aiChatViewModel.retryLastMessage() },
+                            onDismissErrorClick = { aiChatViewModel.dismissError() }
                         )
                     }
                 }
