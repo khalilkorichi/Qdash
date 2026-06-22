@@ -17,7 +17,7 @@ android {
     versionCode = 16
     versionName = "1.0.0.16"
     buildConfigField("Long", "BUILD_TIMESTAMP", "${System.currentTimeMillis()}L")
-    buildConfigField("Long", "UPDATE_IDENTITY", "116L")
+    buildConfigField("Long", "UPDATE_IDENTITY", "117L")
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -125,4 +125,5 @@ dependencies {
   "ksp"(libs.androidx.room.compiler)
   "ksp"(libs.moshi.kotlin.codegen)
   implementation(libs.androidx.startup)
+  implementation(libs.androidx.work)
 }

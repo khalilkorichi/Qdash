@@ -57,6 +57,8 @@ enum class CheckingStepType {
 class UpdatesViewModel(
     private val repository: UpdateRepository,
     private val backupManager: BackupManager,
+    private val notificationRepository: com.example.domain.repository.NotificationRepository,
+    private val preferencesManager: com.example.core.preferences.PreferencesManager,
     private val context: Context
 ) : ViewModel() {
 
@@ -77,7 +79,6 @@ class UpdatesViewModel(
 
     init {
         loadDownloadedApks()
-        checkForUpdates()
     }
 
     fun loadDownloadedApks() {
@@ -101,53 +102,102 @@ class UpdatesViewModel(
         }
     }
 
-    fun checkForUpdates() {
+    fun checkForUpdates(isBackground: Boolean = false) {
         viewModelScope.launch {
-            initCheckingSteps()
-            _uiState.value = UpdateUiState.Checking
-            repository.checkForUpdates { step ->
-                when (step) {
-                    is CheckingStep.ReadingLocalVersion -> {
-                        updateStepStatus(CheckingStepType.READ_LOCAL, CheckStepStatus.RUNNING)
-                    }
-                    is CheckingStep.FetchingManifest -> {
-                        updateStepStatus(CheckingStepType.READ_LOCAL, CheckStepStatus.COMPLETED)
-                        updateStepStatus(CheckingStepType.FETCH_MANIFEST, CheckStepStatus.RUNNING)
-                    }
-                    is CheckingStep.FetchingReleaseFallback -> {
-                        updateStepStatus(CheckingStepType.FETCH_MANIFEST, CheckStepStatus.FAILED)
-                        updateStepStatus(CheckingStepType.FETCH_RELEASE, CheckStepStatus.RUNNING)
-                    }
-                    is CheckingStep.ComparingVersions -> {
-                        val currentSteps = _checkingSteps.value
-                        val manifestStep = currentSteps.find { it.type == CheckingStepType.FETCH_MANIFEST }
-                        if (manifestStep?.status == CheckStepStatus.RUNNING) {
-                            updateStepStatus(CheckingStepType.FETCH_MANIFEST, CheckStepStatus.COMPLETED)
-                            updateStepStatus(CheckingStepType.FETCH_RELEASE, CheckStepStatus.COMPLETED)
-                        } else {
-                            updateStepStatus(CheckingStepType.FETCH_RELEASE, CheckStepStatus.COMPLETED)
+            if (!isBackground) {
+                initCheckingSteps()
+                _uiState.value = UpdateUiState.Checking
+            }
+            val result = repository.checkForUpdates { step ->
+                if (!isBackground) {
+                    when (step) {
+                        is CheckingStep.ReadingLocalVersion -> {
+                            updateStepStatus(CheckingStepType.READ_LOCAL, CheckStepStatus.RUNNING)
                         }
-                        updateStepStatus(CheckingStepType.COMPARE, CheckStepStatus.RUNNING)
-                    }
-                    is CheckingStep.Success -> {
-                        updateStepStatus(CheckingStepType.COMPARE, CheckStepStatus.COMPLETED)
-                        kotlinx.coroutines.delay(400)
-                        
-                        val info = step.info
-                        if (info.hasUpdate) {
-                            _uiState.value = UpdateUiState.UpdateAvailable(info)
-                        } else {
-                            val versionStr = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
-                            _uiState.value = UpdateUiState.NoUpdate(versionStr)
+                        is CheckingStep.FetchingManifest -> {
+                            updateStepStatus(CheckingStepType.READ_LOCAL, CheckStepStatus.COMPLETED)
+                            updateStepStatus(CheckingStepType.FETCH_MANIFEST, CheckStepStatus.RUNNING)
                         }
+                        is CheckingStep.FetchingReleaseFallback -> {
+                            updateStepStatus(CheckingStepType.FETCH_MANIFEST, CheckStepStatus.FAILED)
+                            updateStepStatus(CheckingStepType.FETCH_RELEASE, CheckStepStatus.RUNNING)
+                        }
+                        is CheckingStep.ComparingVersions -> {
+                            val currentSteps = _checkingSteps.value
+                            val manifestStep = currentSteps.find { it.type == CheckingStepType.FETCH_MANIFEST }
+                            if (manifestStep?.status == CheckStepStatus.RUNNING) {
+                                updateStepStatus(CheckingStepType.FETCH_MANIFEST, CheckStepStatus.COMPLETED)
+                                updateStepStatus(CheckingStepType.FETCH_RELEASE, CheckStepStatus.COMPLETED)
+                            } else {
+                                updateStepStatus(CheckingStepType.FETCH_RELEASE, CheckStepStatus.COMPLETED)
+                            }
+                            updateStepStatus(CheckingStepType.COMPARE, CheckStepStatus.RUNNING)
+                        }
+                        is CheckingStep.Success -> {
+                            updateStepStatus(CheckingStepType.COMPARE, CheckStepStatus.COMPLETED)
+                        }
+                        is CheckingStep.Error -> {
+                            updateStepStatus(CheckingStepType.COMPARE, CheckStepStatus.FAILED)
+                        }
+                        else -> {}
                     }
-                    is CheckingStep.Error -> {
-                        updateStepStatus(CheckingStepType.COMPARE, CheckStepStatus.FAILED)
-                        _uiState.value = UpdateUiState.Error(step.message)
-                    }
-                    else -> {}
                 }
             }
+
+            preferencesManager.lastUpdateCheckTime = System.currentTimeMillis()
+
+            result.onSuccess { info ->
+                if (info.hasUpdate) {
+                    val localVersionName = BuildConfig.VERSION_NAME
+                    val localVersionCode = BuildConfig.VERSION_CODE
+                    val isNewerVersion = isVersionNewer(localVersionName, info.versionName)
+                    val isNewerVersionCode = info.versionCode > localVersionCode
+
+                    if ((isNewerVersion || isNewerVersionCode) && preferencesManager.lastNotifiedUpdateVersion != info.versionName) {
+                        preferencesManager.lastNotifiedUpdateVersion = info.versionName
+                        val notification = com.example.domain.model.AppNotification(
+                            title = "تحديث جديد متوفر! 🎉",
+                            message = "إصدار جديد من التطبيق (${info.versionName}) متوفر الآن للتحميل.",
+                            type = com.example.domain.model.NotificationType.TIP
+                        )
+                        notificationRepository.insertNotification(notification)
+                    }
+
+                    _uiState.value = UpdateUiState.UpdateAvailable(info)
+                } else {
+                    if (!isBackground) {
+                        val versionStr = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
+                        _uiState.value = UpdateUiState.NoUpdate(versionStr)
+                    } else {
+                        _uiState.value = UpdateUiState.Idle
+                    }
+                }
+            }.onFailure { error ->
+                if (!isBackground) {
+                    _uiState.value = UpdateUiState.Error(error.localizedMessage ?: "حدث خطأ أثناء فحص التحديثات")
+                }
+            }
+        }
+    }
+
+    private fun isVersionNewer(local: String, remote: String): Boolean {
+        val localParts = local.removePrefix("v").split(".").map { it.toIntOrNull() ?: 0 }
+        val remoteParts = remote.removePrefix("v").split(".").map { it.toIntOrNull() ?: 0 }
+        val maxLength = maxOf(localParts.size, remoteParts.size)
+        for (i in 0 until maxLength) {
+            val localVal = localParts.getOrElse(i) { 0 }
+            val remoteVal = remoteParts.getOrElse(i) { 0 }
+            if (remoteVal > localVal) return true
+            if (localVal > remoteVal) return false
+        }
+        return false
+    }
+
+    fun checkForUpdatesThrottled() {
+        val lastCheck = preferencesManager.lastUpdateCheckTime
+        val now = System.currentTimeMillis()
+        if (now - lastCheck >= 2 * 60 * 60 * 1000L) { // 2 hours throttle
+            checkForUpdates(isBackground = true)
         }
     }
 

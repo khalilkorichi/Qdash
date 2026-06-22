@@ -47,6 +47,19 @@ internal fun FinTrackAppShell(
     // Shared Updates View Model for global background updating
     val updatesViewModel: UpdatesViewModel = viewModel(factory = factory)
     val updateUiState by updatesViewModel.uiState.collectAsState()
+
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                updatesViewModel.checkForUpdatesThrottled()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
     val aiChatViewModel: com.example.presentation.ai.AiChatViewModel = viewModel(factory = factory)
     var isUpdateDismissed by remember(updateUiState) { mutableStateOf(false) }
     val showUpdateBar = remember(updateUiState) {

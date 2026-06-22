@@ -49,33 +49,6 @@ class MainActivity : ComponentActivity() {
         com.example.core.utils.FormatterUtils.hideDecimals = prefs.hideDecimalsEnabled
         com.example.core.utils.FormatterUtils.useWesternNumerals = prefs.useWesternNumerals
 
-        // Automatic update checking on application cold start
-        val updateRepository = container.updateRepository
-        val notificationRepository = container.notificationRepository
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                delay(3000) // 3-second delay to let the app finish drawing the home screen
-                updateRepository.checkForUpdates().onSuccess { updateInfo ->
-                    val localVersionName = BuildConfig.VERSION_NAME
-                    val localVersionCode = BuildConfig.VERSION_CODE
-                    val isNewerVersion = isVersionNewer(localVersionName, updateInfo.versionName)
-                    val isNewerVersionCode = updateInfo.versionCode > localVersionCode
-                    
-                    if (updateInfo.hasUpdate && (isNewerVersion || isNewerVersionCode) && prefs.lastNotifiedUpdateVersion != updateInfo.versionName) {
-                        prefs.lastNotifiedUpdateVersion = updateInfo.versionName
-                        val notification = com.example.domain.model.AppNotification(
-                            title = "تحديث جديد متوفر! 🎉",
-                            message = "إصدار جديد من التطبيق (${updateInfo.versionName}) متوفر الآن للتحميل.",
-                            type = com.example.domain.model.NotificationType.TIP
-                        )
-                        notificationRepository.insertNotification(notification)
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
         setContent {
             FinTrackApp(
                 container = container,
@@ -84,18 +57,5 @@ class MainActivity : ComponentActivity() {
                 isFirstLaunch = isFirstLaunch
             )
         }
-    }
-
-    private fun isVersionNewer(local: String, remote: String): Boolean {
-        val localParts = local.removePrefix("v").split(".").map { it.toIntOrNull() ?: 0 }
-        val remoteParts = remote.removePrefix("v").split(".").map { it.toIntOrNull() ?: 0 }
-        val maxLength = maxOf(localParts.size, remoteParts.size)
-        for (i in 0 until maxLength) {
-            val localVal = localParts.getOrElse(i) { 0 }
-            val remoteVal = remoteParts.getOrElse(i) { 0 }
-            if (remoteVal > localVal) return true
-            if (localVal > remoteVal) return false
-        }
-        return false
     }
 }

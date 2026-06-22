@@ -82,6 +82,10 @@ class PreferencesManager(context: Context) {
         get() = mainPrefs.getString("last_notified_update_version", "") ?: ""
         set(value) = mainPrefs.edit().putString("last_notified_update_version", value).apply()
 
+    var lastUpdateCheckTime: Long
+        get() = mainPrefs.getLong("last_update_check_time", 0L)
+        set(value) = mainPrefs.edit().putLong("last_update_check_time", value).apply()
+
     fun getShowBalanceAcc(accountId: Long): Boolean {
         return mainPrefs.getBoolean("show_balance_acc_$accountId", true)
     }

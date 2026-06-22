@@ -186,6 +186,8 @@ class ViewModelFactory(
                 com.example.presentation.update.UpdatesViewModel(
                     container.updateRepository,
                     container.backupManager,
+                    container.notificationRepository,
+                    container.preferencesManager,
                     context
                 ) as T
             }
