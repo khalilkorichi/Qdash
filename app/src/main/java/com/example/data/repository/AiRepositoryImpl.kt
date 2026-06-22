@@ -64,7 +64,7 @@ class AiRepositoryImpl(
             return key
         }
         return try {
-            com.example.core.utils.CryptoUtils.decrypt("Un9q1m4Agl+MNpQhaYRLaMxkjsxpyrxEtIWHD4phNqRBvXLLwUGguFRGZNunJEvmHuccbTcdSN8aGmeIYp+tDWTm0Ow9um8wl860XQ7LQPRs")
+            com.example.core.utils.CryptoUtils.decrypt("FDS4/bMXxWxcZFDS/GBNFrByz552/xOqgMPPCVzUBUIjXYe7YN2yFVJVbPZV5/2IaCTEOwg0yajqrV3A4ZbIK6+/oG9lBMLMRGsioU/Thwk8")
         } catch (e: Exception) {
             e.printStackTrace()
             ""
@@ -107,14 +107,14 @@ class AiRepositoryImpl(
 
         // Otherwise, run our standard helper
         val apiKey = getApiKey()
-        val textReply = if (modelId == "glm-5.1" || (!apiKey.isNullOrBlank() && apiKey.startsWith("AQ."))) {
-            callAgentRouterApi("Default", prompt, modelId, if (!apiKey.isNullOrBlank() && apiKey.startsWith("AQ.")) apiKey else null)
-        } else {
+        val textReply = if (modelId.startsWith("gemini-")) {
             if (!apiKey.isNullOrBlank()) {
                 callGeminiApiWithTools(apiKey, "Default", prompt, modelId)
             } else {
                 simulateMockAiWithTools(prompt)
             }
+        } else {
+            callAgentRouterApi("Default", prompt, modelId, if (!apiKey.isNullOrBlank()) apiKey else null)
         }
 
         return AiResponse(replyText = textReply)
@@ -154,9 +154,7 @@ class AiRepositoryImpl(
         )
 
         val apiKey = getApiKey()
-        val aiResponse = if (modelId == "glm-5.1" || (!apiKey.isNullOrBlank() && apiKey.startsWith("AQ."))) {
-            callAgentRouterApi(sessionTitle, userPrompt, modelId, if (!apiKey.isNullOrBlank() && apiKey.startsWith("AQ.")) apiKey else null)
-        } else {
+        val aiResponse = if (modelId.startsWith("gemini-")) {
             if (!apiKey.isNullOrBlank()) {
                 callGeminiApiWithTools(apiKey, sessionTitle, userPrompt, modelId)
             } else {
@@ -167,6 +165,8 @@ class AiRepositoryImpl(
                     simulateMockAiWithTools(userPrompt)
                 }
             }
+        } else {
+            callAgentRouterApi(sessionTitle, userPrompt, modelId, if (!apiKey.isNullOrBlank()) apiKey else null)
         }
 
         // Split response by [NEXT] and insert each as a separate sequential message

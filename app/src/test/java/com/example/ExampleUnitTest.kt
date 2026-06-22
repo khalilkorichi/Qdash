@@ -35,4 +35,31 @@ class ExampleUnitTest {
             }
         }
     }
+
+    @Test
+    fun encryptKey() {
+        val newKey = "YOUR_GEMINI_API_KEY_HERE"
+        
+        val passphrase = "FinTrack-DZ-Secure-Backup-Passphrase-2026-dz"
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        val keyBytes = digest.digest(passphrase.toByteArray(Charsets.UTF_8))
+        val secretKeySpec = javax.crypto.spec.SecretKeySpec(keyBytes, "AES")
+
+        val cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+        val iv = ByteArray(12)
+        java.security.SecureRandom().nextBytes(iv)
+        val parameterSpec = javax.crypto.spec.GCMParameterSpec(128, iv)
+
+        cipher.init(javax.crypto.Cipher.ENCRYPT_MODE, secretKeySpec, parameterSpec)
+        val cipherText = cipher.doFinal(newKey.toByteArray(Charsets.UTF_8))
+
+        val combined = ByteArray(iv.size + cipherText.size)
+        System.arraycopy(iv, 0, combined, 0, iv.size)
+        System.arraycopy(cipherText, 0, combined, iv.size, cipherText.size)
+
+        val encrypted = java.util.Base64.getEncoder().encodeToString(combined)
+        println("ENCRYPTED_KEY_START")
+        println(encrypted)
+        println("ENCRYPTED_KEY_END")
+    }
 }

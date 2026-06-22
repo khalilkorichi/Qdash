@@ -796,7 +796,7 @@ fun InteractiveDonutCard(
                                                 .background(parseColor, CircleShape)
                                         )
                                         Text(
-                                            text = "${share.categoryName} â€¢ ${(share.percentage * 100).toInt()}%",
+                                            text = "${share.categoryName} \u2022 ${(share.percentage * 100).toInt()}%",
                                             color = MaterialTheme.colorScheme.onSurface,
                                             style = MaterialTheme.typography.labelSmall.copy(
                                                 fontWeight = FontWeight.ExtraBold,
