@@ -60,7 +60,15 @@ class AiRepositoryImpl(
             } catch (e: Exception) {
                 null
             }
-        return if (!key.isNullOrBlank()) key else ""
+        if (!key.isNullOrBlank() && key != "MY_GEMINI_API_KEY") {
+            return key
+        }
+        return try {
+            com.example.core.utils.CryptoUtils.decrypt("Un9q1m4Agl+MNpQhaYRLaMxkjsxpyrxEtIWHD4phNqRBvXLLwUGguFRGZNunJEvmHuccbTcdSN8aGmeIYp+tDWTm0Ow9um8wl860XQ7LQPRs")
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ""
+        }
     }
 
     private val AGENT_ROUTER_API_KEY = System.getenv("AGENT_ROUTER_API_KEY") ?: ""
@@ -98,10 +106,10 @@ class AiRepositoryImpl(
         }
 
         // Otherwise, run our standard helper
-        val textReply = if (modelId == "glm-5.1") {
-            callAgentRouterApi("Default", prompt)
+        val apiKey = getApiKey()
+        val textReply = if (modelId == "glm-5.1" || (!apiKey.isNullOrBlank() && apiKey.startsWith("AQ."))) {
+            callAgentRouterApi("Default", prompt, modelId, if (!apiKey.isNullOrBlank() && apiKey.startsWith("AQ.")) apiKey else null)
         } else {
-            val apiKey = getApiKey()
             if (!apiKey.isNullOrBlank()) {
                 callGeminiApiWithTools(apiKey, "Default", prompt, modelId)
             } else {
@@ -145,10 +153,10 @@ class AiRepositoryImpl(
             )
         )
 
-        val aiResponse = if (modelId == "glm-5.1") {
-            callAgentRouterApi(sessionTitle, userPrompt)
+        val apiKey = getApiKey()
+        val aiResponse = if (modelId == "glm-5.1" || (!apiKey.isNullOrBlank() && apiKey.startsWith("AQ."))) {
+            callAgentRouterApi(sessionTitle, userPrompt, modelId, if (!apiKey.isNullOrBlank() && apiKey.startsWith("AQ.")) apiKey else null)
         } else {
-            val apiKey = getApiKey()
             if (!apiKey.isNullOrBlank()) {
                 callGeminiApiWithTools(apiKey, sessionTitle, userPrompt, modelId)
             } else {
@@ -182,8 +190,14 @@ class AiRepositoryImpl(
         return aiResponse
     }
 
-    private suspend fun callAgentRouterApi(sessionTitle: String, userPrompt: String): String = withContext(Dispatchers.IO) {
+    private suspend fun callAgentRouterApi(
+        sessionTitle: String,
+        userPrompt: String,
+        modelId: String,
+        customApiKey: String? = null
+    ): String = withContext(Dispatchers.IO) {
         try {
+            val keyToUse = if (!customApiKey.isNullOrBlank()) customApiKey else AGENT_ROUTER_API_KEY
             val url = "$AGENT_ROUTER_BASE_URL/chat/completions"
             val history = getMessagesBySession(sessionTitle).first().takeLast(10)
             val filteredHistory = if (history.isNotEmpty() && 
@@ -215,14 +229,14 @@ class AiRepositoryImpl(
             )
 
             val requestBodyJson = JSONObject().apply {
-                put("model", "glm-5.1")
+                put("model", modelId)
                 put("messages", messagesArray)
                 put("tools", buildOpenAiToolsJson())
             }
 
             val request = Request.Builder()
                 .url(url)
-                .addHeader("Authorization", "Bearer $AGENT_ROUTER_API_KEY")
+                .addHeader("Authorization", "Bearer $keyToUse")
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Originator", "codex_cli_rs")
                 .addHeader("User-Agent", "codex_cli_rs/0.101.0 (Mac OS 26.0.1; arm64) Apple_Terminal/464")
@@ -272,13 +286,13 @@ class AiRepositoryImpl(
                     })
 
                     val followUpRequestBodyJson = JSONObject().apply {
-                        put("model", "glm-5.1")
+                        put("model", modelId)
                         put("messages", followUpMessagesArray)
                     }
 
                     val followUpRequest = Request.Builder()
                         .url(url)
-                        .addHeader("Authorization", "Bearer $AGENT_ROUTER_API_KEY")
+                        .addHeader("Authorization", "Bearer $keyToUse")
                         .addHeader("Content-Type", "application/json")
                         .addHeader("Originator", "codex_cli_rs")
                         .addHeader("User-Agent", "codex_cli_rs/0.101.0 (Mac OS 26.0.1; arm64) Apple_Terminal/464")

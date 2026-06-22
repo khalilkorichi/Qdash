@@ -1,11 +1,11 @@
 {
-  "versionCode": 15,
-  "versionName": "1.0.0.15",
-  "updateIdentity": 115,
-  "publishedAt": "2026-06-21T23:40:51Z",
+  "versionCode": 16,
+  "versionName": "1.0.0.16",
+  "updateIdentity": 116,
+  "publishedAt": "2026-06-22T00:26:00Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 23803864,
-  "apkSha256": "12e96dfc177c36bb8ffe6d0017cee2f93badf5a660b200f86c3a9979cf6e4887",
+  "apkSize": 23803860,
+  "apkSha256": "ec9fd274c12538875d3fc82cfefd4d2bcfbb905e48fea33fa37e40d64305a373",
   "mandatory": false,
-  "releaseNotes": "تحديث الإصدار إلى v1.0.0.15: تعزيز أمان النسخ الاحتياطي والاستيراد عبر فحص سلامة قاعدة البيانات ومنع مسارات ZIP غير الآمنة، تحسين اتساق العمليات المالية والحذف الجماعي، تقوية التحقق من تحديثات APK عبر SHA-256 إلزامي، إصلاح مشاركة حالة المساعد الذكي ومحاكي الوثائق، وتحسين حفظ المعاملات وتصدير التقارير."
+  "releaseNotes": "تحديث الإصدار إلى v1.0.0.16: تشفير وتأمين مفتاح الذكاء الاصطناعي الخاص بالمساعد لعدم رفعه بنص صريح، وإصلاح مشكلة استدعاء نماذج Gemini (خطأ 400) عن طريق توجيه الطلبات تلقائياً عبر خادم المزامنة والمساعد الذكي في حال استخدام مفتاح مخصص."
 }
