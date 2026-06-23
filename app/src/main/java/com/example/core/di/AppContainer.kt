@@ -95,4 +95,8 @@ interface AppContainer {
     val getWalletDistributionUseCase: com.example.domain.usecase.ai.GetWalletDistributionUseCase
     val evaluateLowBalanceAlertsUseCase: com.example.domain.usecase.ai.EvaluateLowBalanceAlertsUseCase
     val getQuickImpactPreviewUseCase: com.example.domain.usecase.ai.GetQuickImpactPreviewUseCase
+
+    // Accounts Use Cases
+    val deleteAccountUseCase: com.example.domain.usecase.accounts.DeleteAccountUseCase
+    val updateAccountsOrderUseCase: com.example.domain.usecase.accounts.UpdateAccountsOrderUseCase
 }

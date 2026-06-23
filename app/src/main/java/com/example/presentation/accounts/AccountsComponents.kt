@@ -107,7 +107,8 @@ fun AccountItemCard(
     onSetDefault: () -> Unit,
     onDelete: () -> Unit,
     onEmpty: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    dragHandleModifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var isExpanded by remember { mutableStateOf(false) }
@@ -259,6 +260,16 @@ fun AccountItemCard(
                         }
                     }
                 }
+
+                // Drag handle
+                Icon(
+                    imageVector = Icons.Default.DragHandle,
+                    contentDescription = "سحب للترتيب",
+                    tint = TextGray.copy(alpha = 0.5f),
+                    modifier = dragHandleModifier
+                        .padding(horizontal = 8.dp)
+                        .size(24.dp)
+                )
 
                 // More menu
                 Box(

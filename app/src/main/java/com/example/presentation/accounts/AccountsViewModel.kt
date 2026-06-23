@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.domain.model.*
 import com.example.domain.repository.*
+import com.example.domain.usecase.accounts.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -29,7 +30,9 @@ class AccountsViewModel(
     private val accountRepository: AccountRepository,
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val deleteAccountUseCase: DeleteAccountUseCase,
+    private val updateAccountsOrderUseCase: UpdateAccountsOrderUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AccountsUiState())
@@ -117,14 +120,17 @@ class AccountsViewModel(
 
     fun deleteAccount(account: Account) {
         viewModelScope.launch {
-            val txCount = accountRepository.getTransactionCountForAccount(account.id)
-            if (txCount > 0) {
+            deleteAccountUseCase(account, confirmed = true).onFailure { error ->
                 _uiState.update {
-                    it.copy(deleteError = "لا يمكن حذف الحساب لأنه يحتوي على $txCount معاملة مالية. يمكنك أرشفته بدلاً من ذلك.")
+                    it.copy(deleteError = error.message ?: "خطأ أثناء حذف الحساب.")
                 }
-            } else {
-                accountRepository.deleteAccount(account)
             }
+        }
+    }
+
+    fun updateAccountsOrder(orderedAccounts: List<Account>) {
+        viewModelScope.launch {
+            updateAccountsOrderUseCase(orderedAccounts)
         }
     }
 

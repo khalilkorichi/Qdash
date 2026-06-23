@@ -42,7 +42,8 @@ data class Account(
     val icon: String,
     val isDefault: Boolean = false,
     val isArchived: Boolean = false,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val sortOrder: Int = 0
 )
 
 enum class AccountType {
@@ -132,7 +133,8 @@ fun AccountEntity.toDomain() = Account(
     icon = icon,
     isDefault = isDefault,
     isArchived = isArchived,
-    createdAt = createdAt
+    createdAt = createdAt,
+    sortOrder = sortOrder
 )
 
 fun CategoryEntity.toDomain() = Category(
@@ -213,7 +215,8 @@ fun Account.toEntity() = AccountEntity(
     icon = icon,
     isDefault = isDefault,
     isArchived = isArchived,
-    createdAt = createdAt
+    createdAt = createdAt,
+    sortOrder = sortOrder
 )
 
 fun Category.toEntity() = CategoryEntity(

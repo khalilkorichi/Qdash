@@ -78,7 +78,9 @@ class ViewModelFactory(
                     container.accountRepository,
                     container.transactionRepository,
                     container.categoryRepository,
-                    container.preferencesManager
+                    container.preferencesManager,
+                    container.deleteAccountUseCase,
+                    container.updateAccountsOrderUseCase
                 ) as T
             }
             modelClass.isAssignableFrom(SavingsViewModel::class.java) -> {

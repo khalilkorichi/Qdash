@@ -73,7 +73,9 @@ class AppStartupTest {
             container.accountRepository,
             container.transactionRepository,
             container.categoryRepository,
-            container.preferencesManager
+            container.preferencesManager,
+            container.deleteAccountUseCase,
+            container.updateAccountsOrderUseCase
         )
         assertNotNull(accountsViewModel)
 

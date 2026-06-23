@@ -304,6 +304,14 @@ class AppContainerImpl(private val context: Context) : AppContainer {
         )
     }
 
+    override val deleteAccountUseCase: com.example.domain.usecase.accounts.DeleteAccountUseCase by lazy {
+        com.example.domain.usecase.accounts.DeleteAccountUseCase(accountRepository)
+    }
+
+    override val updateAccountsOrderUseCase: com.example.domain.usecase.accounts.UpdateAccountsOrderUseCase by lazy {
+        com.example.domain.usecase.accounts.UpdateAccountsOrderUseCase(accountRepository)
+    }
+
     init {
         // Pre-warm SharedPreferences to avoid main-thread blocking I/O on startup
         preferencesManager

@@ -21,6 +21,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.zIndex
+import kotlin.math.roundToInt
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -94,7 +101,7 @@ private fun accountTypeIcon(type: AccountType): androidx.compose.ui.graphics.vec
     AccountType.OTHER     -> Icons.Default.MonetizationOn
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun AccountsScreen(
     viewModel: AccountsViewModel,
@@ -123,6 +130,12 @@ fun AccountsScreen(
     val isRefreshing = uiState.isRefreshing
     val pullRefreshState = rememberPullToRefreshState()
     val showTotalBalance = uiState.showBalances
+
+    var activeAccounts by remember(uiState.accounts) { mutableStateOf(uiState.accounts) }
+    var draggedIndex by remember { mutableStateOf<Int?>(null) }
+    var dragOffsetY by remember { mutableStateOf(0f) }
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val itemHeightPx = with(density) { 90.dp.toPx() }
 
     // Add Account state
     var showAddAccountDialog by rememberSaveable { mutableStateOf(false) }
@@ -379,11 +392,51 @@ fun AccountsScreen(
                 }
             } else {
                 // Account cards
-                items(uiState.accounts, key = { it.id }) { account ->
+                itemsIndexed(activeAccounts, key = { _, account -> account.id }) { index, account ->
                     val accountTxs = remember(uiState.transactions, account.id) {
                         uiState.transactions
                             .filter { it.accountId == account.id || it.toAccountId == account.id }
                     }
+                    val isDragging = draggedIndex == index
+                    val offsetY = if (isDragging) dragOffsetY else 0f
+                    
+                    val dragHandleModifier = Modifier.pointerInput(index) {
+                        detectDragGestures(
+                            onDragStart = {
+                                draggedIndex = index
+                                dragOffsetY = 0f
+                            },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                dragOffsetY += dragAmount.y
+                                
+                                val currentDragged = draggedIndex
+                                if (currentDragged != null) {
+                                    val offsetIndexDiff = (dragOffsetY / itemHeightPx).roundToInt()
+                                    val targetIndex = (currentDragged + offsetIndexDiff).coerceIn(0, activeAccounts.size - 1)
+                                    if (targetIndex != currentDragged) {
+                                        val newList = activeAccounts.toMutableList()
+                                        val temp = newList[currentDragged]
+                                        newList[currentDragged] = newList[targetIndex]
+                                        newList[targetIndex] = temp
+                                        activeAccounts = newList
+                                        draggedIndex = targetIndex
+                                        dragOffsetY -= offsetIndexDiff * itemHeightPx
+                                    }
+                                }
+                            },
+                            onDragEnd = {
+                                draggedIndex = null
+                                dragOffsetY = 0f
+                                viewModel.updateAccountsOrder(activeAccounts)
+                            },
+                            onDragCancel = {
+                                draggedIndex = null
+                                dragOffsetY = 0f
+                            }
+                        )
+                    }
+
                     AccountItemCard(
                         account = account,
                         transactions = accountTxs.asStable(),
@@ -397,7 +450,12 @@ fun AccountsScreen(
                         onArchive = { viewModel.archiveAccount(account.id) },
                         onSetDefault = { viewModel.setDefaultAccount(account.id) },
                         onDelete = { accountToDelete = account },
-                        onEmpty = { accountToEmpty = account }
+                        onEmpty = { accountToEmpty = account },
+                        modifier = Modifier
+                            .animateItemPlacement()
+                            .offset { IntOffset(0, offsetY.roundToInt()) }
+                            .zIndex(if (isDragging) 10f else 1f),
+                        dragHandleModifier = dragHandleModifier
                     )
                 }
 

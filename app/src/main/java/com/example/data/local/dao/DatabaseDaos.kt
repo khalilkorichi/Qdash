@@ -72,13 +72,13 @@ interface TransactionDao {
 
 @Dao
 interface AccountDao {
-    @Query("SELECT * FROM accounts WHERE isArchived = 0 ORDER BY createdAt DESC")
+    @Query("SELECT * FROM accounts WHERE isArchived = 0 ORDER BY sortOrder ASC, createdAt DESC")
     fun getAllAccounts(): Flow<List<AccountEntity>>
 
-    @Query("SELECT * FROM accounts ORDER BY createdAt DESC")
+    @Query("SELECT * FROM accounts ORDER BY sortOrder ASC, createdAt DESC")
     fun getAllAccountsIncludingArchived(): Flow<List<AccountEntity>>
 
-    @Query("SELECT * FROM accounts WHERE isArchived = 1 ORDER BY createdAt DESC")
+    @Query("SELECT * FROM accounts WHERE isArchived = 1 ORDER BY sortOrder ASC, createdAt DESC")
     fun getArchivedAccounts(): Flow<List<AccountEntity>>
 
     @Query("SELECT * FROM accounts WHERE id = :id")
