@@ -149,15 +149,15 @@ class HomeViewModel(
             transactions.forEach { tx ->
                 val date = tx.date
                 if (date in currentMonthStart..currentMonthEndVal) {
-                    if (tx.type == TransactionType.INCOME) {
+                    if (tx.kind == TransactionKind.INCOME || tx.kind == TransactionKind.SALARY) {
                         monthlyIn += tx.amount
-                    } else if (tx.type == TransactionType.EXPENSE) {
+                    } else if (tx.kind == TransactionKind.EXPENSE || tx.kind == TransactionKind.SAVINGS_WITHDRAWAL) {
                         monthlyOut += tx.amount
                     }
                 } else if (date in prevMonthStart..prevMonthEndVal) {
-                    if (tx.type == TransactionType.INCOME) {
+                    if (tx.kind == TransactionKind.INCOME || tx.kind == TransactionKind.SALARY) {
                         prevMonthIn += tx.amount
-                    } else if (tx.type == TransactionType.EXPENSE) {
+                    } else if (tx.kind == TransactionKind.EXPENSE || tx.kind == TransactionKind.SAVINGS_WITHDRAWAL) {
                         prevMonthOut += tx.amount
                     }
                 }

@@ -46,7 +46,7 @@ fun IncomeHistoryScreen(
 
     // Filter transactions to show only Income
     val incomeTransactions = remember(uiState.filteredTransactions) {
-        uiState.filteredTransactions.filter { it.type == TransactionType.INCOME }
+        uiState.filteredTransactions.filter { it.kind == com.example.domain.model.TransactionKind.INCOME || it.kind == com.example.domain.model.TransactionKind.SALARY }
     }
 
     val totalIncome = remember(incomeTransactions) {

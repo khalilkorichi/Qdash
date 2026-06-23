@@ -62,6 +62,12 @@ interface TransactionDao {
 
     @Query("UPDATE transactions SET categoryId = :targetCategoryId WHERE categoryId = :sourceCategoryId")
     suspend fun mergeTransactionsCategory(sourceCategoryId: Long, targetCategoryId: Long)
+
+    @Query("SELECT * FROM transactions WHERE transferId = :transferId")
+    suspend fun getTransactionsByTransferId(transferId: String): List<TransactionEntity>
+
+    @Query("DELETE FROM transactions WHERE transferId = :transferId")
+    suspend fun deleteTransactionsByTransferId(transferId: String)
 }
 
 @Dao

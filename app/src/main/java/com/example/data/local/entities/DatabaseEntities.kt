@@ -28,7 +28,10 @@ data class TransactionEntity(
     val suggestedCategoryId: Long? = null,
     val suggestionSource: String? = null,
     val confidenceScore: Float? = null,
-    val userAcceptedSuggestion: Boolean? = null
+    val userAcceptedSuggestion: Boolean? = null,
+    val kind: String = "INCOME",
+    val transferId: String? = null,
+    val isDebit: Boolean = true
 )
 
 @Entity(tableName = "accounts")

@@ -14,11 +14,22 @@ data class Transaction(
     val isRecurring: Boolean = false,
     val recurringPeriod: String? = null,
     val attachmentPath: String? = null,
-    val tags: String? = null
+    val tags: String? = null,
+    val kind: TransactionKind = when (type) {
+        TransactionType.INCOME -> TransactionKind.INCOME
+        TransactionType.EXPENSE -> TransactionKind.EXPENSE
+        TransactionType.TRANSFER -> TransactionKind.TRANSFER
+    },
+    val transferId: String? = null,
+    val isDebit: Boolean = true
 )
 
 enum class TransactionType {
     EXPENSE, INCOME, TRANSFER
+}
+
+enum class TransactionKind {
+    INCOME, EXPENSE, TRANSFER, SAVINGS_CONTRIBUTION, SAVINGS_WITHDRAWAL, SALARY
 }
 
 data class Account(
@@ -105,7 +116,10 @@ fun TransactionEntity.toDomain() = Transaction(
     isRecurring = isRecurring,
     recurringPeriod = recurringPeriod,
     attachmentPath = attachmentPath,
-    tags = tags
+    tags = tags,
+    kind = try { TransactionKind.valueOf(kind) } catch (e: Exception) { TransactionKind.INCOME },
+    transferId = transferId,
+    isDebit = isDebit
 )
 
 fun AccountEntity.toDomain() = Account(
@@ -183,7 +197,10 @@ fun Transaction.toEntity() = TransactionEntity(
     isRecurring = isRecurring,
     recurringPeriod = recurringPeriod,
     attachmentPath = attachmentPath,
-    tags = tags
+    tags = tags,
+    kind = kind.name,
+    transferId = transferId,
+    isDebit = isDebit
 )
 
 fun Account.toEntity() = AccountEntity(

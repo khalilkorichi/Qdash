@@ -40,37 +40,88 @@ class TransactionRepositoryImpl(
     }
 
     override suspend fun insertTransaction(transaction: Transaction): Long = database.withTransaction {
-        val account = accountDao.getAccountById(transaction.accountId)
-            ?: throw IllegalArgumentException("الحساب المالي المحدد غير موجود في قاعدة البيانات!")
-
-        val offset = if (transaction.type == TransactionType.EXPENSE || transaction.type == TransactionType.TRANSFER) -transaction.amount else transaction.amount
-        val updatedAccount = account.copy(balance = account.balance + offset)
-        accountDao.updateAccount(updatedAccount)
-
-        if (transaction.type == TransactionType.TRANSFER && transaction.toAccountId != null) {
-            val destinationAccount = accountDao.getAccountById(transaction.toAccountId)
-            if (destinationAccount != null) {
-                val updatedDest = destinationAccount.copy(balance = destinationAccount.balance + transaction.amount)
-                accountDao.updateAccount(updatedDest)
+        if (transaction.type == TransactionType.TRANSFER) {
+            if (transaction.transferId != null) {
+                // Mirrored transfer branch
+                val account = accountDao.getAccountById(transaction.accountId)
+                    ?: throw IllegalArgumentException("الحساب المالي المحدد غير موجود!")
+                val offset = if (transaction.isDebit) -transaction.amount else transaction.amount
+                accountDao.updateAccount(account.copy(balance = account.balance + offset))
+                
+                val resultId = transactionDao.insertTransaction(transaction.toEntity())
+                syncAggregateForDate(transaction.date)
+                resultId
+            } else {
+                // Initial transfer request: create two mirrored transactions with a shared transferId
+                val sharedId = "TRF-" + java.util.UUID.randomUUID().toString().take(6).uppercase()
+                val debitTx = transaction.copy(transferId = sharedId, isDebit = true, kind = TransactionKind.TRANSFER)
+                val creditTx = transaction.copy(
+                    accountId = transaction.toAccountId ?: throw IllegalArgumentException("حساب الوجهة مطلوب للتحويل!"),
+                    toAccountId = transaction.accountId,
+                    transferId = sharedId,
+                    isDebit = false,
+                    kind = TransactionKind.TRANSFER
+                )
+                
+                val resultId = transactionDao.insertTransaction(debitTx.toEntity())
+                transactionDao.insertTransaction(creditTx.toEntity())
+                
+                val sourceAccount = accountDao.getAccountById(debitTx.accountId)
+                if (sourceAccount != null) {
+                    accountDao.updateAccount(sourceAccount.copy(balance = sourceAccount.balance - debitTx.amount))
+                }
+                val destAccount = accountDao.getAccountById(creditTx.accountId)
+                if (destAccount != null) {
+                    accountDao.updateAccount(destAccount.copy(balance = destAccount.balance + creditTx.amount))
+                }
+                
+                syncAggregateForDate(transaction.date)
+                resultId
             }
-        }
+        } else {
+            // Normal transaction branch: INCOME, EXPENSE, SALARY, SAVINGS_CONTRIBUTION, SAVINGS_WITHDRAWAL
+            val account = accountDao.getAccountById(transaction.accountId)
+                ?: throw IllegalArgumentException("الحساب المالي المحدد غير موجود في قاعدة البيانات!")
 
-        val resultId = transactionDao.insertTransaction(transaction.toEntity())
-        syncAggregateForDate(transaction.date)
-        resultId
+            val offset = when (transaction.kind) {
+                TransactionKind.EXPENSE, TransactionKind.SAVINGS_WITHDRAWAL -> -transaction.amount
+                TransactionKind.INCOME, TransactionKind.SALARY, TransactionKind.SAVINGS_CONTRIBUTION -> transaction.amount
+                TransactionKind.TRANSFER -> -transaction.amount
+            }
+            accountDao.updateAccount(account.copy(balance = account.balance + offset))
+
+            val resultId = transactionDao.insertTransaction(transaction.toEntity())
+            syncAggregateForDate(transaction.date)
+            resultId
+        }
     }
 
     override suspend fun updateTransaction(transaction: Transaction) = database.withTransaction {
-        val oldTx = transactionDao.getTransactionById(transaction.id)
-        val oldDate = oldTx?.date
-        if (oldTx != null) {
+        val oldTxEntity = transactionDao.getTransactionById(transaction.id) ?: return@withTransaction
+        val oldTx = oldTxEntity.toDomain()
+        val oldDate = oldTx.date
+        
+        // 1. Revert old balance effects
+        if (oldTx.transferId != null) {
+            val oldMirroredEntities = transactionDao.getTransactionsByTransferId(oldTx.transferId)
+            oldMirroredEntities.forEach { entity ->
+                val acc = accountDao.getAccountById(entity.accountId)
+                if (acc != null) {
+                    val revertOffset = if (entity.isDebit) entity.amount else -entity.amount
+                    accountDao.updateAccount(acc.copy(balance = acc.balance + revertOffset))
+                }
+            }
+        } else {
             val oldAccount = accountDao.getAccountById(oldTx.accountId)
             if (oldAccount != null) {
-                val revertOffset = if (oldTx.type == TransactionType.EXPENSE.name || oldTx.type == TransactionType.TRANSFER.name) oldTx.amount else -oldTx.amount
-                accountDao.updateAccount(oldAccount.copy(balance = oldAccount.balance + revertOffset))
+                val oldOffset = when (oldTx.kind) {
+                    TransactionKind.EXPENSE, TransactionKind.SAVINGS_WITHDRAWAL -> -oldTx.amount
+                    TransactionKind.INCOME, TransactionKind.SALARY, TransactionKind.SAVINGS_CONTRIBUTION -> oldTx.amount
+                    TransactionKind.TRANSFER -> -oldTx.amount
+                }
+                accountDao.updateAccount(oldAccount.copy(balance = oldAccount.balance - oldOffset))
             }
-
-            if (oldTx.type == TransactionType.TRANSFER.name && oldTx.toAccountId != null) {
+            if (oldTx.type == TransactionType.TRANSFER && oldTx.toAccountId != null) {
                 val oldDest = accountDao.getAccountById(oldTx.toAccountId)
                 if (oldDest != null) {
                     accountDao.updateAccount(oldDest.copy(balance = oldDest.balance - oldTx.amount))
@@ -78,42 +129,86 @@ class TransactionRepositoryImpl(
             }
         }
 
-        val newAccount = accountDao.getAccountById(transaction.accountId)
-            ?: throw IllegalArgumentException("الحساب المالي الجديد المحدد غير موجود!")
+        // 2. Apply new balance effects and update DB
+        if (transaction.transferId != null) {
+            val mirroredEntities = transactionDao.getTransactionsByTransferId(transaction.transferId)
+            val debitEntity = mirroredEntities.find { it.isDebit }
+            val creditEntity = mirroredEntities.find { it.isDebit.not() }
 
-        val offset = if (transaction.type == TransactionType.EXPENSE || transaction.type == TransactionType.TRANSFER) -transaction.amount else transaction.amount
-        accountDao.updateAccount(newAccount.copy(balance = newAccount.balance + offset))
-
-        if (transaction.type == TransactionType.TRANSFER && transaction.toAccountId != null) {
-            val newDest = accountDao.getAccountById(transaction.toAccountId)
-            if (newDest != null) {
-                accountDao.updateAccount(newDest.copy(balance = newDest.balance + transaction.amount))
+            if (debitEntity != null) {
+                val updatedDebit = transaction.copy(
+                    id = debitEntity.id,
+                    isDebit = true,
+                    accountId = transaction.accountId,
+                    toAccountId = transaction.toAccountId
+                )
+                transactionDao.updateTransaction(updatedDebit.toEntity())
+                val acc = accountDao.getAccountById(updatedDebit.accountId)
+                if (acc != null) {
+                    accountDao.updateAccount(acc.copy(balance = acc.balance - updatedDebit.amount))
+                }
             }
+
+            if (creditEntity != null) {
+                val updatedCredit = transaction.copy(
+                    id = creditEntity.id,
+                    isDebit = false,
+                    accountId = transaction.toAccountId ?: transaction.accountId,
+                    toAccountId = transaction.accountId
+                )
+                transactionDao.updateTransaction(updatedCredit.toEntity())
+                val acc = accountDao.getAccountById(updatedCredit.accountId)
+                if (acc != null) {
+                    accountDao.updateAccount(acc.copy(balance = acc.balance + updatedCredit.amount))
+                }
+            }
+        } else {
+            val newAccount = accountDao.getAccountById(transaction.accountId)
+                ?: throw IllegalArgumentException("الحساب المالي الجديد المحدد غير موجود!")
+
+            val offset = when (transaction.kind) {
+                TransactionKind.EXPENSE, TransactionKind.SAVINGS_WITHDRAWAL -> -transaction.amount
+                TransactionKind.INCOME, TransactionKind.SALARY, TransactionKind.SAVINGS_CONTRIBUTION -> transaction.amount
+                TransactionKind.TRANSFER -> -transaction.amount
+            }
+            accountDao.updateAccount(newAccount.copy(balance = newAccount.balance + offset))
+            
+            transactionDao.updateTransaction(transaction.toEntity())
         }
 
-        transactionDao.updateTransaction(transaction.toEntity())
-
-        if (oldDate != null) {
-            syncAggregateForDate(oldDate)
-        }
+        syncAggregateForDate(oldDate)
         syncAggregateForDate(transaction.date)
     }
 
     override suspend fun deleteTransaction(transaction: Transaction) = database.withTransaction {
-        val account = accountDao.getAccountById(transaction.accountId)
-        if (account != null) {
-            val revertOffset = if (transaction.type == TransactionType.EXPENSE || transaction.type == TransactionType.TRANSFER) transaction.amount else -transaction.amount
-            accountDao.updateAccount(account.copy(balance = account.balance + revertOffset))
-        }
-
-        if (transaction.type == TransactionType.TRANSFER && transaction.toAccountId != null) {
-            val destAccount = accountDao.getAccountById(transaction.toAccountId)
-            if (destAccount != null) {
-                accountDao.updateAccount(destAccount.copy(balance = destAccount.balance - transaction.amount))
+        if (transaction.transferId != null) {
+            val mirroredEntities = transactionDao.getTransactionsByTransferId(transaction.transferId)
+            mirroredEntities.forEach { entity ->
+                val acc = accountDao.getAccountById(entity.accountId)
+                if (acc != null) {
+                    val revertOffset = if (entity.isDebit) entity.amount else -entity.amount
+                    accountDao.updateAccount(acc.copy(balance = acc.balance + revertOffset))
+                }
             }
+            transactionDao.deleteTransactionsByTransferId(transaction.transferId)
+        } else {
+            val account = accountDao.getAccountById(transaction.accountId)
+            if (account != null) {
+                val revertOffset = when (transaction.kind) {
+                    TransactionKind.EXPENSE, TransactionKind.SAVINGS_WITHDRAWAL -> transaction.amount
+                    TransactionKind.INCOME, TransactionKind.SALARY, TransactionKind.SAVINGS_CONTRIBUTION -> -transaction.amount
+                    TransactionKind.TRANSFER -> transaction.amount
+                }
+                accountDao.updateAccount(account.copy(balance = account.balance + revertOffset))
+            }
+            if (transaction.type == TransactionType.TRANSFER && transaction.toAccountId != null) {
+                val destAccount = accountDao.getAccountById(transaction.toAccountId)
+                if (destAccount != null) {
+                    accountDao.updateAccount(destAccount.copy(balance = destAccount.balance - transaction.amount))
+                }
+            }
+            transactionDao.deleteTransaction(transaction.toEntity())
         }
-
-        transactionDao.deleteTransaction(transaction.toEntity())
         syncAggregateForDate(transaction.date)
     }
 
@@ -133,24 +228,48 @@ class TransactionRepositoryImpl(
     }
 
     override suspend fun deleteTransactionsBulk(ids: List<Long>) = database.withTransaction {
-        val transactions = transactionDao.getTransactionsByIds(ids)
         val affectedDates = mutableSetOf<Long>()
-        transactions.forEach { tx ->
-            val account = accountDao.getAccountById(tx.accountId)
-            if (account != null) {
-                val revertOffset = if (tx.type == TransactionType.EXPENSE.name || tx.type == TransactionType.TRANSFER.name) tx.amount else -tx.amount
-                accountDao.updateAccount(account.copy(balance = account.balance + revertOffset))
-            }
+        val processedTransferIds = mutableSetOf<String>()
+        val idsToDelete = ids.toMutableSet()
 
-            if (tx.type == TransactionType.TRANSFER.name && tx.toAccountId != null) {
-                val destAccount = accountDao.getAccountById(tx.toAccountId)
-                if (destAccount != null) {
-                    accountDao.updateAccount(destAccount.copy(balance = destAccount.balance - tx.amount))
+        ids.forEach { id ->
+            val tx = transactionDao.getTransactionById(id) ?: return@forEach
+            affectedDates.add(tx.date)
+
+            if (tx.transferId != null) {
+                if (!processedTransferIds.contains(tx.transferId)) {
+                    processedTransferIds.add(tx.transferId)
+                    val mirrors = transactionDao.getTransactionsByTransferId(tx.transferId)
+                    mirrors.forEach { entity ->
+                        idsToDelete.add(entity.id)
+                        val acc = accountDao.getAccountById(entity.accountId)
+                        if (acc != null) {
+                            val revertOffset = if (entity.isDebit) entity.amount else -entity.amount
+                            accountDao.updateAccount(acc.copy(balance = acc.balance + revertOffset))
+                        }
+                    }
+                }
+            } else {
+                val account = accountDao.getAccountById(tx.accountId)
+                if (account != null) {
+                    val kindEnum = try { TransactionKind.valueOf(tx.kind) } catch (e: Exception) { TransactionKind.INCOME }
+                    val revertOffset = when (kindEnum) {
+                        TransactionKind.EXPENSE, TransactionKind.SAVINGS_WITHDRAWAL -> tx.amount
+                        TransactionKind.INCOME, TransactionKind.SALARY, TransactionKind.SAVINGS_CONTRIBUTION -> -tx.amount
+                        TransactionKind.TRANSFER -> tx.amount
+                    }
+                    accountDao.updateAccount(account.copy(balance = account.balance + revertOffset))
+                }
+                if (tx.type == TransactionType.TRANSFER.name && tx.toAccountId != null) {
+                    val destAccount = accountDao.getAccountById(tx.toAccountId)
+                    if (destAccount != null) {
+                        accountDao.updateAccount(destAccount.copy(balance = destAccount.balance - tx.amount))
+                    }
                 }
             }
-            affectedDates.add(tx.date)
         }
-        transactionDao.deleteTransactionsBulk(ids)
+
+        transactionDao.deleteTransactionsBulk(idsToDelete.toList())
         affectedDates.forEach { syncAggregateForDate(it) }
     }
 
@@ -173,8 +292,14 @@ class TransactionRepositoryImpl(
         if (txs.isEmpty()) {
             database.dailyFinancialAggregateDao().deleteAggregateForDay(startOfDay)
         } else {
-            val totalExp = txs.filter { it.type == TransactionType.EXPENSE.name }.sumOf { it.amount }
-            val totalInc = txs.filter { it.type == TransactionType.INCOME.name }.sumOf { it.amount }
+            val totalExp = txs.filter { 
+                it.kind == TransactionKind.EXPENSE.name || 
+                it.kind == TransactionKind.SAVINGS_WITHDRAWAL.name 
+            }.sumOf { it.amount }
+            val totalInc = txs.filter { 
+                it.kind == TransactionKind.INCOME.name || 
+                it.kind == TransactionKind.SALARY.name 
+            }.sumOf { it.amount }
             val count = txs.size
             val volume = totalExp + totalInc
             val score = 0.4 * kotlin.math.ln(count.toDouble() + 1.0) + 0.6 * kotlin.math.ln(volume + 1.0)

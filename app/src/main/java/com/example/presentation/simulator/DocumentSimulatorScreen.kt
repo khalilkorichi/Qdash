@@ -209,7 +209,7 @@ fun DocumentSimulatorScreen(
                 }
             }
 
-            // --- 3. Document Simulator Preview Area (Fixed at the top) ---
+            // --- 3. Document Simulator Area ---
             if (uiState.selectedDocType == DocumentType.CHEQUE) {
                 Box(
                     modifier = Modifier
@@ -223,64 +223,89 @@ fun DocumentSimulatorScreen(
                         onFieldTap = { viewModel.setFocusedField(it) }
                     )
                 }
-            } else {
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // --- 4. Scrollable Form Inputs Area (Scrollable at the bottom) ---
                 Box(
                     modifier = Modifier
+                        .weight(1f)
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
                 ) {
-                    FormGrid(
-                        uiState = uiState,
-                        onCcpChange = { viewModel.updateSfpCcp(it) },
-                        onKeyChange = { viewModel.updateSfpKey(it) },
-                        onAmountChange = { viewModel.updateSfpAmount(it) },
-                        onSenderNomChange = { viewModel.updateSfpSenderNom(it) },
-                        onSenderPrenomChange = { viewModel.updateSfpSenderPrenom(it) },
-                        onSenderAddressChange = { viewModel.updateSfpSenderAddress(it) },
-                        onSenderPhoneChange = { viewModel.updateSfpSenderPhone(it) },
-                        onBeneficiaryNomChange = { viewModel.updateSfpBeneficiaryNom(it) },
-                        onBeneficiaryPrenomChange = { viewModel.updateSfpBeneficiaryPrenom(it) },
-                        onBeneficiaryAddressChange = { viewModel.updateSfpBeneficiaryAddress(it) },
-                        onBeneficiaryPhoneChange = { viewModel.updateSfpBeneficiaryPhone(it) },
-                        onPlaceChange = { viewModel.updateSfpPlace(it) },
-                        onDateChange = { viewModel.updateSfpDate(it) },
-                        onIdDescriptionChange = { viewModel.updateSfpIdDescription(it) },
-                        onOperationChange = { viewModel.updateSfpOperation(it) },
-                        onJustificatifCcpChange = { viewModel.updateSfpJustificatifCcp(it) },
-                        onAvisCreditChange = { viewModel.updateSfpAvisCredit(it) },
-                        onCarnetChequesChange = { viewModel.updateSfpCarnetCheques(it) },
-                        onCodeConfidentielChange = { viewModel.updateSfpCodeConfidentiel(it) },
-                        onRipChange = { viewModel.updateSfpRip(it) },
-                        focusedField = uiState.focusedField,
-                        onFieldFocus = { viewModel.setFocusedField(it) }
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        FillFormPanel(
+                            uiState = uiState,
+                            viewModel = viewModel,
+                            onAutofillClick = { role ->
+                                selectedRoleForAutofill = role
+                                showProfilePicker = true
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
                 }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // --- 4. Scrollable Form Inputs Area (Scrollable at the bottom) ---
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-            ) {
-                Column(
+            } else {
+                // SFP 01 Layout: The entire form (FormGrid) and its bottom helpers scroll together
+                Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .weight(1f)
+                        .fillMaxWidth()
                 ) {
-                    FillFormPanel(
-                        uiState = uiState,
-                        viewModel = viewModel,
-                        onAutofillClick = { role ->
-                            selectedRoleForAutofill = role
-                            showProfilePicker = true
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(2.dp, RoundedCornerShape(8.dp))
+                        ) {
+                            FormGrid(
+                                uiState = uiState,
+                                onCcpChange = { viewModel.updateSfpCcp(it) },
+                                onKeyChange = { viewModel.updateSfpKey(it) },
+                                onAmountChange = { viewModel.updateSfpAmount(it) },
+                                onSenderNomChange = { viewModel.updateSfpSenderNom(it) },
+                                onSenderPrenomChange = { viewModel.updateSfpSenderPrenom(it) },
+                                onSenderAddressChange = { viewModel.updateSfpSenderAddress(it) },
+                                onSenderPhoneChange = { viewModel.updateSfpSenderPhone(it) },
+                                onBeneficiaryNomChange = { viewModel.updateSfpBeneficiaryNom(it) },
+                                onBeneficiaryPrenomChange = { viewModel.updateSfpBeneficiaryPrenom(it) },
+                                onBeneficiaryAddressChange = { viewModel.updateSfpBeneficiaryAddress(it) },
+                                onBeneficiaryPhoneChange = { viewModel.updateSfpBeneficiaryPhone(it) },
+                                onPlaceChange = { viewModel.updateSfpPlace(it) },
+                                onDateChange = { viewModel.updateSfpDate(it) },
+                                onIdDescriptionChange = { viewModel.updateSfpIdDescription(it) },
+                                onOperationChange = { viewModel.updateSfpOperation(it) },
+                                onJustificatifCcpChange = { viewModel.updateSfpJustificatifCcp(it) },
+                                onAvisCreditChange = { viewModel.updateSfpAvisCredit(it) },
+                                onCarnetChequesChange = { viewModel.updateSfpCarnetCheques(it) },
+                                onCodeConfidentielChange = { viewModel.updateSfpCodeConfidentiel(it) },
+                                onRipChange = { viewModel.updateSfpRip(it) },
+                                focusedField = uiState.focusedField,
+                                onFieldFocus = { viewModel.setFocusedField(it) }
+                            )
                         }
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
+
+                        FillFormPanel(
+                            uiState = uiState,
+                            viewModel = viewModel,
+                            onAutofillClick = { role ->
+                                selectedRoleForAutofill = role
+                                showProfilePicker = true
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
                 }
             }
         }

@@ -150,6 +150,9 @@ fun AddTransactionScreen(
     var selectedAccountId   by rememberSaveable { mutableStateOf<Long?>(null) }
     var toAccountId         by rememberSaveable { mutableStateOf<Long?>(null) }
 
+    var isSalaryAutomation by rememberSaveable { mutableStateOf(false) }
+    var showSavingsConfirmDialog by remember { mutableStateOf(false) }
+
     var hasLoadedInitialData by rememberSaveable { mutableStateOf(false) }
     var hasLoadedDraft by rememberSaveable { mutableStateOf(false) }
 
@@ -377,6 +380,15 @@ fun AddTransactionScreen(
         if (toAccountId == null && uiState.accounts.size > 1) {
             toAccountId = uiState.accounts.lastOrNull { it.id != selectedAccountId }?.id
                 ?: uiState.accounts.first().id
+        }
+    }
+
+    LaunchedEffect(selectedCategoryId, uiState.categories) {
+        if (selectedCategoryId != null) {
+            val category = uiState.categories.find { it.id == selectedCategoryId }
+            if (category?.name?.contains("راتب") == true || category?.name?.contains("الراتب") == true) {
+                isSalaryAutomation = true
+            }
         }
     }
 
@@ -1027,6 +1039,38 @@ fun AddTransactionScreen(
                 )
             }
 
+            if (type == TransactionType.INCOME) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = if (isSalaryAutomation) Primary else TextGray,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "تسجيل كراتب تلقائي (أتمتة الراتب)؟",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Switch(
+                        checked = isSalaryAutomation,
+                        onCheckedChange = { isSalaryAutomation = it },
+                        colors = SwitchDefaults.colors(
+                            checkedTrackColor = Primary,
+                            checkedThumbColor = Color.White
+                        )
+                    )
+                }
+            }
+
             AnimatedVisibility(visible = isRecurring) {
                 Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
                     Text(
@@ -1152,9 +1196,9 @@ fun AddTransactionScreen(
                             val budget = activeBudget
                             val isBudgetWarningOrExceeded = if (budget != null) {
                                 val newSpent = budget.spentAmount + parsedAmount
-                                val isExceeded = newSpent > budget.amountLimit
-                                val isWarning = !isExceeded && newSpent >= (budget.amountLimit * 0.90)
-                                isExceeded || isWarning
+                                  val isExceeded = newSpent > budget.amountLimit
+                                  val isWarning = !isExceeded && newSpent >= (budget.amountLimit * 0.90)
+                                  isExceeded || isWarning
                             } else false
 
                             if (isBudgetWarningOrExceeded) {
@@ -1173,33 +1217,138 @@ fun AddTransactionScreen(
                                 return@Button
                             }
 
-                            if (transactionId != null) {
-                                viewModel.updateTransaction(
-                                    id = transactionId,
-                                    amount = parsedAmount,
-                                    type = type,
-                                    categoryId = categoryId,
-                                    accountId = accountId,
-                                    toAccountId = if (type == TransactionType.TRANSFER) toAccountId else null,
-                                    note = note.ifBlank { null },
-                                    date = transactionDate,
-                                    isRecurring = isRecurring,
-                                    recurringPeriod = if (isRecurring) recurringPeriod else null,
-                                    tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null
-                                )
+                            val selectedAccount = uiState.accounts.find { it.id == accountId }
+                            val isSavings = selectedAccount?.type == com.example.domain.model.AccountType.SAVINGS
+                            
+                            if (type == TransactionType.INCOME) {
+                                if (isSalaryAutomation) {
+                                    if (transactionId != null) {
+                                        viewModel.updateTransaction(
+                                            id = transactionId,
+                                            amount = parsedAmount,
+                                            type = type,
+                                            categoryId = categoryId,
+                                            accountId = accountId,
+                                            toAccountId = null,
+                                            note = note.ifBlank { null },
+                                            date = transactionDate,
+                                            isRecurring = isRecurring,
+                                            recurringPeriod = if (isRecurring) recurringPeriod else null,
+                                            tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
+                                            kind = com.example.domain.model.TransactionKind.SALARY
+                                        )
+                                    } else {
+                                        viewModel.addTransaction(
+                                            amount = parsedAmount,
+                                            type = type,
+                                            categoryId = categoryId,
+                                            accountId = accountId,
+                                            toAccountId = null,
+                                            note = note.ifBlank { null },
+                                            date = transactionDate,
+                                            isRecurring = isRecurring,
+                                            recurringPeriod = if (isRecurring) recurringPeriod else null,
+                                            tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
+                                            kind = com.example.domain.model.TransactionKind.SALARY
+                                        )
+                                    }
+                                } else if (isSavings) {
+                                    showSavingsConfirmDialog = true
+                                } else {
+                                    if (transactionId != null) {
+                                        viewModel.updateTransaction(
+                                            id = transactionId,
+                                            amount = parsedAmount,
+                                            type = type,
+                                            categoryId = categoryId,
+                                            accountId = accountId,
+                                            toAccountId = null,
+                                            note = note.ifBlank { null },
+                                            date = transactionDate,
+                                            isRecurring = isRecurring,
+                                            recurringPeriod = if (isRecurring) recurringPeriod else null,
+                                            tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
+                                            kind = com.example.domain.model.TransactionKind.INCOME
+                                        )
+                                    } else {
+                                        viewModel.addTransaction(
+                                            amount = parsedAmount,
+                                            type = type,
+                                            categoryId = categoryId,
+                                            accountId = accountId,
+                                            toAccountId = null,
+                                            note = note.ifBlank { null },
+                                            date = transactionDate,
+                                            isRecurring = isRecurring,
+                                            recurringPeriod = if (isRecurring) recurringPeriod else null,
+                                            tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
+                                            kind = com.example.domain.model.TransactionKind.INCOME
+                                        )
+                                    }
+                                }
+                            } else if (type == TransactionType.EXPENSE) {
+                                val kind = if (isSavings) com.example.domain.model.TransactionKind.SAVINGS_WITHDRAWAL else com.example.domain.model.TransactionKind.EXPENSE
+                                if (transactionId != null) {
+                                    viewModel.updateTransaction(
+                                        id = transactionId,
+                                        amount = parsedAmount,
+                                        type = type,
+                                        categoryId = categoryId,
+                                        accountId = accountId,
+                                        toAccountId = null,
+                                        note = note.ifBlank { null },
+                                        date = transactionDate,
+                                        isRecurring = isRecurring,
+                                        recurringPeriod = if (isRecurring) recurringPeriod else null,
+                                        tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
+                                        kind = kind
+                                    )
+                                } else {
+                                    viewModel.addTransaction(
+                                        amount = parsedAmount,
+                                        type = type,
+                                        categoryId = categoryId,
+                                        accountId = accountId,
+                                        toAccountId = null,
+                                        note = note.ifBlank { null },
+                                        date = transactionDate,
+                                        isRecurring = isRecurring,
+                                        recurringPeriod = if (isRecurring) recurringPeriod else null,
+                                        tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
+                                        kind = kind
+                                    )
+                                }
                             } else {
-                                viewModel.addTransaction(
-                                    amount = parsedAmount,
-                                    type = type,
-                                    categoryId = categoryId,
-                                    accountId = accountId,
-                                    toAccountId = if (type == TransactionType.TRANSFER) toAccountId else null,
-                                    note = note.ifBlank { null },
-                                    date = transactionDate,
-                                    isRecurring = isRecurring,
-                                    recurringPeriod = if (isRecurring) recurringPeriod else null,
-                                    tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null
-                                )
+                                if (transactionId != null) {
+                                    viewModel.updateTransaction(
+                                        id = transactionId,
+                                        amount = parsedAmount,
+                                        type = type,
+                                        categoryId = categoryId,
+                                        accountId = accountId,
+                                        toAccountId = toAccountId,
+                                        note = note.ifBlank { null },
+                                        date = transactionDate,
+                                        isRecurring = isRecurring,
+                                        recurringPeriod = if (isRecurring) recurringPeriod else null,
+                                        tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
+                                        kind = com.example.domain.model.TransactionKind.TRANSFER
+                                    )
+                                } else {
+                                    viewModel.addTransaction(
+                                        amount = parsedAmount,
+                                        type = type,
+                                        categoryId = categoryId,
+                                        accountId = accountId,
+                                        toAccountId = toAccountId,
+                                        note = note.ifBlank { null },
+                                        date = transactionDate,
+                                        isRecurring = isRecurring,
+                                        recurringPeriod = if (isRecurring) recurringPeriod else null,
+                                        tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
+                                        kind = com.example.domain.model.TransactionKind.TRANSFER
+                                    )
+                                }
                             }
                         }
                     },
@@ -1232,7 +1381,7 @@ fun AddTransactionScreen(
             }
         }
 
-        // â”€â”€ Add Category/Subcategory Dialog â”€â”€
+        // —— Add Category/Subcategory Dialog ——
         if (showAddCategoryDialog) {
             AlertDialog(
                 onDismissRequest = { showAddCategoryDialog = false },
@@ -1348,7 +1497,116 @@ fun AddTransactionScreen(
             )
         }
 
-        // â”€â”€ Template Dialogs & Overlays â”€â”€
+        // —— Savings Confirmation Dialog ——
+        if (showSavingsConfirmDialog) {
+            AlertDialog(
+                onDismissRequest = { showSavingsConfirmDialog = false },
+                title = {
+                    Text(
+                        text = "إيداع في حساب ادخار",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                text = {
+                    Text(
+                        text = "أنت تضيف دخلاً إلى حساب ادخار. هل تريد تسجيله كمساهمة ادخار (يحافظ على الدخل الشهري دون تغيير) أم كدخل عادي لهذا الحساب (سيؤدي لزيادة الدخل الشهري)؟",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showSavingsConfirmDialog = false
+                            val categoryId = effectiveCategoryId ?: return@Button
+                            val accountId = effectiveAccountId ?: return@Button
+                            val parsedAmount = com.example.core.utils.CalculatorParser.evaluate(rawAmount)
+                            if (transactionId != null) {
+                                viewModel.updateTransaction(
+                                    id = transactionId,
+                                    amount = parsedAmount,
+                                    type = type,
+                                    categoryId = categoryId,
+                                    accountId = accountId,
+                                    toAccountId = null,
+                                    note = note.ifBlank { null },
+                                    date = transactionDate,
+                                    isRecurring = isRecurring,
+                                    recurringPeriod = if (isRecurring) recurringPeriod else null,
+                                    tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
+                                    kind = com.example.domain.model.TransactionKind.SAVINGS_CONTRIBUTION
+                                )
+                            } else {
+                                viewModel.addTransaction(
+                                    amount = parsedAmount,
+                                    type = type,
+                                    categoryId = categoryId,
+                                    accountId = accountId,
+                                    toAccountId = null,
+                                    note = note.ifBlank { null },
+                                    date = transactionDate,
+                                    isRecurring = isRecurring,
+                                    recurringPeriod = if (isRecurring) recurringPeriod else null,
+                                    tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
+                                    kind = com.example.domain.model.TransactionKind.SAVINGS_CONTRIBUTION
+                                )
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = typeAccentColor),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("مساهمة ادخار (موصى به)", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showSavingsConfirmDialog = false
+                            val categoryId = effectiveCategoryId ?: return@TextButton
+                            val accountId = effectiveAccountId ?: return@TextButton
+                            val parsedAmount = com.example.core.utils.CalculatorParser.evaluate(rawAmount)
+                            if (transactionId != null) {
+                                viewModel.updateTransaction(
+                                    id = transactionId,
+                                    amount = parsedAmount,
+                                    type = type,
+                                    categoryId = categoryId,
+                                    accountId = accountId,
+                                    toAccountId = null,
+                                    note = note.ifBlank { null },
+                                    date = transactionDate,
+                                    isRecurring = isRecurring,
+                                    recurringPeriod = if (isRecurring) recurringPeriod else null,
+                                    tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
+                                    kind = com.example.domain.model.TransactionKind.INCOME
+                                )
+                            } else {
+                                viewModel.addTransaction(
+                                    amount = parsedAmount,
+                                    type = type,
+                                    categoryId = categoryId,
+                                    accountId = accountId,
+                                    toAccountId = null,
+                                    note = note.ifBlank { null },
+                                    date = transactionDate,
+                                    isRecurring = isRecurring,
+                                    recurringPeriod = if (isRecurring) recurringPeriod else null,
+                                    tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
+                                    kind = com.example.domain.model.TransactionKind.INCOME
+                                )
+                            }
+                        }
+                    ) {
+                        Text("دخل عادي", color = TextGray)
+                    }
+                }
+            )
+        }
+
+        // —— Template Dialogs & Overlays ——
         if (showSaveTemplateDialog) {
             AlertDialog(
                 onDismissRequest = { showSaveTemplateDialog = false },

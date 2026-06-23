@@ -413,11 +413,23 @@ class TransactionsViewModel(
         date: Long,
         isRecurring: Boolean,
         recurringPeriod: String? = null,
-        tags: String? = null
+        tags: String? = null,
+        kind: TransactionKind? = null
     ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, saveCompleted = false, error = null) }
             try {
+                val resolvedKind = kind ?: when (type) {
+                    TransactionType.TRANSFER -> TransactionKind.TRANSFER
+                    TransactionType.INCOME -> {
+                        val acc = _uiState.value.accounts.find { it.id == accountId }
+                        if (acc?.type == AccountType.SAVINGS) TransactionKind.SAVINGS_CONTRIBUTION else TransactionKind.INCOME
+                    }
+                    TransactionType.EXPENSE -> {
+                        val acc = _uiState.value.accounts.find { it.id == accountId }
+                        if (acc?.type == AccountType.SAVINGS) TransactionKind.SAVINGS_WITHDRAWAL else TransactionKind.EXPENSE
+                    }
+                }
                 val transaction = Transaction(
                     amount = amount,
                     type = type,
@@ -428,7 +440,8 @@ class TransactionsViewModel(
                     date = date,
                     isRecurring = isRecurring,
                     recurringPeriod = recurringPeriod,
-                    tags = tags
+                    tags = tags,
+                    kind = resolvedKind
                 )
                 transactionRepository.insertTransaction(transaction)
 
@@ -470,11 +483,23 @@ class TransactionsViewModel(
         date: Long,
         isRecurring: Boolean,
         recurringPeriod: String? = null,
-        tags: String? = null
+        tags: String? = null,
+        kind: TransactionKind? = null
     ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, saveCompleted = false, error = null) }
             try {
+                val resolvedKind = kind ?: when (type) {
+                    TransactionType.TRANSFER -> TransactionKind.TRANSFER
+                    TransactionType.INCOME -> {
+                        val acc = _uiState.value.accounts.find { it.id == accountId }
+                        if (acc?.type == AccountType.SAVINGS) TransactionKind.SAVINGS_CONTRIBUTION else TransactionKind.INCOME
+                    }
+                    TransactionType.EXPENSE -> {
+                        val acc = _uiState.value.accounts.find { it.id == accountId }
+                        if (acc?.type == AccountType.SAVINGS) TransactionKind.SAVINGS_WITHDRAWAL else TransactionKind.EXPENSE
+                    }
+                }
                 val transaction = Transaction(
                     id = id,
                     amount = amount,
@@ -486,7 +511,8 @@ class TransactionsViewModel(
                     date = date,
                     isRecurring = isRecurring,
                     recurringPeriod = recurringPeriod,
-                    tags = tags
+                    tags = tags,
+                    kind = resolvedKind
                 )
                 transactionRepository.updateTransaction(transaction)
                 _uiState.update { it.copy(isSaving = false, saveCompleted = true) }

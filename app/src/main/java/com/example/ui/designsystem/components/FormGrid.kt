@@ -215,6 +215,7 @@ fun FormGrid(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .height(IntrinsicSize.Max)
                 .drawBehind {
                     drawLine(
                         color = lineColor,

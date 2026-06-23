@@ -491,6 +491,27 @@ fun AccountPickerRow(
                     textAlign = TextAlign.Center,
                     maxLines = 1
                 )
+                val typeLabel = when (acc.type) {
+                    com.example.domain.model.AccountType.BANK -> "بنك"
+                    com.example.domain.model.AccountType.CCP -> "CCP"
+                    com.example.domain.model.AccountType.BARIDIMOB -> "بريدي موب"
+                    com.example.domain.model.AccountType.CASH -> "نقداً"
+                    com.example.domain.model.AccountType.SAVINGS -> "ادخار"
+                    com.example.domain.model.AccountType.WALLET -> "محفظة"
+                    com.example.domain.model.AccountType.OTHER -> "أخرى"
+                }
+                Text(
+                    text = "($typeLabel)",
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                    color = when {
+                        isDisabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                        isSelected -> accentColor.copy(alpha = 0.7f)
+                        else       -> TextGray
+                    },
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    modifier = Modifier.padding(top = 1.dp)
+                )
                 Text(
                     text = FormatterUtils.formatCurrency(acc.balance),
                     style = MaterialTheme.typography.labelSmall.copy(
