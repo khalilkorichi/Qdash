@@ -38,6 +38,7 @@ import com.example.core.ui.components.FinTrackTopBar
 import com.example.domain.model.PostalProfile
 import com.example.domain.model.PostalProfileRole
 import com.example.domain.usecase.simulator.AmountConversionEngine
+import com.example.ui.designsystem.components.FormGrid
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -209,31 +210,49 @@ fun DocumentSimulatorScreen(
             }
 
             // --- 3. Document Simulator Preview Area (Fixed at the top) ---
-            // SFP 01 – Operation type selector (if SFP01)
-            if (uiState.selectedDocType == DocumentType.SFP01) {
-                SfpOperationSelectorBar(
-                    selectedOperation = uiState.sfpOperation,
-                    onOperationSelected = { viewModel.updateSfpOperation(it) },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .shadow(2.dp, RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-            ) {
-                if (uiState.selectedDocType == DocumentType.CHEQUE) {
+            if (uiState.selectedDocType == DocumentType.CHEQUE) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .shadow(2.dp, RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                ) {
                     ChequeVisualView(
                         uiState = uiState,
                         onFieldTap = { viewModel.setFocusedField(it) }
                     )
-                } else {
-                    SfpVisualView(
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                ) {
+                    FormGrid(
                         uiState = uiState,
-                        onFieldTap = { viewModel.setFocusedField(it) }
+                        onCcpChange = { viewModel.updateSfpCcp(it) },
+                        onKeyChange = { viewModel.updateSfpKey(it) },
+                        onAmountChange = { viewModel.updateSfpAmount(it) },
+                        onSenderNomChange = { viewModel.updateSfpSenderNom(it) },
+                        onSenderPrenomChange = { viewModel.updateSfpSenderPrenom(it) },
+                        onSenderAddressChange = { viewModel.updateSfpSenderAddress(it) },
+                        onSenderPhoneChange = { viewModel.updateSfpSenderPhone(it) },
+                        onBeneficiaryNomChange = { viewModel.updateSfpBeneficiaryNom(it) },
+                        onBeneficiaryPrenomChange = { viewModel.updateSfpBeneficiaryPrenom(it) },
+                        onBeneficiaryAddressChange = { viewModel.updateSfpBeneficiaryAddress(it) },
+                        onBeneficiaryPhoneChange = { viewModel.updateSfpBeneficiaryPhone(it) },
+                        onPlaceChange = { viewModel.updateSfpPlace(it) },
+                        onDateChange = { viewModel.updateSfpDate(it) },
+                        onIdDescriptionChange = { viewModel.updateSfpIdDescription(it) },
+                        onOperationChange = { viewModel.updateSfpOperation(it) },
+                        onJustificatifCcpChange = { viewModel.updateSfpJustificatifCcp(it) },
+                        onAvisCreditChange = { viewModel.updateSfpAvisCredit(it) },
+                        onCarnetChequesChange = { viewModel.updateSfpCarnetCheques(it) },
+                        onCodeConfidentielChange = { viewModel.updateSfpCodeConfidentiel(it) },
+                        onRipChange = { viewModel.updateSfpRip(it) },
+                        focusedField = uiState.focusedField,
+                        onFieldFocus = { viewModel.setFocusedField(it) }
                     )
                 }
             }
@@ -550,6 +569,7 @@ fun ChequeVisualView(
                     .background(Color.White, RoundedCornerShape(4.dp))
                     .border(1.dp, chequeBorderColor)
                     .padding(horizontal = 12.dp, vertical = 6.dp)
+                    .clickable { onFieldTap("chequeKey") }
             ) {
                 Text(
                     text = "المفتاح: ${uiState.chequeKey.ifEmpty { ".." }}",
@@ -557,517 +577,6 @@ fun ChequeVisualView(
                     color = if (uiState.chequeKey.isNotEmpty()) writingColor else Color.Gray
                 )
             }
-        }
-    }
-}
-
-// --- SFP Operation Type Selector Bar (OUTSIDE the form, premium design) ---
-@Composable
-fun SfpOperationSelectorBar(
-    selectedOperation: SfpOperationType,
-    onOperationSelected: (SfpOperationType) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val operations = listOf(
-        Triple(SfpOperationType.VERSEMENT, "دفع\nVersement", Icons.Default.ArrowUpward),
-        Triple(SfpOperationType.RETRAIT,   "سحب\nRetrait",   Icons.Default.ArrowDownward),
-        Triple(SfpOperationType.VIREMENT,  "تحويل\nVirement", Icons.Default.SwapHoriz)
-    )
-
-    Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = "اختر نوع العملية المالية:",
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            operations.forEach { (type, label, icon) ->
-                val isSelected = selectedOperation == type
-                val bgColor = if (isSelected) MaterialTheme.colorScheme.primary
-                              else MaterialTheme.colorScheme.surfaceVariant
-                val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                   else MaterialTheme.colorScheme.onSurfaceVariant
-
-                Surface(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onOperationSelected(type) },
-                    color = bgColor,
-                    shadowElevation = if (isSelected) 4.dp else 0.dp,
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = label,
-                            tint = contentColor,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Normal
-                            ),
-                            color = contentColor,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-// --- Layer 1 & 2: SFP 01 Visual Simulator Layout (Authentic Form) ---
-@Composable
-fun SfpVisualView(
-    uiState: DocumentSimulatorUiState,
-    onFieldTap: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val formBg      = Color(0xFFFFFDE7)
-    val lineColor   = Color(0xFF795548)
-    val headerBg    = Color(0xFFFDD835)
-    val writingColor = Color(0xFF1A1A2E)
-    val emptyColor  = Color(0xFFBCAAA4)
-    val labelColor  = Color(0xFF5D4037)
-    
-    val formattedAmount = remember(uiState.sfpAmount) {
-        val amt = uiState.sfpAmount.toDoubleOrNull()
-        if (amt != null) AmountConversionEngine.formatAmountToPostal(amt) else ""
-    }
-
-    val amountInWords = remember(uiState.sfpAmount) {
-        val amt = uiState.sfpAmount.toDoubleOrNull()
-        if (amt != null) AmountConversionEngine.convertToArabicWords(amt) else ""
-    }
-
-    val isVersement = uiState.sfpOperation == SfpOperationType.VERSEMENT
-    val isRetrait   = uiState.sfpOperation == SfpOperationType.RETRAIT
-    val isVirement  = uiState.sfpOperation == SfpOperationType.VIREMENT
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(formBg)
-            .border(2.dp, lineColor)
-    ) {
-        // ======= HEADER =======
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(headerBg)
-                .padding(horizontal = 8.dp, vertical = 5.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "العمليات المالية البريدية",
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold),
-                    color = Color(0xFF1A1A1A)
-                )
-                Text(
-                    text = "Opérations financières postales",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = Color(0xFF333333)
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .background(Color.White, RoundedCornerShape(2.dp))
-                    .border(1.5.dp, lineColor)
-                    .padding(horizontal = 10.dp, vertical = 3.dp)
-            ) {
-                Text(
-                    text = "SFP 01",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Black,
-                        fontFamily = FontFamily.Monospace
-                    ),
-                    color = Color(0xFF1A1A1A)
-                )
-            }
-        }
-
-        // ======= ACCOUNT NUMBER ROW =======
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(BorderStroke(1.dp, lineColor))
-        ) {
-            Column(
-                modifier = Modifier
-                    .weight(2.5f)
-                    .border(BorderStroke(0.5.dp, lineColor))
-                    .clickable { onFieldTap("sfpCcp") }
-                    .padding(horizontal = 6.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = "رقم حساب المرسل إليه / Compte N°",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.5.sp),
-                    color = labelColor
-                )
-                Text(
-                    text = uiState.sfpCcp.ifEmpty { "_ _ _ _ _ _ _ _ _ _ _" },
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        letterSpacing = 1.sp,
-                        fontSize = 12.sp
-                    ),
-                    color = if (uiState.sfpCcp.isNotEmpty()) writingColor else emptyColor
-                )
-            }
-            Column(
-                modifier = Modifier
-                    .weight(0.8f)
-                    .border(BorderStroke(0.5.dp, lineColor))
-                    .clickable { onFieldTap("sfpKey") }
-                    .padding(horizontal = 4.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = "المفتاح/Clé",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp),
-                    color = labelColor
-                )
-                Text(
-                    text = uiState.sfpKey.ifEmpty { "_ _" },
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 12.sp
-                    ),
-                    color = if (uiState.sfpKey.isNotEmpty()) writingColor else emptyColor
-                )
-            }
-        }
-
-        // ======= OPERATION CHECKBOXES ROW =======
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(BorderStroke(1.dp, lineColor))
-        ) {
-            // دفع / Versement
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .border(BorderStroke(0.5.dp, lineColor))
-                    .padding(horizontal = 6.dp, vertical = 5.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(13.dp)
-                        .border(1.5.dp, lineColor),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isVersement) {
-                        Text("X", style = MaterialTheme.typography.bodySmall.copy(
-                            fontWeight = FontWeight.Black, color = writingColor, fontSize = 11.sp
-                        ))
-                    }
-                }
-                Text(
-                    text = "دفع / Versement",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.5.sp),
-                    lineHeight = 10.sp
-                )
-            }
-            // سحب / Retrait
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .border(BorderStroke(0.5.dp, lineColor))
-                    .padding(horizontal = 6.dp, vertical = 5.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(13.dp)
-                        .border(1.5.dp, lineColor),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isRetrait) {
-                        Text("X", style = MaterialTheme.typography.bodySmall.copy(
-                            fontWeight = FontWeight.Black, color = writingColor, fontSize = 11.sp
-                        ))
-                    }
-                }
-                Text(
-                    text = "سحب / Retrait",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.5.sp),
-                    lineHeight = 10.sp
-                )
-            }
-            // تحويل / Virement
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .border(BorderStroke(0.5.dp, lineColor))
-                    .padding(horizontal = 6.dp, vertical = 5.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(13.dp)
-                        .border(1.5.dp, lineColor),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isVirement) {
-                        Text("X", style = MaterialTheme.typography.bodySmall.copy(
-                            fontWeight = FontWeight.Black, color = writingColor, fontSize = 11.sp
-                        ))
-                    }
-                }
-                Text(
-                    text = "تحويل / Virement",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.5.sp),
-                    lineHeight = 10.sp
-                )
-            }
-            // Extra options column
-            Column(
-                modifier = Modifier
-                    .weight(1.4f)
-                    .border(BorderStroke(0.5.dp, lineColor))
-                    .padding(horizontal = 4.dp, vertical = 3.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                listOf("مع إظهار الرصيد", "إشعار بالرصيد", "طلب دفتر").forEach { lbl ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
-                    ) {
-                        Box(modifier = Modifier.size(9.dp).border(0.8.dp, lineColor))
-                        Text(lbl, style = MaterialTheme.typography.labelSmall.copy(fontSize = 6.5.sp))
-                    }
-                }
-            }
-        }
-
-        // ======= AMOUNTS =======
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(BorderStroke(1.dp, lineColor))
-                .clickable { onFieldTap("sfpAmount") }
-                .padding(horizontal = 8.dp, vertical = 5.dp),
-            verticalArrangement = Arrangement.spacedBy(3.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "المبلغ بالأرقام / Montant en chiffres:",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.5.sp),
-                    color = labelColor
-                )
-                Text(
-                    text = if (formattedAmount.isNotEmpty()) "$formattedAmount DA" else "_ _ _ _ _ _ _",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 12.sp
-                    ),
-                    color = if (formattedAmount.isNotEmpty()) writingColor else emptyColor
-                )
-            }
-            Divider(color = lineColor.copy(alpha = 0.4f), thickness = 0.5.dp)
-            Text(
-                text = "بالحروف / en lettres:",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.5.sp),
-                color = labelColor
-            )
-            Text(
-                text = amountInWords.ifEmpty { "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _" },
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 9.sp
-                ),
-                color = if (amountInWords.isNotEmpty()) writingColor else emptyColor,
-                maxLines = 2
-            )
-        }
-
-        // ======= SENDER & BENEFICIARY =======
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(BorderStroke(1.dp, lineColor))
-        ) {
-            // Sender
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .border(BorderStroke(0.5.dp, lineColor))
-                    .clickable { onFieldTap("sfpSenderName") }
-                    .padding(horizontal = 6.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Text(
-                    text = "المرسل / Expéditeur - Donneur d'ordre",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp, fontWeight = FontWeight.Bold),
-                    color = Color(0xFFB71C1C)
-                )
-                Text(
-                    text = "اللقب/Nom: ${uiState.sfpSenderNom.ifEmpty { "_ _ _ _ _ _ _ _ _" }}",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
-                    color = if (uiState.sfpSenderNom.isNotEmpty()) writingColor else emptyColor
-                )
-                Text(
-                    text = "الاسم/Prénom: ${uiState.sfpSenderPrenom.ifEmpty { "_ _ _ _ _ _ _ _ _" }}",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
-                    color = if (uiState.sfpSenderPrenom.isNotEmpty()) writingColor else emptyColor
-                )
-                Text(
-                    text = "العنوان/Adresse: ${uiState.sfpSenderAddress.ifEmpty { "_ _ _ _ _ _ _ _ _ _ _ _" }}",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.5.sp),
-                    color = if (uiState.sfpSenderAddress.isNotEmpty()) writingColor else emptyColor,
-                    maxLines = 2
-                )
-            }
-            // Beneficiary
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .border(BorderStroke(0.5.dp, lineColor))
-                    .clickable { onFieldTap("sfpBeneficiaryName") }
-                    .padding(horizontal = 6.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Text(
-                    text = "المرسل إليه / Bénéficiaire",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.5.sp, fontWeight = FontWeight.Bold),
-                    color = Color(0xFF1B5E20)
-                )
-                Text(
-                    text = "اللقب/Nom: ${uiState.sfpBeneficiaryNom.ifEmpty { "_ _ _ _ _ _ _ _ _" }}",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
-                    color = if (uiState.sfpBeneficiaryNom.isNotEmpty()) writingColor else emptyColor
-                )
-                Text(
-                    text = "الاسم/Prénom: ${uiState.sfpBeneficiaryPrenom.ifEmpty { "_ _ _ _ _ _ _ _ _" }}",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
-                    color = if (uiState.sfpBeneficiaryPrenom.isNotEmpty()) writingColor else emptyColor
-                )
-                Text(
-                    text = "العنوان/Adresse: ${uiState.sfpBeneficiaryAddress.ifEmpty { "_ _ _ _ _ _ _ _ _ _ _" }}",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.5.sp),
-                    color = if (uiState.sfpBeneficiaryAddress.isNotEmpty()) writingColor else emptyColor,
-                    maxLines = 2
-                )
-            }
-        }
-
-        // ======= MOTIF =======
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(BorderStroke(1.dp, lineColor))
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-        ) {
-            Text(
-                text = "سبب الإرسال / Motif - Correspondance:",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.5.sp),
-                color = labelColor
-            )
-            Text(
-                text = "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp, color = emptyColor)
-            )
-        }
-
-        // ======= DATE & SIGNATURE =======
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(BorderStroke(1.dp, lineColor))
-        ) {
-            Column(
-                modifier = Modifier
-                    .weight(2f)
-                    .border(BorderStroke(0.5.dp, lineColor))
-                    .clickable { onFieldTap("sfpPlaceDate") }
-                    .padding(horizontal = 6.dp, vertical = 5.dp),
-                verticalArrangement = Arrangement.spacedBy(3.dp)
-            ) {
-                Text(
-                    text = "في / A: ${uiState.sfpPlace.ifEmpty { "_ _ _ _ _ _ _" }}",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp),
-                    color = if (uiState.sfpPlace.isNotEmpty()) writingColor else emptyColor
-                )
-                Text(
-                    text = "بتاريخ / le: ${uiState.sfpDate.ifEmpty { "_ _ / _ _ / _ _ _ _" }}",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 8.5.sp, fontFamily = FontFamily.Monospace
-                    ),
-                    color = if (uiState.sfpDate.isNotEmpty()) writingColor else emptyColor
-                )
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1.5f)
-                    .height(52.dp)
-                    .border(BorderStroke(0.5.dp, lineColor))
-                    .clickable { onFieldTap("sfpSignature") }                    .padding(horizontal = 6.dp, vertical = 4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "الإمضاء / Signature",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.5.sp),
-                    color = labelColor
-                )
-            }
-        }
-
-        // ======= RESERVED BUREAU FOOTER =======
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFFFFF9C4))
-                .border(BorderStroke(1.5.dp, lineColor))
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-        ) {
-            Text(
-                text = "إطار مخصص لمكتب البريد / Cadre réservé au bureau de poste",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 7.5.sp, fontWeight = FontWeight.Bold
-                ),
-                color = Color(0xFF4E342E)
-            )
-            Spacer(modifier = Modifier.height(20.dp))
-            Divider(color = lineColor.copy(alpha = 0.4f))
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "وصل العملية / Reçu de l'opération",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 7.5.sp, fontWeight = FontWeight.Bold
-                ),
-                color = Color(0xFF4E342E)
-            )
-            Text(
-                text = "اترك هذا القسم فارغاً — يملؤه عون البريد",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp),
-                color = Color(0xFF8D6E63)
-            )
-            Spacer(modifier = Modifier.height(14.dp))
         }
     }
 }
@@ -1317,200 +826,67 @@ fun FillFormPanel(
                 }
             }
 
-            // Account number & Clé
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = uiState.sfpCcp,
-                    onValueChange = { viewModel.updateSfpCcp(it) },
-                    label = { Text("رقم حساب المستفيد CCP") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(2f),
-                    shape = RoundedCornerShape(10.dp)
-                )
-                OutlinedTextField(
-                    value = uiState.sfpKey,
-                    onValueChange = { viewModel.updateSfpKey(it) },
-                    label = { Text("المفتاح") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp)
-                )
-            }
+            // Anti-fraud formatted display helper
+            val sfpAmt = uiState.sfpAmount.toDoubleOrNull()
+            if (sfpAmt != null && sfpAmt > 0) {
+                val formatted     = AmountConversionEngine.formatAmountToPostal(sfpAmt)
+                val colloquial    = AmountConversionEngine.getAlgerianColloquialWords(sfpAmt)
+                val officialWords = AmountConversionEngine.convertToArabicWords(sfpAmt)
 
-            // Amount Sfp
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0D47A1).copy(alpha = 0.08f)),
+                    shape = RoundedCornerShape(10.dp)
                 ) {
-                    OutlinedTextField(
-                        value = uiState.sfpAmount,
-                        onValueChange = { viewModel.updateSfpAmount(it) },
-                        label = { Text("المبلغ بالدينار (DA)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
-                        trailingIcon = {
-                            if (uiState.sfpAmount.isNotEmpty()) {
-                                IconButton(onClick = { viewModel.updateSfpAmount("") }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "مسح")
-                                }
-                            }
-                        }
-                    )
-                    
-                    IconButton(
-                        onClick = { viewModel.toggleReadyAmounts(true) },
-                        modifier = Modifier
-                            .padding(top = 8.dp)
-                            .size(50.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocalAtm,
-                            contentDescription = "المبالغ الجاهزة",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-
-                val sfpAmt = uiState.sfpAmount.toDoubleOrNull()
-                if (sfpAmt != null && sfpAmt > 0) {
-                    val formatted     = AmountConversionEngine.formatAmountToPostal(sfpAmt)
-                    val colloquial    = AmountConversionEngine.getAlgerianColloquialWords(sfpAmt)
-                    val officialWords = AmountConversionEngine.convertToArabicWords(sfpAmt)
-
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF0D47A1).copy(alpha = 0.08f)),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("التنسيق المالي المضاد للتزوير:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(
-                                    text = "#$formatted#",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Black,
-                                        fontFamily = FontFamily.Monospace,
-                                        color = Color(0xFF0D47A1)
-                                    )
-                                )
-                            }
-                            Divider(color = Color(0xFF0D47A1).copy(alpha = 0.15f))
+                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("التنسيق المالي المضاد للتزوير:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
-                                text = "بالعامية: $colloquial",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "بالفصحى: $officialWords",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(1f)
+                                text = "#$formatted#",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Black,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = Color(0xFF0D47A1)
                                 )
-                                Surface(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .clickable {
-                                            val cb = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                            cb.setPrimaryClip(android.content.ClipData.newPlainText("words", officialWords))
-                                            Toast.makeText(context, "تم نسخ الحروف!", Toast.LENGTH_SHORT).show()
-                                        },
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                    shape = RoundedCornerShape(6.dp)
-                                ) {
-                                    Text("نسخ", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary))
-                                }
+                            )
+                        }
+                        Divider(color = Color(0xFF0D47A1).copy(alpha = 0.15f))
+                        Text(
+                            text = "بالعامية: $colloquial",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "بالفصحى: $officialWords",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Surface(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable {
+                                        val cb = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                        cb.setPrimaryClip(android.content.ClipData.newPlainText("words", officialWords))
+                                        Toast.makeText(context, "تم نسخ الحروف!", Toast.LENGTH_SHORT).show()
+                                    },
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text("نسخ", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary))
                             }
                         }
                     }
                 }
-
-            }
-
-            // Sender Nom & Prénom
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = uiState.sfpSenderNom,
-                    onValueChange = { viewModel.updateSfpSenderNom(it) },
-                    label = { Text("لقب المرسل") },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp)
-                )
-                OutlinedTextField(
-                    value = uiState.sfpSenderPrenom,
-                    onValueChange = { viewModel.updateSfpSenderPrenom(it) },
-                    label = { Text("اسم المرسل") },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp)
-                )
-            }
-
-            OutlinedTextField(
-                value = uiState.sfpSenderAddress,
-                onValueChange = { viewModel.updateSfpSenderAddress(it) },
-                label = { Text("عنوان المرسل") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp)
-            )
-
-            // Beneficiary details if versement
-            if (uiState.sfpOperation == SfpOperationType.VERSEMENT) {
-                Text("بيانات المرسل إليه (المستفيد):", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
-                        value = uiState.sfpBeneficiaryNom,
-                        onValueChange = { viewModel.updateSfpBeneficiaryNom(it) },
-                        label = { Text("لقب المستفيد") },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                    OutlinedTextField(
-                        value = uiState.sfpBeneficiaryPrenom,
-                        onValueChange = { viewModel.updateSfpBeneficiaryPrenom(it) },
-                        label = { Text("اسم المستفيد") },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                }
-                OutlinedTextField(
-                    value = uiState.sfpBeneficiaryAddress,
-                    onValueChange = { viewModel.updateSfpBeneficiaryAddress(it) },
-                    label = { Text("عنوان المستفيد (اختياري)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp)
-                )
-            }
-
-            // Place & Date
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = uiState.sfpPlace,
-                    onValueChange = { viewModel.updateSfpPlace(it) },
-                    label = { Text("المكان") },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp)
-                )
-                OutlinedTextField(
-                    value = uiState.sfpDate,
-                    onValueChange = { viewModel.updateSfpDate(it) },
-                    label = { Text("التاريخ") },
-                    modifier = Modifier.weight(1.2f),
-                    shape = RoundedCornerShape(10.dp)
-                )
             }
         }
     }

@@ -45,4 +45,12 @@ object ColorTokens {
     // Neutrals
     val TextGray = Color(0xFF8E8EA8)
     val Overlay = Color(0xFF0F0F0F).copy(alpha = 0.4f)
+
+    // SFP 01 Form Colors
+    val SfpHeaderYellow = Color(0xFFFFF2C9)
+    val SfpFormBg = Color(0xFFFFFDF0)
+    val SfpBorderBrown = Color(0xFF8A5E3A)
+    val SfpBeneficiaryGreen = Color(0xFF1B5E20)
+    val SfpSenderRed = Color(0xFFB71C1C)
 }
+

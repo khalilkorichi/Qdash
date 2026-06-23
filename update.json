@@ -1,11 +1,11 @@
 {
-  "versionCode": 19,
-  "versionName": "1.0.0.19",
-  "updateIdentity": 120,
-  "publishedAt": "2026-06-22T19:14:00Z",
+  "versionCode": 20,
+  "versionName": "1.0.0.20",
+  "updateIdentity": 121,
+  "publishedAt": "2026-06-23T00:43:27Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 24281382,
-  "apkSha256": "f1517e3a6c64bde172dfd08f8e64cb81ed4cfe8f8d4bfdccf64f1dee09451e82",
+  "apkSize": 24298644,
+  "apkSha256": "c000081e92f347a5c372eb02fcbd03bcf93e24b7df0bbeb9329a597e93de11f1",
   "mandatory": false,
-  "releaseNotes": "تحديث v1.0.0.19 (Build 120): إضافة طبقة مالية ذكية تفاعلية داخل المساعد الذكي تعرض آخر الحركات المالية ومقترح توزيع الرصيد وتنبيه الرصيد المنخفض وتأثير المعاملات على الميزانيات والأهداف والديون مع دعم التعديل اليدوي الكامل للمسودات قبل التنفيذ."
+  "releaseNotes": "تحديث v1.0.0.20 (Build 121): ملاءمة تصميم حوالة الدفع SFP 01 مع النموذج الورقي الرسمي بالكامل، بما في ذلك الخانات والخطوط البنية والشبكة المستطيلة والحقول التفاعلية والخيارات الإضافية الجديدة، وتفاصيل وثيقة الهوية مع الحفاظ على كفاءة وجودة المحاكي ودقة الحسابات."
 }

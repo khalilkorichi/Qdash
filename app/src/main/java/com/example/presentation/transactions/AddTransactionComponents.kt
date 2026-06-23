@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.LayoutDirection
@@ -348,17 +349,21 @@ fun AmountDisplayCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 val focusRequester = remember { FocusRequester() }
-                CompositionLocalProvider(LocalTextInputService provides null) {
+                CompositionLocalProvider(
+                    LocalTextInputService provides null,
+                    LocalLayoutDirection provides LayoutDirection.Rtl
+                ) {
                     BasicTextField(
                         value = rawAmountValue,
                         onValueChange = onValueChange,
-                        readOnly = false,
+                        readOnly = true,
                         singleLine = true,
                         textStyle = MaterialTheme.typography.displayLarge.copy(
                             fontSize = if (rawAmountValue.text.length > 12) 28.sp else 38.sp,
                             color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.ExtraBold,
                             textAlign = TextAlign.Center,
+                            textDirection = TextDirection.Rtl,
                             localeList = if (com.example.core.utils.FormatterUtils.useWesternNumerals) {
                                 androidx.compose.ui.text.intl.LocaleList("en")
                             } else {

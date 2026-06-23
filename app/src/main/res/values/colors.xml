@@ -7,4 +7,9 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="sfp_header_yellow">#FFF2C9</color>
+    <color name="sfp_form_bg">#FFFDF0</color>
+    <color name="sfp_border_brown">#8A5E3A</color>
+    <color name="sfp_beneficiary_green">#1B5E20</color>
+    <color name="sfp_sender_red">#B71C1C</color>
 </resources>

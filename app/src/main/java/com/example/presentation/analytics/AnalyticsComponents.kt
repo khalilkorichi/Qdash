@@ -29,10 +29,14 @@ import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.QuestionMark
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import com.example.ui.designsystem.components.AppBottomSheet
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -371,6 +375,7 @@ fun AnalyticsEmptyState(
         }
     }
 }
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InteractiveDonutCard(
     shares: List<CategoryShare>,
@@ -381,10 +386,34 @@ fun InteractiveDonutCard(
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     var viewMode by remember { mutableStateOf(ChartViewMode.DONUT) }
+    var showOtherBottomSheet by remember { mutableStateOf(false) }
+    var isLegendExpanded by remember { mutableStateOf(false) }
+
+    val threshold = 0.04f
+    val smallShares = remember(shares) { shares.filter { it.percentage < threshold } }
+    val largeShares = remember(shares) { shares.filter { it.percentage >= threshold } }
+
+    val chartShares = remember(shares, smallShares, largeShares) {
+        if (smallShares.size > 1) {
+            val totalSmallAmount = smallShares.sumOf { it.amount }
+            val totalSmallPercentage = smallShares.sumOf { it.percentage.toDouble() }.toFloat()
+            val otherShare = CategoryShare(
+                categoryId = -99L,
+                categoryName = "فئات أخرى",
+                amount = totalSmallAmount,
+                percentage = totalSmallPercentage,
+                color = "#9CA3AF"
+            )
+            largeShares + otherShare
+        } else {
+            shares
+        }
+    }
 
     // Bouncy animated progresses mapped to each category share to allow smooth transitions
-    val animatedProgresses = shares.associate { share ->
-        val isSelected = selectedCategory?.categoryName == share.categoryName
+    val animatedProgresses = chartShares.associate { share ->
+        val isSelected = selectedCategory?.categoryName == share.categoryName ||
+                (share.categoryId == -99L && selectedCategory != null && smallShares.any { it.categoryId == selectedCategory.categoryId })
         share.categoryName to animateFloatAsState(
             targetValue = if (isSelected) 1f else 0f,
             animationSpec = spring(
@@ -394,20 +423,21 @@ fun InteractiveDonutCard(
             label = "anim_${share.categoryName}"
         ).value
     }
-    // Cache all share parsed colors once â€” avoids Color.parseColor on every animation frame
-    val parsedShareColors = remember(shares) {
-        shares.associate { share ->
+    // Cache all share parsed colors once including synthetic and small shares
+    val parsedShareColors = remember(shares, chartShares) {
+        val allShares = shares + chartShares
+        allShares.associate { share ->
             share.categoryName to (try { Color(android.graphics.Color.parseColor(share.color)) } catch (e: Exception) { null })
         }
     }
-    // Cache bar chart gradients per share â€” avoids Brush creation on every recomposition
+    // Cache bar chart gradients per share
     val parsedBarBrushes = remember(shares) {
         shares.associate { share ->
             val c = try { Color(android.graphics.Color.parseColor(share.color)) } catch (e: Exception) { Color.Gray }
             share.categoryName to Brush.verticalGradient(colors = listOf(c, c.copy(alpha = 0.5f)))
         }
     }
-    // Cache total amount â€” avoids sumOf traversal on every recomposition
+    // Cache total amount
     val totalAmount = remember(shares) { shares.sumOf { it.amount } }
 
     Card(
@@ -530,7 +560,7 @@ fun InteractiveDonutCard(
                 Box(
                     modifier = Modifier
                         .size(240.dp)
-                        .pointerInput(shares) {
+                        .pointerInput(chartShares) {
                             // Custom gesture handler: tap fires IMMEDIATELY on UP (no 500ms delay),
                             // long press fires after 400ms. This avoids detectTapGestures' built-in
                             // delay that blocks onTap when onLongPress is also registered.
@@ -561,7 +591,7 @@ fun InteractiveDonutCard(
                                             var currentAngle = 0f
                                             var bestMatch: CategoryShare? = null
                                             var bestDistance = Float.MAX_VALUE
-                                            for (share in shares) {
+                                            for (share in chartShares) {
                                                 val sweep = share.percentage * 360f
                                                 val center = currentAngle + sweep / 2f
                                                 if (chartAngle >= currentAngle && chartAngle < currentAngle + sweep) {
@@ -576,7 +606,13 @@ fun InteractiveDonutCard(
                                                 }
                                                 currentAngle += sweep
                                             }
-                                            if (bestMatch != null) onCategoryLongClick(bestMatch)
+                                            if (bestMatch != null) {
+                                                if (bestMatch.categoryId == -99L) {
+                                                    showOtherBottomSheet = true
+                                                } else {
+                                                    onCategoryLongClick(bestMatch)
+                                                }
+                                            }
                                         }
                                     }
                                     val event = withTimeoutOrNull(16) {
@@ -601,7 +637,7 @@ fun InteractiveDonutCard(
                                                 var currentAngle = 0f
                                                 var bestMatch: CategoryShare? = null
                                                 var bestDistance = Float.MAX_VALUE
-                                                for (share in shares) {
+                                                for (share in chartShares) {
                                                     val sweep = share.percentage * 360f
                                                     val center = currentAngle + sweep / 2f
                                                     if (chartAngle >= currentAngle && chartAngle < currentAngle + sweep) {
@@ -616,11 +652,15 @@ fun InteractiveDonutCard(
                                                     }
                                                     currentAngle += sweep
                                                 }
-                                                // Toggle: tap selected -> deselect, tap other -> select
-                                                onSelectedCategoryChange(
-                                                    if (bestMatch != null && selectedCategory?.categoryName == bestMatch.categoryName) null
-                                                    else bestMatch
-                                                )
+                                                if (bestMatch?.categoryId == -99L) {
+                                                    showOtherBottomSheet = true
+                                                } else {
+                                                    // Toggle: tap selected -> deselect, tap other -> select
+                                                    onSelectedCategoryChange(
+                                                        if (bestMatch != null && selectedCategory?.categoryName == bestMatch.categoryName) null
+                                                        else bestMatch
+                                                    )
+                                                }
                                             } else {
                                                 onSelectedCategoryChange(null)
                                             }
@@ -641,12 +681,13 @@ fun InteractiveDonutCard(
                         val outerRadius = centerX - 12.dp.toPx() // leave padding for pop-out
 
                         var currentAngle = -90f
-                        shares.forEachIndexed { index, share ->
+                        chartShares.forEachIndexed { index, share ->
                             val sweep = share.percentage * 360f
                             
                             val parseColor = parsedShareColors[share.categoryName] ?: themePrimaryColor
                             
-                            val isSelected = selectedCategory?.categoryName == share.categoryName
+                            val isSelected = selectedCategory?.categoryName == share.categoryName ||
+                                    (share.categoryId == -99L && selectedCategory != null && smallShares.any { it.categoryId == selectedCategory.categoryId })
                             val isActive = selectedCategory == null || isSelected
                             
                             val progress = animatedProgresses[share.categoryName] ?: 0f
@@ -679,7 +720,7 @@ fun InteractiveDonutCard(
                                 Math.toDegrees(asin((capRadius / r_mid).coerceIn(-1f, 1f).toDouble())).toFloat()
                             } else 0f
                             
-                            val gap = if (shares.size > 1) 2.5f else 0f
+                            val gap = if (chartShares.size > 1) 2.5f else 0f
                             val adjustedSweep = (sweep - gap).coerceAtLeast(0f)
                             
                             val maxCapAngle = adjustedSweep / 2f
@@ -720,6 +761,17 @@ fun InteractiveDonutCard(
                             val cat = selectedCategory
                             
                             Text(
+                                text = cat.categoryName,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextGray,
+                                    fontSize = 9.sp
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
                                 text = FormatterUtils.formatCurrency(cat.amount),
                                 style = MaterialTheme.typography.bodyMedium.copy(
                                     fontWeight = FontWeight.Black,
@@ -752,9 +804,10 @@ fun InteractiveDonutCard(
                     
                     // Category percentage labels drawn directly on top of the selected segment
                     var accumulatedAngle = 0f
-                    shares.forEach { share ->
+                    chartShares.forEach { share ->
                         val sweep = share.percentage * 360f
-                        val isSelected = selectedCategory?.categoryName == share.categoryName
+                        val isSelected = selectedCategory?.categoryName == share.categoryName ||
+                                (share.categoryId == -99L && selectedCategory != null && smallShares.any { it.categoryId == selectedCategory.categoryId })
                         
                         if (isSelected) {
                             val midAngle = -90f + accumulatedAngle + sweep / 2f
@@ -770,7 +823,11 @@ fun InteractiveDonutCard(
                             val badgeOffsetX = (finalRadiusDp.value * cos(rad)).toFloat().dp
                             val badgeOffsetY = (finalRadiusDp.value * sin(rad)).toFloat().dp
                             
-                            val parseColor = parsedShareColors[share.categoryName] ?: Primary
+                            val parseColor = if (share.categoryId == -99L && selectedCategory != null) {
+                                parsedShareColors[selectedCategory.categoryName] ?: Primary
+                            } else {
+                                parsedShareColors[share.categoryName] ?: Primary
+                            }
 
                             Box(
                                 modifier = Modifier
@@ -796,7 +853,11 @@ fun InteractiveDonutCard(
                                                 .background(parseColor, CircleShape)
                                         )
                                         Text(
-                                            text = "${share.categoryName} \u2022 ${(share.percentage * 100).toInt()}%",
+                                            text = if (share.categoryId == -99L && selectedCategory != null) {
+                                                "${selectedCategory.categoryName} \u2022 ${(selectedCategory.percentage * 100).toInt()}%"
+                                            } else {
+                                                "${share.categoryName} \u2022 ${(share.percentage * 100).toInt()}%"
+                                            },
                                             color = MaterialTheme.colorScheme.onSurface,
                                             style = MaterialTheme.typography.labelSmall.copy(
                                                 fontWeight = FontWeight.ExtraBold,
@@ -880,8 +941,9 @@ fun InteractiveDonutCard(
             Spacer(modifier = Modifier.height(28.dp))
 
             // Premium Grid-style Legend
+            val legendShares = if (isLegendExpanded) shares else shares.take(5)
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                shares.take(5).forEachIndexed { index, share ->
+                legendShares.forEachIndexed { index, share ->
                     val parseColor = parsedShareColors[share.categoryName] ?: MaterialTheme.colorScheme.primary
                     val isSelected = selectedCategory?.categoryName == share.categoryName
                     
@@ -951,6 +1013,122 @@ fun InteractiveDonutCard(
                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                         color = if (isSelected) parseColor else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (shares.size > 5) {
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = { isLegendExpanded = !isLegendExpanded },
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(vertical = 10.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = if (isLegendExpanded) "عرض أقل" else "عرض المزيد (+${shares.size - 5} فئات)",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(
+                            imageVector = if (isLegendExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+
+            if (showOtherBottomSheet && smallShares.isNotEmpty()) {
+                AppBottomSheet(
+                    onDismissRequest = { showOtherBottomSheet = false }
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                            .padding(bottom = 32.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = "الفئات الصغيرة الأخرى",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                            textAlign = TextAlign.Right
+                        )
+                        Text(
+                            text = "هذه الفئات تمثل أقل من 4% من إجمالي المصاريف وتم تجميعها لتسهيل قراءة المخطط الدائري.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextGray,
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                            textAlign = TextAlign.Right
+                        )
+                        
+                        smallShares.forEach { share ->
+                            val parseColor = parsedShareColors[share.categoryName] ?: MaterialTheme.colorScheme.primary
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                ),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onSelectedCategoryChange(share)
+                                        showOtherBottomSheet = false
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .clip(RoundedCornerShape(5.dp))
+                                            .background(parseColor)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Row(
+                                        modifier = Modifier.weight(1f),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = share.categoryName,
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Text(
+                                                text = FormatterUtils.formatCurrency(share.amount) + " دج",
+                                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.ExtraBold),
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = "${(share.percentage * 100).toInt()}%",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }

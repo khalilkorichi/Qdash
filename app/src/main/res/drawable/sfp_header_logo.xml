@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Algérie Poste Stylized Logo: Yellow and Blue flying swallow/envelope emblem -->
+    <path
+        android:fillColor="#FECC0B"
+        android:pathData="M12,18 C12,18 20,10 32,10 C34,10 36,12 36,14 C36,18 28,26 22,30 C20,31 18,31 16,30 L12,26 Z" />
+    <path
+        android:fillColor="#1565C0"
+        android:pathData="M16,30 C16,30 24,34 36,30 C38,29 40,27 38,25 C36,22 28,20 22,22 C20,23 18,24 16,26 L12,26 Z" />
+</vector>

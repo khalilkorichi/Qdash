@@ -36,6 +36,12 @@ data class DocumentSimulatorUiState(
     val sfpBeneficiaryPhone: String = "",
     val sfpPlace: String = "",
     val sfpDate: String = "",
+    val sfpIdDescription: String = "",
+    val sfpJustificatifCcp: Boolean = false,
+    val sfpAvisCredit: Boolean = false,
+    val sfpCarnetCheques: Boolean = false,
+    val sfpCodeConfidentiel: Boolean = false,
+    val sfpRip: Boolean = false,
     
     // Profile list
     val savedProfiles: List<PostalProfile> = emptyList(),
@@ -221,6 +227,36 @@ class DocumentSimulatorViewModel(
 
     fun updateSfpDate(value: String) {
         _uiState.update { it.copy(sfpDate = value) }
+        validateCurrentDocument()
+    }
+
+    fun updateSfpIdDescription(value: String) {
+        _uiState.update { it.copy(sfpIdDescription = value) }
+        validateCurrentDocument()
+    }
+
+    fun updateSfpJustificatifCcp(value: Boolean) {
+        _uiState.update { it.copy(sfpJustificatifCcp = value) }
+        validateCurrentDocument()
+    }
+
+    fun updateSfpAvisCredit(value: Boolean) {
+        _uiState.update { it.copy(sfpAvisCredit = value) }
+        validateCurrentDocument()
+    }
+
+    fun updateSfpCarnetCheques(value: Boolean) {
+        _uiState.update { it.copy(sfpCarnetCheques = value) }
+        validateCurrentDocument()
+    }
+
+    fun updateSfpCodeConfidentiel(value: Boolean) {
+        _uiState.update { it.copy(sfpCodeConfidentiel = value) }
+        validateCurrentDocument()
+    }
+
+    fun updateSfpRip(value: Boolean) {
+        _uiState.update { it.copy(sfpRip = value) }
         validateCurrentDocument()
     }
 
@@ -573,7 +609,7 @@ class DocumentSimulatorViewModel(
             }
         } else {
             when (fieldName) {
-                "sfpOperation" -> 0
+                "sfpOperation", "sfpJustificatifCcp", "sfpAvisCredit", "sfpCarnetCheques", "sfpCodeConfidentiel", "sfpRip" -> 0
                 "sfpCcp", "sfpKey" -> 1
                 "sfpAmount" -> 2
                 "sfpSenderNom", "sfpSenderPrenom", "sfpSenderName" -> 3
@@ -581,7 +617,7 @@ class DocumentSimulatorViewModel(
                 "sfpBeneficiaryNom", "sfpBeneficiaryPrenom", "sfpBeneficiaryName" -> 5
                 "sfpBeneficiaryAddress", "sfpBeneficiaryPhone" -> 6
                 "sfpPlace", "sfpDate" -> 7
-                "sfpSignature" -> 8
+                "sfpSignature", "sfpIdDescription" -> 8
                 else -> -1
             }
         }
