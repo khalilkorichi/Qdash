@@ -1,11 +1,12 @@
 {
-  "versionCode": 24,
-  "versionName": "1.0.0.24",
-  "updateIdentity": 125,
-  "publishedAt": "2026-06-24T12:39:24Z",
+  "versionCode": 25,
+  "versionName": "1.0.0.25",
+  "updateIdentity": 126,
+  "publishedAt": "2026-06-24T12:49:00Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 24413324,
-  "apkSha256": "32db301b3a4420bb14571dc4a81f245e47824e9cbe9718e5c43ba00f80c07deb",
+  "apkSize": 24375515,
+  "apkSha256": "24f98819bbf3a48f9eb4413bc73a8b18f35fe7302b35b2da9ef16c87d0b8a7a7",
   "mandatory": false,
-  "releaseNotes": "تحديث v1.0.0.24 (Build 125): إصلاح شعار التطبيق بالكامل — استبدال ملفات SVG المُحوَّلة تلقائيًا والتي كانت تعرض الشعار بشكل مشوَّه (خاصةً اليد داخل الشعار) بأصول PNG الرسمية الصادرة مباشرةً عن Figma. الأيقونة الآن صحيحة وكاملة في: (1) أيقونة التطبيق في Launcher (مربعة، دائرية، squircle) على جميع كثافات الشاشة من mdpi حتى xxxhdpi. (2) الأيقونة التكيفية (Adaptive Icon) على API 26+ بمستوى foreground و background صحيحَين. (3) أيقونة monochrome للـ Themed Icons على Android 13+. (4) شاشة Splash وشاشة الإعدادات (قسم عن التطبيق). (5) أيقونة الإشعارات تعرض شعارًا أبيض واضحًا في شريط الإشعارات."
+  "releaseNotes": "تحديث v1.0.0.25 (Build 126): تحويل شعار التطبيق بالكامل إلى أصول متجهة حقيقية (Vector Drawables) بدقة لانهائية تمنع البكسلة والضغط تمامًا. يحل هذا التحديث مشكلة جودة الشعار البصرية عبر: (1) تحويل أشكال الشعار واليد والتفاصيل من SVG الأصلي إلى ملفات XML متجهة نظيفة تُعرض محليًا دون بكسلة. (2) تحديث أيقونة التطبيق التكيفية (Adaptive Launcher Icon)، وأيقونة الإشعارات، والشعار داخل الواجهة (عن التطبيق والـ Splash) لتعتمد كليًا على الفيكتور الجديد."
 }
+
