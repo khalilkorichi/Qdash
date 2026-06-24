@@ -89,13 +89,13 @@ import kotlin.math.asin
 
 @Composable
 fun DonutChartSkeleton(modifier: Modifier = Modifier) {
-    Card(
+    AppCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        variant = CardVariant.SOLID,
+        shape = ShapeTokens.Xl,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -171,13 +171,11 @@ fun AnalyticsEmptyState(
     modifier: Modifier = Modifier
 ) {
     val Primary = MaterialTheme.colorScheme.primary
-    Card(
+    AppCard(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+        variant = CardVariant.SOLID,
+        shape = ShapeTokens.Xxl,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
     ) {
         Column(
             modifier = Modifier
@@ -237,13 +235,11 @@ fun AnalyticsEmptyState(
             }
 
             // Dotted Preview Placeholders (Visual Promise)
-            Card(
+            AppCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+                variant = CardVariant.SOLID,
+                shape = ShapeTokens.Xl,
+                backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -358,18 +354,16 @@ fun AnalyticsEmptyState(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Button(
+            AppButton(
                 onClick = onAddTransactionClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(46.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                modifier = Modifier.fillMaxWidth(),
+                variant = ButtonVariant.SOLID,
+                intent = ButtonIntent.PRIMARY,
+                shape = ShapeTokens.Lg
             ) {
                 Text(
                     text = "سجل أول معاملة الآن",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                 )
             }
         }
@@ -440,15 +434,13 @@ fun InteractiveDonutCard(
     // Cache total amount
     val totalAmount = remember(shares) { shares.sumOf { it.amount } }
 
-    Card(
+    AppCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+        variant = CardVariant.SOLID,
+        shape = ShapeTokens.Xxl,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(
             modifier = Modifier.padding(24.dp),
@@ -947,18 +939,13 @@ fun InteractiveDonutCard(
                     val parseColor = parsedShareColors[share.categoryName] ?: MaterialTheme.colorScheme.primary
                     val isSelected = selectedCategory?.categoryName == share.categoryName
                     
-                    Card(
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isSelected) parseColor.copy(alpha = 0.07f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                        ),
-                        border = BorderStroke(
-                            width = if (isSelected) 1.5.dp else 1.dp,
-                            color = if (isSelected) parseColor.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f)
-                        ),
+                    AppCard(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSelectedCategoryChange(if (selectedCategory?.categoryName == share.categoryName) null else share) }
+                            .fillMaxWidth(),
+                        variant = CardVariant.SOLID,
+                        shape = ShapeTokens.Lg,
+                        backgroundColor = if (isSelected) parseColor.copy(alpha = 0.07f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        onClick = { onSelectedCategoryChange(if (selectedCategory?.categoryName == share.categoryName) null else share) }
                     ) {
                         Row(
                             modifier = Modifier
@@ -1022,31 +1009,24 @@ fun InteractiveDonutCard(
             
             if (shares.size > 5) {
                 Spacer(modifier = Modifier.height(12.dp))
-                OutlinedButton(
+                AppButton(
                     onClick = { isLegendExpanded = !isLegendExpanded },
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    variant = ButtonVariant.BORDERED,
+                    intent = ButtonIntent.PRIMARY,
+                    shape = ShapeTokens.Lg,
                     modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(vertical = 10.dp)
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = if (isLegendExpanded) "عرض أقل" else "عرض المزيد (+${shares.size - 5} فئات)",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
+                    trailingIcon = {
                         Icon(
                             imageVector = if (isLegendExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
                     }
+                ) {
+                    Text(
+                        text = if (isLegendExpanded) "عرض أقل" else "عرض المزيد (+${shares.size - 5} فئات)",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                    )
                 }
             }
 
@@ -1077,18 +1057,16 @@ fun InteractiveDonutCard(
                         
                         smallShares.forEach { share ->
                             val parseColor = parsedShareColors[share.categoryName] ?: MaterialTheme.colorScheme.primary
-                            Card(
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                                ),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f)),
+                            AppCard(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        onSelectedCategoryChange(share)
-                                        showOtherBottomSheet = false
-                                    }
+                                    .fillMaxWidth(),
+                                variant = CardVariant.SOLID,
+                                shape = ShapeTokens.Lg,
+                                backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                onClick = {
+                                    onSelectedCategoryChange(share)
+                                    showOtherBottomSheet = false
+                                }
                             ) {
                                 Row(
                                     modifier = Modifier
@@ -1353,15 +1331,13 @@ fun SmartDateNavigator(
 fun SavingsChallengesSection(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     
-    Card(
+    AppCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+        variant = CardVariant.SOLID,
+        shape = ShapeTokens.Xxl,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -1400,13 +1376,11 @@ fun SavingsChallengesSection(modifier: Modifier = Modifier) {
             }
 
             // Challenge 1: 52-Week Challenge
-            Card(
+            AppCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+                variant = CardVariant.SOLID,
+                shape = ShapeTokens.Xl,
+                backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -1483,7 +1457,7 @@ fun SavingsChallengesSection(modifier: Modifier = Modifier) {
                         )
                     }
 
-                    Button(
+                    AppButton(
                         onClick = {
                             Toast.makeText(
                                 context,
@@ -1491,11 +1465,10 @@ fun SavingsChallengesSection(modifier: Modifier = Modifier) {
                                 Toast.LENGTH_SHORT
                             ).show()
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(38.dp),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = SavingsAmber)
+                        modifier = Modifier.fillMaxWidth(),
+                        variant = ButtonVariant.SOLID,
+                        intent = ButtonIntent.WARNING,
+                        shape = ShapeTokens.Md
                     ) {
                         Text(
                             text = "+ ادخر 500 دج لهذا الأسبوع",
@@ -1507,13 +1480,11 @@ fun SavingsChallengesSection(modifier: Modifier = Modifier) {
             }
 
             // Challenge 2: Spare Change Round-Up
-            Card(
+            AppCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+                variant = CardVariant.SOLID,
+                shape = ShapeTokens.Xl,
+                backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -1575,7 +1546,7 @@ fun SavingsChallengesSection(modifier: Modifier = Modifier) {
                             )
                         }
 
-                        Button(
+                        AppButton(
                             onClick = {
                                 Toast.makeText(
                                     context,
@@ -1583,9 +1554,9 @@ fun SavingsChallengesSection(modifier: Modifier = Modifier) {
                                     Toast.LENGTH_SHORT
                                 ).show()
                             },
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = IncomeGreen),
-                            modifier = Modifier.height(38.dp)
+                            variant = ButtonVariant.SOLID,
+                            intent = ButtonIntent.SUCCESS,
+                            shape = ShapeTokens.Md
                         ) {
                             Text(
                                 text = "تحويل للمدخرات",
@@ -1620,21 +1591,11 @@ fun SimplePeriodEmptyState(
         else    -> Icons.Default.DateRange
     }
 
-    Card(
+    AppCard(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        ),
-        border = BorderStroke(
-            width = 1.dp,
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    Primary.copy(alpha = 0.25f),
-                    Primary.copy(alpha = 0.05f)
-                )
-            )
-        )
+        variant = CardVariant.SOLID,
+        shape = ShapeTokens.Xxl,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
     ) {
         Column(
             modifier = Modifier
@@ -1697,13 +1658,11 @@ fun SimplePeriodEmptyState(
             }
 
             // Tips Box
-            Card(
+            AppCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)
-                ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.1f))
+                variant = CardVariant.SOLID,
+                shape = ShapeTokens.Lg,
+                backgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)
             ) {
                 Row(
                     modifier = Modifier
@@ -1730,18 +1689,16 @@ fun SimplePeriodEmptyState(
             Spacer(modifier = Modifier.height(4.dp))
 
             // Call to Action
-            Button(
+            AppButton(
                 onClick = onAddTransactionClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                modifier = Modifier.fillMaxWidth(),
+                variant = ButtonVariant.SOLID,
+                intent = ButtonIntent.PRIMARY,
+                shape = ShapeTokens.Lg
             ) {
                 Text(
                     text = "+ تسجيل معاملة $periodLabel",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                 )
             }
         }
@@ -1778,15 +1735,13 @@ fun EmergencyFundCard(
 ) {
     if (uiState.spendingsByCategory.isEmpty()) return
 
-    Card(
+    AppCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+        variant = CardVariant.SOLID,
+        shape = ShapeTokens.Xxl,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -1941,15 +1896,13 @@ fun SalaryCycleCard(
 ) {
     if (uiState.selectedPeriod != "MONTH" || uiState.spendingsByCategory.isEmpty()) return
 
-    Card(
+    AppCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+        variant = CardVariant.SOLID,
+        shape = ShapeTokens.Xxl,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -2111,15 +2064,13 @@ fun WeekendWeekdayCard(
 ) {
     if (!uiState.hasWeekendData || uiState.spendingsByCategory.isEmpty()) return
 
-    Card(
+    AppCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+        variant = CardVariant.SOLID,
+        shape = ShapeTokens.Xxl,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(
             modifier = Modifier.padding(20.dp),

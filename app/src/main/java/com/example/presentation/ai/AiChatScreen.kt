@@ -35,6 +35,8 @@ import com.example.presentation.ai.components.ChatBubbleItem
 import com.example.presentation.ai.components.SpeechRecognizerHelper
 import com.example.presentation.ai.components.AppErrorBanner
 import com.example.ui.theme.TextGray
+import com.example.ui.designsystem.components.*
+import com.example.ui.designsystem.tokens.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -469,12 +471,10 @@ fun AiChatScreen(
                         contentPadding = PaddingValues(end = 16.dp)
                     ) {
                         items(uiState.proactiveInsights) { insight ->
-                            Card(
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
-                                ),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                            AppCard(
+                                shape = ShapeTokens.Md,
+                                variant = CardVariant.FLAT,
+                                backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
                                 modifier = Modifier.width(300.dp)
                             ) {
                                 Row(
@@ -662,13 +662,13 @@ fun AiChatScreen(
                             .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedTextField(
+                        AppInput(
                             value = uiState.inputText,
                             onValueChange = { viewModel.setInputText(it) },
-                            placeholder = { Text("تحدث مع المساعد المالي...") },
+                            placeholder = "تحدث مع المساعد المالي...",
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(24.dp),
-                            maxLines = 3,
+                            singleLine = false,
                             leadingIcon = {
                                 val micColor = if (isListening) Color.Red else MaterialTheme.colorScheme.primary
                                 IconButton(

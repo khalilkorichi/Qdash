@@ -3,6 +3,8 @@ package com.example.presentation.savings
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -35,6 +37,8 @@ import com.example.domain.model.SavingsContribution
 import com.example.domain.model.SavingsContributionType
 import com.example.ui.theme.*
 import com.example.ui.designsystem.components.*
+import com.example.ui.designsystem.tokens.ColorTokens
+import com.example.ui.designsystem.tokens.ShapeTokens
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -197,21 +201,19 @@ fun SavingsScreen(
                     title = { Text("إنشاء هدف ادخاري جديد", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
                     text = {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            OutlinedTextField(
+                            AppInput(
                                 value = goalName,
                                 onValueChange = { goalName = it },
-                                label = { Text("اسم الهدف الادخاري") },
-                                placeholder = { Text("مثال: سيارة جديدة، صندوق طوارئ") },
-                                modifier = Modifier.fillMaxWidth()
+                                label = "اسم الهدف الادخاري",
+                                placeholder = "مثال: سيارة جديدة، صندوق طوارئ"
                             )
 
-                            OutlinedTextField(
+                            AppInput(
                                 value = goalTarget,
                                 onValueChange = { goalTarget = it },
-                                label = { Text("المبلغ المستهدف (د.ج)") },
+                                label = "المبلغ المستهدف (د.ج)",
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation(),
-                                modifier = Modifier.fillMaxWidth()
+                                visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation()
                             )
 
                             // Associated Account Selector
@@ -219,15 +221,15 @@ fun SavingsScreen(
                             Box {
                                 var expanded by remember { mutableStateOf(false) }
                                 val selectedAccountName = uiState.accounts.find { it.id == selectedAccountId }?.name ?: "اختر الحساب"
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { expanded = true },
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                AppCard(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    variant = CardVariant.FLAT,
+                                    onClick = { expanded = true }
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(12.dp).fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(selectedAccountName)
                                         Icon(Icons.Default.ArrowDropDown, null)
@@ -258,17 +260,24 @@ fun SavingsScreen(
                                     Triple("weekly", "أسبوعي", IncomeGreen)
                                 ).forEach { (id, label, color) ->
                                     val isSelected = goalStrategy == id
-                                    Button(
-                                        onClick = { goalStrategy = id },
-                                        modifier = Modifier.weight(1f),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = if (isSelected) color else MaterialTheme.colorScheme.surfaceVariant,
-                                            contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                                        ),
-                                        contentPadding = PaddingValues(4.dp),
-                                        shape = RoundedCornerShape(8.dp)
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(
+                                                if (isSelected) color
+                                                else MaterialTheme.colorScheme.surfaceVariant
+                                            )
+                                            .clickable { goalStrategy = id }
+                                            .padding(vertical = 8.dp),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Text(label, fontSize = 11.sp)
+                                        Text(
+                                            text = label,
+                                            fontSize = 11.sp,
+                                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                        )
                                     }
                                 }
                             }
@@ -299,7 +308,7 @@ fun SavingsScreen(
                         }
                     },
                     confirmButton = {
-                        Button(
+                        AppButton(
                             onClick = {
                                 val target = FormatterUtils.normalizeAmount(goalTarget).toDoubleOrNull() ?: 0.0
                                 if (goalName.isBlank()) {
@@ -321,14 +330,22 @@ fun SavingsScreen(
                                     showAddGoalDialog = false
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = SavingsAmber)
+                            variant = ButtonVariant.SOLID,
+                            intent = ButtonIntent.PRIMARY
                         ) {
-                            Text("تأكيد الإنشاء")
+                            Text("تأكيد الإنشاء", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showAddGoalDialog = false }) { Text("إلغاء") }
-                    }
+                        AppButton(
+                            onClick = { showAddGoalDialog = false },
+                            variant = ButtonVariant.LIGHT,
+                            intent = ButtonIntent.PRIMARY
+                        ) {
+                            Text("إلغاء", fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             }
 
@@ -339,20 +356,18 @@ fun SavingsScreen(
                     title = { Text("تعديل الهدف الادخاري", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
                     text = {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            OutlinedTextField(
+                            AppInput(
                                 value = goalName,
                                 onValueChange = { goalName = it },
-                                label = { Text("اسم الهدف الادخاري") },
-                                modifier = Modifier.fillMaxWidth()
+                                label = "اسم الهدف الادخاري"
                             )
 
-                            OutlinedTextField(
+                            AppInput(
                                 value = goalTarget,
                                 onValueChange = { goalTarget = it },
-                                label = { Text("المبلغ المستهدف (د.ج)") },
+                                label = "المبلغ المستهدف (د.ج)",
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation(),
-                                modifier = Modifier.fillMaxWidth()
+                                visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation()
                             )
 
                             // Accent colors Selection
@@ -379,7 +394,7 @@ fun SavingsScreen(
                         }
                     },
                     confirmButton = {
-                        Button(
+                        AppButton(
                             onClick = {
                                 val target = FormatterUtils.normalizeAmount(goalTarget).toDoubleOrNull() ?: 0.0
                                 if (goalName.isBlank()) {
@@ -401,14 +416,23 @@ fun SavingsScreen(
                                     )
                                     showEditGoalDialog = null
                                 }
-                            }
+                            },
+                            variant = ButtonVariant.SOLID,
+                            intent = ButtonIntent.PRIMARY
                         ) {
-                            Text("حفظ التغييرات")
+                            Text("حفظ التغييرات", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showEditGoalDialog = null }) { Text("إلغاء") }
-                    }
+                        AppButton(
+                            onClick = { showEditGoalDialog = null },
+                            variant = ButtonVariant.LIGHT,
+                            intent = ButtonIntent.PRIMARY
+                        ) {
+                            Text("إلغاء", fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             }
 
@@ -421,30 +445,27 @@ fun SavingsScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text("الهدف: ${goal.name}", fontWeight = FontWeight.Medium, color = SavingsAmber)
                             
-                            OutlinedTextField(
+                            AppInput(
                                 value = contributionAmount,
                                 onValueChange = { contributionAmount = it },
-                                label = { Text("مبلغ الإيداع (د.ج)") },
+                                label = "مبلغ الإيداع (د.ج)",
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation(),
-                                modifier = Modifier.fillMaxWidth()
+                                visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation()
                             )
 
-                            OutlinedTextField(
+                            AppInput(
                                 value = contributionNote,
                                 onValueChange = { contributionNote = it },
-                                label = { Text("ملاحظات (اختياري)") },
-                                placeholder = { Text("مثال: من علاوة هذا الشهر") },
-                                modifier = Modifier.fillMaxWidth()
+                                label = "ملاحظات (اختياري)",
+                                placeholder = "مثال: من علاوة هذا الشهر"
                             )
 
                             // --- DATE SELECTOR CARD ---
                             Text("تاريخ عملية الإيداع:", style = MaterialTheme.typography.labelSmall)
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { showContribDatePicker = true },
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            AppCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                variant = CardVariant.FLAT,
+                                onClick = { showContribDatePicker = true }
                             ) {
                                 Row(
                                     modifier = Modifier.padding(12.dp).fillMaxWidth(),
@@ -464,39 +485,12 @@ fun SavingsScreen(
                             }
 
                             if (showContribDatePicker) {
-                                val datePickerState = rememberDatePickerState(
-                                    initialSelectedDateMillis = contributionDate
-                                )
-                                DatePickerDialog(
+                                AppDatePickerDialog(
+                                    initialSelectedDateMillis = contributionDate,
                                     onDismissRequest = { showContribDatePicker = false },
-                                    confirmButton = {
-                                        TextButton(
-                                            onClick = {
-                                                datePickerState.selectedDateMillis?.let {
-                                                    contributionDate = it
-                                                }
-                                                showContribDatePicker = false
-                                            }
-                                        ) {
-                                            Text("موافق", color = SavingsAmber, fontWeight = FontWeight.Bold)
-                                        }
-                                    },
-                                    dismissButton = {
-                                        TextButton(onClick = { showContribDatePicker = false }) {
-                                            Text("إلغاء", color = TextGray)
-                                        }
-                                    }
-                                ) {
-                                    DatePicker(
-                                        state = datePickerState,
-                                        colors = DatePickerDefaults.colors(
-                                            selectedDayContainerColor = SavingsAmber,
-                                            selectedDayContentColor = Color.White,
-                                            todayContentColor = SavingsAmber,
-                                            todayDateBorderColor = SavingsAmber
-                                        )
-                                    )
-                                }
+                                    onDateSelected = { contributionDate = it },
+                                    confirmButtonColor = SavingsAmber
+                                )
                             }
 
                             // Source account selector
@@ -504,11 +498,10 @@ fun SavingsScreen(
                             Box {
                                 var expanded by remember { mutableStateOf(false) }
                                 val selectedAccountName = uiState.accounts.find { it.id == selectedContribAccountId }?.name ?: "اختر الحساب"
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { expanded = true },
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                AppCard(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    variant = CardVariant.FLAT,
+                                    onClick = { expanded = true }
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(12.dp).fillMaxWidth(),
@@ -534,7 +527,7 @@ fun SavingsScreen(
                         }
                     },
                     confirmButton = {
-                        Button(
+                        AppButton(
                             onClick = {
                                 val amount = FormatterUtils.normalizeAmount(contributionAmount).toDoubleOrNull() ?: 0.0
                                 if (contributionAmount.isBlank() || amount <= 0.0) {
@@ -553,14 +546,22 @@ fun SavingsScreen(
                                     showDepositDialog = null
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = SavingsAmber)
+                            variant = ButtonVariant.SOLID,
+                            intent = ButtonIntent.PRIMARY
                         ) {
-                            Text("إيداع الآن")
+                            Text("إيداع الآن", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showDepositDialog = null }) { Text("إلغاء") }
-                    }
+                        AppButton(
+                            onClick = { showDepositDialog = null },
+                            variant = ButtonVariant.LIGHT,
+                            intent = ButtonIntent.PRIMARY
+                        ) {
+                            Text("إلغاء", fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             }
 
@@ -574,30 +575,27 @@ fun SavingsScreen(
                             Text("الهدف: ${goal.name}", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.error)
                             Text("المبلغ المدخر المتوفر: ${goal.currentAmount.toInt()} د.ج", style = MaterialTheme.typography.bodySmall)
 
-                            OutlinedTextField(
+                            AppInput(
                                 value = contributionAmount,
                                 onValueChange = { contributionAmount = it },
-                                label = { Text("مبلغ السحب (د.ج)") },
+                                label = "مبلغ السحب (د.ج)",
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation(),
-                                modifier = Modifier.fillMaxWidth()
+                                visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation()
                             )
 
-                            OutlinedTextField(
+                            AppInput(
                                 value = contributionNote,
                                 onValueChange = { contributionNote = it },
-                                label = { Text("السبب والسحب إلى") },
-                                placeholder = { Text("مثال: لتغطية ظرف طارئ") },
-                                modifier = Modifier.fillMaxWidth()
+                                label = "السبب والسحب إلى",
+                                placeholder = "مثال: لتغطية ظرف طارئ"
                             )
 
                             // --- DATE SELECTOR CARD ---
                             Text("تاريخ عملية السحب:", style = MaterialTheme.typography.labelSmall)
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { showContribDatePicker = true },
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            AppCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                variant = CardVariant.FLAT,
+                                onClick = { showContribDatePicker = true }
                             ) {
                                 Row(
                                     modifier = Modifier.padding(12.dp).fillMaxWidth(),
@@ -617,39 +615,12 @@ fun SavingsScreen(
                             }
 
                             if (showContribDatePicker) {
-                                val datePickerState = rememberDatePickerState(
-                                    initialSelectedDateMillis = contributionDate
-                                )
-                                DatePickerDialog(
+                                AppDatePickerDialog(
+                                    initialSelectedDateMillis = contributionDate,
                                     onDismissRequest = { showContribDatePicker = false },
-                                    confirmButton = {
-                                        TextButton(
-                                            onClick = {
-                                                datePickerState.selectedDateMillis?.let {
-                                                    contributionDate = it
-                                                }
-                                                showContribDatePicker = false
-                                            }
-                                        ) {
-                                            Text("موافق", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
-                                        }
-                                    },
-                                    dismissButton = {
-                                        TextButton(onClick = { showContribDatePicker = false }) {
-                                            Text("إلغاء", color = TextGray)
-                                        }
-                                    }
-                                ) {
-                                    DatePicker(
-                                        state = datePickerState,
-                                        colors = DatePickerDefaults.colors(
-                                            selectedDayContainerColor = MaterialTheme.colorScheme.error,
-                                            selectedDayContentColor = Color.White,
-                                            todayContentColor = MaterialTheme.colorScheme.error,
-                                            todayDateBorderColor = MaterialTheme.colorScheme.error
-                                        )
-                                    )
-                                }
+                                    onDateSelected = { contributionDate = it },
+                                    confirmButtonColor = MaterialTheme.colorScheme.error
+                                )
                             }
 
                             // Target account selector
@@ -657,11 +628,10 @@ fun SavingsScreen(
                             Box {
                                 var expanded by remember { mutableStateOf(false) }
                                 val selectedAccountName = uiState.accounts.find { it.id == selectedContribAccountId }?.name ?: "اختر الحساب"
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { expanded = true },
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                AppCard(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    variant = CardVariant.FLAT,
+                                    onClick = { expanded = true }
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(12.dp).fillMaxWidth(),
@@ -687,7 +657,7 @@ fun SavingsScreen(
                         }
                     },
                     confirmButton = {
-                        Button(
+                        AppButton(
                             onClick = {
                                 val amount = FormatterUtils.normalizeAmount(contributionAmount).toDoubleOrNull() ?: 0.0
                                 if (contributionAmount.isBlank() || amount <= 0.0) {
@@ -708,14 +678,22 @@ fun SavingsScreen(
                                     showWithdrawDialog = null
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                            variant = ButtonVariant.SOLID,
+                            intent = ButtonIntent.DANGER
                         ) {
-                            Text("سحب الأموال")
+                            Text("سحب الأموال", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showWithdrawDialog = null }) { Text("إلغاء") }
-                    }
+                        AppButton(
+                            onClick = { showWithdrawDialog = null },
+                            variant = ButtonVariant.LIGHT,
+                            intent = ButtonIntent.PRIMARY
+                        ) {
+                            Text("إلغاء", fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             }
         }
@@ -741,12 +719,13 @@ fun SavingsDashboardContent(
     ) {
         // SAVINGS METRICS OVERVIEW CARD
         item {
-            Card(
+            AppCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                variant = CardVariant.SOLID,
+                shape = ShapeTokens.Xxl,
+                backgroundColor = Color.Transparent
             ) {
                 val totalSaved = uiState.goals.sumOf { it.currentAmount }
                 val totalTarget = uiState.goals.sumOf { it.targetAmount }
@@ -818,10 +797,11 @@ fun SavingsDashboardContent(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     uiState.insights.take(2).forEach { insight ->
-                        Card(
+                        AppCard(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
-                            shape = RoundedCornerShape(12.dp)
+                            variant = CardVariant.SOLID,
+                            shape = ShapeTokens.Lg,
+                            backgroundColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -864,10 +844,13 @@ fun SavingsDashboardContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("أهدافك الادخارية الحالية", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                TextButton(onClick = onCreateGoalClick) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("أضف هدفاً")
+                AppButton(
+                    onClick = onCreateGoalClick,
+                    variant = ButtonVariant.LIGHT,
+                    intent = ButtonIntent.PRIMARY,
+                    leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                ) {
+                    Text("أضف هدفاً", fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -887,12 +870,12 @@ fun SavingsDashboardContent(
                 val badgeColor = runCatching { Color(android.graphics.Color.parseColor(colorHex)) }.getOrDefault(SavingsAmber)
                 val isPaused = viewModel.isGoalPaused(goal.id)
 
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onSelectGoal(goal) },
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                AppCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    variant = CardVariant.SOLID,
+                    shape = ShapeTokens.Xl,
+                    onClick = { onSelectGoal(goal) },
+                    backgroundColor = MaterialTheme.colorScheme.surface
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
@@ -995,10 +978,11 @@ fun GoalDetailsContent(
     ) {
         // DETAIL METRIC ROUND-UP CARD
         item {
-            Card(
+            AppCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                variant = CardVariant.SOLID,
+                shape = ShapeTokens.Xxl,
+                backgroundColor = MaterialTheme.colorScheme.surface
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(
@@ -1076,10 +1060,11 @@ fun GoalDetailsContent(
 
         // AI PREDICTIVE FORECAST TIMELINE
         item {
-            Card(
+            AppCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                variant = CardVariant.SOLID,
+                shape = ShapeTokens.Xl,
+                backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
@@ -1102,77 +1087,90 @@ fun GoalDetailsContent(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Button(
+                AppButton(
                     onClick = onAddDeposit,
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = IncomeGreen),
-                    shape = RoundedCornerShape(12.dp)
+                    variant = ButtonVariant.SOLID,
+                    intent = ButtonIntent.SUCCESS,
+                    shape = ShapeTokens.Lg,
+                    leadingIcon = { Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp)) }
                 ) {
-                    Icon(Icons.Default.Add, null)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("إيداع الآن", fontSize = 12.sp)
+                    Text("إيداع الآن", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
-                Button(
+                AppButton(
                     onClick = onWithdraw,
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                    shape = RoundedCornerShape(12.dp)
+                    variant = ButtonVariant.SOLID,
+                    intent = ButtonIntent.DANGER,
+                    shape = ShapeTokens.Lg,
+                    leadingIcon = { Icon(Icons.Default.Remove, null, modifier = Modifier.size(18.dp)) }
                 ) {
-                    Icon(Icons.Default.Remove, null)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("سحب مدخرات", fontSize = 12.sp)
+                    Text("سحب مدخرات", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
 
         // ADVANCED STRATEGIC CONTROL ROW
         item {
-            Card(
+            AppCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                variant = CardVariant.SOLID,
+                shape = ShapeTokens.Lg
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp),
-                    horizontalArrangement = Arrangement.SpaceAround,
+                        .padding(8.dp)
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Edit Button
-                    TextButton(onClick = onEdit) {
-                        Icon(Icons.Default.Edit, "تعديل", modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("تعديل", fontSize = 12.sp)
+                    AppButton(
+                        onClick = onEdit,
+                        variant = ButtonVariant.LIGHT,
+                        intent = ButtonIntent.PRIMARY,
+                        leadingIcon = { Icon(Icons.Default.Edit, "تعديل", modifier = Modifier.size(18.dp)) }
+                    ) {
+                        Text("تعديل", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
 
                     // Pause Button
-                    TextButton(onClick = { viewModel.togglePauseGoal(goal.id) }) {
-                        Icon(
-                            imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                            contentDescription = "تعليق تجميد",
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(if (isPaused) "تنشيط" else "تعليق مؤقت", fontSize = 12.sp)
+                    AppButton(
+                        onClick = { viewModel.togglePauseGoal(goal.id) },
+                        variant = ButtonVariant.LIGHT,
+                        intent = ButtonIntent.PRIMARY,
+                        leadingIcon = {
+                            Icon(
+                                imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                                contentDescription = "تعليق تجميد",
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    ) {
+                        Text(if (isPaused) "تنشيط" else "تعليق مؤقت", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
 
                     // Mark completed
                     if (!goal.isCompleted) {
-                        TextButton(onClick = { viewModel.markGoalCompleted(goal.id) }) {
-                            Icon(Icons.Default.CheckCircle, "حل", modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("اكتمال الهدف", fontSize = 12.sp)
+                        AppButton(
+                            onClick = { viewModel.markGoalCompleted(goal.id) },
+                            variant = ButtonVariant.LIGHT,
+                            intent = ButtonIntent.SUCCESS,
+                            leadingIcon = { Icon(Icons.Default.CheckCircle, "حل", modifier = Modifier.size(18.dp)) }
+                        ) {
+                            Text("اكتمال الهدف", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
 
                     // Delete Button
-                    TextButton(
+                    AppButton(
                         onClick = { viewModel.deleteGoal(goal.id) },
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                        variant = ButtonVariant.LIGHT,
+                        intent = ButtonIntent.DANGER,
+                        leadingIcon = { Icon(Icons.Default.Delete, "حذف", modifier = Modifier.size(18.dp)) }
                     ) {
-                        Icon(Icons.Default.Delete, "حذف", modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("حذف المشروع", fontSize = 12.sp)
+                        Text("حذف المشروع", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -1185,10 +1183,11 @@ fun GoalDetailsContent(
 
         if (uiState.selectedGoalHistory.isEmpty()) {
             item {
-                Card(
+                AppCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    variant = CardVariant.SOLID,
+                    shape = ShapeTokens.Lg,
+                    backgroundColor = MaterialTheme.colorScheme.surface
                 ) {
                     Box(modifier = Modifier.padding(24.dp), contentAlignment = Alignment.Center) {
                         Text("لم يتم تسجيل أي إيداعات أو سحوبات بعد في هذا الهدف الادخاري.", textAlign = TextAlign.Center, color = TextGray)
@@ -1203,10 +1202,11 @@ fun GoalDetailsContent(
                 val iconValue = if (isDeposit) Icons.Default.VerticalAlignBottom else Icons.Default.VerticalAlignTop
                 val bgValue = if (isDeposit) IncomeGreen.copy(alpha = 0.1f) else Color.Red.copy(alpha = 0.1f)
 
-                Card(
+                AppCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    variant = CardVariant.SOLID,
+                    shape = ShapeTokens.Lg,
+                    backgroundColor = MaterialTheme.colorScheme.surface
                 ) {
                     Row(
                         modifier = Modifier
@@ -1263,10 +1263,11 @@ private fun SavingsDashboardSkeleton(modifier: Modifier = Modifier) {
     ) {
         // Total savings overview card skeleton
         item {
-            Card(
+            AppCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                variant = CardVariant.SOLID,
+                shape = ShapeTokens.Xxl,
+                backgroundColor = MaterialTheme.colorScheme.surfaceVariant
             ) {
                 Box(
                     modifier = Modifier
@@ -1281,12 +1282,13 @@ private fun SavingsDashboardSkeleton(modifier: Modifier = Modifier) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 repeat(2) {
-                    Card(
+                    AppCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(64.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        variant = CardVariant.SOLID,
+                        shape = ShapeTokens.Lg,
+                        backgroundColor = MaterialTheme.colorScheme.surface
                     ) {
                         Box(
                             modifier = Modifier
@@ -1322,9 +1324,10 @@ private fun SavingsDashboardSkeleton(modifier: Modifier = Modifier) {
 
         // Goal card skeletons
         items(2) {
-            Card(
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            AppCard(
+                shape = ShapeTokens.Xl,
+                variant = CardVariant.SOLID,
+                backgroundColor = MaterialTheme.colorScheme.surface,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(140.dp)

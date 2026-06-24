@@ -34,6 +34,9 @@ import com.example.domain.model.Debt
 import com.example.domain.model.DebtPayment
 import com.example.domain.model.DebtPaymentType
 import com.example.ui.theme.*
+import com.example.ui.designsystem.components.*
+import com.example.ui.designsystem.tokens.ColorTokens
+import com.example.ui.designsystem.tokens.ShapeTokens
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.ui.platform.LocalContext
@@ -177,47 +180,44 @@ fun DebtsScreen(
                     title = { Text("تسجيل التزام مالي / دين جديد", fontWeight = FontWeight.Bold) },
                     text = {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            OutlinedTextField(
+                            AppInput(
                                 value = title,
                                 onValueChange = { title = it },
-                                label = { Text("عنوان التزام الدين") },
-                                placeholder = { Text("مثال: قرض السيارة، سلفة عائلية") },
-                                modifier = Modifier.fillMaxWidth()
+                                label = "عنوان التزام الدين",
+                                placeholder = "مثال: قرض السيارة، سلفة عائلية"
                             )
 
-                            OutlinedTextField(
+                            AppInput(
                                 value = creditorName,
                                 onValueChange = { creditorName = it },
-                                label = { Text("اسم الدائن / الجهة") },
-                                modifier = Modifier.fillMaxWidth()
+                                label = "اسم الدائن / الجهة"
                             )
 
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedTextField(
+                                AppInput(
                                     value = totalAmount,
                                     onValueChange = { totalAmount = it },
-                                    label = { Text("المبلغ (د.ج)") },
+                                    label = "المبلغ (د.ج)",
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation(),
                                     modifier = Modifier.weight(1.5f)
                                 )
 
-                                OutlinedTextField(
+                                AppInput(
                                     value = interestRate,
                                     onValueChange = { interestRate = it },
-                                    label = { Text("النسبة %") },
+                                    label = "النسبة %",
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     modifier = Modifier.weight(1f)
                                 )
                             }
 
-                            OutlinedTextField(
+                            AppInput(
                                 value = minimumPayment,
                                 onValueChange = { minimumPayment = it },
-                                label = { Text("القسط الشهري الأدنى (د.ج)") },
+                                label = "القسط الشهري الأدنى (د.ج)",
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation(),
-                                modifier = Modifier.fillMaxWidth()
+                                visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation()
                             )
 
                             // Priority Selector
@@ -228,23 +228,31 @@ fun DebtsScreen(
                             ) {
                                 listOf("1" to "طارئ", "3" to "متوسط", "5" to "مرن").forEach { (id, label) ->
                                     val isSelected = priority == id
-                                    Button(
-                                        onClick = { priority = id },
-                                        modifier = Modifier.weight(1f),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = if (isSelected) ExpenseRed else MaterialTheme.colorScheme.surfaceVariant,
-                                            contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                                        ),
-                                        contentPadding = PaddingValues(2.dp)
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(
+                                                if (isSelected) ExpenseRed
+                                                else MaterialTheme.colorScheme.surfaceVariant
+                                            )
+                                            .clickable { priority = id }
+                                            .padding(vertical = 8.dp),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Text(label, fontSize = 11.sp)
+                                        Text(
+                                            text = label,
+                                            fontSize = 11.sp,
+                                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                        )
                                     }
                                 }
                             }
                         }
                     },
                     confirmButton = {
-                        Button(
+                        AppButton(
                             onClick = {
                                 val total = totalAmount.toDoubleOrNull() ?: 0.0
                                 val minPay = minimumPayment.toDoubleOrNull() ?: 0.0
@@ -271,14 +279,22 @@ fun DebtsScreen(
                                     showAddDebtDialog = false
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = ExpenseRed)
+                            variant = ButtonVariant.SOLID,
+                            intent = ButtonIntent.DANGER
                         ) {
-                            Text("حفظ الدين")
+                            Text("حفظ الدين", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showAddDebtDialog = false }) { Text("إلغاء") }
-                    }
+                        AppButton(
+                            onClick = { showAddDebtDialog = false },
+                            variant = ButtonVariant.LIGHT,
+                            intent = ButtonIntent.PRIMARY
+                        ) {
+                            Text("إلغاء", fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             }
 
@@ -292,29 +308,26 @@ fun DebtsScreen(
                             Text("الدين: ${debt.title}", fontWeight = FontWeight.Medium, color = ExpenseRed)
                             Text("المتبقي الكلي: ${debt.remainingAmount.toInt()} د.ج", style = MaterialTheme.typography.bodySmall)
 
-                            OutlinedTextField(
+                            AppInput(
                                 value = paymentAmount,
                                 onValueChange = { paymentAmount = it },
-                                label = { Text("مبلغ الدفعة (د.ج)") },
+                                label = "مبلغ الدفعة (د.ج)",
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation(),
-                                modifier = Modifier.fillMaxWidth()
+                                visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation()
                             )
 
-                            OutlinedTextField(
+                            AppInput(
                                 value = paymentNote,
                                 onValueChange = { paymentNote = it },
-                                label = { Text("ملاحظة / رقم الإيصال") },
-                                modifier = Modifier.fillMaxWidth()
+                                label = "ملاحظة / رقم الإيصال"
                             )
 
                             // --- DATE SELECTOR CARD ---
                             Text("تاريخ دفعة السداد:", style = MaterialTheme.typography.labelSmall)
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { showPaymentDatePicker = true },
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            AppCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                variant = CardVariant.FLAT,
+                                onClick = { showPaymentDatePicker = true }
                             ) {
                                 Row(
                                     modifier = Modifier.padding(12.dp).fillMaxWidth(),
@@ -334,39 +347,12 @@ fun DebtsScreen(
                             }
 
                             if (showPaymentDatePicker) {
-                                val datePickerState = rememberDatePickerState(
-                                    initialSelectedDateMillis = paymentDate
-                                )
-                                DatePickerDialog(
+                                AppDatePickerDialog(
+                                    initialSelectedDateMillis = paymentDate,
                                     onDismissRequest = { showPaymentDatePicker = false },
-                                    confirmButton = {
-                                        TextButton(
-                                            onClick = {
-                                                datePickerState.selectedDateMillis?.let {
-                                                    paymentDate = it
-                                                }
-                                                showPaymentDatePicker = false
-                                            }
-                                        ) {
-                                            Text("موافق", color = ExpenseRed, fontWeight = FontWeight.Bold)
-                                        }
-                                    },
-                                    dismissButton = {
-                                        TextButton(onClick = { showPaymentDatePicker = false }) {
-                                            Text("إلغاء", color = TextGray)
-                                        }
-                                    }
-                                ) {
-                                    DatePicker(
-                                        state = datePickerState,
-                                        colors = DatePickerDefaults.colors(
-                                            selectedDayContainerColor = ExpenseRed,
-                                            selectedDayContentColor = Color.White,
-                                            todayContentColor = ExpenseRed,
-                                            todayDateBorderColor = ExpenseRed
-                                        )
-                                    )
-                                }
+                                    onDateSelected = { paymentDate = it },
+                                    confirmButtonColor = ExpenseRed
+                                )
                             }
 
                             // Source account spinner
@@ -374,15 +360,15 @@ fun DebtsScreen(
                             Box {
                                 var expanded by remember { mutableStateOf(false) }
                                 val selectedAccountName = uiState.accounts.find { it.id == sourceAccountId }?.name ?: "اختر الحساب"
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { expanded = true },
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                AppCard(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    variant = CardVariant.FLAT,
+                                    onClick = { expanded = true }
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(12.dp).fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(selectedAccountName)
                                         Icon(Icons.Default.ArrowDropDown, null)
@@ -403,7 +389,7 @@ fun DebtsScreen(
                         }
                     },
                     confirmButton = {
-                        Button(
+                        AppButton(
                             onClick = {
                                 val amount = paymentAmount.toDoubleOrNull() ?: 0.0
                                 if (paymentAmount.isBlank() || amount <= 0.0) {
@@ -425,14 +411,22 @@ fun DebtsScreen(
                                     showPaymentDialog = null
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = ExpenseRed)
+                            variant = ButtonVariant.SOLID,
+                            intent = ButtonIntent.DANGER
                         ) {
-                            Text("تسجيل سداد")
+                            Text("تسجيل سداد", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showPaymentDialog = null }) { Text("إلغاء") }
-                    }
+                        AppButton(
+                            onClick = { showPaymentDialog = null },
+                            variant = ButtonVariant.LIGHT,
+                            intent = ButtonIntent.PRIMARY
+                        ) {
+                            Text("إلغاء", fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             }
         }
@@ -458,12 +452,13 @@ fun DebtsMainContent(
     ) {
         // SUMMARY METRICS HERO CARD
         item {
-            Card(
+            AppCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                variant = CardVariant.SOLID,
+                shape = ShapeTokens.Xxl,
+                backgroundColor = Color.Transparent
             ) {
                 val totalRemaining = uiState.debts.filter { !it.isClosed }.sumOf { it.remainingAmount }
                 val totalMin = uiState.debts.filter { !it.isClosed }.sumOf { it.minimumPayment }
@@ -585,11 +580,11 @@ fun DebtsMainContent(
                     paymentScheduleSummary = "لا توجد تفاصيل حالياً."
                 )
 
-                Card(
+                AppCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)),
-                    border = BorderStroke(1.dp, Primary.copy(alpha = 0.15f))
+                    variant = CardVariant.SOLID,
+                    shape = ShapeTokens.Xl,
+                    backgroundColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
@@ -632,11 +627,11 @@ fun DebtsMainContent(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     uiState.insights.take(1).forEach { insightText ->
-                        Card(
+                        AppCard(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = ExpenseRed.copy(alpha = 0.08f)),
-                            border = BorderStroke(1.dp, ExpenseRed.copy(alpha = 0.15f))
+                            variant = CardVariant.SOLID,
+                            shape = ShapeTokens.Lg,
+                            backgroundColor = ExpenseRed.copy(alpha = 0.08f)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -662,12 +657,12 @@ fun DebtsMainContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("شروط وجداول الديون القائمة", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                TextButton(
+                AppButton(
                     onClick = onAddDebtClick,
-                    colors = ButtonDefaults.textButtonColors(contentColor = ExpenseRed)
+                    variant = ButtonVariant.LIGHT,
+                    intent = ButtonIntent.DANGER,
+                    leadingIcon = { Icon(Icons.Default.AddCircleOutline, null, modifier = Modifier.size(18.dp)) }
                 ) {
-                    Icon(Icons.Default.AddCircleOutline, null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
                     Text("تسجيل دين", fontWeight = FontWeight.Bold)
                 }
             }
@@ -692,13 +687,12 @@ fun DebtsMainContent(
                 val isUrgent = debt.priority == 1
                 val isClosed = debt.isClosed
 
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onSelectDebt(debt) },
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                AppCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    variant = CardVariant.SOLID,
+                    shape = ShapeTokens.Xl,
+                    onClick = { onSelectDebt(debt) },
+                    backgroundColor = MaterialTheme.colorScheme.surface
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
@@ -751,14 +745,15 @@ fun DebtsMainContent(
                                             Text("عاجل جداً", fontSize = 9.sp, color = ExpenseRed, fontWeight = FontWeight.Bold)
                                         }
                                     }
-                                    Button(
-                                        onClick = { onPayClick(debt) },
-                                        colors = ButtonDefaults.buttonColors(containerColor = ExpenseRed),
-                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                                        shape = RoundedCornerShape(8.dp),
-                                        modifier = Modifier.height(30.dp)
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(ExpenseRed)
+                                            .clickable { onPayClick(debt) }
+                                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Text("تسديد دفعة", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text("تسديد دفعة", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                     }
                                 }
                             }
@@ -823,11 +818,11 @@ fun DebtDetailsContent(
     ) {
         // SUMMARY DETAILS CARD
         item {
-            Card(
+            AppCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                variant = CardVariant.SOLID,
+                shape = ShapeTokens.Xxl,
+                backgroundColor = MaterialTheme.colorScheme.surface
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(
@@ -872,11 +867,11 @@ fun DebtDetailsContent(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         // Micro Card 1
-                        Card(
+                        AppCard(
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+                            variant = CardVariant.FLAT,
+                            shape = ShapeTokens.Lg,
+                            backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text("الأصل", style = MaterialTheme.typography.labelSmall, color = TextGray)
@@ -885,11 +880,11 @@ fun DebtDetailsContent(
                             }
                         }
                         // Micro Card 2
-                        Card(
+                        AppCard(
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+                            variant = CardVariant.FLAT,
+                            shape = ShapeTokens.Lg,
+                            backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text("الجهة", style = MaterialTheme.typography.labelSmall, color = TextGray)
@@ -898,11 +893,11 @@ fun DebtDetailsContent(
                             }
                         }
                         // Micro Card 3
-                        Card(
+                        AppCard(
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+                            variant = CardVariant.FLAT,
+                            shape = ShapeTokens.Lg,
+                            backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text("الأولوية", style = MaterialTheme.typography.labelSmall, color = TextGray)
@@ -915,10 +910,11 @@ fun DebtDetailsContent(
 
                     if (!debt.notes.isNullOrBlank()) {
                         Spacer(modifier = Modifier.height(14.dp))
-                        Card(
+                        AppCard(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f))
+                            variant = CardVariant.FLAT,
+                            shape = ShapeTokens.Lg,
+                            backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
                         ) {
                             Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Icon(Icons.Default.Notes, null, tint = TextGray, modifier = Modifier.size(16.dp))
@@ -933,16 +929,14 @@ fun DebtDetailsContent(
         // PAY TRANSACTION ACTION TRIGGER
         if (!debt.isClosed) {
             item {
-                Button(
+                AppButton(
                     onClick = onPayClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = ExpenseRed),
-                    shape = RoundedCornerShape(14.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    variant = ButtonVariant.SOLID,
+                    intent = ButtonIntent.DANGER,
+                    shape = ShapeTokens.Lg,
+                    leadingIcon = { Icon(Icons.Default.CreditCard, null) }
                 ) {
-                    Icon(Icons.Default.CreditCard, null)
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text("تسجيل سداد دفعة جديدة", fontWeight = FontWeight.Bold)
                 }
             }
@@ -950,34 +944,36 @@ fun DebtDetailsContent(
 
         // STRATEGY ACTIONS (CLOSE, DELETE)
         item {
-            Card(
+            AppCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+                variant = CardVariant.SOLID,
+                shape = ShapeTokens.Lg,
+                backgroundColor = MaterialTheme.colorScheme.surface
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp),
-                    horizontalArrangement = Arrangement.SpaceAround
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (!debt.isClosed) {
-                        TextButton(
+                        AppButton(
                             onClick = { viewModel.closeDebt(debt.id) },
-                            colors = ButtonDefaults.textButtonColors(contentColor = IncomeGreen)
+                            variant = ButtonVariant.LIGHT,
+                            intent = ButtonIntent.SUCCESS,
+                            leadingIcon = { Icon(Icons.Default.CheckCircle, "قفل الدين", modifier = Modifier.size(18.dp)) }
                         ) {
-                            Icon(Icons.Default.CheckCircle, "قفل الدين", modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
                             Text("تعليم كمغلق", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                     }
-                    TextButton(
+                    AppButton(
                         onClick = { viewModel.deleteDebt(debt.id) },
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                        variant = ButtonVariant.LIGHT,
+                        intent = ButtonIntent.DANGER,
+                        leadingIcon = { Icon(Icons.Default.Delete, "مسح", modifier = Modifier.size(18.dp)) }
                     ) {
-                        Icon(Icons.Default.Delete, "مسح", modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
                         Text("مسح السجل المالي", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
@@ -991,10 +987,11 @@ fun DebtDetailsContent(
 
         if (uiState.selectedDebtPayments.isEmpty()) {
             item {
-                Card(
+                AppCard(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+                    variant = CardVariant.SOLID,
+                    shape = ShapeTokens.Lg,
+                    backgroundColor = MaterialTheme.colorScheme.surface
                 ) {
                     Box(modifier = Modifier.padding(32.dp), contentAlignment = Alignment.Center) {
                         Text("لم تسجل أي دفعات سداد لهذا الالتزام بعد.", textAlign = TextAlign.Center, color = TextGray)
@@ -1003,11 +1000,11 @@ fun DebtDetailsContent(
             }
         } else {
             items(uiState.selectedDebtPayments, key = { it.id }) { payment ->
-                Card(
+                AppCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+                    variant = CardVariant.SOLID,
+                    shape = ShapeTokens.Lg,
+                    backgroundColor = MaterialTheme.colorScheme.surface
                 ) {
                     Row(
                         modifier = Modifier

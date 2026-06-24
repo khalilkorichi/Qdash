@@ -46,6 +46,8 @@ import com.example.domain.model.CategoryType
 import com.example.domain.model.Transaction
 import com.example.domain.model.TransactionType
 import com.example.ui.theme.*
+import com.example.ui.designsystem.components.*
+import com.example.ui.designsystem.tokens.*
 import java.util.Calendar
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -84,13 +86,13 @@ fun DashboardOverviewCard(
         else -> ExpenseRed
     }
 
-    Card(
+    AppCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+        variant = CardVariant.SOLID,
+        shape = ShapeTokens.Xxl,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -369,13 +371,13 @@ fun CategoryVsIncomeChartCard(
         }
     }
 
-    Card(
+    AppCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+        variant = CardVariant.SOLID,
+        shape = ShapeTokens.Xxl,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(
             modifier = Modifier.padding(24.dp),
@@ -768,18 +770,13 @@ fun CategoryVsIncomeChartCard(
                     val pctOfIncome = if (totalIncome > 0) (share.amount / totalIncome) else 0.0
                     val pctOfExp = if (totalExpenses > 0) (share.amount / totalExpenses) else 0.0
 
-                    Card(
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isSelected) parseColor.copy(alpha = 0.07f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                        ),
-                        border = BorderStroke(
-                            width = if (isSelected) 1.5.dp else 1.dp,
-                            color = if (isSelected) parseColor.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f)
-                        ),
+                    AppCard(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSelectedCategoryChange(if (isSelected) null else share) }
+                            .fillMaxWidth(),
+                        variant = CardVariant.SOLID,
+                        shape = ShapeTokens.Lg,
+                        backgroundColor = if (isSelected) parseColor.copy(alpha = 0.07f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        onClick = { onSelectedCategoryChange(if (isSelected) null else share) }
                     ) {
                         Row(
                             modifier = Modifier.padding(12.dp),
@@ -929,13 +926,13 @@ fun MonthComparisonCard(
         )
     }
 
-    Card(
+    AppCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+        variant = CardVariant.SOLID,
+        shape = ShapeTokens.Xxl,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -1028,10 +1025,11 @@ fun MonthComparisonCard(
             }
 
             // Compare summary stats card
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+            AppCard(
+                modifier = Modifier.fillMaxWidth(),
+                variant = CardVariant.SOLID,
+                shape = ShapeTokens.Xl,
+                backgroundColor = MaterialTheme.colorScheme.surface
             ) {
                 Row(
                     modifier = Modifier
@@ -1122,10 +1120,11 @@ fun MonthComparisonCard(
                         val isIncrease = item.diff >= 0
                         val resColor = if (isIncrease) ExpenseRed else IncomeGreen
 
-                        Card(
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
+                        AppCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            variant = CardVariant.SOLID,
+                            shape = ShapeTokens.Xl,
+                            backgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
                         ) {
                             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Row(

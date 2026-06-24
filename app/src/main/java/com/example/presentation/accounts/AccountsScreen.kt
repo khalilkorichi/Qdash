@@ -342,32 +342,24 @@ fun AccountsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Button(
+                    AppButton(
                         onClick = { showAddAccountDialog = true },
                         enabled = !uiState.isLoading,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                        modifier = Modifier.weight(1f),
+                        variant = ButtonVariant.SOLID,
+                        intent = ButtonIntent.PRIMARY,
+                        leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp)) }
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
                         Text("حساب جديد", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                     }
-                    Button(
+                    AppButton(
                         onClick = { showTransferDialog = true },
                         enabled = !uiState.isLoading && uiState.accounts.size >= 2,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = TransferBlue),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                        modifier = Modifier.weight(1f),
+                        variant = ButtonVariant.SOLID,
+                        intent = ButtonIntent.INFO,
+                        leadingIcon = { Icon(Icons.Default.SwapHoriz, contentDescription = null, modifier = Modifier.size(18.dp)) }
                     ) {
-                        Icon(Icons.Default.SwapHoriz, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
                         Text("تحويل مالي", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                     }
                 }
@@ -503,13 +495,11 @@ fun AccountsScreen(
         var editBalance by remember(acc.id) { mutableStateOf(acc.balance.toInt().toString()) }
         var editColor by remember(acc.id) { mutableStateOf(acc.color) }
 
-        ModalBottomSheet(
+        AppBottomSheet(
             onDismissRequest = {
                 showEditSheet = false
                 viewModel.setEditingAccount(null)
-            },
-            containerColor = MaterialTheme.colorScheme.surface,
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+            }
         ) {
             Column(
                 modifier = Modifier
@@ -527,36 +517,20 @@ fun AccountsScreen(
                     textAlign = TextAlign.Right
                 )
 
-                OutlinedTextField(
+                AppInput(
                     value = editName,
                     onValueChange = { editName = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("edit_account_name_input"),
-                    label = { Text("اسم الحساب") },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Primary,
-                        focusedLabelColor = Primary,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                    )
+                    modifier = Modifier.testTag("edit_account_name_input"),
+                    label = "اسم الحساب"
                 )
 
-                OutlinedTextField(
+                AppInput(
                     value = editBalance,
                     onValueChange = { editBalance = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("edit_account_balance_input"),
-                    label = { Text("الرصيد (دج)") },
+                    modifier = Modifier.testTag("edit_account_balance_input"),
+                    label = "الرصيد (دج)",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Primary,
-                        focusedLabelColor = Primary,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                    )
+                    visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation()
                 )
 
                 // Color picker
@@ -602,18 +576,18 @@ fun AccountsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    OutlinedButton(
+                    AppButton(
                         onClick = {
                             showEditSheet = false
                             viewModel.setEditingAccount(null)
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = TextGray)
+                        variant = ButtonVariant.LIGHT,
+                        intent = ButtonIntent.PRIMARY
                     ) {
-                        Text("إلغاء")
+                        Text("إلغاء", fontWeight = FontWeight.Bold)
                     }
-                    Button(
+                    AppButton(
                         onClick = {
                             val bal = com.example.core.utils.FormatterUtils.normalizeAmount(editBalance).toDoubleOrNull() ?: acc.balance
                             if (editName.isNotBlank()) {
@@ -629,10 +603,10 @@ fun AccountsScreen(
                             }
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                        variant = ButtonVariant.SOLID,
+                        intent = ButtonIntent.PRIMARY
                     ) {
-                        Text("حفظ التعديلات", color = Color.White)
+                        Text("حفظ التعديلات", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -701,20 +675,25 @@ fun AccountsScreen(
             },
             confirmButton = {
                 if (countdownSeconds == 0) {
-                    Button(
+                    AppButton(
                         onClick = {
                             viewModel.editAccount(acc.copy(balance = 0.0))
                             accountToEmpty = null
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = ExpenseRed)
+                        variant = ButtonVariant.SOLID,
+                        intent = ButtonIntent.DANGER
                     ) {
-                        Text("تأكيد تفريغ الحساب", color = Color.White)
+                        Text("تأكيد تفريغ الحساب", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
             },
             dismissButton = {
-                TextButton(onClick = { accountToEmpty = null }) {
-                    Text("إلغاء", color = MaterialTheme.colorScheme.primary)
+                AppButton(
+                    onClick = { accountToEmpty = null },
+                    variant = ButtonVariant.LIGHT,
+                    intent = ButtonIntent.PRIMARY
+                ) {
+                    Text("إلغاء", fontWeight = FontWeight.Bold)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface
@@ -806,25 +785,18 @@ fun AccountsScreen(
                         }
                     }
 
-                    OutlinedTextField(
+                    AppInput(
                         value = transferAmount,
                         onValueChange = { transferAmount = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("transfer_amount_input"),
-                        placeholder = { Text("مبلغ التحويل (دج)", color = TextGray) },
+                        modifier = Modifier.testTag("transfer_amount_input"),
+                        placeholder = "مبلغ التحويل (دج)",
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = TransferBlue,
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                        )
+                        visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation()
                     )
                 }
             },
             confirmButton = {
-                Button(
+                AppButton(
                     onClick = {
                         val amt = com.example.core.utils.FormatterUtils.normalizeAmount(transferAmount).toDoubleOrNull() ?: 0.0
                         if (amt > 0) {
@@ -833,14 +805,19 @@ fun AccountsScreen(
                             transferAmount = ""
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = TransferBlue)
+                    variant = ButtonVariant.SOLID,
+                    intent = ButtonIntent.INFO
                 ) {
-                    Text("تنفيذ التحويل", color = Color.White)
+                    Text("تنفيذ التحويل", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showTransferDialog = false }) {
-                    Text("إلغاء", color = MaterialTheme.colorScheme.primary)
+                AppButton(
+                    onClick = { showTransferDialog = false },
+                    variant = ButtonVariant.LIGHT,
+                    intent = ButtonIntent.PRIMARY
+                ) {
+                    Text("إلغاء", fontWeight = FontWeight.Bold)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface

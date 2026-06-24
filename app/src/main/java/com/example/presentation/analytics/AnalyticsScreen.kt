@@ -278,15 +278,13 @@ fun AnalyticsScreen(
                 longClickedCategory = null
                 longClickJob?.cancel()
             }) {
-                Card(
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+                AppCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(16.dp),
+                    variant = CardVariant.SOLID,
+                    shape = ShapeTokens.Xl,
+                    backgroundColor = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp),
@@ -771,12 +769,12 @@ fun AnalyticsScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // Largest Expense card â€” subtle red gradient
-                    Card(
+                    AppCard(
                         modifier = Modifier
                             .weight(1f),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                        variant = CardVariant.SOLID,
+                        shape = ShapeTokens.Xl,
+                        backgroundColor = Color.Transparent
                     ) {
                         Box(
                             modifier = Modifier
@@ -827,12 +825,12 @@ fun AnalyticsScreen(
                     }
 
                     // Savings Rate card â€” subtle green gradient
-                    Card(
+                    AppCard(
                         modifier = Modifier
                             .weight(1f),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                        variant = CardVariant.SOLID,
+                        shape = ShapeTokens.Xl,
+                        backgroundColor = Color.Transparent
                     ) {
                         Box(
                             modifier = Modifier
@@ -936,15 +934,13 @@ fun AnalyticsScreen(
 
                 var selectedTrendIndex by remember { mutableStateOf<Int?>(null) }
 
-                Card(
+                AppCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                    variant = CardVariant.SOLID,
+                    shape = ShapeTokens.Xl,
+                    backgroundColor = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Row(
@@ -1115,15 +1111,13 @@ fun AnalyticsScreen(
                                     enter = fadeIn() + expandVertically(),
                                     exit = fadeOut() + shrinkVertically()
                                 ) {
-                                    Card(
+                                    AppCard(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(top = 16.dp),
-                                        shape = RoundedCornerShape(14.dp),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                        ),
-                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                                        variant = CardVariant.SOLID,
+                                        shape = ShapeTokens.Lg,
+                                        backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                                     ) {
                                         Column(modifier = Modifier.padding(12.dp)) {
                                             Row(

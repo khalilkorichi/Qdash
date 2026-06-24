@@ -1166,47 +1166,21 @@ fun TransactionsScreen(
         
         // DatePickers Dialogs
         if (showStartDatePicker) {
-            val datePickerState = rememberDatePickerState(initialSelectedDateMillis = tempStartDate ?: System.currentTimeMillis())
-            DatePickerDialog(
+            AppDatePickerDialog(
+                initialSelectedDateMillis = tempStartDate,
                 onDismissRequest = { showStartDatePicker = false },
-                confirmButton = {
-                    TextButton(onClick = {
-                        tempStartDate = datePickerState.selectedDateMillis
-                        showStartDatePicker = false
-                    }) {
-                        Text("تأكيد", fontWeight = FontWeight.Bold, color = Primary)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showStartDatePicker = false }) {
-                        Text("إلغاء", color = TextGray)
-                    }
-                }
-            ) {
-                DatePicker(state = datePickerState)
-            }
+                onDateSelected = { tempStartDate = it },
+                confirmButtonColor = Primary
+            )
         }
 
         if (showEndDatePicker) {
-            val datePickerState = rememberDatePickerState(initialSelectedDateMillis = tempEndDate ?: System.currentTimeMillis())
-            DatePickerDialog(
+            AppDatePickerDialog(
+                initialSelectedDateMillis = tempEndDate,
                 onDismissRequest = { showEndDatePicker = false },
-                confirmButton = {
-                    TextButton(onClick = {
-                        tempEndDate = datePickerState.selectedDateMillis
-                        showEndDatePicker = false
-                    }) {
-                        Text("تأكيد", fontWeight = FontWeight.Bold, color = Primary)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showEndDatePicker = false }) {
-                        Text("إلغاء", color = TextGray)
-                    }
-                }
-            ) {
-                DatePicker(state = datePickerState)
-            }
+                onDateSelected = { tempEndDate = it },
+                confirmButtonColor = Primary
+            )
         }
     }
 

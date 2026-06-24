@@ -45,6 +45,8 @@ import com.example.domain.model.CategoryType
 import com.example.domain.model.TransactionType
 import com.example.domain.model.TransactionTemplate
 import com.example.ui.theme.*
+import com.example.ui.designsystem.components.*
+import com.example.ui.designsystem.tokens.*
 import com.example.core.utils.FormatterUtils
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -79,7 +81,7 @@ fun AddTransactionScreen(
     val scope = rememberCoroutineScope()
     val showAmountWords = uiState.isAmountWordsEnabled
 
-    // â”€â”€ Local state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Local state ──────────────────────────────────────────────────────────────────
     var rawAmountValue by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue("0", selection = TextRange(1)))
     }
@@ -145,6 +147,12 @@ fun AddTransactionScreen(
                 else       -> TransactionType.EXPENSE
             }
         )
+    }
+
+    val typeIntent = when (type) {
+        TransactionType.INCOME -> ButtonIntent.SUCCESS
+        TransactionType.EXPENSE -> ButtonIntent.DANGER
+        TransactionType.TRANSFER -> ButtonIntent.INFO
     }
 
     var selectedAccountId   by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -970,39 +978,12 @@ fun AddTransactionScreen(
             }
 
             if (showDatePicker) {
-                val datePickerState = rememberDatePickerState(
-                    initialSelectedDateMillis = transactionDate
-                )
-                DatePickerDialog(
+                AppDatePickerDialog(
+                    initialSelectedDateMillis = transactionDate,
                     onDismissRequest = { showDatePicker = false },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                datePickerState.selectedDateMillis?.let {
-                                    transactionDate = it
-                                }
-                                showDatePicker = false
-                            }
-                        ) {
-                            Text("موافق", color = typeAccentColor, fontWeight = FontWeight.Bold)
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDatePicker = false }) {
-                            Text("إلغاء", color = TextGray)
-                        }
-                    }
-                ) {
-                    DatePicker(
-                        state = datePickerState,
-                        colors = DatePickerDefaults.colors(
-                            selectedDayContainerColor = typeAccentColor,
-                            selectedDayContentColor = Color.White,
-                            todayContentColor = typeAccentColor,
-                            todayDateBorderColor = typeAccentColor
-                        )
-                    )
-                }
+                    onDateSelected = { transactionDate = it },
+                    confirmButtonColor = typeAccentColor
+                )
             }
 
 
@@ -1165,22 +1146,27 @@ fun AddTransactionScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val typeIntent = when (type) {
+                    TransactionType.INCOME -> ButtonIntent.SUCCESS
+                    TransactionType.EXPENSE -> ButtonIntent.DANGER
+                    TransactionType.TRANSFER -> ButtonIntent.INFO
+                }
+
                 if (transactionId == null) {
-                    OutlinedButton(
+                    AppButton(
                         onClick = { showSaveTemplateDialog = true },
                         enabled = com.example.core.utils.CalculatorParser.evaluate(rawAmount) > 0.0,
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, typeAccentColor),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = typeAccentColor)
+                        modifier = Modifier.weight(1f),
+                        variant = ButtonVariant.BORDERED,
+                        intent = typeIntent,
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.BookmarkAdd,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.BookmarkAdd,
-                            contentDescription = null,
-                            tint = typeAccentColor,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "حفظ كقالب",
                             style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp),
@@ -1189,7 +1175,7 @@ fun AddTransactionScreen(
                     }
                 }
                 
-                Button(
+                AppButton(
                     onClick = {
                         val parsedAmount = com.example.core.utils.CalculatorParser.evaluate(rawAmount)
                         if (parsedAmount > 0) {
@@ -1214,7 +1200,7 @@ fun AddTransactionScreen(
                             val accountId = effectiveAccountId
                             if (categoryId == null || accountId == null) {
                                 Toast.makeText(context, "يرجى اختيار حساب وفئة صالحين قبل الحفظ.", Toast.LENGTH_LONG).show()
-                                return@Button
+                                return@AppButton
                             }
 
                             val selectedAccount = uiState.accounts.find { it.id == accountId }
@@ -1353,24 +1339,18 @@ fun AddTransactionScreen(
                         }
                     },
                     enabled = canSaveTransaction,
-                    modifier = Modifier
-                        .weight(if (transactionId == null) 1.5f else 1f)
-                        .height(50.dp)
-                        .testTag("save_transaction_button"),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = typeAccentColor,
-                        disabledContainerColor = typeAccentColor.copy(alpha = 0.35f)
-                    ),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                    modifier = Modifier.weight(if (transactionId == null) 1.5f else 1f).testTag("save_transaction_button"),
+                    variant = ButtonVariant.SOLID,
+                    intent = typeIntent,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = if (transactionId != null) "حفظ التعديلات" else "تسجيل العملية",
                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
@@ -1467,7 +1447,7 @@ fun AddTransactionScreen(
                     }
                 },
                 confirmButton = {
-                    Button(
+                    AppButton(
                         onClick = {
                             if (newCategoryName.isNotBlank()) {
                                 val catType = if (type == TransactionType.INCOME) CategoryType.INCOME else CategoryType.EXPENSE
@@ -1483,15 +1463,19 @@ fun AddTransactionScreen(
                             }
                         },
                         enabled = newCategoryName.isNotBlank(),
-                        colors = ButtonDefaults.buttonColors(containerColor = typeAccentColor),
-                        shape = RoundedCornerShape(12.dp)
+                        variant = ButtonVariant.SOLID,
+                        intent = typeIntent
                     ) {
                         Text("إنشاء الفئة", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showAddCategoryDialog = false }) {
-                        Text("إلغاء", color = TextGray)
+                    AppButton(
+                        onClick = { showAddCategoryDialog = false },
+                        variant = ButtonVariant.LIGHT,
+                        intent = ButtonIntent.PRIMARY
+                    ) {
+                        Text("إلغاء", fontWeight = FontWeight.Bold)
                     }
                 }
             )
@@ -1518,11 +1502,11 @@ fun AddTransactionScreen(
                     )
                 },
                 confirmButton = {
-                    Button(
+                    AppButton(
                         onClick = {
                             showSavingsConfirmDialog = false
-                            val categoryId = effectiveCategoryId ?: return@Button
-                            val accountId = effectiveAccountId ?: return@Button
+                            val categoryId = effectiveCategoryId ?: return@AppButton
+                            val accountId = effectiveAccountId ?: return@AppButton
                             val parsedAmount = com.example.core.utils.CalculatorParser.evaluate(rawAmount)
                             if (transactionId != null) {
                                 viewModel.updateTransaction(
@@ -1555,18 +1539,18 @@ fun AddTransactionScreen(
                                 )
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = typeAccentColor),
-                        shape = RoundedCornerShape(12.dp)
+                        variant = ButtonVariant.SOLID,
+                        intent = ButtonIntent.SUCCESS
                     ) {
                         Text("مساهمة ادخار (موصى به)", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
-                    TextButton(
+                    AppButton(
                         onClick = {
                             showSavingsConfirmDialog = false
-                            val categoryId = effectiveCategoryId ?: return@TextButton
-                            val accountId = effectiveAccountId ?: return@TextButton
+                            val categoryId = effectiveCategoryId ?: return@AppButton
+                            val accountId = effectiveAccountId ?: return@AppButton
                             val parsedAmount = com.example.core.utils.CalculatorParser.evaluate(rawAmount)
                             if (transactionId != null) {
                                 viewModel.updateTransaction(
@@ -1598,9 +1582,11 @@ fun AddTransactionScreen(
                                     kind = com.example.domain.model.TransactionKind.INCOME
                                 )
                             }
-                        }
+                        },
+                        variant = ButtonVariant.LIGHT,
+                        intent = ButtonIntent.PRIMARY
                     ) {
-                        Text("دخل عادي", color = TextGray)
+                        Text("دخل عادي", fontWeight = FontWeight.Bold)
                     }
                 }
             )
@@ -1642,18 +1628,13 @@ fun AddTransactionScreen(
                                 Text(text = templateEmoji, fontSize = 24.sp)
                             }
                             
-                            OutlinedTextField(
+                            AppInput(
                                 value = templateName,
                                 onValueChange = { templateName = it },
-                                label = { Text("اسم القالب") },
-                                placeholder = { Text("مثال: قهوة، فاتورة الإنترنت…") },
+                                label = "اسم القالب",
+                                placeholder = "مثال: قهوة، فاتورة الإنترنت…",
                                 singleLine = true,
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.weight(1f),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = typeAccentColor,
-                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                                )
+                                modifier = Modifier.weight(1f)
                             )
                         }
                         
@@ -1676,7 +1657,7 @@ fun AddTransactionScreen(
                     }
                 },
                 confirmButton = {
-                    TextButton(
+                    AppButton(
                         onClick = {
                             val parsedAmount = com.example.core.utils.CalculatorParser.evaluate(rawAmount)
                             if (templateName.isNotBlank() && parsedAmount > 0) {
@@ -1699,14 +1680,20 @@ fun AddTransactionScreen(
                                 templateName = ""
                             }
                         },
-                        enabled = templateName.isNotBlank()
+                        enabled = templateName.isNotBlank(),
+                        variant = ButtonVariant.SOLID,
+                        intent = typeIntent
                     ) {
-                        Text("حفظ", color = typeAccentColor, fontWeight = FontWeight.Bold)
+                        Text("حفظ", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showSaveTemplateDialog = false }) {
-                        Text("إلغاء", color = TextGray)
+                    AppButton(
+                        onClick = { showSaveTemplateDialog = false },
+                        variant = ButtonVariant.LIGHT,
+                        intent = ButtonIntent.PRIMARY
+                    ) {
+                        Text("إلغاء", fontWeight = FontWeight.Bold)
                     }
                 }
             )

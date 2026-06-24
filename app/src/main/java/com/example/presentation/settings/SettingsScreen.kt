@@ -45,6 +45,7 @@ import com.example.core.ui.components.DriveSyncCard
 import com.example.core.ui.components.FinTrackTopBar
 import com.example.ui.theme.*
 import com.example.ui.designsystem.components.*
+import com.example.ui.designsystem.tokens.ShapeTokens
 import kotlinx.coroutines.launch
 
 // ─── Tab Definitions ──────────────────────────────────────────────────────────
@@ -252,22 +253,18 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    OutlinedTextField(
+                    AppInput(
                         value = inputEmail,
                         onValueChange = { inputEmail = it },
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("google_email_input"),
-                        placeholder = { Text("example@gmail.com", color = TextGray) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                        )
+                        placeholder = "example@gmail.com"
                     )
                 }
             },
             confirmButton = {
-                Button(
+                AppButton(
                     onClick = {
                         if (inputEmail.contains("@") && inputEmail.contains(".")) {
                             viewModel.connectGoogleDriveAccount(inputEmail)
@@ -276,12 +273,17 @@ fun SettingsScreen(
                             Toast.makeText(context, "تم ربط الحساب بنجاح!", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Primary)
-                ) { Text("توثيق وربط", color = Color.White) }
+                    variant = ButtonVariant.SOLID,
+                    intent = ButtonIntent.PRIMARY
+                ) { Text("توثيق وربط", fontWeight = FontWeight.Bold) }
             },
             dismissButton = {
-                TextButton(onClick = { showGoogleConnectDialog = false }) {
-                    Text("إلغاء", color = MaterialTheme.colorScheme.primary)
+                AppButton(
+                    onClick = { showGoogleConnectDialog = false },
+                    variant = ButtonVariant.LIGHT,
+                    intent = ButtonIntent.PRIMARY
+                ) {
+                    Text("إلغاء", fontWeight = FontWeight.Bold)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface
@@ -318,7 +320,7 @@ fun SettingsScreen(
                 )
             },
             confirmButton = {
-                Button(
+                AppButton(
                     onClick = {
                         viewModel.runRestore(
                             onSuccess = { Toast.makeText(context2, "تمت استعادة بياناتك بنجاح!", Toast.LENGTH_LONG).show() },
@@ -326,12 +328,17 @@ fun SettingsScreen(
                         )
                         showConfirmRestoreDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Primary)
-                ) { Text("نعم، تأكيد", color = Color.White) }
+                    variant = ButtonVariant.SOLID,
+                    intent = ButtonIntent.PRIMARY
+                ) { Text("نعم، تأكيد", fontWeight = FontWeight.Bold) }
             },
             dismissButton = {
-                TextButton(onClick = { showConfirmRestoreDialog = false }) {
-                    Text("إلغاء", color = MaterialTheme.colorScheme.primary)
+                AppButton(
+                    onClick = { showConfirmRestoreDialog = false },
+                    variant = ButtonVariant.LIGHT,
+                    intent = ButtonIntent.PRIMARY
+                ) {
+                    Text("إلغاء", fontWeight = FontWeight.Bold)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface
@@ -381,22 +388,24 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Start
                     ) {
-                        TextButton(
+                        AppButton(
                             onClick = {
                                 val defaultOrder = "split_cards,context_templates,templates,quick_actions,accounts,chart,budget,subscriptions,recent_transactions".split(",")
                                 sectionsOrder = defaultOrder.toMutableList()
                                 val defaultVisibility = defaultOrder.associateWith { true }.toMutableMap()
                                 visibleMap = defaultVisibility
+                            },
+                            variant = ButtonVariant.LIGHT,
+                            intent = ButtonIntent.PRIMARY,
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "استعادة الافتراضي",
+                                    modifier = Modifier.size(16.dp)
+                                )
                             }
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "استعادة الافتراضي",
-                                tint = Primary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("استعادة الافتراضي", color = Primary, style = MaterialTheme.typography.labelMedium)
+                            Text("استعادة الافتراضي", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                         }
                     }
                     Spacer(modifier = Modifier.height(6.dp))
@@ -418,24 +427,17 @@ fun SettingsScreen(
                         val isDragging = draggedIndex == index
                         val offsetY = if (isDragging) dragOffsetY else 0f
 
-                        Card(
+                        AppCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .offset { IntOffset(0, offsetY.roundToInt()) }
                                 .zIndex(if (isDragging) 10f else 1f),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isDragging) 
+                            variant = CardVariant.SOLID,
+                            shape = ShapeTokens.Md,
+                            backgroundColor = if (isDragging) 
                                     MaterialTheme.colorScheme.surfaceVariant 
                                 else 
                                     MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            ),
-                            border = BorderStroke(
-                                1.dp, 
-                                if (isDragging) 
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                                else 
-                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                            )
                         ) {
                             Row(
                                 modifier = Modifier
@@ -557,20 +559,25 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                Button(
+                AppButton(
                     onClick = {
                         viewModel.saveDashboardCustomization(sectionsOrder, visibleMap)
                         showDashboardCustomizationDialog = false
                         Toast.makeText(context, "تم حفظ الترتيب الجديد بنجاح!", Toast.LENGTH_SHORT).show()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                    variant = ButtonVariant.SOLID,
+                    intent = ButtonIntent.PRIMARY
                 ) {
-                    Text("حفظ التعديلات", color = Color.White)
+                    Text("حفظ التعديلات", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDashboardCustomizationDialog = false }) {
-                    Text("إلغاء", color = Primary)
+                AppButton(
+                    onClick = { showDashboardCustomizationDialog = false },
+                    variant = ButtonVariant.LIGHT,
+                    intent = ButtonIntent.PRIMARY
+                ) {
+                    Text("إلغاء", fontWeight = FontWeight.Bold)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface,
@@ -929,10 +936,11 @@ private fun BackupTab(
 
             SettingsSectionTitle("إعداد حساب Google Drive")
 
-            Card(
+            AppCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                variant = CardVariant.SOLID,
+                shape = ShapeTokens.Lg,
+                backgroundColor = MaterialTheme.colorScheme.surfaceVariant
             ) {
                 val email = uiState.connectedAccountEmail
                 Row(
@@ -964,16 +972,17 @@ private fun BackupTab(
                         }
                     }
                     if (email != null) {
-                        TextButton(
+                        AppButton(
                             onClick = onDisconnectGoogle,
-                            colors = ButtonDefaults.textButtonColors(contentColor = ExpenseRed)
-                        ) { Text("إلغاء الربط", fontSize = 12.sp) }
+                            variant = ButtonVariant.LIGHT,
+                            intent = ButtonIntent.DANGER
+                        ) { Text("إلغاء الربط", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
                     } else {
-                        Button(
+                        AppButton(
                             onClick = onConnectGoogleClick,
-                            colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                            variant = ButtonVariant.SOLID,
+                            intent = ButtonIntent.PRIMARY,
+                            shape = ShapeTokens.Md
                         ) { Text("ربط الحساب", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
                     }
                 }
@@ -998,29 +1007,28 @@ private fun BackupTab(
             SettingsSectionTitle("إجراءات الاستعادة")
 
             // Backup now button
-            Button(
+            AppButton(
                 onClick = onBackupClick,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                variant = ButtonVariant.SOLID,
+                intent = ButtonIntent.PRIMARY,
+                shape = ShapeTokens.Lg,
+                leadingIcon = { Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp)) }
             ) {
-                Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
                 Text("نسخ احتياطي الآن", fontWeight = FontWeight.Bold)
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
+
             // Restore from backup
-            OutlinedButton(
+            AppButton(
                 onClick = onRestoreClick,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = TransferBlue),
-                border = ButtonDefaults.outlinedButtonBorder.copy(
-                    brush = Brush.horizontalGradient(listOf(TransferBlue, TransferBlue))
-                )
+                variant = ButtonVariant.BORDERED,
+                intent = ButtonIntent.PRIMARY,
+                shape = ShapeTokens.Lg,
+                leadingIcon = { Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp)) }
             ) {
-                Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
                 Text("استعادة من النسخة الاحتياطية", fontWeight = FontWeight.Bold)
             }
 
@@ -1043,12 +1051,12 @@ private fun CategoriesTab(onNavigateToCategories: () -> Unit) {
         SettingsSectionTitle("إدارة فئات المعاملات")
 
         // Hero card to navigate
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onNavigateToCategories() },
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+        AppCard(
+            modifier = Modifier.fillMaxWidth(),
+            variant = CardVariant.SOLID,
+            shape = ShapeTokens.Xl,
+            onClick = onNavigateToCategories,
+            backgroundColor = Color.Transparent
         ) {
             Box(
                 modifier = Modifier
@@ -1221,11 +1229,11 @@ private fun SettingsItem(
     subtitle: String,
     trailing: @Composable () -> Unit
 ) {
-    Card(
+    AppCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+        variant = CardVariant.SOLID,
+        shape = ShapeTokens.Lg,
+        backgroundColor = MaterialTheme.colorScheme.surface
     ) {
         Row(
             modifier = Modifier
@@ -1271,13 +1279,12 @@ private fun SettingsNavItem(
     subtitle: String,
     onClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+    AppCard(
+        modifier = Modifier.fillMaxWidth(),
+        variant = CardVariant.SOLID,
+        shape = ShapeTokens.Lg,
+        onClick = onClick,
+        backgroundColor = MaterialTheme.colorScheme.surface
     ) {
         Row(
             modifier = Modifier
@@ -1321,11 +1328,11 @@ private fun SettingsNavItem(
 
 @Composable
 private fun SettingsItemSkeleton(modifier: Modifier = Modifier) {
-    Card(
+    AppCard(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+        variant = CardVariant.SOLID,
+        shape = ShapeTokens.Lg,
+        backgroundColor = MaterialTheme.colorScheme.surface
     ) {
         Row(
             modifier = Modifier

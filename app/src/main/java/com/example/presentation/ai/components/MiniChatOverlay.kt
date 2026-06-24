@@ -53,6 +53,8 @@ import com.example.ui.theme.TextGray
 import kotlinx.coroutines.launch
 import com.example.core.utils.FormatterUtils
 import androidx.compose.ui.text.style.TextOverflow
+import com.example.ui.designsystem.components.*
+import com.example.ui.designsystem.tokens.*
 
 import com.example.presentation.ai.AiModelInfo
 import com.example.presentation.ai.AiErrorState
@@ -485,17 +487,13 @@ fun MiniChatOverlay(
                     .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                OutlinedTextField(
+                AppInput(
                     value = inputText,
                     onValueChange = onInputTextChange,
-                    placeholder = { Text("اكتب رسالتك هنا...", fontSize = 13.sp) },
+                    placeholder = "اكتب رسالتك هنا...",
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(24.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                    ),
-                    maxLines = 2,
+                    singleLine = false,
                     leadingIcon = {
                         val micColor = if (isListening) Color.Red else MaterialTheme.colorScheme.primary
                         IconButton(

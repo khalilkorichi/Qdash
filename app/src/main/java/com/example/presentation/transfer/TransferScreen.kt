@@ -33,6 +33,8 @@ import com.example.core.utils.FormatterUtils
 import com.example.domain.model.Account
 import com.example.domain.model.TransferRecord
 import com.example.ui.theme.*
+import com.example.ui.designsystem.components.*
+import com.example.ui.designsystem.tokens.*
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -420,43 +422,16 @@ fun TransferScreen(
                         )
 
                         if (showDatePicker) {
-                            val datePickerState = rememberDatePickerState(
-                                initialSelectedDateMillis = transferDate
-                            )
-                            DatePickerDialog(
+                            AppDatePickerDialog(
+                                initialSelectedDateMillis = transferDate,
                                 onDismissRequest = { showDatePicker = false },
-                                confirmButton = {
-                                    TextButton(
-                                        onClick = {
-                                            datePickerState.selectedDateMillis?.let {
-                                                transferDate = it
-                                            }
-                                            showDatePicker = false
-                                        }
-                                    ) {
-                                        Text("موافق", color = TransferBlue, fontWeight = FontWeight.Bold)
-                                    }
-                                },
-                                dismissButton = {
-                                    TextButton(onClick = { showDatePicker = false }) {
-                                        Text("إلغاء", color = TextGray)
-                                    }
-                                }
-                            ) {
-                                DatePicker(
-                                    state = datePickerState,
-                                    colors = DatePickerDefaults.colors(
-                                        selectedDayContainerColor = TransferBlue,
-                                        selectedDayContentColor = Color.White,
-                                        todayContentColor = TransferBlue,
-                                        todayDateBorderColor = TransferBlue
-                                    )
-                                )
-                            }
+                                onDateSelected = { transferDate = it },
+                                confirmButtonColor = TransferBlue
+                            )
                         }
 
                         // 4. SUBMIT ACTION BUTTON
-                        Button(
+                        AppButton(
                             onClick = {
                                 val fromId = fromAccountId
                                 val toId = toAccountId
@@ -464,7 +439,7 @@ fun TransferScreen(
                                 val fee = feeAmount.toDoubleOrNull()
 
                                 if (fromId != null && toId != null && amt > 0) {
-                                    if (fromId == toId) return@Button
+                                    if (fromId == toId) return@AppButton
                                     viewModel.executeTransfer(
                                         fromAccountId = fromId,
                                         toAccountId = toId,
@@ -482,19 +457,13 @@ fun TransferScreen(
                                     }
                                 }
                             },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = TransferBlue),
-                            shape = RoundedCornerShape(14.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            variant = ButtonVariant.SOLID,
+                            intent = ButtonIntent.INFO,
+                            isLoading = uiState.isLoading,
+                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.Send, null) }
                         ) {
-                            if (uiState.isLoading) {
-                                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                            } else {
-                                Icon(Icons.AutoMirrored.Filled.Send, null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("تأكيد وإجراء التحويل المالي", fontWeight = FontWeight.Bold)
-                            }
+                            Text("تأكيد وإجراء التحويل المالي", fontWeight = FontWeight.Bold)
                         }
 
                         uiState.error?.let { err ->

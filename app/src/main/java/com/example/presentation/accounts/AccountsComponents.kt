@@ -614,34 +614,20 @@ fun AddAccountDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                OutlinedTextField(
+                AppInput(
                     value = accName,
                     onValueChange = { accName = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("account_name_input"),
-                    placeholder = { Text("اسم الحساب (مثال: بريدي موب شخصي)", color = TextGray) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Primary,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                    )
+                    modifier = Modifier.testTag("account_name_input"),
+                    placeholder = "اسم الحساب (مثال: بريدي موب شخصي)"
                 )
 
-                OutlinedTextField(
+                AppInput(
                     value = accBalance,
                     onValueChange = { accBalance = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("account_balance_input"),
-                    placeholder = { Text("الرصيد الافتتاحي (دج)", color = TextGray) },
+                    modifier = Modifier.testTag("account_balance_input"),
+                    placeholder = "الرصيد الافتتاحي (دج)",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Primary,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                    )
+                    visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation()
                 )
 
                 Text("نوع الحساب:", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelLarge)
@@ -702,7 +688,7 @@ fun AddAccountDialog(
             }
         },
         confirmButton = {
-            Button(
+            AppButton(
                 onClick = {
                     val bal = com.example.core.utils.FormatterUtils.normalizeAmount(accBalance).toDoubleOrNull() ?: 0.0
                     if (accName.isNotBlank() && bal >= 0) {
@@ -717,14 +703,19 @@ fun AddAccountDialog(
                         onConfirm(accName, accType, bal, accColor, icon)
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                variant = ButtonVariant.SOLID,
+                intent = ButtonIntent.PRIMARY
             ) {
-                Text("حفظ الحساب", color = Color.White)
+                Text("حفظ الحساب", color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("إلغاء", color = MaterialTheme.colorScheme.primary)
+            AppButton(
+                onClick = onDismiss,
+                variant = ButtonVariant.LIGHT,
+                intent = ButtonIntent.PRIMARY
+            ) {
+                Text("إلغاء", fontWeight = FontWeight.Bold)
             }
         },
         containerColor = MaterialTheme.colorScheme.surface
