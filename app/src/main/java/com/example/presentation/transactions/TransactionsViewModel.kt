@@ -406,7 +406,7 @@ class TransactionsViewModel(
     fun addTransaction(
         amount: Double,
         type: TransactionType,
-        categoryId: Long,
+        categoryId: Long?,
         accountId: Long,
         toAccountId: Long?,
         note: String?,
@@ -476,7 +476,7 @@ class TransactionsViewModel(
         id: Long,
         amount: Double,
         type: TransactionType,
-        categoryId: Long,
+        categoryId: Long?,
         accountId: Long,
         toAccountId: Long?,
         note: String?,

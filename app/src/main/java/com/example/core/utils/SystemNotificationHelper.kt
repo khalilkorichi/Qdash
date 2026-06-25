@@ -41,7 +41,7 @@ object SystemNotificationHelper {
 
         // Using standard material notification building
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info) // Standard high-contrast system notification icon
+            .setSmallIcon(com.example.R.drawable.ic_notification)
             .setContentTitle(appNotification.title)
             .setContentText(appNotification.message)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

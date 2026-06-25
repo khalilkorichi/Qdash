@@ -1,11 +1,11 @@
 {
-  "versionCode": 25,
-  "versionName": "1.0.0.25",
-  "updateIdentity": 126,
-  "publishedAt": "2026-06-24T13:17:10Z",
+  "versionCode": 26,
+  "versionName": "1.0.0.26",
+  "updateIdentity": 127,
+  "publishedAt": "2026-06-25T23:56:30Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 24369301,
-  "apkSha256": "5731ae77510b5c29381415cf51ed6a5fb631587a330a1b8f2dea877636d109ed",
+  "apkSize": 24399869,
+  "apkSha256": "cd221202ae3eabdc6b706ff70c02b695c5122fe0f215696b999231d960e2795d",
   "mandatory": false,
-  "releaseNotes": "تحديث v1.0.0.25 (Build 126): إصلاح جودة الشعار داخل التطبيق — كان الشعار يظهر بجودة سيئة وبكسلز بسبب استخدام صور PNG صغيرة مضغوطة. الحل: تحويل ملفات SVG الرسمية مباشرةً إلى Android Vector Drawables مما يضمن جودة حادة لا نهائية على جميع دقات الشاشة. الشعار الآن حاد تمامًا في: (1) شاشة Splash. (2) شاشة الإعدادات (قسم عن التطبيق). (3) أيقونة الإشعارات بيضاء صحيحة في شريط الحالة. (4) الأيقونة التكيّفية (Adaptive Icon) للـ Launcher على API 26+."
+  "releaseNotes": "تحديث v1.0.0.26 (Build 127): جعل معرف الفئة (categoryId) اختيارياً لعمليات التحويل (Transfers) لتجنب تلويث البيانات التحليلية وأهداف الميزانية. يتضمن التحديث ترحيل قاعدة البيانات (Migration 16 to 17) لضمان سلامة وتوافق البيانات الحالية."
 }

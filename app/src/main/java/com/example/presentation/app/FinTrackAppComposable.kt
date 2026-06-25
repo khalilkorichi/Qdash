@@ -68,7 +68,8 @@ fun FinTrackApp(
                 container = container,
                 factory = factory,
                 settingsViewModel = settingsViewModel,
-                startDestination = startDestination
+                startDestination = startDestination,
+                isFirstLaunch = isFirstLaunch
             )
         }
     }

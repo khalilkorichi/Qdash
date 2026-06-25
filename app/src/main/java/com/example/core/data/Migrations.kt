@@ -249,6 +249,19 @@ val MIGRATION_15_16 = object : Migration(15, 16) {
     }
 }
 
+val MIGRATION_16_17 = object : Migration(16, 17) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS `transactions_new` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `amount` REAL NOT NULL, `type` TEXT NOT NULL, `categoryId` INTEGER, `accountId` INTEGER NOT NULL, `toAccountId` INTEGER, `note` TEXT, `date` INTEGER NOT NULL, `isRecurring` INTEGER NOT NULL, `recurringPeriod` TEXT, `attachmentPath` TEXT, `tags` TEXT, `suggestedCategoryId` INTEGER, `suggestionSource` TEXT, `confidenceScore` REAL, `userAcceptedSuggestion` INTEGER, `kind` TEXT NOT NULL, `transferId` TEXT, `isDebit` INTEGER NOT NULL)")
+        db.execSQL("INSERT INTO `transactions_new` (`id`, `amount`, `type`, `categoryId`, `accountId`, `toAccountId`, `note`, `date`, `isRecurring`, `recurringPeriod`, `attachmentPath`, `tags`, `suggestedCategoryId`, `suggestionSource`, `confidenceScore`, `userAcceptedSuggestion`, `kind`, `transferId`, `isDebit`) SELECT `id`, `amount`, `type`, `categoryId`, `accountId`, `toAccountId`, `note`, `date`, `isRecurring`, `recurringPeriod`, `attachmentPath`, `tags`, `suggestedCategoryId`, `suggestionSource`, `confidenceScore`, `userAcceptedSuggestion`, `kind`, `transferId`, `isDebit` FROM `transactions`")
+        db.execSQL("DROP TABLE `transactions`")
+        db.execSQL("ALTER TABLE `transactions_new` RENAME TO `transactions`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_accountId` ON `transactions` (`accountId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_categoryId` ON `transactions` (`categoryId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_date` ON `transactions` (`date`)")
+        db.execSQL("UPDATE `transactions` SET `categoryId` = NULL WHERE `type` = 'TRANSFER'")
+    }
+}
+
 /**
  * All migrations in order, for passing to Room's addMigrations().
  */
@@ -256,6 +269,6 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
     MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
-    MIGRATION_15_16
+    MIGRATION_15_16, MIGRATION_16_17
 )
 

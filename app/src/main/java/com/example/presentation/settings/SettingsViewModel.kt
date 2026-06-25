@@ -38,7 +38,14 @@ class SettingsViewModel(
     private val context: Context
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(SettingsUiState())
+    private val _uiState = MutableStateFlow(
+        SettingsUiState(
+            isDarkTheme = preferencesManager.darkModeEnabled,
+            isHideDecimalsEnabled = preferencesManager.hideDecimalsEnabled,
+            isAmountWordsEnabled = preferencesManager.amountWordsEnabled,
+            useWesternNumerals = preferencesManager.useWesternNumerals
+        )
+    )
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     init {

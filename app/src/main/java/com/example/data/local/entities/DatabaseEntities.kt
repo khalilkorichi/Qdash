@@ -16,7 +16,7 @@ data class TransactionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val amount: Double,
     val type: String, // "EXPENSE", "INCOME", "TRANSFER"
-    val categoryId: Long,
+    val categoryId: Long? = null,
     val accountId: Long,
     val toAccountId: Long? = null, // for transfer destination
     val note: String? = null,

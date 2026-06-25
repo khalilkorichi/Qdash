@@ -37,6 +37,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -603,6 +606,7 @@ private fun GeneralTab(
     onCustomiseDashboardClick: () -> Unit
 ) {
     val Primary = MaterialTheme.colorScheme.primary
+    var showAboutDialog by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -758,15 +762,76 @@ private fun GeneralTab(
 
             SettingsSectionTitle("عن التطبيق")
 
-            SettingsItem(
-                icon = Icons.Default.Info,
-                iconTint = TransferBlue,
+            SettingsLogoNavItem(
+                painter = painterResource(id = com.example.R.drawable.ic_app_logo),
                 title = "نسخة التطبيق",
                 subtitle = "قداشّ — الإصدار التجاري",
-                trailing = {
-                    Text("v${com.example.BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelMedium, color = TextGray)
-                }
+                onClick = { showAboutDialog = true }
             )
+
+            if (showAboutDialog) {
+                AlertDialog(
+                    onDismissRequest = { showAboutDialog = false },
+                    confirmButton = {
+                        TextButton(onClick = { showAboutDialog = false }) {
+                            Text("إغلاق", color = MaterialTheme.colorScheme.primary)
+                        }
+                    },
+                    title = {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    painter = painterResource(id = com.example.R.drawable.ic_app_logo),
+                                    contentDescription = "Qdash Logo",
+                                    modifier = Modifier.size(60.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "قداشّ",
+                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "الإصدار v${com.example.BuildConfig.VERSION_NAME}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = TextGray
+                            )
+                        }
+                    },
+                    text = {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "تطبيق مالي شخصي لإدارة الميزانية والمصاريف اليومية، مصمم خصيصاً للمستخدمين الجزائريين.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "صنع بكل ❤️ في الجزائر",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    },
+                    shape = RoundedCornerShape(20.dp),
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            }
 
             SettingsNavItem(
                 icon = Icons.Default.SystemUpdate,
@@ -1267,6 +1332,64 @@ private fun SettingsItem(
             }
             Spacer(modifier = Modifier.width(8.dp))
             trailing()
+        }
+    }
+}
+
+@Composable
+private fun SettingsLogoNavItem(
+    painter: androidx.compose.ui.graphics.painter.Painter,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    AppCard(
+        modifier = Modifier.fillMaxWidth(),
+        variant = CardVariant.SOLID,
+        shape = ShapeTokens.Lg,
+        onClick = onClick,
+        backgroundColor = MaterialTheme.colorScheme.surface
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painter,
+                    contentDescription = null,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextGray,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "v${com.example.BuildConfig.VERSION_NAME}",
+                style = MaterialTheme.typography.labelMedium,
+                color = TextGray
+            )
         }
     }
 }

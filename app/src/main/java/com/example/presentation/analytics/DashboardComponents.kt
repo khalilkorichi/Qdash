@@ -891,7 +891,7 @@ fun MonthComparisonCard(
             val catDiff = amtB - amtA
             val catPct = if (amtA > 0) (catDiff / amtA).toFloat() else 0f
             CategoryComparison(
-                categoryId = catId,
+                categoryId = catId ?: -1L,
                 name = cat?.name ?: "أخرى",
                 color = cat?.color ?: "#6C63FF",
                 amountA = amtA,

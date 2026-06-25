@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 16,
-    "identityHash": "a1935ee22aead2f4fc4a0c098484e9e2",
+    "identityHash": "09b45d96469c9c87fb8a73f9f8ef16d3",
     "entities": [
       {
         "tableName": "transactions",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `amount` REAL NOT NULL, `type` TEXT NOT NULL, `categoryId` INTEGER NOT NULL, `accountId` INTEGER NOT NULL, `toAccountId` INTEGER, `note` TEXT, `date` INTEGER NOT NULL, `isRecurring` INTEGER NOT NULL, `recurringPeriod` TEXT, `attachmentPath` TEXT, `tags` TEXT, `suggestedCategoryId` INTEGER, `suggestionSource` TEXT, `confidenceScore` REAL, `userAcceptedSuggestion` INTEGER, `kind` TEXT NOT NULL, `transferId` TEXT, `isDebit` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `amount` REAL NOT NULL, `type` TEXT NOT NULL, `categoryId` INTEGER, `accountId` INTEGER NOT NULL, `toAccountId` INTEGER, `note` TEXT, `date` INTEGER NOT NULL, `isRecurring` INTEGER NOT NULL, `recurringPeriod` TEXT, `attachmentPath` TEXT, `tags` TEXT, `suggestedCategoryId` INTEGER, `suggestionSource` TEXT, `confidenceScore` REAL, `userAcceptedSuggestion` INTEGER, `kind` TEXT NOT NULL, `transferId` TEXT, `isDebit` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -29,8 +29,7 @@
           {
             "fieldPath": "categoryId",
             "columnName": "categoryId",
-            "affinity": "INTEGER",
-            "notNull": true
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "accountId",
@@ -1674,7 +1673,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a1935ee22aead2f4fc4a0c098484e9e2')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '09b45d96469c9c87fb8a73f9f8ef16d3')"
     ]
   }
 }

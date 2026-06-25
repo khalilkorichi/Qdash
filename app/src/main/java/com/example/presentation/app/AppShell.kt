@@ -40,7 +40,8 @@ internal fun FinTrackAppShell(
     container: AppContainer,
     factory: ViewModelFactory,
     settingsViewModel: SettingsViewModel,
-    startDestination: String
+    startDestination: String,
+    isFirstLaunch: Boolean
 ) {
     val navController = rememberNavController()
     val scope = rememberCoroutineScope()
@@ -94,7 +95,8 @@ internal fun FinTrackAppShell(
                     startDestination = startDestination,
                     updatesViewModel = updatesViewModel,
                     aiChatViewModel = aiChatViewModel,
-                    scope = scope
+                    scope = scope,
+                    isFirstLaunch = isFirstLaunch
                 )
             }
 

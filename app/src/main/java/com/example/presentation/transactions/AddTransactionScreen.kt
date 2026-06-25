@@ -202,7 +202,7 @@ fun AddTransactionScreen(
         ?: uiState.accounts.find { it.isDefault }?.id
         ?: uiState.accounts.firstOrNull()?.id
     val canSaveTransaction = parsedAmount > 0.0 &&
-        effectiveCategoryId != null &&
+        (type == TransactionType.TRANSFER || effectiveCategoryId != null) &&
         effectiveAccountId != null &&
         (type != TransactionType.TRANSFER || (toAccountId != null && effectiveAccountId != toAccountId)) &&
         !uiState.isSaving
@@ -441,13 +441,18 @@ fun AddTransactionScreen(
                 selected = type,
                 onSelect = { newType ->
                     type = newType
-                    selectedCategoryId = uiState.categories.firstOrNull {
-                        when (newType) {
-                            TransactionType.INCOME -> it.type == CategoryType.INCOME
-                            else                   -> it.type == CategoryType.EXPENSE
-                        }
-                    }?.id
-                    subcategoryId = null
+                    if (newType == TransactionType.TRANSFER) {
+                        selectedCategoryId = null
+                        subcategoryId = null
+                    } else {
+                        selectedCategoryId = uiState.categories.firstOrNull {
+                            when (newType) {
+                                TransactionType.INCOME -> it.type == CategoryType.INCOME
+                                else                   -> it.type == CategoryType.EXPENSE
+                            }
+                        }?.id
+                        subcategoryId = null
+                    }
                 }
             )
 
@@ -1196,9 +1201,9 @@ fun AddTransactionScreen(
                             } else {
                                 haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                             }
-                            val categoryId = effectiveCategoryId
+                            val categoryId = if (type == TransactionType.TRANSFER) null else effectiveCategoryId
                             val accountId = effectiveAccountId
-                            if (categoryId == null || accountId == null) {
+                            if ((type != TransactionType.TRANSFER && categoryId == null) || accountId == null) {
                                 Toast.makeText(context, "يرجى اختيار حساب وفئة صالحين قبل الحفظ.", Toast.LENGTH_LONG).show()
                                 return@AppButton
                             }

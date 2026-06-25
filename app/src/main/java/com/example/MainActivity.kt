@@ -28,14 +28,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-
-        // Request runtime notification permission on Android 13+ (API 33+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
-            }
-        }
 
         val container = (applicationContext as FinTrackApp).container
         val factory = ViewModelFactory(container, applicationContext)
@@ -43,7 +35,49 @@ class MainActivity : ComponentActivity() {
         // Read stable prefs once — these do NOT change during navigation
         val prefs = container.preferencesManager
         val isFirstLaunch = prefs.isFirstLaunch
-        val startDestination = if (isFirstLaunch) Screen.Onboarding.route else Screen.Home.route
+        val startDestination = Screen.Splash.route
+
+        val isDark = if (isFirstLaunch) false else {
+            val mode = prefs.cachedTheme.get()
+            when (mode) {
+                com.example.core.preferences.PreferencesManager.ThemeMode.DARK -> true
+                com.example.core.preferences.PreferencesManager.ThemeMode.LIGHT -> false
+                com.example.core.preferences.PreferencesManager.ThemeMode.SYSTEM -> {
+                    val uiMode = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
+                    uiMode == android.content.res.Configuration.UI_MODE_NIGHT_YES
+                }
+            }
+        }
+
+        enableEdgeToEdge(
+            statusBarStyle = if (isDark) {
+                androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+            } else {
+                androidx.activity.SystemBarStyle.light(
+                    android.graphics.Color.TRANSPARENT,
+                    android.graphics.Color.TRANSPARENT
+                )
+            },
+            navigationBarStyle = if (isDark) {
+                androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+            } else {
+                androidx.activity.SystemBarStyle.light(
+                    android.graphics.Color.TRANSPARENT,
+                    android.graphics.Color.TRANSPARENT
+                )
+            }
+        )
+
+        // Apply correct window background color before first Compose frame draws
+        val bgClr = if (isDark) 0xFF09090B.toInt() else 0xFFFBFBFA.toInt()
+        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(bgClr))
+
+        // Request runtime notification permission on Android 13+ (API 33+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
 
         // Initialize formatting prefs once at startup
         com.example.core.utils.FormatterUtils.hideDecimals = prefs.hideDecimalsEnabled

@@ -29,6 +29,7 @@ class FinTrackApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainerImpl(this)
+        container.preferencesManager.loadInitialThemeSync()
         SystemNotificationHelper.createNotificationChannel(this)
         schedulePeriodicUpdateChecks()
     }

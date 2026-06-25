@@ -77,6 +77,8 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
     object CreateEditPostalProfile : Screen("create_edit_postal_profile?profileId={profileId}", "ملف حساب بريدي") {
         fun createRoute(profileId: Long? = null) = "create_edit_postal_profile" + if (profileId != null) "?profileId=$profileId" else ""
     }
+    
+    object Splash : Screen("splash", "الشاشة الترحيبية")
 }
 
 val mainBottomNavScreens = listOf(

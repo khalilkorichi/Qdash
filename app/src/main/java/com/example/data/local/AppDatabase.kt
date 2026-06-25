@@ -27,7 +27,7 @@ import com.example.data.local.entities.*
         AiChatMessageEntity::class,
         PostalProfileEntity::class
     ],
-    version = 16,
+    version = 17,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {

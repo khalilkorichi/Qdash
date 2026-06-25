@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * PreferencesManager wraps all SharedPreferences files used by the application,
@@ -16,6 +17,39 @@ class PreferencesManager(context: Context) {
     private val mainPrefs: SharedPreferences = safeContext.getSharedPreferences("kdach_prefs", Context.MODE_PRIVATE)
     private val dashboardPrefs: SharedPreferences = safeContext.getSharedPreferences("fintrack_prefs", Context.MODE_PRIVATE)
     private val searchPrefs: SharedPreferences = safeContext.getSharedPreferences("fintrack_search_prefs", Context.MODE_PRIVATE)
+
+    enum class ThemeMode {
+        LIGHT, DARK, SYSTEM
+    }
+
+    val cachedTheme = AtomicReference<ThemeMode>(ThemeMode.SYSTEM)
+
+    init {
+        loadInitialThemeSync()
+    }
+
+    fun loadInitialThemeSync(): ThemeMode {
+        val themeStr = mainPrefs.getString("theme_mode", null)
+        val mode = if (themeStr != null) {
+            try {
+                ThemeMode.valueOf(themeStr)
+            } catch (e: Exception) {
+                ThemeMode.SYSTEM
+            }
+        } else {
+            if (mainPrefs.contains("dark_mode_enabled")) {
+                val isDark = mainPrefs.getBoolean("dark_mode_enabled", false)
+                val migrated = if (isDark) ThemeMode.DARK else ThemeMode.LIGHT
+                mainPrefs.edit().putString("theme_mode", migrated.name).apply()
+                migrated
+            } else {
+                mainPrefs.edit().putString("theme_mode", ThemeMode.SYSTEM.name).apply()
+                ThemeMode.SYSTEM
+            }
+        }
+        cachedTheme.set(mode)
+        return mode
+    }
 
     private val _dashboardConfigUpdates = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val dashboardConfigUpdates: SharedFlow<Unit> = _dashboardConfigUpdates.asSharedFlow()
@@ -47,8 +81,32 @@ class PreferencesManager(context: Context) {
         set(value) = mainPrefs.edit().putString("connected_email", value).apply()
 
     var darkModeEnabled: Boolean
-        get() = mainPrefs.getBoolean("dark_mode_enabled", false)
-        set(value) = mainPrefs.edit().putBoolean("dark_mode_enabled", value).apply()
+        get() {
+            val modeStr = mainPrefs.getString("theme_mode", null)
+            val mode = if (modeStr != null) {
+                try { ThemeMode.valueOf(modeStr) } catch(e: Exception) { ThemeMode.SYSTEM }
+            } else {
+                if (mainPrefs.contains("dark_mode_enabled")) {
+                    if (mainPrefs.getBoolean("dark_mode_enabled", false)) ThemeMode.DARK else ThemeMode.LIGHT
+                } else {
+                    ThemeMode.SYSTEM
+                }
+            }
+            return when (mode) {
+                ThemeMode.DARK -> true
+                ThemeMode.LIGHT -> false
+                ThemeMode.SYSTEM -> {
+                    val uiMode = safeContext.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
+                    uiMode == android.content.res.Configuration.UI_MODE_NIGHT_YES
+                }
+            }
+        }
+        set(value) {
+            mainPrefs.edit().putBoolean("dark_mode_enabled", value).apply()
+            val newMode = if (value) ThemeMode.DARK else ThemeMode.LIGHT
+            mainPrefs.edit().putString("theme_mode", newMode.name).apply()
+            cachedTheme.set(newMode)
+        }
 
     var amountWordsEnabled: Boolean
         get() = mainPrefs.getBoolean("amount_words_enabled", true)

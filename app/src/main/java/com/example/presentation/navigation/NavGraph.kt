@@ -28,6 +28,7 @@ import com.example.presentation.export.ExportViewModel
 import com.example.presentation.export.ExportScreen
 import com.example.presentation.settings.SettingsScreen
 import com.example.presentation.settings.SettingsViewModel
+import com.example.presentation.splash.SplashScreen
 import com.example.presentation.subscriptions.SubscriptionsScreen
 import com.example.presentation.subscriptions.SubscriptionsViewModel
 import com.example.presentation.transactions.AddTransactionScreen
@@ -74,6 +75,7 @@ internal fun FinTrackNavGraph(
     updatesViewModel: com.example.presentation.update.UpdatesViewModel,
     aiChatViewModel: com.example.presentation.ai.AiChatViewModel,
     scope: CoroutineScope,
+    isFirstLaunch: Boolean,
     modifier: Modifier = Modifier
 ) {
     NavHost(
@@ -108,6 +110,17 @@ internal fun FinTrackNavGraph(
             ) + fadeOut(animationSpec = tween(200))
         }
     ) {
+        composable(Screen.Splash.route) {
+            SplashScreen(
+                onSplashFinished = {
+                    val target = if (isFirstLaunch) Screen.Onboarding.route else Screen.Home.route
+                    navController.navigate(target) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable(Screen.Onboarding.route) {
             val onboardingViewModel: com.example.presentation.onboarding.OnboardingViewModel =
                 viewModel(factory = factory)
