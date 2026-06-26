@@ -5,7 +5,6 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -14,9 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -30,43 +28,11 @@ fun SplashScreen(
     onSplashFinished: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Animation states
-    val scale = remember { Animatable(0.3f) }
-    val alpha = remember { Animatable(0f) }
+    // Progress and loading states
     var loadingStep by remember { mutableStateOf(0) }
     var progress by remember { mutableStateOf(0f) }
 
-    // Logo entrance bouncy animation
-    LaunchedEffect(key1 = true) {
-        scale.animateTo(
-            targetValue = 1f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow
-            )
-        )
-        // Pulsing loop
-        while (true) {
-            scale.animateTo(
-                targetValue = 1.05f,
-                animationSpec = tween(durationMillis = 1500, easing = FastOutSlowInEasing)
-            )
-            scale.animateTo(
-                targetValue = 1.0f,
-                animationSpec = tween(durationMillis = 1500, easing = FastOutSlowInEasing)
-            )
-        }
-    }
-
-    // Alpha fade in for text components
-    LaunchedEffect(key1 = true) {
-        alpha.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(durationMillis = 800)
-        )
-    }
-
-    // Step-by-step progress simulation
+    // Step-by-step progress simulation (2.4 seconds total)
     LaunchedEffect(key1 = true) {
         // Step 0: Initialize
         loadingStep = 0
@@ -114,80 +80,51 @@ fun SplashScreen(
 
     val isDark = MaterialTheme.colorScheme.background.red < 0.5f // Simple dark mode check
 
-    // Custom themed background brush
-    val backgroundBrush = if (isDark) {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color(0xFF090D1A), // Deep Slate/Blue
-                Color(0xFF030712), // Very dark Slate
-                Color(0xFF1E1B4B)  // Ambient Dark Indigo
-            )
-        )
+    // Solid background using brand identity colors (no gradient)
+    // To ensure the white logo is always visible with high contrast:
+    // Dark mode uses the true deep black BackgroundDark (0xFF09090B)
+    // Light mode uses the deep charcoal brand Primary color (0xFF191919) to provide a premium, modern dark splash
+    val backgroundColor = if (isDark) {
+        Color(0xFF09090B)
     } else {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color(0xFFF1F5F9), // Light Slate 100
-                Color(0xFFFAF5FF), // Light Purple 50
-                Color(0xFFE2E8F0)  // Light Slate 200
-            )
-        )
+        Color(0xFF191919)
     }
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(backgroundBrush),
+            .background(backgroundColor),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+            verticalArrangement = Center,
             modifier = Modifier.padding(24.dp)
         ) {
-            // Ambient glow effect behind logo card
+            // App Logo - Styled solid white, completely static (no scale/glow animations)
             Box(
+                modifier = Modifier.size(112.dp),
                 contentAlignment = Alignment.Center
             ) {
-                if (isDark) {
-                    Box(
-                        modifier = Modifier
-                            .size(160.dp)
-                            .scale(scale.value * 1.1f)
-                            .clip(CircleShape)
-                            .background(Color(0xFF8B5CF6).copy(alpha = 0.15f))
-                    )
-                }
-                
-                // App Logo Wrapper Card
-                Box(
-                    modifier = Modifier
-                        .size(136.dp)
-                        .scale(scale.value)
-                        .clip(CircleShape)
-                        .background(if (isDark) Color(0xFF111827).copy(alpha = 0.9f) else Color.White)
-                        .padding(20.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_app_logo),
-                        contentDescription = "Qdash Logo",
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
+                Image(
+                    painter = painterResource(id = R.drawable.ic_app_logo),
+                    contentDescription = "Qdash Logo",
+                    colorFilter = ColorFilter.tint(Color.White),
+                    modifier = Modifier.fillMaxSize()
+                )
             }
             
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             
             // App Name "قداشّ"
             Text(
                 text = "قداشّ",
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = 38.sp,
+                    fontSize = 36.sp,
                     letterSpacing = 1.sp
                 ),
-                color = if (isDark) Color.White else Color(0xFF1E1B4B),
-                modifier = Modifier.alpha(alpha.value)
+                color = Color.White
             )
             
             Spacer(modifier = Modifier.height(6.dp))
@@ -197,21 +134,20 @@ fun SplashScreen(
                 text = "إدارة مالية ذكية وبسيطة",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Normal
                 ),
-                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
-                modifier = Modifier.alpha(alpha.value)
+                color = Color(0xFF94A3B8)
             )
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(56.dp))
 
-            // Premium Custom Progress Bar
+            // Premium Custom Progress Bar - Solid Brand Primary Color (no gradient)
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.65f)
-                    .height(6.dp)
+                    .height(4.dp)
                     .clip(RoundedCornerShape(100.dp))
-                    .background(if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0))
+                    .background(Color(0xFF334155)) // Slate-700 track background
             ) {
                 // Smoothly animated progress indicator
                 val animatedProgressWidth by animateFloatAsState(
@@ -222,15 +158,7 @@ fun SplashScreen(
                     modifier = Modifier
                         .fillMaxWidth(animatedProgressWidth)
                         .fillMaxHeight()
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color(0xFF3B82F6), // Accent Blue
-                                    Color(0xFF8B5CF6), // Accent Purple
-                                    Color(0xFFD946EF)  // Accent Pink
-                                )
-                            )
-                        )
+                        .background(Color(0xFF818CF8)) // Brand Vibrant Indigo-400 primary color
                 )
             }
 
@@ -250,9 +178,9 @@ fun SplashScreen(
                         text = targetText,
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Normal
                         ),
-                        color = if (isDark) Color(0xFF64748B) else Color(0xFF64748B),
+                        color = Color(0xFF64748B), // Slate-500
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -268,9 +196,11 @@ fun SplashScreen(
                     fontWeight = FontWeight.Bold,
                     fontSize = 11.sp
                 ),
-                color = if (isDark) Color(0xFF8B5CF6) else Color(0xFF3B82F6),
+                color = Color(0xFF818CF8), // Brand Indigo
                 textAlign = TextAlign.Center
             )
         }
     }
 }
+// Helper to support Center Arrangement without extra imports
+private val Center = Arrangement.Center

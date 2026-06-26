@@ -1,11 +1,11 @@
 {
-  "versionCode": 27,
-  "versionName": "1.0.0.27",
-  "updateIdentity": 128,
+  "versionCode": 28,
+  "versionName": "1.0.0.28",
+  "updateIdentity": 129,
   "publishedAt": "2026-06-25T23:56:30Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 24399869,
-  "apkSha256": "2b22b937f1a381cfde00dd69a85547de3010ab96970d97cb4695633471b3bc9b",
+  "apkSize": 24399865,
+  "apkSha256": "e5210a4ddd4babe72cc6ea731c7b1498a6bc7c0b6e9bec5a4cf883bce3b1a617",
   "mandatory": false,
-  "releaseNotes": "تحديث v1.0.0.27 (Build 128): تفعيل خيار عدم اختيار الفئة عند التحويل لتجنب المشاكل في التحليلات، وإطلاق شاشة الدخول (Splash Screen) الجديدة والاحترافية بالكامل مع شريط تحميل يعرض مراحل تهيئة قاعدة البيانات ودعم مميز للوضعين الليلي والنهاري."
+  "releaseNotes": "تحديث v1.0.0.28 (Build 129): تحديث وتجميل شاشة الدخول (Splash Screen) لتصبح باللون الأبيض وتصميم أحادي اللون هادئ بدون تدرجات لونية أو حركات متكررة للشعار، مع شريط تحميل يعرض مراحل إعداد قاعدة البيانات."
 }
