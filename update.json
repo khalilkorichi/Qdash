@@ -1,11 +1,11 @@
 {
-  "versionCode": 26,
-  "versionName": "1.0.0.26",
-  "updateIdentity": 127,
+  "versionCode": 27,
+  "versionName": "1.0.0.27",
+  "updateIdentity": 128,
   "publishedAt": "2026-06-25T23:56:30Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 24667301,
-  "apkSha256": "48ea1293fc813960d92436b318a14f4a149bb812ca2fc073a5974ef096d67403",
+  "apkSize": 24399869,
+  "apkSha256": "2b22b937f1a381cfde00dd69a85547de3010ab96970d97cb4695633471b3bc9b",
   "mandatory": false,
-  "releaseNotes": "تحديث v1.0.0.26 (Build 127): جعل معرف الفئة (categoryId) اختيارياً لعمليات التحويل (Transfers) لتجنب تلويث البيانات التحليلية وأهداف الميزانية. يتضمن التحديث ترحيل قاعدة البيانات (Migration 16 to 17)، بالإضافة إلى تحسين وتجميل شاشة الدخول (Splash Screen) ودعم الوضعين الليلي والنهاري بشكل احترافي مع شريط تحميل يعرض خطوات إعداد قاعدة البيانات."
+  "releaseNotes": "تحديث v1.0.0.27 (Build 128): تفعيل خيار عدم اختيار الفئة عند التحويل لتجنب المشاكل في التحليلات، وإطلاق شاشة الدخول (Splash Screen) الجديدة والاحترافية بالكامل مع شريط تحميل يعرض مراحل تهيئة قاعدة البيانات ودعم مميز للوضعين الليلي والنهاري."
 }
