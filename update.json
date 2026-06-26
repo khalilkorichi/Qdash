@@ -1,11 +1,11 @@
 {
-  "versionCode": 30,
-  "versionName": "1.0.0.30",
-  "updateIdentity": 131,
-  "publishedAt": "2026-06-26T14:06:00Z",
+  "versionCode": 31,
+  "versionName": "1.0.0.31",
+  "updateIdentity": 132,
+  "publishedAt": "2026-06-26T21:18:13Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 24432637,
-  "apkSha256": "6f4568aea91a7a44def970667789663c6c08bd505b1e89e276ae42377ec720c3",
+  "apkSize": 24514585,
+  "apkSha256": "a84db18110457b3ac76252ccb77a859f7bcceafa400f2026055fbe37976585cf",
   "mandatory": false,
-  "releaseNotes": "تحديث v1.0.0.30 (Build 131): إضافة شاشات حالة فارغة (EmptyStateView) في أقسام المقارنة، والتحليلات، والادخار بصفحة الإحصائيات عند عدم وجود معاملات، مع تحسينات في التصميم والأداء وتصحيح مؤشرات التغير في الصفحة الرئيسية."
+  "releaseNotes": "تحديث v1.0.0.31 (Build 132): حل مشكلة اختفاء الأمواج وتحديث تصميمها لتتحرك بشكل مستمر على كامل أطراف الشاشة في واجهة الإدخال الصوتي للذكاء الاصطناعي، مع تعديل محاذاة نص الحالة إلى اليمين (RTL)."
 }

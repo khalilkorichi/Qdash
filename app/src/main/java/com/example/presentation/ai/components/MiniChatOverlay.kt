@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -310,7 +311,7 @@ fun MiniChatOverlay(
                                 }
                             }
                             
-                            Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                             
                             // Z.ai Header
                             DropdownMenuItem(
@@ -357,7 +358,7 @@ fun MiniChatOverlay(
                         }
                     }
                 }
-                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
             }
 
             // Messages & Suggestions Area
@@ -519,7 +520,7 @@ fun MiniChatOverlay(
                             enabled = inputText.isNotBlank()
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Send,
+                                imageVector = Icons.AutoMirrored.Filled.Send,
                                 contentDescription = "إرسال",
                                 tint = if (inputText.isNotBlank()) MaterialTheme.colorScheme.primary else TextGray.copy(alpha = 0.4f)
                             )
@@ -1468,7 +1469,7 @@ fun RecentActivitySummaryCard(
                                 maxLines = 1
                             )
                             Text(
-                                text = FormatterUtils.formatCurrency(tx.amount) + " دج",
+                                text = FormatterUtils.formatCurrency(tx.amount),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = TextGray
                             )
@@ -1545,7 +1546,7 @@ fun WalletDistributionSuggestionCard(
                     ) {
                         Text(item.accountName, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         Text(
-                            "${FormatterUtils.formatCurrency(item.currentBalance)} دج / ${FormatterUtils.formatCurrency(item.suggestedBalance)} دج",
+                            "${FormatterUtils.formatCurrency(item.currentBalance)} / ${FormatterUtils.formatCurrency(item.suggestedBalance)}",
                             fontSize = 11.sp,
                             color = TextGray
                         )
@@ -1652,7 +1653,7 @@ fun LowBalanceAlertCard(
                             Text(alert.accountName, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                         Text(
-                            "${FormatterUtils.formatCurrency(alert.currentBalance)} دج",
+                            FormatterUtils.formatCurrency(alert.currentBalance),
                             fontSize = 11.sp,
                             color = Color(0xFFEF4444),
                             fontWeight = FontWeight.Bold
@@ -1726,7 +1727,7 @@ fun TransferDraftCard(
                     )
                 )
             } else {
-                Text("${FormatterUtils.formatCurrency(currentAmount)} دج", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text(FormatterUtils.formatCurrency(currentAmount), fontWeight = FontWeight.Bold, fontSize = 12.sp)
             }
             
             Spacer(modifier = Modifier.height(6.dp))
@@ -1904,7 +1905,7 @@ fun SelectedAccountDetailsCard(
                 Spacer(modifier = Modifier.width(6.dp))
                 Column {
                     Text(state.account.name, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    Text("الرصيد الحالي: ${FormatterUtils.formatCurrency(state.account.balance)} دج", fontSize = 11.sp, color = TextGray)
+                    Text("الرصيد الحالي: ${FormatterUtils.formatCurrency(state.account.balance)}", fontSize = 11.sp, color = TextGray)
                 }
             }
             
@@ -1919,7 +1920,7 @@ fun SelectedAccountDetailsCard(
                     ) {
                         Text(tx.note ?: "عملية مالية", fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                         Text(
-                            text = "${if (tx.type == TransactionType.EXPENSE) "-" else "+"}${FormatterUtils.formatCurrency(tx.amount)} دج",
+                            text = "${if (tx.type == TransactionType.EXPENSE) "-" else "+"}${FormatterUtils.formatCurrency(tx.amount)}",
                             fontSize = 10.sp,
                             color = if (tx.type == TransactionType.EXPENSE) Color(0xFFEF4444) else Color(0xFF22C55E),
                             fontWeight = FontWeight.Bold
@@ -1936,7 +1937,7 @@ fun SelectedAccountDetailsCard(
                     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(goal.name, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            Text("${FormatterUtils.formatCurrency(goal.currentAmount)} / ${FormatterUtils.formatCurrency(goal.targetAmount)} دج", fontSize = 9.sp, color = TextGray)
+                            Text("${FormatterUtils.formatCurrency(goal.currentAmount)} / ${FormatterUtils.formatCurrency(goal.targetAmount)}", fontSize = 9.sp, color = TextGray)
                         }
                         Spacer(modifier = Modifier.height(2.dp))
                         val progress = if (goal.targetAmount > 0.0) goal.currentAmount / goal.targetAmount else 0.0
@@ -1980,8 +1981,8 @@ fun QuickImpactPreviewCard(
                     Text("التأثير على الميزانية المحددة:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextGray)
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("قبل: ${FormatterUtils.formatCurrency(state.budgetSpentBefore)} دج", fontSize = 10.sp)
-                        Text("بعد: ${FormatterUtils.formatCurrency(state.budgetSpentAfter)} دج", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (state.budgetSpentAfter > state.budgetLimit) Color(0xFFEF4444) else Color.Unspecified)
+                        Text("قبل: ${FormatterUtils.formatCurrency(state.budgetSpentBefore)}", fontSize = 10.sp)
+                        Text("بعد: ${FormatterUtils.formatCurrency(state.budgetSpentAfter)}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (state.budgetSpentAfter > state.budgetLimit) Color(0xFFEF4444) else Color.Unspecified)
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     LinearProgressIndicator(
@@ -1989,7 +1990,7 @@ fun QuickImpactPreviewCard(
                         color = if (state.budgetSpentAfter > state.budgetLimit) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp))
                     )
-                    Text("الحد الأقصى: ${FormatterUtils.formatCurrency(state.budgetLimit)} دج", fontSize = 9.sp, color = TextGray)
+                    Text("الحد الأقصى: ${FormatterUtils.formatCurrency(state.budgetLimit)}", fontSize = 9.sp, color = TextGray)
                 }
             }
             
@@ -1999,8 +2000,8 @@ fun QuickImpactPreviewCard(
                     Text("الهدف: ${state.goalName}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextGray)
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("قبل: ${FormatterUtils.formatCurrency(state.goalSavedBefore)} دج", fontSize = 10.sp)
-                        Text("بعد: ${FormatterUtils.formatCurrency(state.goalSavedAfter)} دج", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF22C55E))
+                        Text("قبل: ${FormatterUtils.formatCurrency(state.goalSavedBefore)}", fontSize = 10.sp)
+                        Text("بعد: ${FormatterUtils.formatCurrency(state.goalSavedAfter)}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF22C55E))
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     LinearProgressIndicator(
@@ -2008,7 +2009,7 @@ fun QuickImpactPreviewCard(
                         color = Color(0xFF22C55E),
                         modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp))
                     )
-                    Text("الهدف الكلي: ${FormatterUtils.formatCurrency(state.goalTarget)} دج", fontSize = 9.sp, color = TextGray)
+                    Text("الهدف الكلي: ${FormatterUtils.formatCurrency(state.goalTarget)}", fontSize = 9.sp, color = TextGray)
                 }
             }
             
@@ -2018,8 +2019,8 @@ fun QuickImpactPreviewCard(
                     Text("الدين: ${state.debtName}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextGray)
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("المتبقي قبل: ${FormatterUtils.formatCurrency(state.debtRemainingBefore)} دج", fontSize = 10.sp)
-                        Text("المتبقي بعد: ${FormatterUtils.formatCurrency(state.debtRemainingAfter)} دج", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (state.debtRemainingAfter < state.debtRemainingBefore) Color(0xFF22C55E) else Color(0xFFEF4444))
+                        Text("المتبقي قبل: ${FormatterUtils.formatCurrency(state.debtRemainingBefore)}", fontSize = 10.sp)
+                        Text("المتبقي بعد: ${FormatterUtils.formatCurrency(state.debtRemainingAfter)}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (state.debtRemainingAfter < state.debtRemainingBefore) Color(0xFF22C55E) else Color(0xFFEF4444))
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     LinearProgressIndicator(

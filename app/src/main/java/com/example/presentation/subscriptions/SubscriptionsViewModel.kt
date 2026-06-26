@@ -37,9 +37,12 @@ class SubscriptionsViewModel(
         }
     }
 
+    private var loadJob: kotlinx.coroutines.Job? = null
+
     private fun loadSubscriptions() {
+        loadJob?.cancel()
         _uiState.update { it.copy(isLoading = true) }
-        viewModelScope.launch {
+        loadJob = viewModelScope.launch {
             try {
                 combine(
                     subscriptionRepository.getAllSubscriptions(),

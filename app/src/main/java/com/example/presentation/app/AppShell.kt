@@ -177,7 +177,7 @@ internal fun FinTrackAppShell(
                 ) {
                     if (!aiChatState.isMiniChatOpen) {
                         com.example.presentation.ai.components.FloatingAiBubble(
-                            onClick = { aiChatViewModel.toggleMiniChat() }
+                            onClick = { navController.navigate(Screen.AiVoice.route) }
                         )
                     } else {
                         com.example.presentation.ai.components.MiniChatOverlay(
@@ -201,7 +201,7 @@ internal fun FinTrackAppShell(
                             onStartEditingTransaction = { msgId, tx -> aiChatViewModel.startEditingTransaction(msgId, tx) },
                             onFullScreenClick = {
                                 aiChatViewModel.toggleMiniChat()
-                                navController.navigate(Screen.AiChat.route)
+                                navController.navigate(Screen.AiVoice.route)
                             },
                             onCloseClick = { aiChatViewModel.toggleMiniChat() },
                             selectedModelId = aiChatState.selectedModelId,

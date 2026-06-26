@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.PieChart
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -99,12 +100,14 @@ internal fun FinTrackBottomNavBar(
                         label = stringResource(id = com.example.R.string.nav_home),
                         isSelected = currentRoute == Screen.Home.route,
                         onClick = {
-                            navController.navigate(Screen.Home.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                            if (currentRoute != Screen.Home.route) {
+                                navController.navigate(Screen.Home.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
                             }
                         },
                         modifier = Modifier.weight(1f)
@@ -117,12 +120,14 @@ internal fun FinTrackBottomNavBar(
                         label = stringResource(id = com.example.R.string.nav_analytics),
                         isSelected = currentRoute == Screen.Analytics.route,
                         onClick = {
-                            navController.navigate(Screen.Analytics.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                            if (currentRoute != Screen.Analytics.route) {
+                                navController.navigate(Screen.Analytics.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
                             }
                         },
                         modifier = Modifier.weight(1f)
@@ -139,25 +144,27 @@ internal fun FinTrackBottomNavBar(
                         label = stringResource(id = com.example.R.string.nav_accounts),
                         isSelected = currentRoute == Screen.Accounts.route,
                         onClick = {
-                            navController.navigate(Screen.Accounts.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                            if (currentRoute != Screen.Accounts.route) {
+                                navController.navigate(Screen.Accounts.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
                             }
                         },
                         modifier = Modifier.weight(1f)
                     )
 
-                    // Slot 5: Settings (avatar button)
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) {
+                    // Slot 5: Settings
+                    BottomNavItem(
+                        icon = if (currentRoute == Screen.Settings.route)
+                            Icons.Default.Settings else Icons.Outlined.Settings,
+                        label = stringResource(id = com.example.R.string.nav_settings),
+                        isSelected = currentRoute == Screen.Settings.route,
+                        onClick = {
+                            if (currentRoute != Screen.Settings.route) {
                                 navController.navigate(Screen.Settings.route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
                                         saveState = true
@@ -165,62 +172,10 @@ internal fun FinTrackBottomNavBar(
                                     launchSingleTop = true
                                     restoreState = true
                                 }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        val isSelected = currentRoute == Screen.Settings.route
-                        val avatarScale by animateFloatAsState(
-                            targetValue = if (isSelected) 1.18f else 1.0f,
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioLowBouncy,
-                                stiffness = Spring.StiffnessHigh
-                            ),
-                            label = "avatar_scale"
-                        )
-                        val avatarBorderColor = if (isSelected)
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(30.dp)
-                                    .graphicsLayer {
-                                        scaleX = avatarScale
-                                        scaleY = avatarScale
-                                    }
-                                    .border(2.dp, avatarBorderColor, CircleShape)
-                                    .padding(2.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        brush = Brush.linearGradient(
-                                            colors = listOf(MaterialTheme.colorScheme.primary, Color(0xFF8B5CF6))
-                                        )
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "خ",
-                                    style = MaterialTheme.typography.labelLarge.copy(
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = Color.White
-                                    )
-                                )
                             }
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = stringResource(id = com.example.R.string.nav_settings),
-                                fontSize = 9.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else TextGray.copy(alpha = 0.65f)
-                            )
-                        }
-                    }
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }

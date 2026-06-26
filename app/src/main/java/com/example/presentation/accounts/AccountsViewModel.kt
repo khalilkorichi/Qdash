@@ -68,9 +68,12 @@ class AccountsViewModel(
         }
     }
 
+    private var loadJob: kotlinx.coroutines.Job? = null
+
     private fun loadAccounts() {
+        loadJob?.cancel()
         _uiState.update { it.copy(isLoading = true) }
-        viewModelScope.launch {
+        loadJob = viewModelScope.launch {
             try {
                 combine(
                     accountRepository.getAllAccounts(),

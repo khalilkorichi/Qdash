@@ -51,9 +51,12 @@ class DebtViewModel(
         }
     }
 
+    private var loadJob: kotlinx.coroutines.Job? = null
+
     private fun loadDebtData() {
+        loadJob?.cancel()
         _uiState.update { it.copy(isLoading = true) }
-        viewModelScope.launch {
+        loadJob = viewModelScope.launch {
             try {
                 combine(
                     debtRepository.getAllDebts(),
@@ -121,8 +124,11 @@ class DebtViewModel(
         }
     }
 
+    private var detailsJob: kotlinx.coroutines.Job? = null
+
     fun selectDebt(debtId: Long) {
-        viewModelScope.launch {
+        detailsJob?.cancel()
+        detailsJob = viewModelScope.launch {
             val debt = debtRepository.getDebtById(debtId)
             if (debt != null) {
                 val payments = debtRepository.getPaymentsForDebt(debtId).first()

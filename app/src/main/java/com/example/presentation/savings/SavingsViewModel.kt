@@ -54,9 +54,12 @@ class SavingsViewModel(
         }
     }
 
+    private var loadJob: kotlinx.coroutines.Job? = null
+
     private fun loadSavingsData() {
+        loadJob?.cancel()
         _uiState.update { it.copy(isLoading = true) }
-        viewModelScope.launch {
+        loadJob = viewModelScope.launch {
             try {
                 combine(
                     savingRepository.getAllSavingGoals(),
@@ -185,8 +188,11 @@ class SavingsViewModel(
         }
     }
 
+    private var detailsJob: kotlinx.coroutines.Job? = null
+
     fun selectGoal(goalId: Long) {
-        viewModelScope.launch {
+        detailsJob?.cancel()
+        detailsJob = viewModelScope.launch {
             val goal = savingRepository.getSavingGoalById(goalId)
             if (goal != null) {
                 val history = savingRepository.getContributionsForGoal(goalId).first()

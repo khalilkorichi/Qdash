@@ -37,9 +37,14 @@ class BudgetGoalsViewModel(
         }
     }
 
+    private var categoriesJob: kotlinx.coroutines.Job? = null
+    private var budgetGoalsJob: kotlinx.coroutines.Job? = null
+
     private fun loadData() {
+        categoriesJob?.cancel()
+        budgetGoalsJob?.cancel()
         _uiState.update { it.copy(isLoading = true) }
-        viewModelScope.launch {
+        categoriesJob = viewModelScope.launch {
             // Load categories first
             try {
                 categoryRepository.getAllCategories().collectLatest { categories ->
@@ -50,7 +55,7 @@ class BudgetGoalsViewModel(
             }
         }
 
-        viewModelScope.launch {
+        budgetGoalsJob = viewModelScope.launch {
             try {
                 getBudgetGoalsUseCase().collectLatest { budgets ->
                     val alerts = getBudgetAlertsUseCase(budgets)
@@ -131,8 +136,11 @@ class BudgetGoalsViewModel(
         loadBudgetDetails(budgetGoal)
     }
 
+    private var detailsJob: kotlinx.coroutines.Job? = null
+
     fun loadBudgetDetails(budgetGoal: BudgetGoal) {
-        viewModelScope.launch {
+        detailsJob?.cancel()
+        detailsJob = viewModelScope.launch {
             transactionRepository.getAllTransactions().collectLatest { allTransactions ->
                 val filtered = allTransactions.filter { tx ->
                     tx.type == TransactionType.EXPENSE &&

@@ -86,28 +86,52 @@ internal fun FinTrackNavGraph(
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding(),
         enterTransition = {
-            slideInHorizontally(
-                initialOffsetX = { it / 6 },
-                animationSpec = tween(300, easing = FastOutSlowInEasing)
-            ) + fadeIn(animationSpec = tween(300))
+            val initial = initialState.destination.route
+            val target = targetState.destination.route
+            if (isBottomNavRoute(initial) && isBottomNavRoute(target)) {
+                fadeIn(animationSpec = tween(220))
+            } else {
+                slideInHorizontally(
+                    initialOffsetX = { -it / 6 }, // RTL-aware slide in from left to right
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                ) + fadeIn(animationSpec = tween(300))
+            }
         },
         exitTransition = {
-            slideOutHorizontally(
-                targetOffsetX = { -it / 6 },
-                animationSpec = tween(300, easing = FastOutSlowInEasing)
-            ) + fadeOut(animationSpec = tween(200))
+            val initial = initialState.destination.route
+            val target = targetState.destination.route
+            if (isBottomNavRoute(initial) && isBottomNavRoute(target)) {
+                fadeOut(animationSpec = tween(220))
+            } else {
+                slideOutHorizontally(
+                    targetOffsetX = { it / 6 }, // RTL-aware slide out to right
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                ) + fadeOut(animationSpec = tween(200))
+            }
         },
         popEnterTransition = {
-            slideInHorizontally(
-                initialOffsetX = { -it / 6 },
-                animationSpec = tween(300, easing = FastOutSlowInEasing)
-            ) + fadeIn(animationSpec = tween(300))
+            val initial = initialState.destination.route
+            val target = targetState.destination.route
+            if (isBottomNavRoute(initial) && isBottomNavRoute(target)) {
+                fadeIn(animationSpec = tween(220))
+            } else {
+                slideInHorizontally(
+                    initialOffsetX = { it / 6 }, // RTL-aware slide in from right to left
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                ) + fadeIn(animationSpec = tween(300))
+            }
         },
         popExitTransition = {
-            slideOutHorizontally(
-                targetOffsetX = { it / 6 },
-                animationSpec = tween(300, easing = FastOutSlowInEasing)
-            ) + fadeOut(animationSpec = tween(200))
+            val initial = initialState.destination.route
+            val target = targetState.destination.route
+            if (isBottomNavRoute(initial) && isBottomNavRoute(target)) {
+                fadeOut(animationSpec = tween(220))
+            } else {
+                slideOutHorizontally(
+                    targetOffsetX = { -it / 6 }, // RTL-aware slide out to left
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                ) + fadeOut(animationSpec = tween(200))
+            }
         }
     ) {
         composable(Screen.Splash.route) {
@@ -367,9 +391,38 @@ internal fun FinTrackNavGraph(
         }
 
         composable(Screen.AiChat.route) {
+            val initialMessage = navController.previousBackStackEntry
+                ?.savedStateHandle
+                ?.get<String>("ai_initial_message")
             com.example.presentation.ai.AiChatScreen(
                 viewModel = aiChatViewModel,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onVoiceInput = { navController.navigate(Screen.AiVoice.route) },
+                initialMessage = initialMessage
+            )
+            LaunchedEffect(initialMessage) {
+                if (!initialMessage.isNullOrBlank()) {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.remove<String>("ai_initial_message")
+                }
+            }
+        }
+
+        composable(Screen.AiVoice.route) {
+            com.example.presentation.ai.AiVoiceInputScreen(
+                viewModel = aiChatViewModel,
+                onNavigateToChat = { initialText ->
+                    if (initialText.isNotBlank()) {
+                        navController.currentBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("ai_initial_message", initialText)
+                    }
+                    navController.navigate(Screen.AiChat.route)
+                },
+                onClose = {
+                    navController.popBackStack(Screen.Home.route, inclusive = false)
+                }
             )
         }
 
@@ -529,4 +582,10 @@ internal fun FinTrackNavGraph(
             )
         }
     }
+}
+
+private fun isBottomNavRoute(route: String?): Boolean {
+    if (route == null) return false
+    val base = route.substringBefore("?").substringBefore("/")
+    return base == "home" || base == "analytics" || base == "accounts" || base == "settings"
 }

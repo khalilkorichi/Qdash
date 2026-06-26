@@ -16,7 +16,8 @@ class SpeechRecognizerHelper(private val context: Context) {
     fun startListening(
         onResult: (String) -> Unit,
         onError: (String) -> Unit,
-        onReadyForSpeech: () -> Unit = {}
+        onReadyForSpeech: () -> Unit = {},
+        onPartialResult: (String) -> Unit = {}
     ) {
         if (isListening) return
 
@@ -68,7 +69,12 @@ class SpeechRecognizerHelper(private val context: Context) {
                     }
                 }
 
-                override fun onPartialResults(partialResults: Bundle?) {}
+                override fun onPartialResults(partialResults: Bundle?) {
+                    val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    if (!matches.isNullOrEmpty()) {
+                        onPartialResult(matches[0])
+                    }
+                }
 
                 override fun onEvent(eventType: Int, params: Bundle?) {}
             })
@@ -79,6 +85,7 @@ class SpeechRecognizerHelper(private val context: Context) {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ar-DZ") // Arabic first (Algeria region)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "ar")
             putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, "ar")
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             // Prevent premature stop, give user extra time to pause and formulate sentences
             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 6000L)
             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 4000L)

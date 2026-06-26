@@ -15,6 +15,7 @@ import com.example.domain.model.LowBalanceAlertState
 import com.example.domain.model.TransferDraftState
 import com.example.domain.model.SelectedAccountDetailsState
 import com.example.domain.model.QuickImpactPreviewState
+import com.example.domain.model.AiVoiceState
 import com.example.domain.repository.AiRepository
 import com.example.domain.repository.TransactionRepository
 import com.example.domain.repository.AccountRepository
@@ -41,6 +42,12 @@ data class AiModelInfo(
     val provider: String
 )
 
+enum class AiModelAvailability {
+    CHECKING,
+    AVAILABLE,
+    UNAVAILABLE
+}
+
 enum class AiErrorType {
     NETWORK_ERROR,
     AI_ERROR
@@ -56,6 +63,7 @@ data class AiChatUiState(
     val suggestions: List<String> = emptyList(),
     val isMiniChatOpen: Boolean = false,
     val isLoading: Boolean = false,
+    val isAiTyping: Boolean = false,
     val inputText: String = "",
     val currentSessionTitle: String = "محادثة جديدة",
     val sessions: List<String> = emptyList(),
@@ -70,6 +78,7 @@ data class AiChatUiState(
         AiModelInfo("gemini-3-flash-preview", "Gemini 3 Flash Preview", "Google"),
         AiModelInfo("glm-5.1", "glm-5.1", "Z.ai")
     ),
+    val modelAvailability: Map<String, AiModelAvailability> = emptyMap(),
     // Available accounts and categories — fed into the editable draft dropdowns
     val accounts: List<Account> = emptyList(),
     val categories: List<Category> = emptyList(),
@@ -94,6 +103,12 @@ class AiChatViewModel(
 
     private val _uiState = MutableStateFlow(AiChatUiState())
     val uiState: StateFlow<AiChatUiState> = _uiState.asStateFlow()
+
+    private val _voiceState = MutableStateFlow<AiVoiceState>(AiVoiceState.Idle)
+    val voiceState: StateFlow<AiVoiceState> = _voiceState.asStateFlow()
+
+    private val _voiceText = MutableStateFlow("")
+    val voiceText: StateFlow<String> = _voiceText.asStateFlow()
 
     private var messagesCollectJob: Job? = null
 
@@ -130,6 +145,8 @@ class AiChatViewModel(
         val savedModelId = preferencesManager.selectedAiModel
         _uiState.update { it.copy(selectedModelId = savedModelId) }
 
+        checkModelAvailability()
+
         // Generate proactive insights
         generateProactiveInsights()
     }
@@ -137,6 +154,77 @@ class AiChatViewModel(
     fun selectModel(modelId: String) {
         preferencesManager.selectedAiModel = modelId
         _uiState.update { it.copy(selectedModelId = modelId) }
+    }
+
+    fun checkModelAvailability() {
+        val models = _uiState.value.models
+        _uiState.update {
+            it.copy(modelAvailability = models.associate { model -> model.id to AiModelAvailability.CHECKING })
+        }
+        viewModelScope.launch {
+            models.forEach { model ->
+                val isAvailable = kotlinx.coroutines.withTimeoutOrNull(8_000L) {
+                    runCatching {
+                        aiRepository.generateResponse("اختبار توفر النموذج. أجب بكلمة OK فقط.", model.id)
+                    }.getOrNull()?.replyText?.isNotBlank() == true
+                } == true
+
+                _uiState.update { state ->
+                    state.copy(
+                        modelAvailability = state.modelAvailability + (
+                            model.id to if (isAvailable) AiModelAvailability.AVAILABLE else AiModelAvailability.UNAVAILABLE
+                            )
+                    )
+                }
+            }
+        }
+    }
+
+    fun startVoiceListening() {
+        _voiceState.value = AiVoiceState.Listening
+        _voiceText.value = ""
+    }
+
+    fun updateVoicePartial(text: String) {
+        _voiceText.value = text
+        if (text.isNotBlank() && _voiceState.value is AiVoiceState.Idle) {
+            _voiceState.value = AiVoiceState.Listening
+        }
+    }
+
+    fun stopVoiceListening() {
+        val text = _voiceText.value.trim()
+        _voiceState.value = if (text.isBlank()) {
+            AiVoiceState.Idle
+        } else {
+            AiVoiceState.Transcribed(text)
+        }
+    }
+
+    fun setVoiceProcessing() {
+        _voiceState.value = AiVoiceState.Processing
+    }
+
+    fun setVoiceError(message: String) {
+        _voiceState.value = AiVoiceState.Error(message)
+    }
+
+    fun clearVoiceInput() {
+        _voiceText.value = ""
+        _voiceState.value = AiVoiceState.Idle
+    }
+
+    fun preFillMessage(text: String) {
+        if (text.isNotBlank()) {
+            setInputText(text)
+        }
+    }
+
+    fun sendVoiceMessage(text: String) {
+        val trimmed = text.trim()
+        if (trimmed.isBlank()) return
+        clearVoiceInput()
+        sendMessage(trimmed)
     }
 
     fun selectSession(sessionTitle: String) {
@@ -175,6 +263,53 @@ class AiChatViewModel(
             "total balance"
         )
         return generalMarkers.any { lower.contains(it) }
+    }
+
+    private fun isTransactionDraftReply(text: String): Boolean {
+        val lower = text.lowercase()
+        val draftMarkers = listOf(
+            "مسودة معاملة",
+            "معاملة مقترحة",
+            "تأكيد المعاملة",
+            "هل تريد تأكيد",
+            "سأقوم بتسجيل",
+            "تم فهم المعاملة",
+            "سجلت لك",
+            "اقتراح تسجيل"
+        )
+        val actionMarkers = listOf("شراء", "شريت", "صرفت", "دخل", "راتب", "أودعت", "مصروف", "مصاريف")
+        return draftMarkers.any { lower.contains(it) } ||
+            (actionMarkers.any { lower.contains(it) } && parseDarijaAmount(text) != null)
+    }
+
+    private fun isRecentActivityReply(text: String): Boolean {
+        val lower = text.lowercase()
+        val activityMarkers = listOf("آخر المعاملات", "آخر معاملات", "آخر حركة", "آخر الحركات", "النشاط الأخير", "recent activity")
+        return activityMarkers.any { lower.contains(it) }
+    }
+
+    private fun isWalletDistributionReply(text: String): Boolean {
+        val lower = text.lowercase()
+        val distributionMarkers = listOf("توزيع المحفظة", "توزيع أموالك", "توزيع الحسابات", "wallet distribution")
+        return distributionMarkers.any { lower.contains(it) }
+    }
+
+    private fun isLowBalanceAlertReply(text: String): Boolean {
+        val lower = text.lowercase()
+        val alertMarkers = listOf("رصيد منخفض", "الأرصدة المنخفضة", "تنبيه رصيد", "حد الرصيد", "low balance")
+        return alertMarkers.any { lower.contains(it) }
+    }
+
+    private fun isTransferDraftReply(text: String): Boolean {
+        val lower = text.lowercase()
+        val transferMarkers = listOf("مسودة تحويل", "تحويل مقترح", "تأكيد التحويل", "حول من", "تحويل من")
+        return transferMarkers.any { lower.contains(it) }
+    }
+
+    private fun isSelectedAccountDetailsReply(text: String, accounts: List<Account>): Boolean {
+        val lower = text.lowercase()
+        val detailsMarkers = listOf("تفاصيل الحساب", "معلومات الحساب", "كشف الحساب", "account details")
+        return detailsMarkers.any { lower.contains(it) } && accounts.any { lower.contains(it.name.lowercase()) }
     }
 
     /**
@@ -219,31 +354,39 @@ class AiChatViewModel(
             aiRepository.getMessagesBySession(sessionTitle).collectLatest { dbMessages ->
                 val uiMessages = dbMessages.map { msg ->
                     val isAiMessage = msg.sender == ChatSender.AI
-                    // Auto-parse draft transaction if the AI text corresponds to a transaction creation proposal
-                    val draftTx = parseDraftTransactionFromText(msg.message, accounts, categories)
-                    // Attach a wallet snapshot when the AI is replying with general balance info
-                    val walletSnapshot = if (isAiMessage && isGeneralBalanceReply(msg.message)) {
+                    val isBalanceReply = isAiMessage && isGeneralBalanceReply(msg.message)
+                    val isTransferReply = isAiMessage && !isBalanceReply && isTransferDraftReply(msg.message)
+                    val isDraftReply = isAiMessage && !isBalanceReply && !isTransferReply && isTransactionDraftReply(msg.message)
+                    val isRecentReply = isAiMessage && !isBalanceReply && !isDraftReply && !isTransferReply && isRecentActivityReply(msg.message)
+                    val isDistributionReply = isAiMessage && !isBalanceReply && !isDraftReply && !isTransferReply && isWalletDistributionReply(msg.message)
+                    val isLowBalanceReply = isAiMessage && !isBalanceReply && !isDraftReply && !isTransferReply && isLowBalanceAlertReply(msg.message)
+                    val isAccountDetailsReply = isAiMessage && !isBalanceReply && !isDraftReply && !isTransferReply && isSelectedAccountDetailsReply(msg.message, accounts)
+
+                    val draftTx = if (isDraftReply) {
+                        parseDraftTransactionFromText(msg.message, accounts, categories)
+                    } else null
+
+                    val walletSnapshot = if (isBalanceReply) {
                         buildWalletSnapshot(accounts)
                     } else null
 
-                    // Context-aware AI smart cards
-                    val recentActivity = if (isAiMessage && (msg.message.contains("آخر") || msg.message.contains("معاملة") || msg.message.contains("حركة"))) {
+                    val recentActivity = if (isRecentReply) {
                         getRecentActivitySummaryUseCase()
                     } else null
 
-                    val walletDistribution = if (isAiMessage && msg.message.contains("توزيع")) {
+                    val walletDistribution = if (isDistributionReply) {
                         getWalletDistributionUseCase()
                     } else null
 
-                    val lowBalanceAlert = if (isAiMessage && (msg.message.contains("منخفض") || msg.message.contains("حد"))) {
+                    val lowBalanceAlert = if (isLowBalanceReply) {
                         evaluateLowBalanceAlertsUseCase()
                     } else null
 
-                    val transferDraft = if (isAiMessage && (msg.message.contains("تحويل") || msg.message.contains("مسودة تحويل"))) {
+                    val transferDraft = if (isTransferReply) {
                         parseTransferDraftFromText(msg.message, accounts)
                     } else null
 
-                    val selectedAccountDetails = if (isAiMessage && (msg.message.contains("حساب") && (msg.message.contains("تفاصيل") || msg.message.contains("معلومات")))) {
+                    val selectedAccountDetails = if (isAccountDetailsReply) {
                         buildSelectedAccountDetails(msg.message, accounts)
                     } else null
 
@@ -507,7 +650,7 @@ class AiChatViewModel(
                 if (topCategoryEntry != null) {
                     val catName = categories.find { it.id == topCategoryEntry.key }?.name ?: "أخرى"
                     val catTotal = topCategoryEntry.value.sumOf { it.amount }
-                    insights.add("📊 فئة \"$catName\" هي الأعلى إنفاقاً هذا الأسبوع بإجمالي %s دج.".format(com.example.core.utils.FormatterUtils.formatCurrency(catTotal)))
+                    insights.add("📊 فئة \"$catName\" هي الأعلى إنفاقاً هذا الأسبوع بإجمالي %s.".format(com.example.core.utils.FormatterUtils.formatCurrency(catTotal)))
                 }
 
                 // Balance alert or cash warnings
@@ -546,7 +689,7 @@ class AiChatViewModel(
         val trimmedText = text.trim()
         if (trimmedText.isEmpty()) return
 
-        _uiState.update { it.copy(inputText = "", isLoading = true, error = null, lastFailedText = null) }
+        _uiState.update { it.copy(inputText = "", isLoading = true, isAiTyping = true, error = null, lastFailedText = null) }
 
         viewModelScope.launch {
             var sessionTitle = _uiState.value.currentSessionTitle
@@ -577,7 +720,7 @@ class AiChatViewModel(
             try {
                 // Generate and save to database
                 aiRepository.generateAiResponse(sessionTitle, trimmedText, _uiState.value.selectedModelId)
-                _uiState.update { it.copy(isLoading = false) }
+                _uiState.update { it.copy(isLoading = false, isAiTyping = false) }
                 generateProactiveInsights() // Refresh insights dynamically
             } catch (e: Exception) {
                 val errorType = when (e) {
@@ -590,6 +733,7 @@ class AiChatViewModel(
                 }
                 _uiState.update { it.copy(
                     isLoading = false,
+                    isAiTyping = false,
                     error = AiErrorState(type = errorType, message = friendlyMessage),
                     lastFailedText = trimmedText
                 ) }

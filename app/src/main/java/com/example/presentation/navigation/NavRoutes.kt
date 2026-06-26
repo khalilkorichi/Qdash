@@ -67,6 +67,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
 
     // AI Chat Screen
     object AiChat : Screen("ai_chat", "المساعد الذكي قداشّ", Icons.Default.Android)
+    object AiVoice : Screen("ai_voice", "الإدخال الصوتي", Icons.Default.Mic)
 
     // Document Simulator Features
     object DocumentSimulatorEntry : Screen("document_simulator_entry", "المساعد البريدي المالي", Icons.Default.Description)

@@ -221,9 +221,12 @@ class AnalyticsViewModel(
         }
     }
 
+    private var loadJob: kotlinx.coroutines.Job? = null
+
     private fun loadAnalytics() {
+        loadJob?.cancel()
         _uiState.update { it.copy(isLoading = true) }
-        viewModelScope.launch {
+        loadJob = viewModelScope.launch {
             try {
                 combine(
                     transactionRepository.getAllTransactions(),
