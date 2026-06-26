@@ -27,6 +27,13 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.CompareArrows
+import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material.icons.filled.Savings
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.input.pointer.changedToUp
@@ -80,6 +87,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.ui.geometry.Size
 import kotlin.math.asin
 import java.util.Calendar
+
+private data class AnalyticsTab(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -662,45 +671,69 @@ fun AnalyticsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.18f),
-                            RoundedCornerShape(16.dp)
-                        )
-                        .padding(5.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val tabs = listOf("التقارير", "المقارنة", "التحليلات", "الادخار")
-                    tabs.forEachIndexed { index, label ->
+                    val tabs = listOf(
+                        AnalyticsTab("التقارير", Icons.Default.Assessment),
+                        AnalyticsTab("المقارنة", Icons.Default.CompareArrows),
+                        AnalyticsTab("التحليلات", Icons.Default.PieChart),
+                        AnalyticsTab("الادخار", Icons.Default.Savings)
+                    )
+                    tabs.forEachIndexed { index, tab ->
                         val isSelected = uiState.dashboardTab == index
-                        val tabBg by animateColorAsState(
-                            targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                            animationSpec = tween(200), label = "tabBg_$index"
+                        val bgColor by animateColorAsState(
+                            targetValue = if (isSelected) Primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                            label = "tabBg_$index"
                         )
-                        val tabText by animateColorAsState(
-                            targetValue = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                            animationSpec = tween(200), label = "tabText_$index"
+                        val contentColor by animateColorAsState(
+                            targetValue = if (isSelected) Primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                            label = "tabContent_$index"
                         )
+                        val borderColor by animateColorAsState(
+                            targetValue = if (isSelected) Primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                            label = "tabBorder_$index"
+                        )
+                        val pillShape = RoundedCornerShape(12.dp)
+
                         Box(
                             modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(11.dp))
-                                .background(tabBg)
-                                .clickable { viewModel.setDashboardTab(index) }
-                                .padding(vertical = 10.dp),
+                                .clip(pillShape)
+                                .background(bgColor)
+                                .border(
+                                    width = 1.dp,
+                                    color = borderColor,
+                                    shape = pillShape
+                                )
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    viewModel.setDashboardTab(index)
+                                }
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = label,
-                                fontSize = 13.sp,
-                                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
-                                color = tabText
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = tab.icon,
+                                    contentDescription = null,
+                                    tint = contentColor,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = tab.label,
+                                    color = contentColor,
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
                         }
                     }
                 }
@@ -1360,60 +1393,95 @@ fun AnalyticsScreen(
                     }
                 }
 
-                // 3. Render Dashboard overview card
-                item {
-                    DashboardOverviewCard(
-                        totalIncome = dashIncome,
-                        totalExpenses = dashExpenses,
-                        onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
-                    )
-                }
+                if (uiState.isDatabaseEmpty) {
+                    item {
+                        EmptyStateView(
+                            title = "لا تتوفر بيانات للمقارنة",
+                            description = "قم بتسجيل معاملاتك المالية أولاً لتتمكن من مقارنة الدخل والمصاريف بين الفترات المختلفة.",
+                            icon = Icons.Default.CompareArrows,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        )
+                    }
+                } else {
+                    // 3. Render Dashboard overview card
+                    item {
+                        DashboardOverviewCard(
+                            totalIncome = dashIncome,
+                            totalExpenses = dashExpenses,
+                            onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
+                        )
+                    }
 
-
-
-                // 5. Render Month Comparison Card
-                item {
-                    MonthComparisonCard(
-                        transactions = uiState.transactions,
-                        categories = uiState.categories,
-                        compareMonthA = uiState.compareMonthA,
-                        compareYearA = uiState.compareYearA,
-                        compareMonthB = uiState.compareMonthB,
-                        compareYearB = uiState.compareYearB,
-                        onMonthAChange = { m, y -> viewModel.setCompareMonthA(m, y) },
-                        onMonthBChange = { m, y -> viewModel.setCompareMonthB(m, y) },
-                        onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
-                    )
+                    // 5. Render Month Comparison Card
+                    item {
+                        MonthComparisonCard(
+                            transactions = uiState.transactions,
+                            categories = uiState.categories,
+                            compareMonthA = uiState.compareMonthA,
+                            compareYearA = uiState.compareYearA,
+                            compareMonthB = uiState.compareMonthB,
+                            compareYearB = uiState.compareYearB,
+                            onMonthAChange = { m, y -> viewModel.setCompareMonthA(m, y) },
+                            onMonthBChange = { m, y -> viewModel.setCompareMonthB(m, y) },
+                            onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
+                        )
+                    }
                 }
             } else if (uiState.dashboardTab == 2) {
                 // ── SMART INSIGHTS TAB ───────────────────
                 item { Spacer(modifier = Modifier.height(8.dp)) }
-                item {
-                    EmergencyFundCard(
-                        uiState = uiState,
-                        onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
-                    )
-                }
-                if (uiState.selectedPeriod == "MONTH" && uiState.spendingsByCategory.isNotEmpty()) {
+                if (uiState.isDatabaseEmpty) {
+                    item {
+                        EmptyStateView(
+                            title = "التحليلات الذكية هادئة حالياً",
+                            description = "أضف بعض المعاملات والمصاريف اليومية لتوليد تحليلات ذكية حول عادات الإنفاق وصندوق الطوارئ الخاص بك.",
+                            icon = Icons.Default.PieChart,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        )
+                    }
+                } else {
+                    item {
+                        EmergencyFundCard(
+                            uiState = uiState,
+                            onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
+                        )
+                    }
+                    if (uiState.selectedPeriod == "MONTH" && uiState.spendingsByCategory.isNotEmpty()) {
+                        item { Spacer(modifier = Modifier.height(10.dp)) }
+                        item {
+                            SalaryCycleCard(
+                                uiState = uiState,
+                                onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
+                            )
+                        }
+                    }
                     item { Spacer(modifier = Modifier.height(10.dp)) }
                     item {
-                        SalaryCycleCard(
+                        WeekendWeekdayCard(
                             uiState = uiState,
                             onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
                         )
                     }
                 }
-                item { Spacer(modifier = Modifier.height(10.dp)) }
-                item {
-                    WeekendWeekdayCard(
-                        uiState = uiState,
-                        onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
-                    )
-                }
             } else if (uiState.dashboardTab == 3) {
                 // ── SAVINGS TAB ───────────────────
                 item { Spacer(modifier = Modifier.height(16.dp)) }
-                if (!uiState.isLoading && uiState.spendingsByCategory.isNotEmpty()) {
+                if (uiState.isDatabaseEmpty) {
+                    item {
+                        EmptyStateView(
+                            title = "لا تتوفر تحديات ادخار حالياً",
+                            description = "سجل معاملاتك المعتادة لتفعيل تحديات الادخار المخصصة ومساعدتك على توفير المال.",
+                            icon = Icons.Default.Savings,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        )
+                    }
+                } else if (!uiState.isLoading && uiState.spendingsByCategory.isNotEmpty()) {
                     item {
                         SavingsChallengesSection()
                     }

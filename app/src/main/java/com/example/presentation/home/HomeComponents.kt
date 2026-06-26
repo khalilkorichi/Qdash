@@ -832,24 +832,37 @@ fun IncomeExpenseSplitCards(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             // Income change percent badge
+                            val isIncomeZero = kotlin.math.abs(incomeChangePercent) < 0.05
+                            val incomeBadgeBg = when {
+                                isIncomeZero -> TextGray.copy(alpha = 0.1f)
+                                incomeChangePercent > 0 -> IncomeGreen.copy(alpha = 0.1f)
+                                else -> ExpenseRed.copy(alpha = 0.1f)
+                            }
+                            val incomeBadgeContentColor = when {
+                                isIncomeZero -> TextGray
+                                incomeChangePercent > 0 -> IncomeGreen
+                                else -> ExpenseRed
+                            }
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(2.dp),
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background((if (incomeChangePercent >= 0) IncomeGreen else ExpenseRed).copy(alpha = 0.1f))
+                                    .background(incomeBadgeBg)
                                     .padding(horizontal = 5.dp, vertical = 1.5.dp)
                             ) {
-                                Icon(
-                                    imageVector = if (incomeChangePercent >= 0) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-                                    contentDescription = null,
-                                    tint = if (incomeChangePercent >= 0) IncomeGreen else ExpenseRed,
-                                    modifier = Modifier.size(8.dp)
-                                )
+                                if (!isIncomeZero) {
+                                    Icon(
+                                        imageVector = if (incomeChangePercent > 0) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                                        contentDescription = null,
+                                        tint = incomeBadgeContentColor,
+                                        modifier = Modifier.size(8.dp)
+                                    )
+                                }
                                 Text(
                                     text = FormatterUtils.convertNumerals(String.format(java.util.Locale.US, "%.1f%%", kotlin.math.abs(incomeChangePercent))),
                                     fontSize = 8.sp,
-                                    color = if (incomeChangePercent >= 0) IncomeGreen else ExpenseRed,
+                                    color = incomeBadgeContentColor,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -914,25 +927,37 @@ fun IncomeExpenseSplitCards(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             // Expense change percent badge (decrease is green/good, increase is red/bad)
-                            val isExpenseDecreased = expenseChangePercent <= 0
+                            val isExpenseZero = kotlin.math.abs(expenseChangePercent) < 0.05
+                            val expenseBadgeBg = when {
+                                isExpenseZero -> TextGray.copy(alpha = 0.1f)
+                                expenseChangePercent < 0 -> IncomeGreen.copy(alpha = 0.1f) // Decreased = Green (Good)
+                                else -> ExpenseRed.copy(alpha = 0.1f) // Increased = Red (Bad)
+                            }
+                            val expenseBadgeContentColor = when {
+                                isExpenseZero -> TextGray
+                                expenseChangePercent < 0 -> IncomeGreen
+                                else -> ExpenseRed
+                            }
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(2.dp),
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background((if (isExpenseDecreased) IncomeGreen else ExpenseRed).copy(alpha = 0.1f))
+                                    .background(expenseBadgeBg)
                                     .padding(horizontal = 5.dp, vertical = 1.5.dp)
                             ) {
-                                Icon(
-                                    imageVector = if (expenseChangePercent >= 0) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-                                    contentDescription = null,
-                                    tint = if (isExpenseDecreased) IncomeGreen else ExpenseRed,
-                                    modifier = Modifier.size(8.dp)
-                                )
+                                if (!isExpenseZero) {
+                                    Icon(
+                                        imageVector = if (expenseChangePercent > 0) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                                        contentDescription = null,
+                                        tint = expenseBadgeContentColor,
+                                        modifier = Modifier.size(8.dp)
+                                    )
+                                }
                                 Text(
                                     text = FormatterUtils.convertNumerals(String.format(java.util.Locale.US, "%.1f%%", kotlin.math.abs(expenseChangePercent))),
                                     fontSize = 8.sp,
-                                    color = if (isExpenseDecreased) IncomeGreen else ExpenseRed,
+                                    color = expenseBadgeContentColor,
                                     fontWeight = FontWeight.Bold
                                 )
                             }

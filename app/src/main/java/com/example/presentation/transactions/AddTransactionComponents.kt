@@ -869,6 +869,14 @@ sealed interface DropdownCategoryItem {
 //  CategoryDropdownSelector
 // ─────────────────────────────────────────────────────────
 
+data class CategorySuggestionData(
+    val existingCategory: Category? = null,
+    val newCategoryName: String? = null,
+    val newCategoryColor: String? = null,
+    val newCategoryIcon: String? = null,
+    val confidenceScore: Float = 0f
+)
+
 @Composable
 fun CategoryDropdownSelector(
     categories: List<Category>,
@@ -881,9 +889,21 @@ fun CategoryDropdownSelector(
     onToggleSmartSort: () -> Unit,
     onCategorySelected: (Long?, Long?) -> Unit,
     onAddMainCategory: () -> Unit,
-    onAddSubCategory: () -> Unit
+    onAddSubCategory: () -> Unit,
+    suggestionData: CategorySuggestionData? = null,
+    onAiSuggest: () -> Unit = {},
+    onAcceptSuggestion: (Long) -> Unit = {},
+    onAcceptAndCreateSuggestion: () -> Unit = {},
+    onDismissSuggestion: () -> Unit = {}
 ) {
     var showDialog by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+
+    LaunchedEffect(showDialog) {
+        if (!showDialog) {
+            searchQuery = ""
+        }
+    }
 
     val categoryFrequencies = remember(transactions) {
         transactions
@@ -921,6 +941,30 @@ fun CategoryDropdownSelector(
         items
     }
 
+    val filteredDisplayList = remember(displayList, searchQuery) {
+        if (searchQuery.isBlank()) {
+            displayList
+        } else {
+            val query = searchQuery.trim().lowercase()
+            displayList.filter { item ->
+                when (item) {
+                    is DropdownCategoryItem.MainCategory -> {
+                        item.category.name.lowercase().contains(query) ||
+                                displayList.any { sub ->
+                                    sub is DropdownCategoryItem.SubCategory &&
+                                            sub.parentCategory.id == item.category.id &&
+                                            sub.category.name.lowercase().contains(query)
+                                }
+                    }
+                    is DropdownCategoryItem.SubCategory -> {
+                        item.category.name.lowercase().contains(query) ||
+                                item.parentCategory.name.lowercase().contains(query)
+                    }
+                }
+            }
+        }
+    }
+
     val selectedLabel = remember(selectedCategoryId, subcategoryId, categories) {
         val mainCat = categories.find { it.id == selectedCategoryId }
         val subCat = categories.find { it.id == subcategoryId }
@@ -950,7 +994,6 @@ fun CategoryDropdownSelector(
 
     Box {
         OutlinedCard(
-            onClick = { showDialog = true },
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.outlinedCardColors(
@@ -958,36 +1001,176 @@ fun CategoryDropdownSelector(
             ),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(selectedColor.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CategoryIconView(iconStr = selectedIcon, color = selectedColor, modifier = Modifier.size(16.dp))
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showDialog = true }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(selectedColor.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CategoryIconView(iconStr = selectedIcon, color = selectedColor, modifier = Modifier.size(16.dp))
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = selectedLabel,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = selectedLabel,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Icon(
-                    imageVector = Icons.Default.ArrowDropDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+
+                if (suggestionData != null) {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        thickness = 1.dp
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f),
+                                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.05f)
+                                    )
+                                )
+                            )
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = Color(0xFF8B5CF6),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "اقتراح ذكي",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF8B5CF6)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    val percent = (suggestionData.confidenceScore * 100).toInt()
+                                    if (percent > 0) {
+                                        Text(
+                                            text = "$percent%",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF8B5CF6).copy(alpha = 0.8f),
+                                            modifier = Modifier
+                                                .background(Color(0xFF8B5CF6).copy(alpha = 0.1f), shape = RoundedCornerShape(4.dp))
+                                                .padding(horizontal = 4.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(2.5.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    val name = suggestionData.existingCategory?.name ?: suggestionData.newCategoryName ?: ""
+                                    val colorHex = suggestionData.existingCategory?.color ?: suggestionData.newCategoryColor ?: "#9CA3AF"
+                                    val color = remember(colorHex) {
+                                        try { Color(android.graphics.Color.parseColor(colorHex)) } catch(e: Exception) { typeAccentColor }
+                                    }
+                                    val iconStr = suggestionData.existingCategory?.icon ?: suggestionData.newCategoryIcon ?: "📁"
+
+                                    Box(
+                                        modifier = Modifier
+                                            .size(20.dp)
+                                            .clip(CircleShape)
+                                            .background(color.copy(alpha = 0.15f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CategoryIconView(iconStr = iconStr, color = color, modifier = Modifier.size(10.dp))
+                                    }
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = name,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    if (suggestionData.newCategoryName != null) {
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "(جديدة)",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = typeAccentColor,
+                                            fontSize = 9.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            IconButton(
+                                onClick = onDismissSuggestion,
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .background(
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                        shape = CircleShape
+                                    )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "تجاهل",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                            Button(
+                                onClick = {
+                                    if (suggestionData.existingCategory != null) {
+                                        onAcceptSuggestion(suggestionData.existingCategory.id)
+                                    } else {
+                                        onAcceptAndCreateSuggestion()
+                                    }
+                                },
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                modifier = Modifier.height(28.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF8B5CF6)
+                                )
+                            ) {
+                                Text(
+                                    text = if (suggestionData.existingCategory != null) "قبول" else "إنشاء وقبول",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -1062,13 +1245,40 @@ fun CategoryDropdownSelector(
                             }
                         }
 
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 6.dp),
+                            placeholder = { Text("بحث عن فئة...", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                            trailingIcon = if (searchQuery.isNotEmpty()) {
+                                {
+                                    IconButton(onClick = { searchQuery = "" }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "مسح", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            } else null,
+                            singleLine = true,
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = typeAccentColor,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                            ),
+                            textStyle = MaterialTheme.typography.bodyMedium
+                        )
+
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            items(displayList) { item ->
+                            items(filteredDisplayList) { item ->
                                 when (item) {
                                     is DropdownCategoryItem.MainCategory -> {
                                         val catColor = try {

@@ -727,117 +727,115 @@ fun AddTransactionScreen(
 
             // â”€â”€ Category dropdown (not for Transfer) â”€â”€â”€â”€â”€â”€â”€
             if (type != TransactionType.TRANSFER) {
-                // Section header with AI suggestion trigger button
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    SectionLabel(text = "الفئة")
-                    // AI suggestion trigger button
-                    val isAiLoading = uiState.currentSuggestion != null || uiState.suggestedCategory != null
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(
-                                if (isAiLoading) typeAccentColor.copy(alpha = 0.15f)
-                                else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                            )
-                            .clickable {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                viewModel.onNoteChanged(
-                                    note.ifBlank { "auto" },
-                                    parsedAmount,
-                                    selectedAccountId
+                Column {
+                    // Section header with AI suggestion trigger button
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        SectionLabel(text = "الفئة")
+                        // AI suggestion trigger button
+                        val isAiLoading = uiState.currentSuggestion != null || uiState.suggestedCategory != null
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .border(
+                                    BorderStroke(1.dp, TransferBlue),
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .background(TransferBlue.copy(alpha = 0.08f))
+                                .clickable {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.onNoteChanged(
+                                        note.ifBlank { "auto" },
+                                        parsedAmount,
+                                        selectedAccountId
+                                    )
+                                }
+                                .padding(horizontal = 10.dp, vertical = 5.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = TransferBlue,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = "اقتراح ذكي",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TransferBlue,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = if (isAiLoading) typeAccentColor else Primary,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = "اقتراح ذكي",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (isAiLoading) typeAccentColor else Primary,
-                                fontWeight = FontWeight.Bold
-                            )
                         }
                     }
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                CategoryDropdownSelector(
-                    categories = uiState.categories,
-                    transactions = uiState.transactions,
-                    type = type,
-                    selectedCategoryId = selectedCategoryId,
-                    subcategoryId = subcategoryId,
-                    typeAccentColor = typeAccentColor,
-                    smartSortEnabled = uiState.smartCategorySortEnabled,
-                    onToggleSmartSort = { viewModel.toggleSmartCategorySort() },
-                    onCategorySelected = { parentCatId, subCatId ->
-                        selectedCategoryId = parentCatId
-                        subcategoryId = subCatId
-                    },
-                    onAddMainCategory = {
-                        newCategoryName = ""
-                        newCategoryIcon = "📁"
-                        newCategoryColor = "#8B5CF6"
-                        isAddingSubcategory = false
-                        showAddCategoryDialog = true
-                    },
-                    onAddSubCategory = {
-                        newCategoryName = ""
-                        newCategoryIcon = "📁"
-                        newCategoryColor = "#8B5CF6"
-                        isAddingSubcategory = true
-                        showAddCategoryDialog = true
-                    }
-                )
-
-                // AI Smart Category Suggestion (adjacent to category selector)
-                val suggestedCat = uiState.suggestedCategory
-                val newSuggestion = uiState.currentSuggestion
-                // Suggest new category creation if AI found no match
-                if (suggestedCat == null && newSuggestion?.newCategoryName != null && type == TransactionType.EXPENSE) {
                     Spacer(modifier = Modifier.height(6.dp))
-                    com.example.presentation.components.SuggestedNewCategoryCard(
-                        newCategoryName = newSuggestion.newCategoryName,
-                        newCategoryColor = newSuggestion.newCategoryColor ?: "#7f7f7f",
-                        newCategoryIcon = newSuggestion.newCategoryIcon ?: "category",
-                        confidenceScore = newSuggestion.confidenceScore,
-                        onAcceptAndCreate = {
-                            viewModel.createCategoryAndSelect(
-                                name = newSuggestion.newCategoryName,
-                                typeStr = newSuggestion.newCategoryType ?: "EXPENSE",
-                                color = newSuggestion.newCategoryColor ?: "#7f7f7f",
-                                icon = newSuggestion.newCategoryIcon ?: "category",
-                                onCreated = { id ->
-                                    selectedCategoryId = id
-                                    viewModel.learnMapping(note, id)
-                                    viewModel.clearSuggestion()
-                                }
-                            )
-                        }
-                    )
-                }
-                // Suggest existing category match
-                val confidence = uiState.currentSuggestion?.confidenceScore ?: 0.85f
-                if (suggestedCat != null && type == TransactionType.EXPENSE) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    com.example.presentation.components.SuggestedCategoryCard(
-                        category = suggestedCat,
-                        confidenceScore = confidence,
-                        onAccept = {
-                            selectedCategoryId = suggestedCat.id
-                            viewModel.learnMapping(note, suggestedCat.id)
+                    CategoryDropdownSelector(
+                        categories = uiState.categories,
+                        transactions = uiState.transactions,
+                        type = type,
+                        selectedCategoryId = selectedCategoryId,
+                        subcategoryId = subcategoryId,
+                        typeAccentColor = typeAccentColor,
+                        smartSortEnabled = uiState.smartCategorySortEnabled,
+                        onToggleSmartSort = { viewModel.toggleSmartCategorySort() },
+                        onCategorySelected = { parentCatId, subCatId ->
+                            selectedCategoryId = parentCatId
+                            subcategoryId = subCatId
+                        },
+                        onAddMainCategory = {
+                            newCategoryName = ""
+                            newCategoryIcon = "📁"
+                            newCategoryColor = "#8B5CF6"
+                            isAddingSubcategory = false
+                            showAddCategoryDialog = true
+                        },
+                        onAddSubCategory = {
+                            newCategoryName = ""
+                            newCategoryIcon = "📁"
+                            newCategoryColor = "#8B5CF6"
+                            isAddingSubcategory = true
+                            showAddCategoryDialog = true
+                        },
+                        suggestionData = remember(uiState.currentSuggestion, uiState.suggestedCategory, type) {
+                            val sugg = uiState.currentSuggestion
+                            if (sugg != null && type == TransactionType.EXPENSE) {
+                                CategorySuggestionData(
+                                    existingCategory = uiState.suggestedCategory,
+                                    newCategoryName = sugg.newCategoryName,
+                                    newCategoryColor = sugg.newCategoryColor,
+                                    newCategoryIcon = sugg.newCategoryIcon,
+                                    confidenceScore = sugg.confidenceScore
+                                )
+                            } else null
+                        },
+                        onAcceptSuggestion = { catId ->
+                            selectedCategoryId = catId
+                            viewModel.learnMapping(note, catId)
+                            viewModel.clearSuggestion()
+                        },
+                        onAcceptAndCreateSuggestion = {
+                            val newSuggestion = uiState.currentSuggestion
+                            if (newSuggestion != null && newSuggestion.newCategoryName != null) {
+                                viewModel.createCategoryAndSelect(
+                                    name = newSuggestion.newCategoryName,
+                                    typeStr = newSuggestion.newCategoryType ?: "EXPENSE",
+                                    color = newSuggestion.newCategoryColor ?: "#7f7f7f",
+                                    icon = newSuggestion.newCategoryIcon ?: "category",
+                                    onCreated = { id ->
+                                        selectedCategoryId = id
+                                        viewModel.learnMapping(note, id)
+                                        viewModel.clearSuggestion()
+                                    }
+                                )
+                            }
+                        },
+                        onDismissSuggestion = {
                             viewModel.clearSuggestion()
                         }
                     )

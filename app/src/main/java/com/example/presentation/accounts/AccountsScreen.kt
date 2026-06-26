@@ -7,6 +7,11 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.*
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.example.presentation.components.getIconByName
 import com.example.domain.model.Transaction
 import com.example.domain.model.Category
@@ -22,6 +27,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.ui.input.pointer.pointerInput
@@ -42,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -134,8 +141,7 @@ fun AccountsScreen(
     var activeAccounts by remember(uiState.accounts) { mutableStateOf(uiState.accounts) }
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
     var dragOffsetY by remember { mutableStateOf(0f) }
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    val itemHeightPx = with(density) { 90.dp.toPx() }
+    val lazyListState = rememberLazyListState()
 
     // Add Account state
     var showAddAccountDialog by rememberSaveable { mutableStateOf(false) }
@@ -207,6 +213,7 @@ fun AccountsScreen(
             modifier = Modifier.fillMaxSize()
         ) {
         LazyColumn(
+            state = lazyListState,
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
@@ -391,29 +398,74 @@ fun AccountsScreen(
                     }
                     val isDragging = draggedIndex == index
                     val offsetY = if (isDragging) dragOffsetY else 0f
-                    
-                    val dragHandleModifier = Modifier.pointerInput(index) {
+
+                    val dragScale by animateFloatAsState(
+                        targetValue = if (isDragging) 1.03f else 1.0f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        ),
+                        label = "dragScale"
+                    )
+                    val dragElevation by animateDpAsState(
+                        targetValue = if (isDragging) 8.dp else 0.dp,
+                        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                        label = "dragElevation"
+                    )
+                    val dragAlpha by animateFloatAsState(
+                        targetValue = if (draggedIndex != null && !isDragging) 0.65f else 1.0f,
+                        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                        label = "dragAlpha"
+                    )
+
+                    val haptic = LocalHapticFeedback.current
+                    val currentIndex by rememberUpdatedState(index)
+
+                    val dragHandleModifier = Modifier.pointerInput(account.id) {
                         detectDragGestures(
                             onDragStart = {
-                                draggedIndex = index
+                                draggedIndex = currentIndex
                                 dragOffsetY = 0f
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             },
                             onDrag = { change, dragAmount ->
                                 change.consume()
                                 dragOffsetY += dragAmount.y
-                                
+
                                 val currentDragged = draggedIndex
                                 if (currentDragged != null) {
-                                    val offsetIndexDiff = (dragOffsetY / itemHeightPx).roundToInt()
-                                    val targetIndex = (currentDragged + offsetIndexDiff).coerceIn(0, activeAccounts.size - 1)
-                                    if (targetIndex != currentDragged) {
-                                        val newList = activeAccounts.toMutableList()
-                                        val temp = newList[currentDragged]
-                                        newList[currentDragged] = newList[targetIndex]
-                                        newList[targetIndex] = temp
-                                        activeAccounts = newList
-                                        draggedIndex = targetIndex
-                                        dragOffsetY -= offsetIndexDiff * itemHeightPx
+                                    val draggedItemInfo = lazyListState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == account.id }
+                                    if (draggedItemInfo != null) {
+                                        val draggedCenter = draggedItemInfo.offset + dragOffsetY + draggedItemInfo.size / 2f
+                                        val targetItem = lazyListState.layoutInfo.visibleItemsInfo
+                                            .filter { it.key != account.id }
+                                            .firstOrNull { item ->
+                                                val itemIndex = activeAccounts.indexOfFirst { it.id == item.key }
+                                                if (itemIndex != -1) {
+                                                    val itemStart = item.offset
+                                                    val itemEnd = item.offset + item.size
+                                                     draggedCenter > itemStart && draggedCenter < itemEnd
+                                                } else {
+                                                    false
+                                                }
+                                            }
+
+                                        if (targetItem != null) {
+                                            val targetIndex = activeAccounts.indexOfFirst { it.id == targetItem.key }
+                                            if (targetIndex != -1 && targetIndex != currentDragged) {
+                                                val newList = activeAccounts.toMutableList()
+                                                val temp = newList[currentDragged]
+                                                newList[currentDragged] = newList[targetIndex]
+                                                newList[targetIndex] = temp
+
+                                                val deltaY = targetItem.offset - draggedItemInfo.offset
+
+                                                activeAccounts = newList
+                                                draggedIndex = targetIndex
+                                                dragOffsetY -= deltaY
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            }
+                                        }
                                     }
                                 }
                             },
@@ -429,26 +481,49 @@ fun AccountsScreen(
                         )
                     }
 
-                    AccountItemCard(
-                        account = account,
-                        transactions = accountTxs.asStable(),
-                        categories = uiState.categories.asStable(),
-                        showBalance = uiState.accountBalancesVisibility[account.id] ?: true,
-                        onToggleBalance = { viewModel.toggleAccountBalanceVisibility(account.id) },
-                        onEdit = {
-                            viewModel.setEditingAccount(account)
-                            showEditSheet = true
-                        },
-                        onArchive = { viewModel.archiveAccount(account.id) },
-                        onSetDefault = { viewModel.setDefaultAccount(account.id) },
-                        onDelete = { accountToDelete = account },
-                        onEmpty = { accountToEmpty = account },
+                    Box(
                         modifier = Modifier
-                            .animateItemPlacement()
-                            .offset { IntOffset(0, offsetY.roundToInt()) }
-                            .zIndex(if (isDragging) 10f else 1f),
-                        dragHandleModifier = dragHandleModifier
-                    )
+                            .fillMaxWidth()
+                            .zIndex(if (isDragging) 15f else 1f)
+                    ) {
+                        if (isDragging) {
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .background(
+                                        color = MaterialTheme.colorScheme.background,
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+                                    .border(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.15f),
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+                            )
+                        }
+
+                        AccountItemCard(
+                            account = account,
+                            transactions = accountTxs.asStable(),
+                            categories = uiState.categories.asStable(),
+                            showBalance = uiState.accountBalancesVisibility[account.id] ?: true,
+                            onToggleBalance = { viewModel.toggleAccountBalanceVisibility(account.id) },
+                            onEdit = {
+                                viewModel.setEditingAccount(account)
+                                showEditSheet = true
+                            },
+                            onArchive = { viewModel.archiveAccount(account.id) },
+                            onSetDefault = { viewModel.setDefaultAccount(account.id) },
+                            onDelete = { accountToDelete = account },
+                            onEmpty = { accountToEmpty = account },
+                            modifier = Modifier
+                                .animateItem()
+                                .scale(dragScale)
+                                .graphicsLayer { alpha = dragAlpha }
+                                .offset { IntOffset(0, offsetY.roundToInt()) },
+                            dragHandleModifier = dragHandleModifier
+                        )
+                    }
                 }
 
                 // Empty state

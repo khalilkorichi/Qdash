@@ -1,11 +1,11 @@
 {
-  "versionCode": 29,
-  "versionName": "1.0.0.29",
-  "updateIdentity": 130,
-  "publishedAt": "2026-06-25T23:56:30Z",
+  "versionCode": 30,
+  "versionName": "1.0.0.30",
+  "updateIdentity": 131,
+  "publishedAt": "2026-06-26T14:06:00Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 24399869,
-  "apkSha256": "75717a9fc3fbfca91bd31f75906d69ef770287d8307f25eaa63d097e83ddddf7",
+  "apkSize": 24432637,
+  "apkSha256": "6f4568aea91a7a44def970667789663c6c08bd505b1e89e276ae42377ec720c3",
   "mandatory": false,
-  "releaseNotes": "تحديث v1.0.0.29 (Build 130): دعم ذكي للوضعين الليلي والنهاري في شاشة الدخول (Splash Screen) بحيث يظهر الشعار باللون الأبيض في الوضع الليلي وباللون الأسود في الوضع النهاري، مع خلفية تتكيف تلقائياً مع السمة."
+  "releaseNotes": "تحديث v1.0.0.30 (Build 131): إضافة شاشات حالة فارغة (EmptyStateView) في أقسام المقارنة، والتحليلات، والادخار بصفحة الإحصائيات عند عدم وجود معاملات، مع تحسينات في التصميم والأداء وتصحيح مؤشرات التغير في الصفحة الرئيسية."
 }
