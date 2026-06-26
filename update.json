@@ -1,11 +1,11 @@
 {
-  "versionCode": 28,
-  "versionName": "1.0.0.28",
-  "updateIdentity": 129,
+  "versionCode": 29,
+  "versionName": "1.0.0.29",
+  "updateIdentity": 130,
   "publishedAt": "2026-06-25T23:56:30Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 24399865,
-  "apkSha256": "e5210a4ddd4babe72cc6ea731c7b1498a6bc7c0b6e9bec5a4cf883bce3b1a617",
+  "apkSize": 24399869,
+  "apkSha256": "75717a9fc3fbfca91bd31f75906d69ef770287d8307f25eaa63d097e83ddddf7",
   "mandatory": false,
-  "releaseNotes": "تحديث v1.0.0.28 (Build 129): تحديث وتجميل شاشة الدخول (Splash Screen) لتصبح باللون الأبيض وتصميم أحادي اللون هادئ بدون تدرجات لونية أو حركات متكررة للشعار، مع شريط تحميل يعرض مراحل إعداد قاعدة البيانات."
+  "releaseNotes": "تحديث v1.0.0.29 (Build 130): دعم ذكي للوضعين الليلي والنهاري في شاشة الدخول (Splash Screen) بحيث يظهر الشعار باللون الأبيض في الوضع الليلي وباللون الأسود في الوضع النهاري، مع خلفية تتكيف تلقائياً مع السمة."
 }

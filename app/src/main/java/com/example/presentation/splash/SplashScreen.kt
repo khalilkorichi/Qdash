@@ -80,14 +80,11 @@ fun SplashScreen(
 
     val isDark = MaterialTheme.colorScheme.background.red < 0.5f // Simple dark mode check
 
-    // Solid background using brand identity colors (no gradient)
-    // To ensure the white logo is always visible with high contrast:
-    // Dark mode uses the true deep black BackgroundDark (0xFF09090B)
-    // Light mode uses the deep charcoal brand Primary color (0xFF191919) to provide a premium, modern dark splash
+    // Background color based on Light / Dark theme
     val backgroundColor = if (isDark) {
-        Color(0xFF09090B)
+        Color(0xFF09090B) // BackgroundDark
     } else {
-        Color(0xFF191919)
+        Color(0xFFFBFBFA) // BackgroundLight
     }
 
     Box(
@@ -101,7 +98,7 @@ fun SplashScreen(
             verticalArrangement = Center,
             modifier = Modifier.padding(24.dp)
         ) {
-            // App Logo - Styled solid white, completely static (no scale/glow animations)
+            // App Logo - white in dark mode, normal in light mode
             Box(
                 modifier = Modifier.size(112.dp),
                 contentAlignment = Alignment.Center
@@ -109,7 +106,7 @@ fun SplashScreen(
                 Image(
                     painter = painterResource(id = R.drawable.ic_app_logo),
                     contentDescription = "Qdash Logo",
-                    colorFilter = ColorFilter.tint(Color.White),
+                    colorFilter = ColorFilter.tint(if (isDark) Color.White else Color.Black),
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -124,7 +121,7 @@ fun SplashScreen(
                     fontSize = 36.sp,
                     letterSpacing = 1.sp
                 ),
-                color = Color.White
+                color = if (isDark) Color.White else Color(0xFF191919)
             )
             
             Spacer(modifier = Modifier.height(6.dp))
@@ -136,18 +133,18 @@ fun SplashScreen(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Normal
                 ),
-                color = Color(0xFF94A3B8)
+                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
             )
 
             Spacer(modifier = Modifier.height(56.dp))
 
-            // Premium Custom Progress Bar - Solid Brand Primary Color (no gradient)
+            // Custom Progress Bar - Solid Brand Primary Color matching Light/Dark themes
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.65f)
                     .height(4.dp)
                     .clip(RoundedCornerShape(100.dp))
-                    .background(Color(0xFF334155)) // Slate-700 track background
+                    .background(if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0))
             ) {
                 // Smoothly animated progress indicator
                 val animatedProgressWidth by animateFloatAsState(
@@ -158,7 +155,7 @@ fun SplashScreen(
                     modifier = Modifier
                         .fillMaxWidth(animatedProgressWidth)
                         .fillMaxHeight()
-                        .background(Color(0xFF818CF8)) // Brand Vibrant Indigo-400 primary color
+                        .background(if (isDark) Color(0xFF818CF8) else Color(0xFF4F46E5))
                 )
             }
 
@@ -180,7 +177,7 @@ fun SplashScreen(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Normal
                         ),
-                        color = Color(0xFF64748B), // Slate-500
+                        color = if (isDark) Color(0xFF64748B) else Color(0xFF475569),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -196,7 +193,7 @@ fun SplashScreen(
                     fontWeight = FontWeight.Bold,
                     fontSize = 11.sp
                 ),
-                color = Color(0xFF818CF8), // Brand Indigo
+                color = if (isDark) Color(0xFF818CF8) else Color(0xFF4F46E5),
                 textAlign = TextAlign.Center
             )
         }
