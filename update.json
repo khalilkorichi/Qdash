@@ -1,11 +1,11 @@
 {
-  "versionCode": 35,
-  "versionName": "1.0.0.35",
-  "updateIdentity": 136,
-  "publishedAt": "2026-06-27T02:59:00Z",
+  "versionCode": 36,
+  "versionName": "1.0.0.36",
+  "updateIdentity": 137,
+  "publishedAt": "2026-06-27T03:29:00Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 24547357,
-  "apkSha256": "1773fe472947c6a50a3243268327d2408a1fcf9dbc69aff85dd7e7f79bbce04d",
+  "apkSize": 24547353,
+  "apkSha256": "d356729832254dbfe1fb998c6a9de70eee796b48f3347bd21c7c1fcefadd889d",
   "mandatory": false,
-  "releaseNotes": "تحديث v1.0.0.35 (Build 136): تحسين استدعاء وتجاوب الصناديق التفاعلية لكافة النماذج المتاحة، ودعم كتابة وقراءة الردود بتنسيق Markdown الغني وتنسيق الجداول باحترافية."
+  "releaseNotes": "تحديث v1.0.0.36 (Build 137):\n\n🔧 إصلاح القفز عند النقر على صندوق الكتابة: تم نقل imePadding من الـ Column الكاملة إلى شريط الإدخال فقط لمنع ارتفاع الشاشة بأكملها عند فتح لوحة المفاتيح (Samsung S21+ وغيرها).\n\n🧠 توسيع صلاحيات قراءة قاعدة البيانات: النماذج الذكية تحصل الآن على بيانات كاملة (أرصدة، آخر 10 معاملات، إحصائيات 30 يوم، الميزانيات، الديون) لإجابات دقيقة على أسئلة مثل 'كم رصيدي؟'.\n\n📊 تحسين كشف البطاقات التفاعلية: توسيع مفردات الكشف لجميع البطاقات الثمانية مع إضافة QuickImpactPreviewCard ودعم مطابقة أنواع الحسابات.\n\n🏦 إصلاح أيقونة بريدي موب: استبدال النص الحرفي 'phonelink_ring' بشعار بريدي موب الرسمي في بطاقة تفاصيل الحساب."
 }

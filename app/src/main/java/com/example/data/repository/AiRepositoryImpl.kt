@@ -1304,17 +1304,17 @@ class AiRepositoryImpl(
             }
 
             val budgetStr = if (budgetGoals.isNotEmpty()) {
-                budgetGoals.joinToString("\n") { bg ->
-                    val catName = categoryMap[bg.categoryId]?.name ?: "غير محدد"
-                    "- ميزانية $catName: الحد = ${bg.limitAmount} دج"
+                budgetGoals.filter { it.isActive }.joinToString("\n") { bg ->
+                    val catName = categoryMap[bg.linkedCategoryId]?.name ?: "عام"
+                    "- ميزانية ${bg.title} ($catName): الحد = ${bg.amountLimit} دج | المُنفق = ${bg.spentAmount} دج"
                 }
             } else "لا توجد ميزانيات محددة"
 
             val debtsStr = if (debts.isNotEmpty()) {
-                val activeDebts = debts.filter { !it.isPaid }
+                val activeDebts = debts.filter { !it.isClosed }
                 if (activeDebts.isEmpty()) "لا توجد ديون نشطة"
                 else activeDebts.joinToString("\n") { d ->
-                    "- ${d.personName}: ${d.amount} دج (${if (d.isOwedToMe) "يدين لي" else "أدين له"})"
+                    "- ${d.title} (${d.creditorName}): المتبقي = ${d.remainingAmount} دج من ${d.totalAmount} دج"
                 }
             } else "لا توجد ديون"
 
