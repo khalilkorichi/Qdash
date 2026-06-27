@@ -244,6 +244,7 @@ class AiRepositoryImpl(
                 history
             }
             
+            val dbContext = getDatabaseContextString()
             val messagesArray = JSONArray()
             // Do not add system instruction for glm-5.1 as it triggers safety filters (sensitive words detected)
             if (modelId != "glm-5.1") {
@@ -261,6 +262,8 @@ class AiRepositoryImpl(
                             6. قم بتقسيم إجاباتك المعقدة أو التحليلات التي تحتوي على أفكار متعددة أو خطوات عمل منفصلة إلى عدة فقرات/خطوات وافصل بين كل جزء والذي يليه بالرمز `[NEXT]`.
                             7. عندما يسأل المستخدم عن "الرصيد" أو "كم رصيدي" بشكل عام (دون تحديد حساب معيّن مثل CCP أو البنك)، يجب أن يكون الرد الافتراضي هو عرض إجمالي رصيد المحفظة (مجموع أرصدة كل الحسابات) أولاً كإجابة ذكية ومباشرة، مع إضافة اقتراح واضح وذكي في نهاية الرد يقترح إمكانية الاستعلام عن كل حساب على حدة، بصياغة مثل: "يمكنني أيضاً عرض تفاصيل كل حساب على حدة عند الطلب".
                             8. إذا طلب المستخدم رصيد حساب معيّن أو فئة حساب معيّنة (مثل: "رصيد CCP" أو "حساب البنك" أو "النقدي/كاش" أو "محفظتي/Wallet")، يجب عرض تفاصيل رصيد هذا الحساب المحدد فقط دون البقية.
+                            
+                            $dbContext
                         """.trimIndent())
                     }
                 )
@@ -454,6 +457,7 @@ class AiRepositoryImpl(
                 history
             }
             
+            val dbContext = getDatabaseContextString()
             val messagesArray = JSONArray()
             messagesArray.put(
                 JSONObject().apply {
@@ -469,6 +473,8 @@ class AiRepositoryImpl(
                         6. قم بتقسيم إجاباتك المعقدة أو التحليلات التي تحتوي على أفكار متعددة أو خطوات عمل منفصلة إلى عدة فقرات/خطوات وافصل بين كل جزء والذي يليه بالرمز `[NEXT]`.
                         7. عندما يسأل المستخدم عن "الرصيد" أو "كم رصيدي" بشكل عام، يجب أن يكون الرد الافتراضي هو عرض إجمالي رصيد المحفظة أولاً كإجابة ذكية ومباشرة.
                         8. إذا طلب المستخدم رصيد حساب معيّن، يجب عرض تفاصيل رصيد هذا الحساب المحدد فقط دون البقية.
+                        
+                        $dbContext
                     """.trimIndent())
                 }
             )
@@ -608,6 +614,7 @@ class AiRepositoryImpl(
                 history
             }
             
+            val dbContext = getDatabaseContextString()
             val messagesArray = JSONArray()
             messagesArray.put(
                 JSONObject().apply {
@@ -623,6 +630,8 @@ class AiRepositoryImpl(
                         6. قم بتقسيم إجاباتك المعقدة أو التحليلات التي تحتوي على أفكار متعددة أو خطوات عمل منفصلة إلى عدة فقرات/خطوات وافصل بين كل جزء والذي يليه بالرمز `[NEXT]`.
                         7. عندما يسأل المستخدم عن "الرصيد" أو "كم رصيدي" بشكل عام، يجب أن يكون الرد الافتراضي هو عرض إجمالي رصيد المحفظة أولاً كإجابة ذكية ومباشرة.
                         8. إذا طلب المستخدم رصيد حساب معيّن، يجب عرض تفاصيل رصيد هذا الحساب المحدد فقط دون البقية.
+                        
+                        $dbContext
                     """.trimIndent())
                 }
             )
@@ -853,6 +862,7 @@ class AiRepositoryImpl(
                 })
             }
 
+            val dbContext = getDatabaseContextString()
             val systemInstruction = JSONObject().apply {
                 put("parts", JSONArray().put(JSONObject().apply {
                     put("text", """
@@ -866,6 +876,8 @@ class AiRepositoryImpl(
                         6. قم بتقسيم إجاباتك المعقدة أو التحليلات التي تحتوي على أفكار متعددة أو خطوات عمل منفصلة إلى عدة فقرات/خطوات وافصل بين كل جزء والذي يليه بالرمز `[NEXT]` (مثال: 'الخطوة الأولى... [NEXT] الخطوة الثانية...'). هذا يتيح للتطبيق عرضها على شكل رسائل متسلسلة لتعزيز فهم المستخدم.
                         7. عندما يسأل المستخدم عن "الرصيد" أو "كم رصيدي" بشكل عام (دون تحديد حساب معيّن مثل CCP أو البنك)، يجب أن يكون الرد الافتراضي هو عرض إجمالي رصيد المحفظة (مجموع أرصدة كل الحسابات) أولاً كإجابة ذكية ومباشرة، مع إضافة اقتراح واضح وذكي في نهاية الرد يقترح إمكانية الاستعلام عن كل حساب على حدة، بصياغة مثل: "يمكنني أيضاً عرض تفاصيل كل حساب على حدة عند الطلب".
                         8. إذا طلب المستخدم رصيد حساب معيّن أو فئة حساب معيّنة (مثل: "رصيد CCP" أو "حساب البنك" أو "النقدي/كاش" أو "محفظتي/Wallet")، يجب عرض تفاصيل رصيد هذا الحساب المحدد فقط دون البقية.
+                        
+                        $dbContext
                     """.trimIndent())
                 }))
             }
@@ -1255,6 +1267,34 @@ class AiRepositoryImpl(
 
     override suspend fun deleteSession(sessionTitle: String) {
         aiChatDao.deleteSession(sessionTitle)
+    }
+
+    private suspend fun getDatabaseContextString(): String {
+        return try {
+            val accounts = accountRepository.getAllAccounts().first().filter { !it.isArchived }
+            val categories = categoryRepository.getAllCategories().first()
+            
+            val accountsStr = accounts.joinToString("\n") { acc ->
+                "- ${acc.name}: الرصيد الحالي = ${acc.balance} دج (نوع الحساب: ${acc.type.name}, معرف الحساب ID: ${acc.id})"
+            }
+            
+            val categoriesStr = categories.joinToString("\n") { cat ->
+                "- ${cat.name} (نوع الفئة: ${cat.type.name}, معرف الفئة ID: ${cat.id}${if (cat.parentId != null) ", معرف الفئة الأب ID: ${cat.parentId}" else ""})"
+            }
+            
+            """
+            
+            سياق قاعدة بيانات المستخدم الحالية (استخدم هذه البيانات دائماً للإجابة والمطابقة بدقة):
+            
+            الحسابات المتوفرة وأرصدتها الحالية:
+            $accountsStr
+            
+            الفئات المتوفرة لتصنيف المعاملات:
+            $categoriesStr
+            """.trimIndent()
+        } catch (e: Exception) {
+            ""
+        }
     }
 
     private fun buildOpenAiToolsJson(): JSONArray {

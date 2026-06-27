@@ -284,14 +284,8 @@ class AiChatViewModel(
     private fun isGeneralBalanceReply(text: String): Boolean {
         val lower = text.lowercase()
         val generalMarkers = listOf(
-            "إجمالي رصيد محفظتك",
-            "إجمالي رصيد",
-            "رصيد محفظتك",
-            "رصيدك الإجمالي",
-            "رصيد محفظتي",
-            "مجموع أرصدتك",
-            "portfolio balance",
-            "total balance"
+            "رصيد", "الرصيد", "أرصدة", "الأرصدة", "رصيدي", "أموالي", "فلوسي", "ميزانيتي", "الميزانية", "المحفظة",
+            "balance", "balances", "portfolio", "wallet", "total", "cash", "money"
         )
         return generalMarkers.any { lower.contains(it) }
     }
@@ -299,48 +293,64 @@ class AiChatViewModel(
     private fun isTransactionDraftReply(text: String): Boolean {
         val lower = text.lowercase()
         val draftMarkers = listOf(
-            "مسودة معاملة",
-            "معاملة مقترحة",
-            "تأكيد المعاملة",
-            "هل تريد تأكيد",
-            "سأقوم بتسجيل",
-            "تم فهم المعاملة",
-            "سجلت لك",
-            "اقتراح تسجيل"
+            "مسودة معاملة", "معاملة مقترحة", "تأكيد المعاملة", "هل تريد تأكيد", "سأقوم بتسجيل",
+            "تم فهم المعاملة", "سجلت لك", "اقتراح تسجيل", "مسودة مصروف", "مسودة دخل", "معاملة جديدة",
+            "transaction draft", "proposed transaction", "confirm transaction"
         )
-        val actionMarkers = listOf("شراء", "شريت", "صرفت", "دخل", "راتب", "أودعت", "مصروف", "مصاريف")
+        val actionMarkers = listOf("شراء", "شريت", "صرفت", "دخل", "راتب", "أودعت", "مصروف", "مصاريف", "سجل", "سأقوم", "دفع", "دفعت")
         return draftMarkers.any { lower.contains(it) } ||
             (actionMarkers.any { lower.contains(it) } && parseDarijaAmount(text) != null)
     }
 
     private fun isRecentActivityReply(text: String): Boolean {
         val lower = text.lowercase()
-        val activityMarkers = listOf("آخر المعاملات", "آخر معاملات", "آخر حركة", "آخر الحركات", "النشاط الأخير", "recent activity")
+        val activityMarkers = listOf(
+            "آخر المعاملات", "آخر معاملات", "آخر حركة", "آخر الحركات", "النشاط الأخير", "المعاملات الأخيرة", "سجل المعاملات",
+            "recent activity", "last transactions", "recent transactions", "transaction history"
+        )
         return activityMarkers.any { lower.contains(it) }
     }
 
     private fun isWalletDistributionReply(text: String): Boolean {
         val lower = text.lowercase()
-        val distributionMarkers = listOf("توزيع المحفظة", "توزيع أموالك", "توزيع الحسابات", "wallet distribution")
+        val distributionMarkers = listOf(
+            "توزيع المحفظة", "توزيع أموالك", "توزيع الحسابات", "نسبة توزيع", "كيف تتوزع", "توزيع أرصدتك",
+            "wallet distribution", "portfolio distribution", "distribution of funds"
+        )
         return distributionMarkers.any { lower.contains(it) }
     }
 
     private fun isLowBalanceAlertReply(text: String): Boolean {
         val lower = text.lowercase()
-        val alertMarkers = listOf("رصيد منخفض", "الأرصدة المنخفضة", "تنبيه رصيد", "حد الرصيد", "low balance")
+        val alertMarkers = listOf(
+            "رصيد منخفض", "الأرصدة المنخفضة", "تنبيه رصيد", "حد الرصيد", "تنبيه الرصيد", "رصيد ضعيف", "تحذير رصيد",
+            "low balance", "balance alert", "low balance alert"
+        )
         return alertMarkers.any { lower.contains(it) }
     }
 
     private fun isTransferDraftReply(text: String): Boolean {
         val lower = text.lowercase()
-        val transferMarkers = listOf("مسودة تحويل", "تحويل مقترح", "تأكيد التحويل", "حول من", "تحويل من")
+        val transferMarkers = listOf(
+            "مسودة تحويل", "تحويل مقترح", "تأكيد التحويل", "حول من", "تحويل من", "نقل من", "نقل أموال", "تحويل مبلغ", "سأقوم بتحويل",
+            "transfer draft", "proposed transfer", "confirm transfer"
+        )
         return transferMarkers.any { lower.contains(it) }
     }
 
     private fun isSelectedAccountDetailsReply(text: String, accounts: List<Account>): Boolean {
         val lower = text.lowercase()
-        val detailsMarkers = listOf("تفاصيل الحساب", "معلومات الحساب", "كشف الحساب", "account details")
-        return detailsMarkers.any { lower.contains(it) } && accounts.any { lower.contains(it.name.lowercase()) }
+        val detailsMarkers = listOf(
+            "تفاصيل الحساب", "معلومات الحساب", "كشف الحساب", "account details", "رصيد حساب", "رصيد الحساب", "تفاصيل حساب",
+            "حساب الـ", "حساب ال"
+        )
+        val nameMatch = accounts.any { 
+            val accName = it.name.lowercase()
+            lower.contains(accName) || 
+            (accName == "ccp" && (lower.contains("ccp") || lower.contains("بريدي"))) ||
+            (accName == "كاش" && (lower.contains("كاش") || lower.contains("نقدي") || lower.contains("نقد")))
+        }
+        return (detailsMarkers.any { lower.contains(it) } || lower.contains("رصيد")) && nameMatch
     }
 
     /**
@@ -385,13 +395,13 @@ class AiChatViewModel(
             aiRepository.getMessagesBySession(sessionTitle).collectLatest { dbMessages ->
                 val uiMessages = dbMessages.map { msg ->
                     val isAiMessage = msg.sender == ChatSender.AI
-                    val isBalanceReply = isAiMessage && isGeneralBalanceReply(msg.message)
-                    val isTransferReply = isAiMessage && !isBalanceReply && isTransferDraftReply(msg.message)
-                    val isDraftReply = isAiMessage && !isBalanceReply && !isTransferReply && isTransactionDraftReply(msg.message)
-                    val isRecentReply = isAiMessage && !isBalanceReply && !isDraftReply && !isTransferReply && isRecentActivityReply(msg.message)
-                    val isDistributionReply = isAiMessage && !isBalanceReply && !isDraftReply && !isTransferReply && isWalletDistributionReply(msg.message)
-                    val isLowBalanceReply = isAiMessage && !isBalanceReply && !isDraftReply && !isTransferReply && isLowBalanceAlertReply(msg.message)
-                    val isAccountDetailsReply = isAiMessage && !isBalanceReply && !isDraftReply && !isTransferReply && isSelectedAccountDetailsReply(msg.message, accounts)
+                    val isTransferReply = isAiMessage && isTransferDraftReply(msg.message)
+                    val isDraftReply = isAiMessage && !isTransferReply && isTransactionDraftReply(msg.message)
+                    val isAccountDetailsReply = isAiMessage && !isTransferReply && !isDraftReply && isSelectedAccountDetailsReply(msg.message, accounts)
+                    val isRecentReply = isAiMessage && !isTransferReply && !isDraftReply && !isAccountDetailsReply && isRecentActivityReply(msg.message)
+                    val isDistributionReply = isAiMessage && !isTransferReply && !isDraftReply && !isAccountDetailsReply && isWalletDistributionReply(msg.message)
+                    val isLowBalanceReply = isAiMessage && !isTransferReply && !isDraftReply && !isAccountDetailsReply && isLowBalanceAlertReply(msg.message)
+                    val isBalanceReply = isAiMessage && !isTransferReply && !isDraftReply && !isAccountDetailsReply && !isRecentReply && !isDistributionReply && !isLowBalanceReply && isGeneralBalanceReply(msg.message)
 
                     val draftTx = if (isDraftReply) {
                         parseDraftTransactionFromText(msg.message, accounts, categories)
