@@ -1,11 +1,11 @@
 {
-  "versionCode": 34,
-  "versionName": "1.0.0.34",
-  "updateIdentity": 135,
-  "publishedAt": "2026-06-27T02:38:00Z",
+  "versionCode": 35,
+  "versionName": "1.0.0.35",
+  "updateIdentity": 136,
+  "publishedAt": "2026-06-27T02:59:00Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 24530969,
-  "apkSha256": "ee2ed8465679af4630fb4f134ee3f09bcbb87c9a8e8d0a564fb8b00f729df29c",
+  "apkSize": 24547357,
+  "apkSha256": "1773fe472947c6a50a3243268327d2408a1fcf9dbc69aff85dd7e7f79bbce04d",
   "mandatory": false,
-  "releaseNotes": "تحديث v1.0.0.34 (Build 135): تقسيم قائمة النماذج إلى قسمين (متوفرة وغير متوفرة) لتسهيل الاختيار، وحل مشكلة ألوان الخلفية والنصوص لصندوق الكتابة والردود في الوضع النهاري."
+  "releaseNotes": "تحديث v1.0.0.35 (Build 136): تحسين استدعاء وتجاوب الصناديق التفاعلية لكافة النماذج المتاحة، ودعم كتابة وقراءة الردود بتنسيق Markdown الغني وتنسيق الجداول باحترافية."
 }
