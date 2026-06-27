@@ -769,13 +769,9 @@ fun AnalyticsScreen(
                         onSelectedCategoryChange = { selectedCategory = it },
                         onHelpClick = { title, desc -> activeExplanationInfo = title to desc },
                         onCategoryLongClick = { category ->
-                            longClickJob?.cancel()
                             longClickedCategory = category
-                            longClickJob = scope.launch {
-                                kotlinx.coroutines.delay(3000)
-                                longClickedCategory = null
-                            }
-                        }
+                        },
+                        categories = uiState.categories
                     )
                 }
             }

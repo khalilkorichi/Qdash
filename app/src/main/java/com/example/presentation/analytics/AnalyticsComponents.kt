@@ -65,6 +65,8 @@ import com.example.core.utils.FormatterUtils
 import com.example.ui.theme.*
 import com.example.ui.designsystem.components.*
 import com.example.ui.designsystem.tokens.*
+import com.example.domain.model.Category
+import com.example.presentation.transactions.CategoryIconView
 import com.example.presentation.navigation.LocalNavController
 import com.example.presentation.navigation.Screen
 import androidx.compose.ui.graphics.PathEffect
@@ -376,7 +378,8 @@ fun InteractiveDonutCard(
     selectedCategory: CategoryShare?,
     onSelectedCategoryChange: (CategoryShare?) -> Unit,
     onHelpClick: (String, String) -> Unit,
-    onCategoryLongClick: (CategoryShare) -> Unit
+    onCategoryLongClick: (CategoryShare) -> Unit,
+    categories: List<Category> = emptyList()
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     var viewMode by remember { mutableStateOf(ChartViewMode.DONUT) }
@@ -939,9 +942,18 @@ fun InteractiveDonutCard(
                     val parseColor = parsedShareColors[share.categoryName] ?: MaterialTheme.colorScheme.primary
                     val isSelected = selectedCategory?.categoryName == share.categoryName
                     
+                    val categoryModel = remember(share.categoryId, categories) {
+                        categories.firstOrNull { it.id == share.categoryId } ?: categories.firstOrNull { it.name == share.categoryName }
+                    }
+
                     AppCard(
                         modifier = Modifier
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .border(
+                                width = if (isSelected) 1.5.dp else 0.dp,
+                                color = if (isSelected) parseColor else Color.Transparent,
+                                shape = ShapeTokens.Lg
+                            ),
                         variant = CardVariant.SOLID,
                         shape = ShapeTokens.Lg,
                         backgroundColor = if (isSelected) parseColor.copy(alpha = 0.07f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
@@ -950,16 +962,30 @@ fun InteractiveDonutCard(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(16.dp)
-                                    .clip(RoundedCornerShape(5.dp))
-                                    .background(parseColor)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
+                                    .size(36.dp)
+                                    .background(parseColor.copy(alpha = 0.12f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (categoryModel != null) {
+                                    CategoryIconView(
+                                        iconStr = categoryModel.icon,
+                                        color = parseColor,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(parseColor, CircleShape)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
                             Column(
                                 modifier = Modifier.weight(1f),
                                 verticalArrangement = Arrangement.Center
