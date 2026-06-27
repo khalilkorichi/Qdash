@@ -216,9 +216,21 @@ private fun AiModelSelector(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selectedModel = models.firstOrNull { it.id == selectedModelId } ?: models.firstOrNull()
-    val groupedModels = remember(models) { models.groupBy { it.provider } }
-    val sortedProviders = remember(groupedModels) {
-        groupedModels.keys.sortedWith { a, b ->
+
+    // Classify models by availability
+    val availableModels = remember(models, availability) {
+        models.filter { 
+            val status = availability[it.id]
+            status == AiModelAvailability.AVAILABLE || status == AiModelAvailability.CHECKING || status == null
+        }
+    }
+    val unavailableModels = remember(models, availability) {
+        models.filter { availability[it.id] == AiModelAvailability.UNAVAILABLE }
+    }
+
+    val groupedAvailable = remember(availableModels) { availableModels.groupBy { it.provider } }
+    val sortedAvailableProviders = remember(groupedAvailable) {
+        groupedAvailable.keys.sortedWith { a, b ->
             when {
                 a == "Google" && b != "Google" -> -1
                 b == "Google" && a != "Google" -> 1
@@ -228,7 +240,21 @@ private fun AiModelSelector(
             }
         }
     }
-    var expandedProviders by remember { mutableStateOf(setOf("Google")) }
+
+    val groupedUnavailable = remember(unavailableModels) { unavailableModels.groupBy { it.provider } }
+    val sortedUnavailableProviders = remember(groupedUnavailable) {
+        groupedUnavailable.keys.sortedWith { a, b ->
+            when {
+                a == "Google" && b != "Google" -> -1
+                b == "Google" && a != "Google" -> 1
+                a == "Z.ai" && b != "Z.ai" -> -1
+                b == "Z.ai" && a != "Z.ai" -> 1
+                else -> a.compareTo(b)
+            }
+        }
+    }
+
+    var expandedSections by remember { mutableStateOf(setOf("available_Google")) }
 
     Surface(
         color = MaterialTheme.colorScheme.background,
@@ -304,26 +330,89 @@ private fun AiModelSelector(
                         }
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-                    sortedProviders.forEach { provider ->
-                        ModelProviderSection(
-                            provider = provider,
-                            models = groupedModels[provider].orEmpty(),
-                            expanded = expandedProviders.contains(provider),
-                            selectedModelId = selectedModelId,
-                            availability = availability,
-                            onToggle = {
-                                expandedProviders = if (expandedProviders.contains(provider)) {
-                                    expandedProviders - provider
-                                } else {
-                                    expandedProviders + provider
+
+                    // SECTION 1: AVAILABLE MODELS
+                    if (availableModels.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                                .padding(horizontal = 14.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            Text(
+                                text = "النماذج المتوفرة 🟢",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                        
+                        sortedAvailableProviders.forEach { provider ->
+                            val sectionKey = "available_$provider"
+                            ModelProviderSection(
+                                provider = provider,
+                                models = groupedAvailable[provider].orEmpty(),
+                                expanded = expandedSections.contains(sectionKey),
+                                selectedModelId = selectedModelId,
+                                availability = availability,
+                                onToggle = {
+                                    expandedSections = if (expandedSections.contains(sectionKey)) {
+                                        expandedSections - sectionKey
+                                    } else {
+                                        expandedSections + sectionKey
+                                    }
+                                },
+                                onModelSelected = { modelId ->
+                                    expanded = false
+                                    onModelSelected(modelId)
                                 }
-                            },
-                            onModelSelected = { modelId ->
-                                expanded = false
-                                onModelSelected(modelId)
-                            }
-                        )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                        }
+                    }
+
+                    // SECTION 2: UNAVAILABLE MODELS
+                    if (unavailableModels.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.error.copy(alpha = 0.08f))
+                                .padding(horizontal = 14.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            Text(
+                                text = "النماذج غير المتوفرة 🔴",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+
+                        sortedUnavailableProviders.forEach { provider ->
+                            val sectionKey = "unavailable_$provider"
+                            ModelProviderSection(
+                                provider = provider,
+                                models = groupedUnavailable[provider].orEmpty(),
+                                expanded = expandedSections.contains(sectionKey),
+                                selectedModelId = selectedModelId,
+                                availability = availability,
+                                onToggle = {
+                                    expandedSections = if (expandedSections.contains(sectionKey)) {
+                                        expandedSections - sectionKey
+                                    } else {
+                                        expandedSections + sectionKey
+                                    }
+                                },
+                                onModelSelected = { modelId ->
+                                    expanded = false
+                                    onModelSelected(modelId)
+                                }
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                        }
                     }
                 }
             }

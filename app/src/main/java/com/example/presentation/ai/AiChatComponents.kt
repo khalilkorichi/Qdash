@@ -124,7 +124,7 @@ fun AiMessageBubble(
     onViewDetails: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = MaterialTheme.colorScheme.background == ColorTokens.BackgroundDark
     val surface = if (isDark) ColorTokens.SurfaceDark else ColorTokens.SurfaceLight
     val border = if (isDark) ColorTokens.BorderDark else ColorTokens.BorderLight
 
@@ -369,7 +369,7 @@ fun ChatInputBar(
     onMicClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = MaterialTheme.colorScheme.background == ColorTokens.BackgroundDark
     val surface = if (isDark) ColorTokens.SurfaceDark else ColorTokens.SurfaceLight
     val border = if (isDark) ColorTokens.BorderDark else ColorTokens.BorderLight
 

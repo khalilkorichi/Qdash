@@ -1,11 +1,11 @@
 {
-  "versionCode": 33,
-  "versionName": "1.0.0.33",
-  "updateIdentity": 134,
-  "publishedAt": "2026-06-27T02:28:00Z",
+  "versionCode": 34,
+  "versionName": "1.0.0.34",
+  "updateIdentity": 135,
+  "publishedAt": "2026-06-27T02:38:00Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 24530973,
-  "apkSha256": "0f79ee1afaa049ec248133c8c8c1bce4cd8203fe8a3a97c3a827e2e1aa247d63",
+  "apkSize": 24530969,
+  "apkSha256": "ee2ed8465679af4630fb4f134ee3f09bcbb87c9a8e8d0a564fb8b00f729df29c",
   "mandatory": false,
-  "releaseNotes": "تحديث v1.0.0.33 (Build 134): فصل كروت المعاملات والمحفظة إلى مكونات مستقلة وقابلة لإعادة الاستخدام، وحل مشكلة تكبير صندوق الكتابة عند ضغط لوحة المفاتيح، وتصحيح تفاعل الوضع الداكن مع إعدادات المستخدم، وإضافة زر إرسال مخصص في شاشة الإدخال الصوتي."
+  "releaseNotes": "تحديث v1.0.0.34 (Build 135): تقسيم قائمة النماذج إلى قسمين (متوفرة وغير متوفرة) لتسهيل الاختيار، وحل مشكلة ألوان الخلفية والنصوص لصندوق الكتابة والردود في الوضع النهاري."
 }
