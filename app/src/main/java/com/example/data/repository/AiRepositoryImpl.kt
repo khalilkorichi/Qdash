@@ -1273,24 +1273,78 @@ class AiRepositoryImpl(
         return try {
             val accounts = accountRepository.getAllAccounts().first().filter { !it.isArchived }
             val categories = categoryRepository.getAllCategories().first()
-            
+            val recentTransactions = transactionRepository.getAllTransactions().first()
+                .sortedByDescending { it.date }.take(20)
+            val budgetGoals = budgetGoalRepository.getAllBudgetGoals().first()
+            val debts = debtRepository.getAllDebts().first()
+
+            val categoryMap = categories.associateBy { it.id }
+            val accountMap = accounts.associateBy { it.id }
+
+            val totalBalance = accounts.sumOf { it.balance }
             val accountsStr = accounts.joinToString("\n") { acc ->
-                "- ${acc.name}: الرصيد الحالي = ${acc.balance} دج (نوع الحساب: ${acc.type.name}, معرف الحساب ID: ${acc.id})"
+                "- ${acc.name} (نوع: ${acc.type.name}, ID: ${acc.id}): الرصيد = ${acc.balance} دج"
             }
-            
+
             val categoriesStr = categories.joinToString("\n") { cat ->
-                "- ${cat.name} (نوع الفئة: ${cat.type.name}, معرف الفئة ID: ${cat.id}${if (cat.parentId != null) ", معرف الفئة الأب ID: ${cat.parentId}" else ""})"
+                "- ${cat.name} (نوع: ${cat.type.name}, ID: ${cat.id}${if (cat.parentId != null) ", أب: ${cat.parentId}" else ""})"
             }
-            
+
+            val now = System.currentTimeMillis()
+            val thirtyDaysAgo = now - 30L * 24 * 60 * 60 * 1000
+            val monthTxs = recentTransactions.filter { it.date >= thirtyDaysAgo }
+            val totalIncome30 = monthTxs.filter { it.type.name == "INCOME" }.sumOf { it.amount }
+            val totalExpense30 = monthTxs.filter { it.type.name == "EXPENSE" }.sumOf { it.amount }
+
+            val recentTxStr = recentTransactions.take(10).joinToString("\n") { tx ->
+                val catName = categoryMap[tx.categoryId]?.name ?: "غير محدد"
+                val accName = accountMap[tx.accountId]?.name ?: "غير محدد"
+                val dateStr = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(java.util.Date(tx.date))
+                "- [${tx.type.name}] ${tx.amount} دج | فئة: $catName | حساب: $accName | تاريخ: $dateStr${if (!tx.note.isNullOrBlank()) " | ملاحظة: ${tx.note}" else ""}"
+            }
+
+            val budgetStr = if (budgetGoals.isNotEmpty()) {
+                budgetGoals.joinToString("\n") { bg ->
+                    val catName = categoryMap[bg.categoryId]?.name ?: "غير محدد"
+                    "- ميزانية $catName: الحد = ${bg.limitAmount} دج"
+                }
+            } else "لا توجد ميزانيات محددة"
+
+            val debtsStr = if (debts.isNotEmpty()) {
+                val activeDebts = debts.filter { !it.isPaid }
+                if (activeDebts.isEmpty()) "لا توجد ديون نشطة"
+                else activeDebts.joinToString("\n") { d ->
+                    "- ${d.personName}: ${d.amount} دج (${if (d.isOwedToMe) "يدين لي" else "أدين له"})"
+                }
+            } else "لا توجد ديون"
+
             """
-            
-            سياق قاعدة بيانات المستخدم الحالية (استخدم هذه البيانات دائماً للإجابة والمطابقة بدقة):
-            
-            الحسابات المتوفرة وأرصدتها الحالية:
+            ═══════════════════════════════════════
+            سياق قاعدة بيانات المستخدم الكاملة — لديك صلاحية قراءة كاملة لجميع البيانات التالية واستخدامها للإجابة بدقة:
+            ═══════════════════════════════════════
+
+            💰 إجمالي رصيد المحفظة: $totalBalance دج
+
+            📊 إحصائيات آخر 30 يوم:
+            - إجمالي الدخل: $totalIncome30 دج
+            - إجمالي المصاريف: $totalExpense30 دج
+            - الفارق (الادخار): ${totalIncome30 - totalExpense30} دج
+
+            🏦 الحسابات المتوفرة وأرصدتها:
             $accountsStr
-            
-            الفئات المتوفرة لتصنيف المعاملات:
+
+            🗂️ آخر 10 معاملات:
+            $recentTxStr
+
+            📑 الفئات المتوفرة:
             $categoriesStr
+
+            🎯 الميزانيات:
+            $budgetStr
+
+            💳 الديون:
+            $debtsStr
+            ═══════════════════════════════════════
             """.trimIndent()
         } catch (e: Exception) {
             ""

@@ -284,8 +284,10 @@ class AiChatViewModel(
     private fun isGeneralBalanceReply(text: String): Boolean {
         val lower = text.lowercase()
         val generalMarkers = listOf(
+            "إجمالي رصيد", "رصيد المحفظة", "رصيدك الإجمالي", "مجموع أرصدة", "إجمالي أرصدة",
             "رصيد", "الرصيد", "أرصدة", "الأرصدة", "رصيدي", "أموالي", "فلوسي", "ميزانيتي", "الميزانية", "المحفظة",
-            "balance", "balances", "portfolio", "wallet", "total", "cash", "money"
+            "إجمالي الدخل", "إجمالي المصاريف",
+            "balance", "balances", "portfolio", "wallet", "total balance", "cash", "money", "dzd"
         )
         return generalMarkers.any { lower.contains(it) }
     }
@@ -295,9 +297,11 @@ class AiChatViewModel(
         val draftMarkers = listOf(
             "مسودة معاملة", "معاملة مقترحة", "تأكيد المعاملة", "هل تريد تأكيد", "سأقوم بتسجيل",
             "تم فهم المعاملة", "سجلت لك", "اقتراح تسجيل", "مسودة مصروف", "مسودة دخل", "معاملة جديدة",
-            "transaction draft", "proposed transaction", "confirm transaction"
+            "هل تأكد", "أرغب في تسجيل", "سأسجل", "قم بتسجيل", "معاملة بـ", "مبلغ المعاملة",
+            "transaction draft", "proposed transaction", "confirm transaction", "record transaction"
         )
-        val actionMarkers = listOf("شراء", "شريت", "صرفت", "دخل", "راتب", "أودعت", "مصروف", "مصاريف", "سجل", "سأقوم", "دفع", "دفعت")
+        val actionMarkers = listOf("شراء", "شريت", "صرفت", "دخل", "راتب", "أودعت", "مصروف", "مصاريف",
+            "سجل", "سأقوم", "دفع", "دفعت", "اشتريت", "خصمت", "أضفت", "حصلت على", "استلمت", "ربحت")
         return draftMarkers.any { lower.contains(it) } ||
             (actionMarkers.any { lower.contains(it) } && parseDarijaAmount(text) != null)
     }
@@ -305,8 +309,11 @@ class AiChatViewModel(
     private fun isRecentActivityReply(text: String): Boolean {
         val lower = text.lowercase()
         val activityMarkers = listOf(
-            "آخر المعاملات", "آخر معاملات", "آخر حركة", "آخر الحركات", "النشاط الأخير", "المعاملات الأخيرة", "سجل المعاملات",
-            "recent activity", "last transactions", "recent transactions", "transaction history"
+            "آخر المعاملات", "آخر معاملات", "آخر حركة", "آخر الحركات", "النشاط الأخير",
+            "المعاملات الأخيرة", "سجل المعاملات", "تاريخ المعاملات", "الحركات الأخيرة",
+            "آخر 10", "آخر 5", "أخيرة", "المعاملات السابقة", "سجل الإنفاق",
+            "recent activity", "last transactions", "recent transactions", "transaction history",
+            "last 10", "last 5", "previous transactions"
         )
         return activityMarkers.any { lower.contains(it) }
     }
@@ -315,7 +322,8 @@ class AiChatViewModel(
         val lower = text.lowercase()
         val distributionMarkers = listOf(
             "توزيع المحفظة", "توزيع أموالك", "توزيع الحسابات", "نسبة توزيع", "كيف تتوزع", "توزيع أرصدتك",
-            "wallet distribution", "portfolio distribution", "distribution of funds"
+            "نسبة كل حساب", "توزيع مدخراتك", "توزيع ثروتك", "نسبة الأموال", "حصة كل حساب",
+            "wallet distribution", "portfolio distribution", "distribution of funds", "fund allocation"
         )
         return distributionMarkers.any { lower.contains(it) }
     }
@@ -323,8 +331,10 @@ class AiChatViewModel(
     private fun isLowBalanceAlertReply(text: String): Boolean {
         val lower = text.lowercase()
         val alertMarkers = listOf(
-            "رصيد منخفض", "الأرصدة المنخفضة", "تنبيه رصيد", "حد الرصيد", "تنبيه الرصيد", "رصيد ضعيف", "تحذير رصيد",
-            "low balance", "balance alert", "low balance alert"
+            "رصيد منخفض", "الأرصدة المنخفضة", "تنبيه رصيد", "حد الرصيد", "تنبيه الرصيد",
+            "رصيد ضعيف", "تحذير رصيد", "الحساب منخفض", "رصيد قليل", "رصيد صغير",
+            "حد أدنى", "تحت الحد", "تجاوز الحد", "يحذر", "خطر الرصيد",
+            "low balance", "balance alert", "low balance alert", "minimum balance", "balance warning"
         )
         return alertMarkers.any { lower.contains(it) }
     }
@@ -332,8 +342,10 @@ class AiChatViewModel(
     private fun isTransferDraftReply(text: String): Boolean {
         val lower = text.lowercase()
         val transferMarkers = listOf(
-            "مسودة تحويل", "تحويل مقترح", "تأكيد التحويل", "حول من", "تحويل من", "نقل من", "نقل أموال", "تحويل مبلغ", "سأقوم بتحويل",
-            "transfer draft", "proposed transfer", "confirm transfer"
+            "مسودة تحويل", "تحويل مقترح", "تأكيد التحويل", "حول من", "تحويل من", "نقل من",
+            "نقل أموال", "تحويل مبلغ", "سأقوم بتحويل", "تحويل داخلي", "نقل داخلي",
+            "تحويل إلى", "تحويل بين الحسابات", "تحويل الرصيد",
+            "transfer draft", "proposed transfer", "confirm transfer", "internal transfer"
         )
         return transferMarkers.any { lower.contains(it) }
     }
@@ -341,16 +353,30 @@ class AiChatViewModel(
     private fun isSelectedAccountDetailsReply(text: String, accounts: List<Account>): Boolean {
         val lower = text.lowercase()
         val detailsMarkers = listOf(
-            "تفاصيل الحساب", "معلومات الحساب", "كشف الحساب", "account details", "رصيد حساب", "رصيد الحساب", "تفاصيل حساب",
-            "حساب الـ", "حساب ال"
+            "تفاصيل الحساب", "معلومات الحساب", "كشف الحساب", "account details",
+            "رصيد حساب", "رصيد الحساب", "تفاصيل حساب", "حساب الـ", "حساب ال",
+            "معلومات عن حساب", "بيانات الحساب", "إحصائيات الحساب"
         )
-        val nameMatch = accounts.any { 
+        val nameMatch = accounts.any {
             val accName = it.name.lowercase()
-            lower.contains(accName) || 
-            (accName == "ccp" && (lower.contains("ccp") || lower.contains("بريدي"))) ||
-            (accName == "كاش" && (lower.contains("كاش") || lower.contains("نقدي") || lower.contains("نقد")))
+            lower.contains(accName) ||
+            (it.type.name == "CCP" && (lower.contains("ccp") || lower.contains("بريدي"))) ||
+            (it.type.name == "CASH" && (lower.contains("كاش") || lower.contains("نقدي") || lower.contains("نقد"))) ||
+            (it.type.name == "BARIDIMOB" && (lower.contains("بريدي موب") || lower.contains("baridimob"))) ||
+            (it.type.name == "BANK" && lower.contains("بنك"))
         }
         return (detailsMarkers.any { lower.contains(it) } || lower.contains("رصيد")) && nameMatch
+    }
+
+    private fun isQuickImpactPreviewReply(text: String): Boolean {
+        val lower = text.lowercase()
+        val impactMarkers = listOf(
+            "التأثير المالي", "تأثير سريع", "تأثير على ميزانيتك", "تأثير على رصيدك",
+            "التأثير على", "quick impact", "financial impact", "budget impact",
+            "ماذا سيحدث", "بعد المعاملة", "بعد الإضافة", "سيتغير رصيدك",
+            "نتيجة المعاملة", "تداعيات مالية"
+        )
+        return impactMarkers.any { lower.contains(it) }
     }
 
     /**
