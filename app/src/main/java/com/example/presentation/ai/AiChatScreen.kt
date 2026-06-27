@@ -145,7 +145,6 @@ fun AiChatScreen(
                         .fillMaxSize()
                         .background(backgroundColor)
                         .padding(paddingValues)
-                        .imePadding()
                 ) {
                     AiModelSelector(
                         selectedModelId = uiState.selectedModelId,
@@ -200,7 +199,8 @@ fun AiChatScreen(
                         text = uiState.inputText,
                         onTextChange = viewModel::setInputText,
                         onSend = viewModel::sendMessage,
-                        onMicClick = onVoiceInput
+                        onMicClick = onVoiceInput,
+                        modifier = Modifier.imePadding()
                     )
                 }
             }
