@@ -76,7 +76,36 @@ data class AiChatUiState(
         AiModelInfo("gemini-2.5-pro", "Gemini 2.5 Pro", "Google"),
         AiModelInfo("gemini-3.1-pro", "Gemini 3.1 Pro", "Google"),
         AiModelInfo("gemini-3-flash-preview", "Gemini 3 Flash Preview", "Google"),
-        AiModelInfo("glm-5.1", "glm-5.1", "Z.ai")
+        AiModelInfo("glm-5.1", "glm-5.1", "Z.ai"),
+        // OpenRouter Models
+        AiModelInfo("deepseek/deepseek-r1:free", "DeepSeek R1", "DeepSeek"),
+        AiModelInfo("cognitivecomputations/dolphin-mistral-24b-venice-edition:free", "Dolphin Mistral 24B Venice", "Cognitive Computations"),
+        AiModelInfo("openrouter/free", "Free Models Router", "OpenRouter"),
+        AiModelInfo("google/gemma-2-9b-it:free", "Gemma 2 9B", "Google"),
+        AiModelInfo("google/gemma-4-26b-a4b:free", "Gemma 4 26B A4B", "Google"),
+        AiModelInfo("openai/gpt-oss-120b:free", "GPT OSS 120B", "OpenAI"),
+        AiModelInfo("openai/gpt-oss-20b:free", "GPT OSS 20B", "OpenAI"),
+        AiModelInfo("poolside/laguna-m-1:free", "Laguna M.1", "Poolside"),
+        AiModelInfo("poolside/laguna-xs-2:free", "Laguna XS.2", "Poolside"),
+        AiModelInfo("liquidai/lfm2.5-1.2b-thinking:free", "LFM2.5 1.2B Thinking", "Liquid AI"),
+        AiModelInfo("meta-llama/llama-3.1-8b-instruct:free", "Llama 3.1 8B Instruct", "Meta"),
+        AiModelInfo("meta-llama/llama-3.3-70b-instruct:free", "Llama 3.3 70B Instruct", "Meta"),
+        AiModelInfo("nvidia/llama-nemotron-embed-vl-1b-v2:free", "Llama Nemotron Embed VL", "NVIDIA"),
+        AiModelInfo("mistralai/mistral-7b-instruct:free", "Mistral 7B Instruct", "Mistral AI"),
+        AiModelInfo("nvidia/nemotron-3-nano-30b-a3b:free", "Nemotron 3 Nano", "NVIDIA"),
+        AiModelInfo("nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", "Nemotron 3 Nano Omni", "NVIDIA"),
+        AiModelInfo("nvidia/nemotron-3-super-120b-a12b:free", "Nemotron 3 Super", "NVIDIA"),
+        AiModelInfo("nvidia/nemotron-3-ultra-55b:free", "Nemotron 3 Ultra", "NVIDIA"),
+        AiModelInfo("cohere/north-mini-code:free", "North Mini Code", "Cohere"),
+        AiModelInfo("qwen/qwen-2.5-7b-instruct:free", "Qwen 2.5 7B Instruct", "Qwen"),
+        AiModelInfo("qwen/qwen-3-coder-32b-instruct:free", "Qwen 3 Coder 32B", "Qwen"),
+        AiModelInfo("stepfun/step-3.5-flash:free", "Step 3.5 Flash", "StepFun"),
+        AiModelInfo("arcee/trinity-large-preview:free", "Trinity Large Preview", "Arcee AI"),
+        AiModelInfo("arcee/trinity-mini:free", "Trinity Mini", "Arcee AI"),
+        // OpenCode Models
+        AiModelInfo("opencode/big-pickle", "Big Pickle (GLM-4.6)", "OpenCode"),
+        AiModelInfo("opencode/deepseek-v4-flash-free", "DeepSeek V4 Flash", "OpenCode"),
+        AiModelInfo("opencode/nemotron-3-super-free", "Nemotron 3 Super", "OpenCode")
     ),
     val modelAvailability: Map<String, AiModelAvailability> = emptyMap(),
     // Available accounts and categories — fed into the editable draft dropdowns
@@ -162,19 +191,21 @@ class AiChatViewModel(
             it.copy(modelAvailability = models.associate { model -> model.id to AiModelAvailability.CHECKING })
         }
         viewModelScope.launch {
-            models.forEach { model ->
-                val isAvailable = kotlinx.coroutines.withTimeoutOrNull(8_000L) {
-                    runCatching {
-                        aiRepository.generateResponse("اختبار توفر النموذج. أجب بكلمة OK فقط.", model.id)
-                    }.getOrNull()?.replyText?.isNotBlank() == true
-                } == true
+            models.map { model ->
+                launch {
+                    val isAvailable = kotlinx.coroutines.withTimeoutOrNull(8_000L) {
+                        runCatching {
+                            aiRepository.generateResponse("اختبار توفر النموذج. أجب بكلمة OK فقط.", model.id)
+                        }.getOrNull()?.replyText?.isNotBlank() == true
+                    } == true
 
-                _uiState.update { state ->
-                    state.copy(
-                        modelAvailability = state.modelAvailability + (
-                            model.id to if (isAvailable) AiModelAvailability.AVAILABLE else AiModelAvailability.UNAVAILABLE
-                            )
-                    )
+                    _uiState.update { state ->
+                        state.copy(
+                            modelAvailability = state.modelAvailability + (
+                                model.id to if (isAvailable) AiModelAvailability.AVAILABLE else AiModelAvailability.UNAVAILABLE
+                                )
+                        )
+                    }
                 }
             }
         }

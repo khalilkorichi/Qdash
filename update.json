@@ -1,11 +1,11 @@
 {
-  "versionCode": 31,
-  "versionName": "1.0.0.31",
-  "updateIdentity": 132,
-  "publishedAt": "2026-06-26T21:18:13Z",
+  "versionCode": 32,
+  "versionName": "1.0.0.32",
+  "updateIdentity": 133,
+  "publishedAt": "2026-06-27T02:06:00Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 24514585,
-  "apkSha256": "a84db18110457b3ac76252ccb77a859f7bcceafa400f2026055fbe37976585cf",
+  "apkSize": 24787921,
+  "apkSha256": "75e6da389a417745ed8ea3a3ce9e9f1c1491c0604bd588956eb7cc0aad438daf",
   "mandatory": false,
-  "releaseNotes": "تحديث v1.0.0.31 (Build 132): حل مشكلة اختفاء الأمواج وتحديث تصميمها لتتحرك بشكل مستمر على كامل أطراف الشاشة في واجهة الإدخال الصوتي للذكاء الاصطناعي، مع تعديل محاذاة نص الحالة إلى اليمين (RTL)."
+  "releaseNotes": "تحديث v1.0.0.32 (Build 133): تحديث مفتاح Google API الأساسي لنماذج Gemini، مع حل مشكلة الاتصال بخادم OpenCode عبر تهيئة معرفات النماذج وإزالة بادئة المزود ومطابقة نموذج Nemotron 3."
 }

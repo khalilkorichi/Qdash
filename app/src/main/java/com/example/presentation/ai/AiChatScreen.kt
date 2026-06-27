@@ -215,10 +215,20 @@ private fun AiModelSelector(
     onModelSelected: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var googleExpanded by remember { mutableStateOf(true) }
-    var zaiExpanded by remember { mutableStateOf(false) }
     val selectedModel = models.firstOrNull { it.id == selectedModelId } ?: models.firstOrNull()
-    val groupedModels = models.groupBy { it.provider }
+    val groupedModels = remember(models) { models.groupBy { it.provider } }
+    val sortedProviders = remember(groupedModels) {
+        groupedModels.keys.sortedWith { a, b ->
+            when {
+                a == "Google" && b != "Google" -> -1
+                b == "Google" && a != "Google" -> 1
+                a == "Z.ai" && b != "Z.ai" -> -1
+                b == "Z.ai" && a != "Z.ai" -> 1
+                else -> a.compareTo(b)
+            }
+        }
+    }
+    var expandedProviders by remember { mutableStateOf(setOf("Google")) }
 
     Surface(
         color = if (isSystemInDarkTheme()) ColorTokens.BackgroundDark else ColorTokens.BackgroundLight,
@@ -294,31 +304,27 @@ private fun AiModelSelector(
                         }
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-                    ModelProviderSection(
-                        provider = "Google",
-                        models = groupedModels["Google"].orEmpty(),
-                        expanded = googleExpanded,
-                        selectedModelId = selectedModelId,
-                        availability = availability,
-                        onToggle = { googleExpanded = !googleExpanded },
-                        onModelSelected = { modelId ->
-                            expanded = false
-                            onModelSelected(modelId)
-                        }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-                    ModelProviderSection(
-                        provider = "Z.ai",
-                        models = groupedModels["Z.ai"].orEmpty(),
-                        expanded = zaiExpanded,
-                        selectedModelId = selectedModelId,
-                        availability = availability,
-                        onToggle = { zaiExpanded = !zaiExpanded },
-                        onModelSelected = { modelId ->
-                            expanded = false
-                            onModelSelected(modelId)
-                        }
-                    )
+                    sortedProviders.forEach { provider ->
+                        ModelProviderSection(
+                            provider = provider,
+                            models = groupedModels[provider].orEmpty(),
+                            expanded = expandedProviders.contains(provider),
+                            selectedModelId = selectedModelId,
+                            availability = availability,
+                            onToggle = {
+                                expandedProviders = if (expandedProviders.contains(provider)) {
+                                    expandedProviders - provider
+                                } else {
+                                    expandedProviders + provider
+                                }
+                            },
+                            onModelSelected = { modelId ->
+                                expanded = false
+                                onModelSelected(modelId)
+                            }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                    }
                 }
             }
         }

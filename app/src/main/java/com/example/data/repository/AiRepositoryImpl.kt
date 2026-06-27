@@ -65,7 +65,7 @@ class AiRepositoryImpl(
             return key
         }
         return try {
-            com.example.core.utils.CryptoUtils.decrypt("FDS4/bMXxWxcZFDS/GBNFrByz552/xOqgMPPCVzUBUIjXYe7YN2yFVJVbPZV5/2IaCTEOwg0yajqrV3A4ZbIK6+/oG9lBMLMRGsioU/Thwk8")
+            com.example.core.utils.CryptoUtils.decrypt("BGkbMuKghm13XtkofUZqwvC7DV6mfwhpbglo9IQI5TJPat5FxTvzpmyHWIEqB6IXmV/wnDr7AYzhJqZlt5/L4hx2XJekQJXgcKlxyZf8DJV9")
         } catch (e: Exception) {
             e.printStackTrace()
             ""
@@ -74,6 +74,24 @@ class AiRepositoryImpl(
 
     private val AGENT_ROUTER_API_KEY = System.getenv("AGENT_ROUTER_API_KEY") ?: ""
     private val AGENT_ROUTER_BASE_URL = "https://agentrouter.org/v1"
+
+    private val OPENROUTER_API_KEY by lazy {
+        try {
+            com.example.core.utils.CryptoUtils.decrypt("Tsi1wycL1+Cbdm+wfFhc7DpgC1ksFwwFolpzWWCA5KxiS3sH+NziI+JQQKe3+dYOZdAJkKa6aDwRm6NArnknrYyT6RmJWxwNhkf3A3eiWiVvuhZ1YSM8aNAuLaGo9/TQy1J7mbA=")
+        } catch (e: Exception) {
+            ""
+        }
+    }
+    private val OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+
+    private val OPENCODE_API_KEY by lazy {
+        try {
+            com.example.core.utils.CryptoUtils.decrypt("15bkTg0mKwU6Rn0XKnXXM+JrxD3Y/Yc8106zO7lGWlFu0quR2wqv0Sg9WzALUff0DpeAKQxbcVDGhlW+JU74X4NiYV4DQ5xq9yq0xs2ILwlVKaoB396+PXcKfTODCaY=")
+        } catch (e: Exception) {
+            ""
+        }
+    }
+    private val OPENCODE_BASE_URL = "https://opencode.ai/zen/v1"
 
     override suspend fun generateResponse(prompt: String, modelId: String): AiResponse {
         val normalized = prompt.trim().lowercase()
@@ -106,19 +124,21 @@ class AiRepositoryImpl(
             )
         }
 
-        // Otherwise, run our standard helper
-        val apiKey = getApiKey()
-        val textReply = if (modelId.startsWith("gemini-")) {
-            if (!apiKey.isNullOrBlank()) {
-                callGeminiApiWithTools(apiKey, "Default", prompt, modelId)
-            } else {
-                simulateMockAiWithTools(prompt)
+        // Otherwise, run our standard helper with fallback routing
+        var lastException: Exception? = null
+        val modelsToTry = listOf(modelId) + (modelFallbackMap[modelId] ?: emptyList())
+        
+        for (candidateModelId in modelsToTry) {
+            try {
+                val textReply = tryGenerateResponse("Default", prompt, candidateModelId)
+                return AiResponse(replyText = textReply)
+            } catch (e: Exception) {
+                lastException = e
+                android.util.Log.w("AiRepository", "Failed to get response from model $candidateModelId, trying fallback. Error: ${e.localizedMessage}")
             }
-        } else {
-            callAgentRouterApi("Default", prompt, modelId, if (!apiKey.isNullOrBlank()) apiKey else null)
         }
-
-        return AiResponse(replyText = textReply)
+        
+        throw lastException ?: AiFailureException.AiServiceFailure("فشل الاتصال بالمساعد الذكي للنموذج $modelId")
     }
 
     override suspend fun getInitialSuggestions(): List<String> {
@@ -161,20 +181,28 @@ class AiRepositoryImpl(
             )
         }
 
-        val apiKey = getApiKey()
-        val aiResponse = if (modelId.startsWith("gemini-")) {
-            if (!apiKey.isNullOrBlank()) {
-                callGeminiApiWithTools(apiKey, sessionTitle, userPrompt, modelId)
-            } else {
-                // For mock, support simulated [NEXT] steps for demonstration
-                if (userPrompt.contains("حلل") || userPrompt.contains("تقرير") || userPrompt.contains("تحليل")) {
-                    "الخطوة 1: جاري تحليل مصاريفك الإجمالية لشهر مايو... [NEXT] الخطوة 2: يظهر أن فئة المواد الغذائية تستهلك 45% من دخلك. [NEXT] الخطوة 3: ننصحك بتقليل الطلبات الخارجية لزيادة معدل ادخارك بنسبة 10%."
-                } else {
-                    simulateMockAiWithTools(userPrompt)
+        var lastException: Exception? = null
+        val modelsToTry = listOf(modelId) + (modelFallbackMap[modelId] ?: emptyList())
+        var aiResponse = ""
+        var success = false
+        
+        for (candidateModelId in modelsToTry) {
+            try {
+                aiResponse = tryGenerateResponse(sessionTitle, userPrompt, candidateModelId)
+                success = true
+                break
+            } catch (e: Exception) {
+                lastException = e
+                try {
+                    android.util.Log.w("AiRepository", "Failed to get response from model $candidateModelId, trying fallback. Error: ${e.localizedMessage}")
+                } catch (logEx: Exception) {
+                    println("AiRepository: Failed to get response from model $candidateModelId, trying fallback. Error: ${e.localizedMessage}")
                 }
             }
-        } else {
-            callAgentRouterApi(sessionTitle, userPrompt, modelId, if (!apiKey.isNullOrBlank()) apiKey else null)
+        }
+        
+        if (!success) {
+            throw lastException ?: AiFailureException.AiServiceFailure("فشل الاتصال بالمساعد الذكي للنموذج $modelId")
         }
 
         // Split response by [NEXT] and insert each as a separate sequential message
@@ -355,6 +383,365 @@ class AiRepositoryImpl(
         } catch (e: Exception) {
             if (e is AiFailureException) throw e
             throw AiFailureException.AiServiceFailure("فشل الاتصال بالمساعد الذكي: ${e.localizedMessage}", e)
+        }
+    }
+
+    private fun isOpenRouterModel(modelId: String): Boolean {
+        return modelId.contains("/") && !modelId.startsWith("opencode/")
+    }
+
+    private fun isOpenCodeModel(modelId: String): Boolean {
+        return modelId.startsWith("opencode/")
+    }
+
+    private fun modelSupportsTools(modelId: String): Boolean {
+        if (modelId.startsWith("gemini-")) return true
+        if (modelId == "glm-5.1") return true
+        if (modelId.contains("llama-3.3-70b", ignoreCase = true)) return true
+        if (modelId.contains("qwen-3-coder", ignoreCase = true)) return true
+        return false
+    }
+
+    private val modelFallbackMap = mapOf(
+        "gemini-2.5-flash" to listOf("google/gemini-2.5-flash:free", "google/gemini-2.5-flash"),
+        "gemini-3.1-flash" to listOf("google/gemini-2.5-flash:free", "google/gemini-2.5-flash"),
+        "gemini-2.5-flash-lite" to listOf("google/gemini-2.5-flash-lite"),
+        "gemini-2.5-pro" to listOf("google/gemini-2.5-pro"),
+        "gemini-3.1-pro" to listOf("google/gemini-3.1-pro"),
+        "gemini-3-flash-preview" to listOf("google/gemini-2.5-flash:free"),
+        "nvidia/nemotron-3-super-120b-a12b:free" to listOf("opencode/nemotron-3-super-free"),
+        "opencode/nemotron-3-super-free" to listOf("nvidia/nemotron-3-super-120b-a12b:free")
+    )
+
+    private suspend fun tryGenerateResponse(sessionTitle: String, prompt: String, modelId: String): String {
+        val apiKey = if (modelId.startsWith("gemini-")) getApiKey() else null
+        return if (modelId.startsWith("gemini-")) {
+            if (!apiKey.isNullOrBlank()) {
+                callGeminiApiWithTools(apiKey, sessionTitle, prompt, modelId)
+            } else {
+                if (sessionTitle != "Default" && (prompt.contains("حلل") || prompt.contains("تقرير") || prompt.contains("تحليل"))) {
+                    "الخطوة 1: جاري تحليل مصاريفك الإجمالية لشهر مايو... [NEXT] الخطوة 2: يظهر أن فئة المواد الغذائية تستهلك 45% من دخلك. [NEXT] الخطوة 3: ننصحك بتقليل الطلبات الخارجية لزيادة معدل ادخارك بنسبة 10%."
+                } else {
+                    val fallbacks = modelFallbackMap[modelId]
+                    if (!fallbacks.isNullOrEmpty()) {
+                        throw AiFailureException.AiServiceFailure("Google API key is missing, trying fallback.")
+                    }
+                    simulateMockAiWithTools(prompt)
+                }
+            }
+        } else if (isOpenRouterModel(modelId)) {
+            callOpenRouterApi(sessionTitle, prompt, modelId)
+        } else if (isOpenCodeModel(modelId)) {
+            callOpenCodeApi(sessionTitle, prompt, modelId)
+        } else {
+            callAgentRouterApi(sessionTitle, prompt, modelId, if (!apiKey.isNullOrBlank()) apiKey else null)
+        }
+    }
+
+    private suspend fun callOpenRouterApi(
+        sessionTitle: String,
+        userPrompt: String,
+        modelId: String
+    ): String = withContext(Dispatchers.IO) {
+        try {
+            val url = "$OPENROUTER_BASE_URL/chat/completions"
+            val history = getMessagesBySession(sessionTitle).first().takeLast(10)
+            val filteredHistory = if (history.isNotEmpty() && 
+                history.last().sender == ChatSender.USER && 
+                history.last().message.trim() == userPrompt.trim()) {
+                history.dropLast(1)
+            } else {
+                history
+            }
+            
+            val messagesArray = JSONArray()
+            messagesArray.put(
+                JSONObject().apply {
+                    put("role", "system")
+                    put("content", """
+                        أنت مساعد مالي ذكي ومحترف جداً لتطبيق قداشّ (Kdach) لإدارة المصاريف والميزانيات في الجزائر.
+                        قواعد السلوك والعمل:
+                        1. تفاعل مع المستخدم بلغة عربية فصحى، مهذبة، وواضحة جداً.
+                        2. عند طلب المستخدم تسجيل معاملة مادية (مصروف، دخل، أو تحويل)، قم أولاً بالبحث عن الفئات الحالية باستخدام أداة `get_categories` والحسابات الحالية باستخدام أداة `get_accounts`.
+                        3. طابق المعاملة مع أقرب فئة موجودة مسبقاً في التطبيق دائماً كأولوية قصوى لتجنب تكرار وتضخم الفئات بشكل غير مبرر.
+                        4. لا تقم بإنشاء فئة جديدة باستخدام أداة `create_category` إلا إذا كان النشاط مختلفاً تماماً عن كل الفئات المتوفرة ولا يمكن إدراجه تحت أي منها إطلاقاً.
+                        5. تصرف بمسؤولية واحترافية عالية، وقدم نصائح مالية مفيدة ومختصرة عند الحاجة.
+                        6. قم بتقسيم إجاباتك المعقدة أو التحليلات التي تحتوي على أفكار متعددة أو خطوات عمل منفصلة إلى عدة فقرات/خطوات وافصل بين كل جزء والذي يليه بالرمز `[NEXT]`.
+                        7. عندما يسأل المستخدم عن "الرصيد" أو "كم رصيدي" بشكل عام، يجب أن يكون الرد الافتراضي هو عرض إجمالي رصيد المحفظة أولاً كإجابة ذكية ومباشرة.
+                        8. إذا طلب المستخدم رصيد حساب معيّن، يجب عرض تفاصيل رصيد هذا الحساب المحدد فقط دون البقية.
+                    """.trimIndent())
+                }
+            )
+            
+            for (msg in filteredHistory) {
+                val role = if (msg.sender == ChatSender.USER) "user" else "assistant"
+                messagesArray.put(
+                    JSONObject().apply {
+                        put("role", role)
+                        put("content", msg.message)
+                    }
+                )
+            }
+            
+            messagesArray.put(
+                JSONObject().apply {
+                    put("role", "user")
+                    put("content", userPrompt)
+                }
+            )
+
+            val requestBodyJson = JSONObject().apply {
+                put("model", modelId)
+                put("messages", messagesArray)
+                if (modelSupportsTools(modelId) && !userPrompt.startsWith("اختبار توفر")) {
+                    put("tools", buildOpenAiToolsJson())
+                }
+            }
+
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("Authorization", "Bearer $OPENROUTER_API_KEY")
+                .addHeader("Content-Type", "application/json")
+                .addHeader("HTTP-Referer", "https://github.com/khalilkorichi/Qdash")
+                .addHeader("X-Title", "Qdash")
+                .post(requestBodyJson.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            val response = try {
+                okHttpClient.newCall(request).execute()
+            } catch (e: java.io.IOException) {
+                throw AiFailureException.NetworkFailure("فشل في الاتصال بخادم OpenRouter: ${e.localizedMessage}", e)
+            }
+            if (!response.isSuccessful) {
+                val errorBody = response.body?.string() ?: ""
+                throw AiFailureException.AiServiceFailure("فشل استجابة خادم OpenRouter برمز: ${response.code} ${response.message}. التفاصيل: $errorBody")
+            }
+
+            val responseBody = response.body?.string() ?: throw AiFailureException.AiServiceFailure("تلقيت استجابة فارغة من خادم OpenRouter.")
+            val responseJson = JSONObject(responseBody)
+            val choices = responseJson.optJSONArray("choices")
+            if (choices == null || choices.length() == 0) {
+                throw AiFailureException.AiServiceFailure("لم يتم إنشاء استجابة بواسطة OpenRouter.")
+            }
+
+            val choiceObj = choices.getJSONObject(0)
+            val messageObj = choiceObj.optJSONObject("message") ?: throw AiFailureException.AiServiceFailure("تلقيت ردًا فارغًا من الخادم.")
+            
+            if (messageObj.has("tool_calls")) {
+                val toolCalls = messageObj.getJSONArray("tool_calls")
+                if (toolCalls.length() > 0) {
+                    val toolCall = toolCalls.getJSONObject(0)
+                    val functionObj = toolCall.getJSONObject("function")
+                    val functionName = functionObj.getString("name")
+                    val argumentsStr = functionObj.getString("arguments")
+                    val argumentsJson = JSONObject(argumentsStr)
+                    val toolCallId = toolCall.getString("id")
+
+                    val toolResultJson = executeToolCall(functionName, argumentsJson)
+
+                    val followUpMessagesArray = JSONArray()
+                    for (i in 0 until messagesArray.length()) {
+                        followUpMessagesArray.put(messagesArray.getJSONObject(i))
+                    }
+                    followUpMessagesArray.put(messageObj)
+                    followUpMessagesArray.put(JSONObject().apply {
+                        put("role", "tool")
+                        put("tool_call_id", toolCallId)
+                        put("name", functionName)
+                        put("content", toolResultJson.toString())
+                    })
+
+                    val followUpRequestBodyJson = JSONObject().apply {
+                        put("model", modelId)
+                        put("messages", followUpMessagesArray)
+                    }
+
+                    val followUpRequest = Request.Builder()
+                        .url(url)
+                        .addHeader("Authorization", "Bearer $OPENROUTER_API_KEY")
+                        .addHeader("Content-Type", "application/json")
+                        .addHeader("HTTP-Referer", "https://github.com/khalilkorichi/Qdash")
+                        .addHeader("X-Title", "Qdash")
+                        .post(followUpRequestBodyJson.toString().toRequestBody(jsonMediaType))
+                        .build()
+
+                    val followUpResponse = try {
+                        okHttpClient.newCall(followUpRequest).execute()
+                    } catch (e: java.io.IOException) {
+                        throw AiFailureException.NetworkFailure("فشل في الاتصال بالخادم أثناء معالجة الأداة: ${e.localizedMessage}", e)
+                    }
+                    if (!followUpResponse.isSuccessful) {
+                        throw AiFailureException.AiServiceFailure("فشل خادم OpenRouter أثناء معالجة الأداة برمز الخطأ: ${followUpResponse.code} ${followUpResponse.message}")
+                    }
+
+                    val followUpResponseBody = followUpResponse.body?.string() ?: ""
+                    val followUpResponseJson = JSONObject(followUpResponseBody)
+                    val finalChoices = followUpResponseJson.optJSONArray("choices")
+                    if (finalChoices == null || finalChoices.length() == 0) {
+                        throw AiFailureException.AiServiceFailure("فشل المساعد في معالجة نتيجة الأداة.")
+                    }
+                    val finalMessage = finalChoices.getJSONObject(0).optJSONObject("message") ?: throw AiFailureException.AiServiceFailure("رد فارغ بعد استدعاء الأداة.")
+                    return@withContext finalMessage.optString("content", "لم يتم إرجاع أي نص.")
+                }
+            }
+
+            messageObj.optString("content", "لم يتم إرجاع أي نص.")
+        } catch (e: Exception) {
+            if (e is AiFailureException) throw e
+            throw AiFailureException.AiServiceFailure("فشل الاتصال بـ OpenRouter: ${e.localizedMessage}", e)
+        }
+    }
+
+    private suspend fun callOpenCodeApi(
+        sessionTitle: String,
+        userPrompt: String,
+        modelId: String
+    ): String = withContext(Dispatchers.IO) {
+        try {
+            val url = "$OPENCODE_BASE_URL/chat/completions"
+            val history = getMessagesBySession(sessionTitle).first().takeLast(10)
+            val filteredHistory = if (history.isNotEmpty() && 
+                history.last().sender == ChatSender.USER && 
+                history.last().message.trim() == userPrompt.trim()) {
+                history.dropLast(1)
+            } else {
+                history
+            }
+            
+            val messagesArray = JSONArray()
+            messagesArray.put(
+                JSONObject().apply {
+                    put("role", "system")
+                    put("content", """
+                        أنت مساعد مالي ذكي ومحترف جداً لتطبيق قداشّ (Kdach) لإدارة المصاريف والميزانيات في الجزائر.
+                        قواعد السلوك والعمل:
+                        1. تفاعل مع المستخدم بلغة عربية فصحى، مهذبة، وواضحة جداً.
+                        2. عند طلب المستخدم تسجيل معاملة مادية (مصروف، دخل، أو تحويل)، قم أولاً بالبحث عن الفئات الحالية باستخدام أداة `get_categories` والحسابات الحالية باستخدام أداة `get_accounts`.
+                        3. طابق المعاملة مع أقرب فئة موجودة مسبقاً في التطبيق دائماً كأولوية قصوى لتجنب تكرار وتضخم الفئات بشكل غير مبرر.
+                        4. لا تقم بإنشاء فئة جديدة باستخدام أداة `create_category` إلا إذا كان النشاط مختلفاً تماماً عن كل الفئات المتوفرة ولا يمكن إدراجه تحت أي منها إطلاقاً.
+                        5. تصرف بمسؤولية واحترافية عالية، وقدم نصائح مالية مفيدة ومختصرة عند الحاجة.
+                        6. قم بتقسيم إجاباتك المعقدة أو التحليلات التي تحتوي على أفكار متعددة أو خطوات عمل منفصلة إلى عدة فقرات/خطوات وافصل بين كل جزء والذي يليه بالرمز `[NEXT]`.
+                        7. عندما يسأل المستخدم عن "الرصيد" أو "كم رصيدي" بشكل عام، يجب أن يكون الرد الافتراضي هو عرض إجمالي رصيد المحفظة أولاً كإجابة ذكية ومباشرة.
+                        8. إذا طلب المستخدم رصيد حساب معيّن، يجب عرض تفاصيل رصيد هذا الحساب المحدد فقط دون البقية.
+                    """.trimIndent())
+                }
+            )
+            
+            for (msg in filteredHistory) {
+                val role = if (msg.sender == ChatSender.USER) "user" else "assistant"
+                messagesArray.put(
+                    JSONObject().apply {
+                        put("role", role)
+                        put("content", msg.message)
+                    }
+                )
+            }
+            
+            messagesArray.put(
+                JSONObject().apply {
+                    put("role", "user")
+                    put("content", userPrompt)
+                }
+            )
+
+            val cleanModelId = modelId.removePrefix("opencode/")
+            val finalModelId = if (cleanModelId == "nemotron-3-super-free") "nemotron-3-ultra-free" else cleanModelId
+
+            val requestBodyJson = JSONObject().apply {
+                put("model", finalModelId)
+                put("messages", messagesArray)
+                if (modelSupportsTools(modelId) && !userPrompt.startsWith("اختبار توفر")) {
+                    put("tools", buildOpenAiToolsJson())
+                }
+            }
+
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("Authorization", "Bearer $OPENCODE_API_KEY")
+                .addHeader("Content-Type", "application/json")
+                .post(requestBodyJson.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            val response = try {
+                okHttpClient.newCall(request).execute()
+            } catch (e: java.io.IOException) {
+                throw AiFailureException.NetworkFailure("فشل في الاتصال بخادم OpenCode: ${e.localizedMessage}", e)
+            }
+            if (!response.isSuccessful) {
+                val errorBody = response.body?.string() ?: ""
+                throw AiFailureException.AiServiceFailure("فشل استجابة خادم OpenCode برمز: ${response.code} ${response.message}. التفاصيل: $errorBody")
+            }
+
+            val responseBody = response.body?.string() ?: throw AiFailureException.AiServiceFailure("تلقيت استجابة فارغة من خادم OpenCode.")
+            val responseJson = JSONObject(responseBody)
+            val choices = responseJson.optJSONArray("choices")
+            if (choices == null || choices.length() == 0) {
+                throw AiFailureException.AiServiceFailure("لم يتم إنشاء استجابة بواسطة OpenCode.")
+            }
+
+            val choiceObj = choices.getJSONObject(0)
+            val messageObj = choiceObj.optJSONObject("message") ?: throw AiFailureException.AiServiceFailure("تلقيت ردًا فارغًا من الخادم.")
+            
+            if (messageObj.has("tool_calls")) {
+                val toolCalls = messageObj.getJSONArray("tool_calls")
+                if (toolCalls.length() > 0) {
+                    val toolCall = toolCalls.getJSONObject(0)
+                    val functionObj = toolCall.getJSONObject("function")
+                    val functionName = functionObj.getString("name")
+                    val argumentsStr = functionObj.getString("arguments")
+                    val argumentsJson = JSONObject(argumentsStr)
+                    val toolCallId = toolCall.getString("id")
+
+                    val toolResultJson = executeToolCall(functionName, argumentsJson)
+
+                    val followUpMessagesArray = JSONArray()
+                    for (i in 0 until messagesArray.length()) {
+                        followUpMessagesArray.put(messagesArray.getJSONObject(i))
+                    }
+                    followUpMessagesArray.put(messageObj)
+                    followUpMessagesArray.put(JSONObject().apply {
+                        put("role", "tool")
+                        put("tool_call_id", toolCallId)
+                        put("name", functionName)
+                        put("content", toolResultJson.toString())
+                    })
+
+                    val followUpRequestBodyJson = JSONObject().apply {
+                        put("model", modelId)
+                        put("messages", followUpMessagesArray)
+                    }
+
+                    val followUpRequest = Request.Builder()
+                        .url(url)
+                        .addHeader("Authorization", "Bearer $OPENCODE_API_KEY")
+                        .addHeader("Content-Type", "application/json")
+                        .post(followUpRequestBodyJson.toString().toRequestBody(jsonMediaType))
+                        .build()
+
+                    val followUpResponse = try {
+                        okHttpClient.newCall(followUpRequest).execute()
+                    } catch (e: java.io.IOException) {
+                        throw AiFailureException.NetworkFailure("فشل في الاتصال بالخادم أثناء معالجة الأداة: ${e.localizedMessage}", e)
+                    }
+                    if (!followUpResponse.isSuccessful) {
+                        throw AiFailureException.AiServiceFailure("فشل خادم OpenCode أثناء معالجة الأداة برمز الخطأ: ${followUpResponse.code} ${followUpResponse.message}")
+                    }
+
+                    val followUpResponseBody = followUpResponse.body?.string() ?: ""
+                    val followUpResponseJson = JSONObject(followUpResponseBody)
+                    val finalChoices = followUpResponseJson.optJSONArray("choices")
+                    if (finalChoices == null || finalChoices.length() == 0) {
+                        throw AiFailureException.AiServiceFailure("فشل المساعد في معالجة نتيجة الأداة.")
+                    }
+                    val finalMessage = finalChoices.getJSONObject(0).optJSONObject("message") ?: throw AiFailureException.AiServiceFailure("رد فارغ بعد استدعاء الأداة.")
+                    return@withContext finalMessage.optString("content", "لم يتم إرجاع أي نص.")
+                }
+            }
+
+            messageObj.optString("content", "لم يتم إرجاع أي نص.")
+        } catch (e: Exception) {
+            if (e is AiFailureException) throw e
+            throw AiFailureException.AiServiceFailure("فشل الاتصال بـ OpenCode: ${e.localizedMessage}", e)
         }
     }
 
