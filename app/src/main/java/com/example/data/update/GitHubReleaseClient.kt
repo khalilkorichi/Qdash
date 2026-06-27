@@ -4,6 +4,7 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import retrofit2.http.GET
 import retrofit2.http.Url
+import retrofit2.http.Headers
 
 @JsonClass(generateAdapter = true)
 data class UpdateManifest(
@@ -35,6 +36,7 @@ data class GitHubAsset(
 )
 
 interface GitHubReleaseClient {
+    @Headers("Cache-Control: no-cache, no-store, must-revalidate")
     @GET
     suspend fun fetchUpdateManifest(@Url url: String): UpdateManifest
 

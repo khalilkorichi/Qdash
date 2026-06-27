@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,6 +40,14 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Sync
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Cancel
+import androidx.compose.material.icons.rounded.Pending
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.draw.rotate
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
@@ -104,6 +114,18 @@ fun AiChatScreen(
         val targetIndex = uiState.messages.size + if (uiState.isAiTyping) 1 else 0
         if (targetIndex > 0) {
             listState.animateScrollToItem(targetIndex - 1)
+        }
+    }
+
+    // Scroll to bottom when keyboard opens to keep context visible
+    val keyboardHeight = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
+    val isKeyboardOpen = keyboardHeight > 0.dp
+    LaunchedEffect(isKeyboardOpen) {
+        if (isKeyboardOpen && uiState.messages.isNotEmpty()) {
+            val targetIndex = uiState.messages.size + if (uiState.isAiTyping) 1 else 0
+            if (targetIndex > 0) {
+                listState.animateScrollToItem(targetIndex - 1)
+            }
         }
     }
 
@@ -257,6 +279,8 @@ private fun AiModelSelector(
     }
 
     var expandedSections by remember { mutableStateOf(setOf("available_Google")) }
+    var availableListExpanded by remember { mutableStateOf(true) }
+    var unavailableListExpanded by remember { mutableStateOf(false) }
 
     Surface(
         color = MaterialTheme.colorScheme.background,
@@ -306,114 +330,156 @@ private fun AiModelSelector(
                     modifier = Modifier
                         .widthIn(min = 260.dp, max = 300.dp)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        IconButton(onClick = onRefreshAvailability, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.Rounded.Sync, contentDescription = "فحص توفر النماذج", tint = MaterialTheme.colorScheme.primary)
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = "اختر نموذج المساعد",
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                textAlign = TextAlign.End
-                            )
-                            Text(
-                                text = "يتم فحص توفر كل نموذج تلقائياً",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.End
-                            )
-                        }
-                    }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-
-                    // SECTION 1: AVAILABLE MODELS
-                    if (availableModels.isNotEmpty()) {
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
-                                .padding(horizontal = 14.dp, vertical = 6.dp),
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.End
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(
-                                text = "النماذج المتوفرة 🟢",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            Column(horizontalAlignment = Alignment.Start) {
+                                Text(
+                                    text = "اختر نموذج المساعد",
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = TextAlign.Start
+                                )
+                                Text(
+                                    text = "يتم فحص توفر كل نموذج تلقائياً",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Start
+                                )
+                            }
+                            IconButton(onClick = onRefreshAvailability, modifier = Modifier.size(36.dp)) {
+                                Icon(Icons.Rounded.Sync, contentDescription = "فحص توفر النماذج", tint = MaterialTheme.colorScheme.primary)
+                            }
                         }
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
-                        
-                        sortedAvailableProviders.forEach { provider ->
-                            val sectionKey = "available_$provider"
-                            ModelProviderSection(
-                                provider = provider,
-                                models = groupedAvailable[provider].orEmpty(),
-                                expanded = expandedSections.contains(sectionKey),
-                                selectedModelId = selectedModelId,
-                                availability = availability,
-                                onToggle = {
-                                    expandedSections = if (expandedSections.contains(sectionKey)) {
-                                        expandedSections - sectionKey
-                                    } else {
-                                        expandedSections + sectionKey
-                                    }
-                                },
-                                onModelSelected = { modelId ->
-                                    expanded = false
-                                    onModelSelected(modelId)
-                                }
-                            )
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
-                        }
-                    }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
 
-                    // SECTION 2: UNAVAILABLE MODELS
-                    if (unavailableModels.isNotEmpty()) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.error.copy(alpha = 0.08f))
-                                .padding(horizontal = 14.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            Text(
-                                text = "النماذج غير المتوفرة 🔴",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
-
-                        sortedUnavailableProviders.forEach { provider ->
-                            val sectionKey = "unavailable_$provider"
-                            ModelProviderSection(
-                                provider = provider,
-                                models = groupedUnavailable[provider].orEmpty(),
-                                expanded = expandedSections.contains(sectionKey),
-                                selectedModelId = selectedModelId,
-                                availability = availability,
-                                onToggle = {
-                                    expandedSections = if (expandedSections.contains(sectionKey)) {
-                                        expandedSections - sectionKey
-                                    } else {
-                                        expandedSections + sectionKey
-                                    }
-                                },
-                                onModelSelected = { modelId ->
-                                    expanded = false
-                                    onModelSelected(modelId)
+                        // SECTION 1: AVAILABLE MODELS
+                        if (availableModels.isNotEmpty()) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { availableListExpanded = !availableListExpanded }
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.CheckCircle,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "النماذج المتوفرة",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
                                 }
-                            )
+                                Icon(
+                                    imageVector = if (availableListExpanded) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
+                                    contentDescription = if (availableListExpanded) "إغلاق" else "فتح",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                            
+                            if (availableListExpanded) {
+                                sortedAvailableProviders.forEach { provider ->
+                                    val sectionKey = "available_$provider"
+                                    ModelProviderSection(
+                                        provider = provider,
+                                        models = groupedAvailable[provider].orEmpty(),
+                                        expanded = expandedSections.contains(sectionKey),
+                                        selectedModelId = selectedModelId,
+                                        availability = availability,
+                                        onToggle = {
+                                            expandedSections = if (expandedSections.contains(sectionKey)) {
+                                                expandedSections - sectionKey
+                                            } else {
+                                                expandedSections + sectionKey
+                                            }
+                                        },
+                                        onModelSelected = { modelId ->
+                                            expanded = false
+                                            onModelSelected(modelId)
+                                        }
+                                    )
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                                }
+                            }
+                        }
+
+                        // SECTION 2: UNAVAILABLE MODELS
+                        if (unavailableModels.isNotEmpty()) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { unavailableListExpanded = !unavailableListExpanded }
+                                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.08f))
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Cancel,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "النماذج غير المتوفرة",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                                Icon(
+                                    imageVector = if (unavailableListExpanded) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
+                                    contentDescription = if (unavailableListExpanded) "إغلاق" else "فتح",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+
+                            if (unavailableListExpanded) {
+                                sortedUnavailableProviders.forEach { provider ->
+                                    val sectionKey = "unavailable_$provider"
+                                    ModelProviderSection(
+                                        provider = provider,
+                                        models = groupedUnavailable[provider].orEmpty(),
+                                        expanded = expandedSections.contains(sectionKey),
+                                        selectedModelId = selectedModelId,
+                                        availability = availability,
+                                        onToggle = {
+                                            expandedSections = if (expandedSections.contains(sectionKey)) {
+                                                expandedSections - sectionKey
+                                            } else {
+                                                expandedSections + sectionKey
+                                            }
+                                        },
+                                        onModelSelected = { modelId ->
+                                            expanded = false
+                                            onModelSelected(modelId)
+                                        }
+                                    )
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                                }
+                            }
                         }
                     }
                 }
@@ -439,26 +505,26 @@ private fun ModelProviderSection(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.ArrowDropDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
-                Column(horizontalAlignment = Alignment.End) {
+                Column(horizontalAlignment = Alignment.Start) {
                     Text(
                         text = provider,
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.ExtraBold),
                         color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.End
+                        textAlign = TextAlign.Start
                     )
                     Text(
                         text = "${models.size} نماذج",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.End
+                        textAlign = TextAlign.Start
                     )
                 }
+                Icon(
+                    imageVector = Icons.Rounded.ArrowDropDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp).rotate(if (expanded) 180f else 0f)
+                )
             }
         },
         onClick = onToggle
@@ -472,14 +538,14 @@ private fun ModelProviderSection(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 6.dp),
+                            .padding(horizontal = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        ModelAvailabilityDot(status = status)
+                        ModelAvailabilityIcon(status = status)
                         Column(
                             modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.End
+                            horizontalAlignment = Alignment.Start
                         ) {
                             Text(
                                 text = model.name,
@@ -487,14 +553,14 @@ private fun ModelProviderSection(
                                     fontWeight = if (model.id == selectedModelId) FontWeight.ExtraBold else FontWeight.SemiBold
                                 ),
                                 color = MaterialTheme.colorScheme.onSurface,
-                                textAlign = TextAlign.End,
+                                textAlign = TextAlign.Start,
                                 modifier = Modifier.fillMaxWidth()
                             )
                             Text(
                                 text = modelStatusLabel(status),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.End,
+                                textAlign = TextAlign.Start,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -513,16 +579,17 @@ private fun ModelProviderSection(
 }
 
 @Composable
-private fun ModelAvailabilityDot(status: AiModelAvailability) {
-    val color = when (status) {
-        AiModelAvailability.CHECKING -> MaterialTheme.colorScheme.tertiary
-        AiModelAvailability.AVAILABLE -> ColorTokens.Success
-        AiModelAvailability.UNAVAILABLE -> MaterialTheme.colorScheme.error
+private fun ModelAvailabilityIcon(status: AiModelAvailability) {
+    val (icon, color) = when (status) {
+        AiModelAvailability.CHECKING -> Pair(Icons.Rounded.Pending, MaterialTheme.colorScheme.tertiary)
+        AiModelAvailability.AVAILABLE -> Pair(Icons.Rounded.CheckCircle, ColorTokens.Success)
+        AiModelAvailability.UNAVAILABLE -> Pair(Icons.Rounded.Cancel, MaterialTheme.colorScheme.error)
     }
-    Box(
-        modifier = Modifier
-            .size(12.dp)
-            .background(color, CircleShape)
+    Icon(
+        imageVector = icon,
+        contentDescription = modelStatusLabel(status),
+        tint = color,
+        modifier = Modifier.size(16.dp)
     )
 }
 
