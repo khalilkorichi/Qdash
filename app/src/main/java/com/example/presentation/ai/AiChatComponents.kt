@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -42,6 +43,8 @@ import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Android
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -56,6 +59,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -372,6 +376,7 @@ fun ChatInputBar(
     val isDark = MaterialTheme.colorScheme.background == ColorTokens.BackgroundDark
     val surface = if (isDark) ColorTokens.SurfaceDark else ColorTokens.SurfaceLight
     val border = if (isDark) ColorTokens.BorderDark else ColorTokens.BorderLight
+    var isExpanded by remember { mutableStateOf(false) }
 
     Row(
         modifier = modifier
@@ -379,25 +384,31 @@ fun ChatInputBar(
             .background(surface)
             .border(BorderStroke(1.dp, border.copy(alpha = 0.75f)))
             .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        IconButton(onClick = onMicClick) {
+        IconButton(onClick = onMicClick, modifier = Modifier.padding(bottom = 4.dp)) {
             Icon(Icons.Default.Mic, contentDescription = "الإدخال الصوتي", tint = MaterialTheme.colorScheme.primary)
         }
         OutlinedTextField(
             value = text,
             onValueChange = onTextChange,
-            modifier = Modifier.weight(1f),
+            modifier = if (isExpanded) {
+                Modifier
+                    .weight(1f)
+                    .heightIn(min = 140.dp, max = 220.dp)
+            } else {
+                Modifier.weight(1f)
+            },
             placeholder = { Text("اكتب رسالتك...") },
-            maxLines = AiChatConstants.MAX_INPUT_LINES,
+            maxLines = if (isExpanded) 12 else 3,
             textStyle = MaterialTheme.typography.bodyLarge.copy(
                 textDirection = TextDirection.Content,
                 platformStyle = PlatformTextStyle(includeFontPadding = false)
             ),
             shape = RoundedCornerShape(22.dp),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-            keyboardActions = KeyboardActions(onSend = { if (text.isNotBlank()) onSend() }),
+            keyboardOptions = KeyboardOptions(imeAction = if (isExpanded) ImeAction.Default else ImeAction.Send),
+            keyboardActions = KeyboardActions(onSend = { if (text.isNotBlank() && !isExpanded) onSend() }),
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f),
                 unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f),
@@ -406,12 +417,25 @@ fun ChatInputBar(
                 disabledIndicatorColor = Color.Transparent
             )
         )
-        IconButton(onClick = onSend, enabled = text.isNotBlank()) {
-            Icon(
-                Icons.AutoMirrored.Filled.Send,
-                contentDescription = "إرسال",
-                tint = if (text.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-            )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(bottom = 4.dp)
+        ) {
+            IconButton(onClick = { isExpanded = !isExpanded }) {
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                    contentDescription = if (isExpanded) "تصغير الصندوق" else "توسيع الصندوق",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            IconButton(onClick = onSend, enabled = text.isNotBlank()) {
+                Icon(
+                    Icons.AutoMirrored.Filled.Send,
+                    contentDescription = "إرسال",
+                    tint = if (text.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                )
+            }
         }
     }
 }
