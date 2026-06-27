@@ -1,11 +1,11 @@
 {
-  "versionCode": 32,
-  "versionName": "1.0.0.32",
-  "updateIdentity": 133,
-  "publishedAt": "2026-06-27T02:06:00Z",
+  "versionCode": 33,
+  "versionName": "1.0.0.33",
+  "updateIdentity": 134,
+  "publishedAt": "2026-06-27T02:28:00Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 24787921,
-  "apkSha256": "75e6da389a417745ed8ea3a3ce9e9f1c1491c0604bd588956eb7cc0aad438daf",
+  "apkSize": 24530973,
+  "apkSha256": "0f79ee1afaa049ec248133c8c8c1bce4cd8203fe8a3a97c3a827e2e1aa247d63",
   "mandatory": false,
-  "releaseNotes": "تحديث v1.0.0.32 (Build 133): تحديث مفتاح Google API الأساسي لنماذج Gemini، مع حل مشكلة الاتصال بخادم OpenCode عبر تهيئة معرفات النماذج وإزالة بادئة المزود ومطابقة نموذج Nemotron 3."
+  "releaseNotes": "تحديث v1.0.0.33 (Build 134): فصل كروت المعاملات والمحفظة إلى مكونات مستقلة وقابلة لإعادة الاستخدام، وحل مشكلة تكبير صندوق الكتابة عند ضغط لوحة المفاتيح، وتصحيح تفاعل الوضع الداكن مع إعدادات المستخدم، وإضافة زر إرسال مخصص في شاشة الإدخال الصوتي."
 }

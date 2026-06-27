@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Keyboard
@@ -244,26 +245,53 @@ private fun VoiceInputBottomBar(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(bottom = 24.dp, start = 38.dp, end = 38.dp),
+            .padding(bottom = 24.dp, start = 24.dp, end = 24.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // Right side (RTL): Keyboard FAB
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
-            tonalElevation = 6.dp,
-            shadowElevation = 8.dp,
-            onClick = if (text.isBlank()) onNavigateToChat else onSendVoiceMessage,
-            modifier = Modifier.size(52.dp)
+        // Right side (RTL): Actions container
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Default.Keyboard,
-                    contentDescription = "التبديل للكتابة",
-                    tint = if (text.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
+            // Keyboard FAB (always switch to typing mode)
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+                tonalElevation = 6.dp,
+                shadowElevation = 8.dp,
+                onClick = onNavigateToChat,
+                modifier = Modifier.size(52.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Keyboard,
+                        contentDescription = "التبديل للكتابة",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            // Send FAB (only visible if text is not blank)
+            if (text.isNotBlank()) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary,
+                    tonalElevation = 6.dp,
+                    shadowElevation = 8.dp,
+                    onClick = onSendVoiceMessage,
+                    modifier = Modifier.size(52.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "إرسال الأمر",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
             }
         }
 

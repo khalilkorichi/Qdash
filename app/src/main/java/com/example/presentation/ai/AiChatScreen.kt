@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -89,7 +90,7 @@ fun AiChatScreen(
     val listState = rememberLazyListState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    val isDark = isSystemInDarkTheme()
+    val isDark = MaterialTheme.colorScheme.background == ColorTokens.BackgroundDark
     val backgroundColor = if (isDark) ColorTokens.BackgroundDark else ColorTokens.BackgroundLight
 
     LaunchedEffect(initialMessage) {
@@ -135,14 +136,6 @@ fun AiChatScreen(
                         onOpenHistory = { scope.launch { drawerState.open() } },
                         onClearChat = viewModel::clearChat
                     )
-                },
-                bottomBar = {
-                    ChatInputBar(
-                        text = uiState.inputText,
-                        onTextChange = viewModel::setInputText,
-                        onSend = viewModel::sendMessage,
-                        onMicClick = onVoiceInput
-                    )
                 }
             ) { paddingValues ->
                 Column(
@@ -150,6 +143,7 @@ fun AiChatScreen(
                         .fillMaxSize()
                         .background(backgroundColor)
                         .padding(paddingValues)
+                        .imePadding()
                 ) {
                     AiModelSelector(
                         selectedModelId = uiState.selectedModelId,
@@ -200,6 +194,12 @@ fun AiChatScreen(
                             )
                         }
                     }
+                    ChatInputBar(
+                        text = uiState.inputText,
+                        onTextChange = viewModel::setInputText,
+                        onSend = viewModel::sendMessage,
+                        onMicClick = onVoiceInput
+                    )
                 }
             }
         }
@@ -231,7 +231,7 @@ private fun AiModelSelector(
     var expandedProviders by remember { mutableStateOf(setOf("Google")) }
 
     Surface(
-        color = if (isSystemInDarkTheme()) ColorTokens.BackgroundDark else ColorTokens.BackgroundLight,
+        color = MaterialTheme.colorScheme.background,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -518,7 +518,7 @@ private fun AiChatTopBar(
             }
         },
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = if (isSystemInDarkTheme()) ColorTokens.BackgroundDark else ColorTokens.BackgroundLight
+            containerColor = MaterialTheme.colorScheme.background
         )
     )
 }
