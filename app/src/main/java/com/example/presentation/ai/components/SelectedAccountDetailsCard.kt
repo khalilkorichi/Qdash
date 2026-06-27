@@ -1,9 +1,12 @@
 package com.example.presentation.ai.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -11,10 +14,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
+import com.example.domain.model.AccountType
 import com.example.domain.model.SelectedAccountDetailsState
 import com.example.domain.model.TransactionType
 import com.example.core.utils.FormatterUtils
@@ -40,7 +47,21 @@ fun SelectedAccountDetailsCard(
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(state.account.icon, fontSize = 18.sp)
+                // Account icon — show logo for BARIDIMOB, mapped icon for others
+                if (state.account.type == AccountType.BARIDIMOB) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_baridimob),
+                        contentDescription = "بريدي موب",
+                        modifier = Modifier.size(32.dp)
+                    )
+                } else {
+                    Icon(
+                        imageVector = accountIconVector(state.account.icon, state.account.type),
+                        contentDescription = state.account.name,
+                        tint = parsedColor,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
                 Spacer(modifier = Modifier.width(6.dp))
                 Column {
                     Text(state.account.name, fontSize = 13.sp, fontWeight = FontWeight.Bold)
@@ -92,3 +113,14 @@ fun SelectedAccountDetailsCard(
         }
     }
 }
+
+private fun accountIconVector(icon: String, type: AccountType): ImageVector = when (type) {
+    AccountType.BANK       -> Icons.Default.AccountBalance
+    AccountType.CCP        -> Icons.Default.CreditCard
+    AccountType.BARIDIMOB  -> Icons.Default.PhoneAndroid // fallback; logo image shown above
+    AccountType.CASH       -> Icons.Default.Payments
+    AccountType.SAVINGS    -> Icons.Default.Savings
+    AccountType.WALLET     -> Icons.Default.AccountBalanceWallet
+    AccountType.OTHER      -> Icons.Default.MonetizationOn
+}
+
