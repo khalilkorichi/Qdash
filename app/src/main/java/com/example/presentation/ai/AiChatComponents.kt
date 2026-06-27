@@ -75,6 +75,7 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.domain.model.TransactionType
+import com.example.presentation.ai.components.MarkdownMessageText
 import com.example.ui.designsystem.components.AppCard
 import com.example.ui.designsystem.components.CardVariant
 import com.example.ui.designsystem.tokens.ColorTokens
@@ -480,14 +481,13 @@ private fun TypingTextEffect(
         }
     }
 
-    Text(
+    MarkdownMessageText(
         text = text.take(visibleCharCount),
         style = MaterialTheme.typography.bodyLarge.copy(
             textDirection = TextDirection.Content,
             platformStyle = PlatformTextStyle(includeFontPadding = false)
         ),
         color = color,
-        textAlign = TextAlign.End,
         modifier = Modifier.fillMaxWidth()
     )
 }

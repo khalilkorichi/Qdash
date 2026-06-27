@@ -711,133 +711,163 @@ fun MarkdownMessageText(
         var codeBlockLanguage = ""
         val codeBlockLines = remember { mutableStateListOf<String>() }
 
-        lines.forEach { line ->
-            // Clean up RTL markers and zero-width spaces
+        var i = 0
+        while (i < lines.size) {
+            val line = lines[i]
             val cleanLine = line.replace("[\u200B-\u200D\u200E\u200F\uFEFF]".toRegex(), "")
             val trimmed = cleanLine.trim()
 
-            if (trimmed.startsWith("```")) {
-                if (inCodeBlock) {
-                    val codeText = codeBlockLines.joinToString("\n")
-                    CodeBlock(codeText, codeBlockLanguage)
-                    codeBlockLines.clear()
-                    codeBlockLanguage = ""
-                    inCodeBlock = false
-                } else {
-                    codeBlockLanguage = trimmed.removePrefix("```").trim()
-                    inCodeBlock = true
+            if (trimmed.startsWith("|") && trimmed.endsWith("|") && !inCodeBlock) {
+                val tableLines = mutableListOf<String>()
+                while (i < lines.size && lines[i].trim().startsWith("|") && lines[i].trim().endsWith("|")) {
+                    tableLines.add(lines[i])
+                    i++
                 }
-            } else if (inCodeBlock) {
-                codeBlockLines.add(line)
+                RenderMarkdownTable(tableLines, color)
             } else {
-                when {
-                    // Horizontal rule: --- or *** or ___
-                    trimmed.matches("^[-*_]{3,}$".toRegex()) -> {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 6.dp)
-                                .height(1.dp)
-                                .background(
-                                    Brush.horizontalGradient(
-                                        colors = listOf(
-                                            color.copy(alpha = 0f),
-                                            color.copy(alpha = 0.2f),
-                                            color.copy(alpha = 0.2f),
-                                            color.copy(alpha = 0f)
+                if (trimmed.startsWith("```")) {
+                    if (inCodeBlock) {
+                        val codeText = codeBlockLines.joinToString("\n")
+                        CodeBlock(codeText, codeBlockLanguage)
+                        codeBlockLines.clear()
+                        codeBlockLanguage = ""
+                        inCodeBlock = false
+                    } else {
+                        codeBlockLanguage = trimmed.removePrefix("```").trim()
+                        inCodeBlock = true
+                    }
+                } else if (inCodeBlock) {
+                    codeBlockLines.add(line)
+                } else {
+                    when {
+                        // Horizontal rule: --- or *** or ___
+                        trimmed.matches("^[-*_]{3,}$".toRegex()) -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp)
+                                    .height(1.dp)
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            colors = listOf(
+                                                color.copy(alpha = 0f),
+                                                color.copy(alpha = 0.2f),
+                                                color.copy(alpha = 0.2f),
+                                                color.copy(alpha = 0f)
+                                            )
                                         )
                                     )
-                                )
-                        )
-                    }
-                    // H1
-                    trimmed.startsWith("# ") -> {
-                        Column(modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)) {
-                            Text(
-                                text = parseMarkdown(trimmed.removePrefix("# "), color),
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = color,
-                                    lineHeight = 28.sp
-                                )
-                            )
-                            // Decorative accent line under H1
-                            Box(
-                                modifier = Modifier
-                                    .width(40.dp)
-                                    .padding(top = 4.dp)
-                                    .height(2.5.dp)
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            colors = listOf(accentColor, accentColor.copy(alpha = 0.3f))
-                                        ),
-                                        shape = RoundedCornerShape(2.dp)
-                                    )
                             )
                         }
-                    }
-                    // H2
-                    trimmed.startsWith("## ") -> {
-                        Column(modifier = Modifier.padding(top = 4.dp, bottom = 1.dp)) {
+                        // H1
+                        trimmed.startsWith("# ") -> {
+                            Column(modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)) {
+                                Text(
+                                    text = parseMarkdown(trimmed.removePrefix("# "), color),
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = color,
+                                        lineHeight = 28.sp
+                                    )
+                                )
+                                // Decorative accent line under H1
+                                Box(
+                                    modifier = Modifier
+                                        .width(40.dp)
+                                        .padding(top = 4.dp)
+                                        .height(2.5.dp)
+                                        .background(
+                                            Brush.horizontalGradient(
+                                                colors = listOf(accentColor, accentColor.copy(alpha = 0.3f))
+                                            ),
+                                            shape = RoundedCornerShape(2.dp)
+                                        )
+                                )
+                            }
+                        }
+                        // H2
+                        trimmed.startsWith("## ") -> {
+                            Column(modifier = Modifier.padding(top = 4.dp, bottom = 1.dp)) {
+                                Text(
+                                    text = parseMarkdown(trimmed.removePrefix("## "), color),
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = color,
+                                        lineHeight = 24.sp
+                                    )
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .width(28.dp)
+                                        .padding(top = 3.dp)
+                                        .height(2.dp)
+                                        .background(
+                                            Brush.horizontalGradient(
+                                                colors = listOf(accentColor.copy(alpha = 0.6f), accentColor.copy(alpha = 0.1f))
+                                            ),
+                                            shape = RoundedCornerShape(2.dp)
+                                        )
+                                )
+                            }
+                        }
+                        // H3
+                        trimmed.startsWith("### ") -> {
                             Text(
-                                text = parseMarkdown(trimmed.removePrefix("## "), color),
-                                style = MaterialTheme.typography.titleMedium.copy(
+                                text = parseMarkdown(trimmed.removePrefix("### "), color),
+                                style = MaterialTheme.typography.bodyLarge.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = color,
-                                    lineHeight = 24.sp
-                                )
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .width(28.dp)
-                                    .padding(top = 3.dp)
-                                    .height(2.dp)
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            colors = listOf(accentColor.copy(alpha = 0.6f), accentColor.copy(alpha = 0.1f))
-                                        ),
-                                        shape = RoundedCornerShape(2.dp)
-                                    )
+                                    lineHeight = 22.sp
+                                ),
+                                modifier = Modifier.padding(top = 2.dp)
                             )
                         }
-                    }
-                    // H3
-                    trimmed.startsWith("### ") -> {
-                        Text(
-                            text = parseMarkdown(trimmed.removePrefix("### "), color),
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = color,
-                                lineHeight = 22.sp
-                            ),
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
-                    }
-                    // Numbered list: 1. item, 2. item, etc.
-                    trimmed.matches("^\\d+[.):]\\s+.*".toRegex()) -> {
-                        val match = "^(\\d+)[.):]\\s+(.*)".toRegex().find(trimmed)
-                        if (match != null) {
-                            val number = match.groupValues[1]
-                            val content = match.groupValues[2]
+                        // Numbered list: 1. item, 2. item, etc.
+                        trimmed.matches("^\\d+[.):]\\s+.*".toRegex()) -> {
+                            val match = "^(\\d+)[.):]\\s+(.*)".toRegex().find(trimmed)
+                            if (match != null) {
+                                val number = match.groupValues[1]
+                                val content = match.groupValues[2]
+                                Row(
+                                    verticalAlignment = Alignment.Top,
+                                    modifier = Modifier.padding(start = 4.dp, top = 1.dp)
+                                ) {
+                                    Surface(
+                                        color = accentColor.copy(alpha = 0.1f),
+                                        shape = RoundedCornerShape(4.dp),
+                                        modifier = Modifier.padding(end = 6.dp, top = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = number,
+                                            style = style.copy(
+                                                color = accentColor,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 10.sp
+                                            ),
+                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                    Text(
+                                        text = parseMarkdown(content, color),
+                                        style = style.copy(color = color),
+                                        lineHeight = style.lineHeight
+                                    )
+                                }
+                            }
+                        }
+                        // Bullet list
+                        trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.startsWith("• ") || trimmed.matches("^[-*•]\\s+.*".toRegex()) -> {
+                            val content = trimmed.replaceFirst("^[-*•]\\s+".toRegex(), "")
                             Row(
                                 verticalAlignment = Alignment.Top,
                                 modifier = Modifier.padding(start = 4.dp, top = 1.dp)
                             ) {
-                                Surface(
-                                    color = accentColor.copy(alpha = 0.1f),
-                                    shape = RoundedCornerShape(4.dp),
-                                    modifier = Modifier.padding(end = 6.dp, top = 2.dp)
-                                ) {
-                                    Text(
-                                        text = number,
-                                        style = style.copy(
-                                            color = accentColor,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 10.sp
-                                        ),
-                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
-                                    )
-                                }
+                                Box(
+                                    modifier = Modifier
+                                        .padding(top = 7.dp, end = 8.dp)
+                                        .size(5.dp)
+                                        .background(accentColor.copy(alpha = 0.6f), shape = CircleShape)
+                                )
                                 Text(
                                     text = parseMarkdown(content, color),
                                     style = style.copy(color = color),
@@ -845,80 +875,119 @@ fun MarkdownMessageText(
                                 )
                             }
                         }
-                    }
-                    // Bullet list
-                    trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.startsWith("• ") || trimmed.matches("^[-*•]\\s+.*".toRegex()) -> {
-                        val content = trimmed.replaceFirst("^[-*•]\\s+".toRegex(), "")
-                        Row(
-                            verticalAlignment = Alignment.Top,
-                            modifier = Modifier.padding(start = 4.dp, top = 1.dp)
-                        ) {
-                            Box(
+                        // Blockquote
+                        trimmed.startsWith("> ") -> {
+                            val content = trimmed.removePrefix("> ")
+                            Row(
                                 modifier = Modifier
-                                    .padding(top = 7.dp, end = 8.dp)
-                                    .size(5.dp)
-                                    .background(accentColor.copy(alpha = 0.6f), shape = CircleShape)
-                            )
+                                    .fillMaxWidth()
+                                    .padding(vertical = 2.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(3.dp)
+                                        .height(IntrinsicSize.Min)
+                                        .defaultMinSize(minHeight = 20.dp)
+                                        .background(
+                                            Brush.verticalGradient(
+                                                colors = listOf(accentColor, accentColor.copy(alpha = 0.3f))
+                                            ),
+                                            shape = RoundedCornerShape(2.dp)
+                                        )
+                                )
+                                Surface(
+                                    color = color.copy(alpha = 0.04f),
+                                    shape = RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = 8.dp)
+                                ) {
+                                    Text(
+                                        text = parseMarkdown(content, color),
+                                        style = style.copy(color = color.copy(alpha = 0.85f), fontStyle = FontStyle.Italic),
+                                        lineHeight = style.lineHeight,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                    )
+                                }
+                            }
+                        }
+                        trimmed.isEmpty() -> {
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+                        else -> {
                             Text(
-                                text = parseMarkdown(content, color),
+                                text = parseMarkdown(line, color),
                                 style = style.copy(color = color),
                                 lineHeight = style.lineHeight
                             )
                         }
                     }
-                    // Blockquote
-                    trimmed.startsWith("> ") -> {
-                        val content = trimmed.removePrefix("> ")
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 2.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .width(3.dp)
-                                    .height(IntrinsicSize.Min)
-                                    .defaultMinSize(minHeight = 20.dp)
-                                    .background(
-                                        Brush.verticalGradient(
-                                            colors = listOf(accentColor, accentColor.copy(alpha = 0.3f))
-                                        ),
-                                        shape = RoundedCornerShape(2.dp)
-                                    )
-                            )
-                            Surface(
-                                color = color.copy(alpha = 0.04f),
-                                shape = RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(start = 8.dp)
-                            ) {
-                                Text(
-                                    text = parseMarkdown(content, color),
-                                    style = style.copy(color = color.copy(alpha = 0.85f), fontStyle = FontStyle.Italic),
-                                    lineHeight = style.lineHeight,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                )
-                            }
-                        }
-                    }
-                    trimmed.isEmpty() -> {
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-                    else -> {
-                        Text(
-                            text = parseMarkdown(line, color),
-                            style = style.copy(color = color),
-                            lineHeight = style.lineHeight
-                        )
-                    }
                 }
+                i++
             }
         }
 
         if (inCodeBlock && codeBlockLines.isNotEmpty()) {
             CodeBlock(codeBlockLines.joinToString("\n"), codeBlockLanguage)
             codeBlockLines.clear()
+        }
+    }
+}
+
+@Composable
+private fun RenderMarkdownTable(tableLines: List<String>, color: Color) {
+    val parsedRows = tableLines.map { line ->
+        line.split("|")
+            .map { it.trim() }
+            .filterIndexed { index, _ -> index > 0 && index < line.split("|").lastIndex }
+    }
+    val dataRows = parsedRows.filter { row ->
+        row.none { cell -> cell.all { it == '-' || it == ':' || it == ' ' } }
+    }
+    val columnsCount = dataRows.firstOrNull()?.size ?: 0
+    if (columnsCount > 0) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 6.dp)
+                .border(BorderStroke(1.dp, color.copy(alpha = 0.2f)), RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+        ) {
+            dataRows.forEachIndexed { rowIndex, row ->
+                val isHeader = rowIndex == 0
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            if (isHeader) {
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                            } else if (rowIndex % 2 == 0) {
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.05f)
+                            } else {
+                                Color.Transparent
+                            }
+                        )
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    row.forEach { cell ->
+                        Text(
+                            text = parseMarkdown(cell, color),
+                            style = if (isHeader) {
+                                MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            } else {
+                                MaterialTheme.typography.bodySmall.copy(color = color)
+                            },
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+                if (rowIndex < dataRows.lastIndex) {
+                    HorizontalDivider(color = color.copy(alpha = 0.15f))
+                }
+            }
         }
     }
 }
