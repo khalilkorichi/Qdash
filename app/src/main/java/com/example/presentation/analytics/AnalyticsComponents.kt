@@ -558,7 +558,7 @@ fun InteractiveDonutCard(
                     if (n <= 1) return@remember rawSweeps
                     
                     val sweeps = rawSweeps.toFloatArray()
-                    val minSweep = 15f // minimum sweep angle in degrees
+                    val minSweep = 25f // minimum sweep angle in degrees
                     
                     val isSmall = BooleanArray(n)
                     var smallCount = 0
@@ -764,14 +764,14 @@ fun InteractiveDonutCard(
                                 Math.toDegrees(asin((capRadius / r_mid).coerceIn(-1f, 1f).toDouble())).toFloat()
                             } else 0f
                             
-                            val gap = if (chartShares.size > 1) 2.5f else 0f
-                            val adjustedSweep = (sweep - gap).coerceAtLeast(0f)
+                            val gap = if (chartShares.size > 1) 1.5f else 0f
+                            val adjustedSweep = (sweep - gap).coerceAtLeast(0.5f)
                             
                             val maxCapAngle = adjustedSweep / 2f
                             val localCapAngle = capAngle.coerceAtMost(maxCapAngle)
                             
                             val drawStartAngle = currentAngle + gap / 2f + localCapAngle
-                            val drawSweepAngle = (adjustedSweep - 2 * localCapAngle).coerceAtLeast(0f)
+                            val drawSweepAngle = (adjustedSweep - 2 * localCapAngle).coerceAtLeast(2f)
                             
                             val arcSize = Size(r_mid * 2, r_mid * 2)
                             val topLeftOffset = Offset(

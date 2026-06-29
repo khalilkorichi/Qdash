@@ -1389,7 +1389,22 @@ fun AnalyticsScreen(
                     }
                 }
 
-                if (uiState.isDatabaseEmpty) {
+                if (uiState.isLoading) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 40.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(36.dp),
+                                strokeWidth = 3.dp
+                            )
+                        }
+                    }
+                } else if (uiState.isDatabaseEmpty) {
                     item {
                         EmptyStateView(
                             title = "لا تتوفر بيانات للمقارنة",
@@ -1428,7 +1443,22 @@ fun AnalyticsScreen(
             } else if (uiState.dashboardTab == 2) {
                 // ── SMART INSIGHTS TAB ───────────────────
                 item { Spacer(modifier = Modifier.height(8.dp)) }
-                if (uiState.isDatabaseEmpty) {
+                if (uiState.isLoading) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 40.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(36.dp),
+                                strokeWidth = 3.dp
+                            )
+                        }
+                    }
+                } else if (uiState.isDatabaseEmpty) {
                     item {
                         EmptyStateView(
                             title = "التحليلات الذكية هادئة حالياً",
@@ -1466,7 +1496,22 @@ fun AnalyticsScreen(
             } else if (uiState.dashboardTab == 3) {
                 // ── SAVINGS TAB ───────────────────
                 item { Spacer(modifier = Modifier.height(16.dp)) }
-                if (uiState.isDatabaseEmpty) {
+                if (uiState.isLoading) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 40.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(36.dp),
+                                strokeWidth = 3.dp
+                            )
+                        }
+                    }
+                } else if (uiState.isDatabaseEmpty) {
                     item {
                         EmptyStateView(
                             title = "لا تتوفر تحديات ادخار حالياً",
@@ -1477,9 +1522,20 @@ fun AnalyticsScreen(
                                 .padding(horizontal = 16.dp, vertical = 12.dp)
                         )
                     }
-                } else if (!uiState.isLoading && uiState.spendingsByCategory.isNotEmpty()) {
+                } else if (uiState.spendingsByCategory.isNotEmpty()) {
                     item {
                         SavingsChallengesSection()
+                    }
+                } else {
+                    item {
+                        EmptyStateView(
+                            title = "لا توجد بيانات إنفاق في هذه الفترة",
+                            description = "جرب تغيير الفترة الزمنية أو أضف معاملات جديدة لتفعيل تحديات الادخار.",
+                            icon = Icons.Default.Savings,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        )
                     }
                 }
             }
