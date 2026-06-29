@@ -1,4 +1,4 @@
-﻿package com.example.presentation.transactions
+package com.example.presentation.transactions
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
@@ -679,6 +679,7 @@ fun SwipeableTransactionRow(
             modifier = Modifier
                 .offset(x = with(density) { animOffset.toDp() })
                 .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.background)
                 .pointerInput(isSelectionActive) {
                     if (!isSelectionActive) {

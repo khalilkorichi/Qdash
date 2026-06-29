@@ -3,6 +3,7 @@ package com.example.core.ui.components
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -86,19 +87,13 @@ fun TransactionItem(
     }
 
     AppCard(
-        modifier = if (isSelected) {
-            cardModifier
-                .fillMaxWidth()
-                .border(2.dp, primaryColor, ShapeTokens.Md)
-                .testTag("transaction_item_${transaction.id}")
-        } else {
-            cardModifier
-                .fillMaxWidth()
-                .testTag("transaction_item_${transaction.id}")
-        },
+        modifier = cardModifier
+            .fillMaxWidth()
+            .testTag("transaction_item_${transaction.id}"),
         variant = CardVariant.INTERACTIVE,
-        shape = ShapeTokens.Md,
+        shape = ShapeTokens.Xl,
         backgroundColor = if (isSelected) primaryColor.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+        borderStroke = if (isSelected) BorderStroke(2.dp, primaryColor) else null,
         onClick = if (onLongClick != null) null else onClick
     ) {
         Row(

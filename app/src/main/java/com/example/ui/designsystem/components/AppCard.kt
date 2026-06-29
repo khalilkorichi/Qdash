@@ -37,6 +37,7 @@ fun AppCard(
     shape: RoundedCornerShape = ShapeTokens.Md,
     onClick: (() -> Unit)? = null,
     backgroundColor: Color? = null,
+    borderStroke: BorderStroke? = null,
     content: @Composable BoxScope.() -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -60,7 +61,7 @@ fun AppCard(
     val shadowElevation = 0.dp
 
     // Notion Design Principle: Thin 1dp outlines everywhere for that clean spreadsheet/document feel
-    val borderStroke = BorderStroke(
+    val finalBorderStroke = borderStroke ?: BorderStroke(
         width = 1.dp,
         color = MaterialTheme.colorScheme.outline
     )
@@ -69,7 +70,7 @@ fun AppCard(
         .scale(scale)
         .clip(shape)
         .background(finalBgColor)
-        .border(borderStroke.width, borderStroke.brush, shape)
+        .border(finalBorderStroke.width, finalBorderStroke.brush, shape)
         .run {
             if (onClick != null) {
                 clickable(
