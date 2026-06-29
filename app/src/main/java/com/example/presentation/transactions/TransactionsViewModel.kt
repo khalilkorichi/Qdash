@@ -10,6 +10,8 @@ import com.example.data.local.entities.DailyFinancialAggregateEntity
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import androidx.room.withTransaction
+import com.example.domain.usecase.transaction.BulkEditTransactionsUseCase
+import com.example.domain.usecase.transaction.BulkEditParams
 
 data class TransactionsUiState(
     val transactions: List<Transaction> = emptyList(),
@@ -84,7 +86,8 @@ class TransactionsViewModel(
     private val learnCategoryMappingUseCase: LearnCategoryMappingUseCase,
     private val budgetGoalRepository: com.example.domain.repository.BudgetGoalRepository,
     private val templateRepository: TransactionTemplateRepository,
-    private val preferencesManager: com.example.core.preferences.PreferencesManager
+    private val preferencesManager: com.example.core.preferences.PreferencesManager,
+    private val bulkEditTransactionsUseCase: BulkEditTransactionsUseCase
 ) : ViewModel() {
 
     fun saveAsTemplate(
@@ -125,6 +128,13 @@ class TransactionsViewModel(
 
     private val _uiState = MutableStateFlow(TransactionsUiState())
     val uiState: StateFlow<TransactionsUiState> = _uiState.asStateFlow()
+
+    private val _bulkEditEvent = MutableSharedFlow<BulkEditEvent>()
+    val bulkEditEvent: SharedFlow<BulkEditEvent> = _bulkEditEvent.asSharedFlow()
+
+    val selectedTotal: StateFlow<Double> = uiState.map { state ->
+        state.transactions.filter { it.id in state.selectedTransactionIds }.sumOf { it.amount }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, 0.0)
 
     fun consumeSaveCompleted() {
         _uiState.update { it.copy(saveCompleted = false) }
@@ -609,6 +619,24 @@ class TransactionsViewModel(
         }
     }
 
+    fun bulkEdit(newCategoryId: Long?, newAccountId: Long?) {
+        val selectedIds = _uiState.value.selectedTransactionIds.toList()
+        if (selectedIds.isEmpty()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true) }
+            bulkEditTransactionsUseCase(BulkEditParams(selectedIds, newCategoryId, newAccountId))
+                .onSuccess { count ->
+                    clearTransactionSelection()
+                    _uiState.update { it.copy(isSaving = false) }
+                    _bulkEditEvent.emit(BulkEditEvent.Success(count))
+                }
+                .onFailure { error ->
+                    _uiState.update { it.copy(isSaving = false, error = error.localizedMessage) }
+                    _bulkEditEvent.emit(BulkEditEvent.Error(error.localizedMessage ?: "فشل تحديث العمليات"))
+                }
+        }
+    }
+
     fun deleteSelectedTransactions() {
         val ids = _uiState.value.selectedTransactionIds.toList()
         if (ids.isEmpty()) return
@@ -650,4 +678,9 @@ class TransactionsViewModel(
         preferencesManager.smartCategorySortEnabled = nextVal
         _uiState.update { it.copy(smartCategorySortEnabled = nextVal) }
     }
+}
+
+sealed interface BulkEditEvent {
+    data class Success(val count: Int) : BulkEditEvent
+    data class Error(val error: String) : BulkEditEvent
 }

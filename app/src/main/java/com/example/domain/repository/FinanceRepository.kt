@@ -1,6 +1,7 @@
 package com.example.domain.repository
 
 import com.example.domain.model.*
+import com.example.domain.usecase.transaction.BulkEditParams
 import kotlinx.coroutines.flow.Flow
 
 interface TransactionRepository {
@@ -18,6 +19,7 @@ interface TransactionRepository {
     fun getDailyFinancialAggregatesForRange(startDate: Long, endDate: Long): Flow<List<com.example.data.local.entities.DailyFinancialAggregateEntity>>
     suspend fun deleteTransactionsBulk(ids: List<Long>)
     suspend fun updateTransactionsCategoryBulk(ids: List<Long>, newCategoryId: Long)
+    suspend fun bulkEditTransactions(params: BulkEditParams): Result<Int>
 }
 
 interface AccountRepository {

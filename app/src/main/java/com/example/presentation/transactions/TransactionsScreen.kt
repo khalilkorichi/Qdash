@@ -49,6 +49,10 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.platform.LocalDensity
 import com.example.domain.model.Transaction
 import com.example.domain.model.Category
+import androidx.activity.compose.BackHandler
+import com.example.presentation.transactions.components.SelectionFloatingBar
+import com.example.presentation.transactions.components.BulkEditBottomSheet
+import com.example.presentation.transactions.BulkEditEvent
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -60,6 +64,7 @@ fun TransactionsScreen(
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val selectedTotal by viewModel.selectedTotal.collectAsStateWithLifecycle()
     val navController = com.example.presentation.navigation.LocalNavController.current
     var showDeleteDialog by remember { mutableStateOf<com.example.domain.model.Transaction?>(null) }
     var showActionMenuForTransaction by remember { mutableStateOf<com.example.domain.model.Transaction?>(null) }
@@ -71,6 +76,36 @@ fun TransactionsScreen(
     var showBulkCategoryDialog by remember { mutableStateOf(false) }
     var showBulkDeleteDialog by remember { mutableStateOf(false) }
     var showFilterSheet by remember { mutableStateOf(false) }
+    var showBulkEditSheet by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = uiState.selectedTransactionIds.isNotEmpty()) {
+        viewModel.clearTransactionSelection()
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.bulkEditEvent.collect { event ->
+            when (event) {
+                is BulkEditEvent.Success -> {
+                    showBulkEditSheet = false
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = "تم تحديث العمليات بنجاح",
+                            duration = SnackbarDuration.Short
+                        )
+                    }
+                }
+                is BulkEditEvent.Error -> {
+                    showBulkEditSheet = false
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = event.error,
+                            duration = SnackbarDuration.Short
+                        )
+                    }
+                }
+            }
+        }
+    }
 
     // Compute summary values
     val totalExpenses = remember(uiState.filteredTransactions, uiState.selectedType) {
@@ -730,6 +765,18 @@ fun TransactionsScreen(
             }
 
         }
+
+        SelectionFloatingBar(
+            selectedCount = uiState.selectedTransactionIds.size,
+            selectedTotal = selectedTotal,
+            onEditClick = { showBulkEditSheet = true },
+            onCloseClick = { viewModel.clearTransactionSelection() },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp)
+                .padding(horizontal = 16.dp)
+                .zIndex(10f)
+        )
     }
 
 
@@ -1596,6 +1643,20 @@ fun TransactionsScreen(
                 }
             }
         }
+    }
+
+    if (showBulkEditSheet) {
+        val bulkEditSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        BulkEditBottomSheet(
+            selectedCount = uiState.selectedTransactionIds.size,
+            categories = uiState.categories,
+            accounts = uiState.accounts,
+            onConfirm = { newCatId, newAccId ->
+                viewModel.bulkEdit(newCatId, newAccId)
+            },
+            onDismissRequest = { showBulkEditSheet = false },
+            sheetState = bulkEditSheetState
+        )
     }
 }
 }

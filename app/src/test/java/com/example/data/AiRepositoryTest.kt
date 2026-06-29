@@ -63,6 +63,7 @@ class AiRepositoryTest {
         override fun getDailyFinancialAggregatesForRange(startDate: Long, endDate: Long): Flow<List<com.example.data.local.entities.DailyFinancialAggregateEntity>> = throw UnsupportedOperationException()
         override suspend fun deleteTransactionsBulk(ids: List<Long>) {}
         override suspend fun updateTransactionsCategoryBulk(ids: List<Long>, newCategoryId: Long) {}
+        override suspend fun bulkEditTransactions(params: com.example.domain.usecase.transaction.BulkEditParams): Result<Int> = Result.success(0)
     }
 
     private val fakeBudgetGoalRepository = object : BudgetGoalRepository {

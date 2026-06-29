@@ -312,6 +312,10 @@ class AppContainerImpl(private val context: Context) : AppContainer {
         com.example.domain.usecase.accounts.UpdateAccountsOrderUseCase(accountRepository)
     }
 
+    override val bulkEditTransactionsUseCase: com.example.domain.usecase.transaction.BulkEditTransactionsUseCase by lazy {
+        com.example.domain.usecase.transaction.BulkEditTransactionsUseCase(transactionRepository)
+    }
+
     init {
         // Pre-warm SharedPreferences to avoid main-thread blocking I/O on startup
         preferencesManager

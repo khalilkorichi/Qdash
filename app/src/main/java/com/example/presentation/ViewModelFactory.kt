@@ -70,7 +70,8 @@ class ViewModelFactory(
                     container.learnCategoryMappingUseCase,
                     container.budgetGoalRepository,
                     container.transactionTemplateRepository,
-                    container.preferencesManager
+                    container.preferencesManager,
+                    container.bulkEditTransactionsUseCase
                 ) as T
             }
             modelClass.isAssignableFrom(AccountsViewModel::class.java) -> {

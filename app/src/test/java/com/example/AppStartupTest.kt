@@ -65,7 +65,8 @@ class AppStartupTest {
             container.learnCategoryMappingUseCase,
             container.budgetGoalRepository,
             container.transactionTemplateRepository,
-            container.preferencesManager
+            container.preferencesManager,
+            container.bulkEditTransactionsUseCase
         )
         assertNotNull(transactionsViewModel)
 

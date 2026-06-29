@@ -39,6 +39,9 @@ interface TransactionDao {
     @Update
     suspend fun updateTransaction(transaction: TransactionEntity)
 
+    @Update
+    suspend fun updateTransactions(transactions: List<TransactionEntity>): Int
+
     @Delete
     suspend fun deleteTransaction(transaction: TransactionEntity)
 
@@ -107,6 +110,9 @@ interface AccountDao {
 
     @Delete
     suspend fun deleteAccount(account: AccountEntity)
+
+    @Query("UPDATE accounts SET balance = balance + :delta WHERE id = :accountId")
+    suspend fun adjustBalance(accountId: Long, delta: Double)
 }
 
 @Dao

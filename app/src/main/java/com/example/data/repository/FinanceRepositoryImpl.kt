@@ -6,7 +6,7 @@ import com.example.domain.model.*
 import com.example.domain.repository.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-
+import com.example.domain.usecase.transaction.BulkEditParams
 import androidx.room.withTransaction
 
 class TransactionRepositoryImpl(
@@ -275,6 +275,65 @@ class TransactionRepositoryImpl(
 
     override suspend fun updateTransactionsCategoryBulk(ids: List<Long>, newCategoryId: Long) = database.withTransaction {
         transactionDao.updateTransactionsCategoryBulk(ids, newCategoryId)
+    }
+
+    override suspend fun bulkEditTransactions(params: BulkEditParams): Result<Int> = database.withTransaction {
+        try {
+            val transactions = transactionDao.getTransactionsByIds(params.transactionIds)
+            if (transactions.isEmpty()) return@withTransaction Result.success(0)
+
+            // 1. Balance correction if account is changing
+            if (params.newAccountId != null) {
+                val destAccountId = params.newAccountId
+                val groupedByAccount = transactions.groupBy { it.accountId }
+
+                for ((originAccountId, txs) in groupedByAccount) {
+                    if (originAccountId == destAccountId) continue
+
+                    // Revert origin account balance
+                    var originDelta = 0.0
+                    for (tx in txs) {
+                        val factor = when (tx.kind) {
+                            "EXPENSE", "SAVINGS_WITHDRAWAL", "TRANSFER" -> tx.amount
+                            "INCOME", "SALARY", "SAVINGS_CONTRIBUTION" -> -tx.amount
+                            else -> tx.amount
+                        }
+                        originDelta += factor
+                    }
+                    accountDao.adjustBalance(originAccountId, originDelta)
+                }
+
+                // Deduct/apply to destination account balance
+                var destDelta = 0.0
+                for (tx in transactions) {
+                    if (tx.accountId == destAccountId) continue
+                    val factor = when (tx.kind) {
+                        "EXPENSE", "SAVINGS_WITHDRAWAL", "TRANSFER" -> -tx.amount
+                        "INCOME", "SALARY", "SAVINGS_CONTRIBUTION" -> tx.amount
+                        else -> -tx.amount
+                    }
+                    destDelta += factor
+                }
+                accountDao.adjustBalance(destAccountId, destDelta)
+            }
+
+            // 2. Update entities with new category and/or account ID
+            val updatedTransactions = transactions.map { tx ->
+                tx.copy(
+                    categoryId = params.newCategoryId ?: tx.categoryId,
+                    accountId = params.newAccountId ?: tx.accountId
+                )
+            }
+            transactionDao.updateTransactions(updatedTransactions)
+
+            // 3. Sync aggregates
+            val distinctDates = transactions.map { it.date }.distinct()
+            distinctDates.forEach { syncAggregateForDate(it) }
+
+            Result.success(updatedTransactions.size)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     private suspend fun syncAggregateForDate(date: Long) {

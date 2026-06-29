@@ -99,4 +99,5 @@ interface AppContainer {
     // Accounts Use Cases
     val deleteAccountUseCase: com.example.domain.usecase.accounts.DeleteAccountUseCase
     val updateAccountsOrderUseCase: com.example.domain.usecase.accounts.UpdateAccountsOrderUseCase
+    val bulkEditTransactionsUseCase: com.example.domain.usecase.transaction.BulkEditTransactionsUseCase
 }

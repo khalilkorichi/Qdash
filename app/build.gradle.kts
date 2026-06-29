@@ -14,10 +14,10 @@ android {
     applicationId = "com.aistudio.fintrackdz.agkdlm"
     minSdk = 24
     targetSdk = 36
-    versionCode = 39
-    versionName = "1.0.0.39"
+    versionCode = 40
+    versionName = "1.0.0.40"
     buildConfigField("Long", "BUILD_TIMESTAMP", "${System.currentTimeMillis()}L")
-    buildConfigField("Long", "UPDATE_IDENTITY", "140L")
+    buildConfigField("Long", "UPDATE_IDENTITY", "141L")
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
