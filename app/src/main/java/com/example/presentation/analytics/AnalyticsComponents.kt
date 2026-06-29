@@ -552,11 +552,59 @@ fun InteractiveDonutCard(
             Spacer(modifier = Modifier.height(28.dp))
 
             if (viewMode == ChartViewMode.DONUT) {
-                // Donut Canvas â€” 240dp with premium visual layout and floating badge
+                val adjustedSweeps = remember(chartShares) {
+                    val rawSweeps = chartShares.map { it.percentage * 360f }
+                    val n = rawSweeps.size
+                    if (n <= 1) return@remember rawSweeps
+                    
+                    val sweeps = rawSweeps.toFloatArray()
+                    val minSweep = 15f // minimum sweep angle in degrees
+                    
+                    val isSmall = BooleanArray(n)
+                    var smallCount = 0
+                    var smallSum = 0f
+                    for (i in 0 until n) {
+                        if (sweeps[i] < minSweep) {
+                            isSmall[i] = true
+                            smallCount++
+                            smallSum += sweeps[i]
+                            sweeps[i] = minSweep
+                        }
+                    }
+                    
+                    if (smallCount > 0) {
+                        val extraNeeded = (smallCount * minSweep) - smallSum
+                        var largeSlicesSumBefore = 0f
+                        for (i in 0 until n) {
+                            if (!isSmall[i]) {
+                                largeSlicesSumBefore += sweeps[i]
+                            }
+                        }
+                        
+                        if (largeSlicesSumBefore > 0f) {
+                            for (i in 0 until n) {
+                                if (!isSmall[i]) {
+                                    val ratio = sweeps[i] / largeSlicesSumBefore
+                                    sweeps[i] = (sweeps[i] - extraNeeded * ratio).coerceAtLeast(minSweep)
+                                }
+                            }
+                        }
+                    }
+                    
+                    val sum = sweeps.sum()
+                    if (sum > 0f) {
+                        for (i in 0 until n) {
+                            sweeps[i] = (sweeps[i] / sum) * 360f
+                        }
+                    }
+                    sweeps.toList()
+                }
+
+                // Donut Canvas — 240dp with premium visual layout and floating badge
                 Box(
                     modifier = Modifier
                         .size(240.dp)
-                        .pointerInput(chartShares) {
+                        .pointerInput(chartShares, adjustedSweeps) {
                             // Custom gesture handler: tap fires IMMEDIATELY on UP (no 500ms delay),
                             // long press fires after 400ms. This avoids detectTapGestures' built-in
                             // delay that blocks onTap when onLongPress is also registered.
@@ -587,11 +635,11 @@ fun InteractiveDonutCard(
                                             var currentAngle = 0f
                                             var bestMatch: CategoryShare? = null
                                             var bestDistance = Float.MAX_VALUE
-                                            for (share in chartShares) {
-                                                val sweep = share.percentage * 360f
+                                            chartShares.forEachIndexed { idx, share ->
+                                                val sweep = adjustedSweeps[idx]
                                                 val center = currentAngle + sweep / 2f
                                                 if (chartAngle >= currentAngle && chartAngle < currentAngle + sweep) {
-                                                    bestMatch = share; break
+                                                    bestMatch = share
                                                 }
                                                 if (sweep < minTouchDegrees) {
                                                     val diff = kotlin.math.abs(chartAngle - center) % 360f
@@ -633,11 +681,11 @@ fun InteractiveDonutCard(
                                                 var currentAngle = 0f
                                                 var bestMatch: CategoryShare? = null
                                                 var bestDistance = Float.MAX_VALUE
-                                                for (share in chartShares) {
-                                                    val sweep = share.percentage * 360f
+                                                chartShares.forEachIndexed { idx, share ->
+                                                    val sweep = adjustedSweeps[idx]
                                                     val center = currentAngle + sweep / 2f
                                                     if (chartAngle >= currentAngle && chartAngle < currentAngle + sweep) {
-                                                        bestMatch = share; break
+                                                        bestMatch = share
                                                     }
                                                     if (sweep < minTouchDegrees) {
                                                         val diff = kotlin.math.abs(chartAngle - center) % 360f
@@ -678,7 +726,7 @@ fun InteractiveDonutCard(
 
                         var currentAngle = -90f
                         chartShares.forEachIndexed { index, share ->
-                            val sweep = share.percentage * 360f
+                            val sweep = adjustedSweeps[index]
                             
                             val parseColor = parsedShareColors[share.categoryName] ?: themePrimaryColor
                             
