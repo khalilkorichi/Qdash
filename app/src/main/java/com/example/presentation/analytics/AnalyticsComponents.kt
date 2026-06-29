@@ -1808,7 +1808,7 @@ fun EmergencyFundCard(
     onHelpClick: (String, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (uiState.spendingsByCategory.isEmpty()) return
+    if (uiState.isDatabaseEmpty) return
 
     AppCard(
         modifier = modifier

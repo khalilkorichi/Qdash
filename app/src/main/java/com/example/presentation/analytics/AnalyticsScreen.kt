@@ -1492,6 +1492,43 @@ fun AnalyticsScreen(
                             onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
                         )
                     }
+                    if (uiState.spendingsByCategory.isEmpty()) {
+                        item {
+                            AppCard(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                variant = CardVariant.SOLID,
+                                shape = ShapeTokens.Xxl,
+                                backgroundColor = MaterialTheme.colorScheme.surfaceVariant
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(20.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Text(
+                                        text = "لا توجد مصاريف مسجلة في هذه الفترة الزمنية لتوليد تحليلات الراتب ونهاية الأسبوع.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Text(
+                                        text = "جرب اختيار فترة زمنية أخرى أو إضافة معاملات إنفاق جديدة.",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = TextGray,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             } else if (uiState.dashboardTab == 3) {
                 // ── SAVINGS TAB ───────────────────

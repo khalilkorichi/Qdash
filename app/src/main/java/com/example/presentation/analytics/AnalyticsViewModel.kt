@@ -290,7 +290,7 @@ class AnalyticsViewModel(
                     }
 
                     // Expenses
-                    val expensesOnly = periodTransactions.filter { it.kind == TransactionKind.EXPENSE || it.kind == TransactionKind.SAVINGS_WITHDRAWAL }
+                    val expensesOnly = periodTransactions.filter { it.type == TransactionType.EXPENSE }
                     val totalExpensesSum = expensesOnly.sumOf { it.amount }
 
                     // Category shares
@@ -347,8 +347,8 @@ class AnalyticsViewModel(
                             transactions.filter { it.date in monthStart..monthEnd }
                         }
 
-                        val incomeSum = monthTxs.filter { it.kind == TransactionKind.INCOME || it.kind == TransactionKind.SALARY }.sumOf { it.amount }
-                        val expenseSum = monthTxs.filter { it.kind == TransactionKind.EXPENSE || it.kind == TransactionKind.SAVINGS_WITHDRAWAL }.sumOf { it.amount }
+                        val incomeSum = monthTxs.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
+                        val expenseSum = monthTxs.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
                         realTrend.add(CashFlowTrend(monthLabel, incomeSum, expenseSum))
                     }
 
@@ -358,7 +358,7 @@ class AnalyticsViewModel(
                     val maxExpenseCategory = categories.firstOrNull { it.id == maxExpense?.categoryId }?.name ?: "لايوجد"
 
                     // Savings rate
-                    val incomeSum = periodTransactions.filter { it.kind == TransactionKind.INCOME || it.kind == TransactionKind.SALARY }.sumOf { it.amount }
+                    val incomeSum = periodTransactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
                     val rate = if (incomeSum > 0) ((incomeSum - totalExpensesSum) / incomeSum).toFloat() else 0f
 
                     // Global budget limits
@@ -496,8 +496,8 @@ class AnalyticsViewModel(
                     val totalSavings = savingsAccsBalance + savingsGoalsSum
 
                     val threeMonthsAgoMillis = Calendar.getInstance().apply { add(Calendar.MONTH, -3); set(Calendar.DAY_OF_MONTH, 1) }.timeInMillis
-                    val historicalExpenses = transactions.filter { (it.kind == TransactionKind.EXPENSE || it.kind == TransactionKind.SAVINGS_WITHDRAWAL) && it.date >= threeMonthsAgoMillis }
-                    val earliestTx = transactions.filter { it.kind == TransactionKind.EXPENSE || it.kind == TransactionKind.SAVINGS_WITHDRAWAL }.minOfOrNull { it.date } ?: System.currentTimeMillis()
+                    val historicalExpenses = transactions.filter { it.type == TransactionType.EXPENSE && it.date >= threeMonthsAgoMillis }
+                    val earliestTx = transactions.filter { it.type == TransactionType.EXPENSE }.minOfOrNull { it.date } ?: System.currentTimeMillis()
                     val spanMillis = System.currentTimeMillis() - earliestTx
                     val spanMonths = (spanMillis.toDouble() / (30.0 * 24 * 60 * 60 * 1000)).coerceIn(1.0, 3.0)
                     val totalHistExpenses = historicalExpenses.sumOf { it.amount }
@@ -511,7 +511,7 @@ class AnalyticsViewModel(
                         else -> "EXCELLENT"
                     }
 
-                    AnalyticsUiState(
+                    _uiState.value.copy(
                         selectedPeriod = _uiState.value.selectedPeriod,
                         spendingsByCategory = shares,
                         trendData = realTrend,
@@ -603,7 +603,7 @@ class AnalyticsViewModel(
     }
 
     private fun sumOfExpenses(txs: List<Transaction>): Double {
-        return txs.filter { it.kind == TransactionKind.EXPENSE || it.kind == TransactionKind.SAVINGS_WITHDRAWAL }.sumOf { it.amount }
+        return txs.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
     }
 
     fun exportPdfReport() {
