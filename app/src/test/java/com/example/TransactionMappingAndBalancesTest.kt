@@ -30,7 +30,15 @@ class TransactionMappingAndBalancesTest {
         db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        repository = TransactionRepositoryImpl(db, db.transactionDao(), db.accountDao())
+        repository = TransactionRepositoryImpl(
+            database = db,
+            transactionDao = db.transactionDao(),
+            accountDao = db.accountDao(),
+            budgetGoalRepositoryProvider = { throw UnsupportedOperationException() },
+            notificationRepositoryProvider = { throw UnsupportedOperationException() },
+            getBudgetAlertsUseCaseProvider = { throw UnsupportedOperationException() },
+            getBudgetGoalsUseCaseProvider = { throw UnsupportedOperationException() }
+        )
     }
 
     @After

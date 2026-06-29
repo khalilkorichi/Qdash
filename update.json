@@ -1,11 +1,11 @@
 {
-  "versionCode": 42,
-  "versionName": "1.0.0.42",
-  "updateIdentity": 143,
-  "publishedAt": "2026-06-29T17:12:00Z",
+  "versionCode": 43,
+  "versionName": "1.0.0.43",
+  "updateIdentity": 144,
+  "publishedAt": "2026-06-29T17:32:00Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 24612917,
-  "apkSha256": "ce1394305e2006bb385b29323726c163a238e48c81b841d9fcc6128ec78009ca",
+  "apkSize": 24629297,
+  "apkSha256": "91b76daf9ad2861f77d64c68d0f5d09ca9ddfdaac09aed78e77b75be3c9c2abf",
   "mandatory": false,
-  "releaseNotes": "تحديث v1.0.0.42 (Build 143):\n\n🎨 تحسين تصميم صناديق المعاملات: تم حل مشكلة قطع الحواف (Clipping) للحدود الخارجية لصناديق المعاملات عبر مواءمة الأشكال الدائرية وتعديل طبقات الـ Clip بشكل متطابق (16.dp) لكل من حاوية السحب والصندوق الداخلي، مع تطبيق حواف دائرية مثالية للحدود الخارجية (Stroke) عند التحديد."
+  "releaseNotes": "تحديث v1.0.0.43 (Build 144):\n\n🔄 دعم اتجاه RTL بالكامل للشريط العائم: تم تعديل وتوجيه عناصر الشريط السفلي العائم وقائمة العمليات التابعة له لتدعم قراءة من اليمين إلى اليسار (RTL) بشكل مثالي وملائم للغة العربية.\n\n✨ حركة فيزيائية وتوسيع انسيابي: تم تحسين تأثيرات الانتقال والتوسيع والتقليص للشريط العائم باستخدام حركة ربيعية ناعمة (MotionTokens.springFluid) مع الانتقال الانسيابي لعناصره الداخلية."
 }
