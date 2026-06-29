@@ -1,31 +1,61 @@
 package com.example.presentation.transactions.components
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.RemoveCircleOutline
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.utils.FormatterUtils
+import com.example.domain.model.Account
+import com.example.domain.model.Category
+import com.example.domain.model.Transaction
+import com.example.domain.model.TransactionType
 import com.example.ui.designsystem.tokens.ColorTokens
+import com.example.ui.theme.ExpenseRed
+import com.example.ui.theme.IncomeGreen
+import com.example.ui.theme.TransferBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SelectionFloatingBar(
-    selectedCount: Int,
+    selectedTransactions: List<Transaction>,
+    categories: List<Category>,
+    accounts: List<Account>,
     selectedTotal: Double,
     onEditClick: () -> Unit,
     onCloseClick: () -> Unit,
+    onRemoveTransaction: (Transaction) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var isExpanded by remember { mutableStateOf(false) }
+    
+    // Auto-collapse if selection becomes empty
+    val selectedCount = selectedTransactions.size
+    LaunchedEffect(selectedCount) {
+        if (selectedCount == 0) {
+            isExpanded = false
+        }
+    }
+
     AnimatedVisibility(
         visible = selectedCount > 0,
         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
@@ -35,87 +65,267 @@ fun SelectionFloatingBar(
         val isDark = MaterialTheme.colorScheme.background != ColorTokens.BackgroundLight
         val barBgColor = if (isDark) ColorTokens.SurfaceDark else ColorTokens.SurfaceLight
         val borderColor = if (isDark) ColorTokens.BorderDark else ColorTokens.BorderLight
+        val itemBgColor = if (isDark) ColorTokens.ElevatedSurfaceDark else ColorTokens.BackgroundLight
         
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
+                .animateContentSize()
                 .border(
                     width = 1.dp,
                     color = borderColor,
-                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+                    shape = RoundedCornerShape(24.dp)
                 ),
-            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+            shape = RoundedCornerShape(24.dp),
             color = barBgColor,
-            tonalElevation = 6.dp
+            tonalElevation = 8.dp
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                // Right side (RTL): Amount & count
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "مجموع: ${FormatterUtils.formatCurrency(selectedTotal)} د.ج",
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Badge(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
+                // —— Expanded Content: Selected Transactions List ————————
+                if (isExpanded) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp, start = 16.dp, end = 16.dp)
                     ) {
-                        Text(
-                            text = "$selectedCount",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                            modifier = Modifier.padding(horizontal = 2.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(
+                                onClick = { isExpanded = false },
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                ),
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "تصغير",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Text(
+                                text = "العمليات المحددة (${selectedCount})",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 15.sp
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 200.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(bottom = 8.dp)
+                        ) {
+                            items(selectedTransactions, key = { it.id }) { tx ->
+                                val cat = categories.find { it.id == tx.categoryId }
+                                val acc = accounts.find { it.id == tx.accountId }
+                                val catColor = try {
+                                    Color(android.graphics.Color.parseColor(cat?.color ?: "#6C63FF"))
+                                } catch (e: Exception) {
+                                    MaterialTheme.colorScheme.primary
+                                }
+                                
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(itemBgColor)
+                                        .padding(8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Remove button on the left (RTL)
+                                    IconButton(
+                                        onClick = { onRemoveTransaction(tx) },
+                                        modifier = Modifier.size(32.dp),
+                                        colors = IconButtonDefaults.iconButtonColors(
+                                            contentColor = MaterialTheme.colorScheme.error
+                                        )
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.RemoveCircleOutline,
+                                            contentDescription = "إزالة من التحديد",
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+
+                                    // Details in center and right
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Column(
+                                            horizontalAlignment = Alignment.Start,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text(
+                                                text = FormatterUtils.formatCurrency(tx.amount),
+                                                style = MaterialTheme.typography.bodyMedium.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 13.sp
+                                                ),
+                                                color = when (tx.type) {
+                                                    TransactionType.EXPENSE -> ExpenseRed
+                                                    TransactionType.INCOME -> IncomeGreen
+                                                    TransactionType.TRANSFER -> TransferBlue
+                                                }
+                                            )
+                                            Text(
+                                                text = acc?.name ?: "حساب غير معروف",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = ColorTokens.TextGray,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                        
+                                        Column(
+                                            horizontalAlignment = Alignment.End,
+                                            modifier = Modifier.weight(1.5f)
+                                        ) {
+                                            Text(
+                                                text = tx.note ?: cat?.name ?: "عملية مالية",
+                                                style = MaterialTheme.typography.bodyMedium.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 13.sp
+                                                ),
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = cat?.name ?: "بدون فئة",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = ColorTokens.TextGray,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+
+                                        // Category bubble icon
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(CircleShape)
+                                                .background(catColor.copy(alpha = 0.12f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = cat?.icon ?: "📁",
+                                                fontSize = 16.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        HorizontalDivider(
+                            color = borderColor,
+                            thickness = 1.dp,
+                            modifier = Modifier.padding(vertical = 12.dp)
                         )
                     }
                 }
 
-                // Left side (RTL): Buttons (Edit, Close)
+                // —— Compact Bar Content (Always visible) ————————
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(64.dp)
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Edit (Pencil) button
-                    IconButton(
-                        onClick = onEditClick,
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            contentColor = MaterialTheme.colorScheme.primary
-                        ),
-                        modifier = Modifier.size(40.dp)
+                    // Right side (RTL): Amount, count & expand toggle
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "تعديل جماعي",
-                            modifier = Modifier.size(18.dp)
+                        // Expand/collapse arrow icon button
+                        IconButton(
+                            onClick = { isExpanded = !isExpanded },
+                            modifier = Modifier.size(32.dp),
+                            colors = IconButtonDefaults.iconButtonColors(
+                                contentColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Icon(
+                                imageVector = if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                                contentDescription = if (isExpanded) "تصغير" else "توسيع",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        
+                        Text(
+                            text = "مجموع: ${FormatterUtils.formatCurrency(selectedTotal)}",
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
                         )
+                        Badge(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ) {
+                            Text(
+                                text = "$selectedCount",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
+                                modifier = Modifier.padding(horizontal = 2.dp)
+                            )
+                        }
                     }
 
-                    // Close (✕) button
-                    IconButton(
-                        onClick = onCloseClick,
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        modifier = Modifier.size(40.dp)
+                    // Left side (RTL): Action Buttons (Edit, Close)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "إلغاء التحديد",
-                            modifier = Modifier.size(18.dp)
-                        )
+                        // Edit (Pencil) button
+                        IconButton(
+                            onClick = onEditClick,
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                contentColor = MaterialTheme.colorScheme.primary
+                            ),
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "تعديل جماعي",
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        // Close (✕) button
+                        IconButton(
+                            onClick = onCloseClick,
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "إلغاء التحديد",
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }

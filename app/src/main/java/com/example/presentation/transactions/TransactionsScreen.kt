@@ -133,6 +133,10 @@ fun TransactionsScreen(
         label = "netColor"
     )
 
+    val selectedTransactions = remember(uiState.transactions, uiState.selectedTransactionIds) {
+        uiState.transactions.filter { it.id in uiState.selectedTransactionIds }
+    }
+
     Scaffold(
         modifier = modifier
             .fillMaxSize()
@@ -767,10 +771,15 @@ fun TransactionsScreen(
         }
 
         SelectionFloatingBar(
-            selectedCount = uiState.selectedTransactionIds.size,
+            selectedTransactions = selectedTransactions,
+            categories = uiState.categories,
+            accounts = uiState.accounts,
             selectedTotal = selectedTotal,
             onEditClick = { showBulkEditSheet = true },
             onCloseClick = { viewModel.clearTransactionSelection() },
+            onRemoveTransaction = { tx ->
+                viewModel.toggleTransactionSelection(tx.id)
+            },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 16.dp)
