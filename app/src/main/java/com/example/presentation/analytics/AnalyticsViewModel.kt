@@ -331,21 +331,16 @@ class AnalyticsViewModel(
                         val mth = targetCal.get(Calendar.MONTH)
                         val monthLabel = "${arabicMonths[mth]} ${yr % 100}"
 
-                        val monthTxs = if (hasSalary) {
-                            val range = getSalaryCycleRangeForAnchor(salaryDay, mth, yr)
-                            transactions.filter { it.date in range.first.timeInMillis..range.second.timeInMillis }
-                        } else {
-                            // Use full month: from 00:00:00 of day 1 to 23:59:59 of last day
-                            val monthStart = targetCal.timeInMillis
-                            val monthEnd = (targetCal.clone() as Calendar).apply {
-                                set(Calendar.DAY_OF_MONTH, getActualMaximum(Calendar.DAY_OF_MONTH))
-                                set(Calendar.HOUR_OF_DAY, 23)
-                                set(Calendar.MINUTE, 59)
-                                set(Calendar.SECOND, 59)
-                                set(Calendar.MILLISECOND, 999)
-                            }.timeInMillis
-                            transactions.filter { it.date in monthStart..monthEnd }
-                        }
+                        // Use full calendar month: from 00:00:00 of day 1 to 23:59:59.999 of last day
+                        val monthStart = targetCal.timeInMillis
+                        val monthEnd = (targetCal.clone() as Calendar).apply {
+                            set(Calendar.DAY_OF_MONTH, getActualMaximum(Calendar.DAY_OF_MONTH))
+                            set(Calendar.HOUR_OF_DAY, 23)
+                            set(Calendar.MINUTE, 59)
+                            set(Calendar.SECOND, 59)
+                            set(Calendar.MILLISECOND, 999)
+                        }.timeInMillis
+                        val monthTxs = transactions.filter { it.date in monthStart..monthEnd }
 
                         val incomeSum = monthTxs.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
                         val expenseSum = monthTxs.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }

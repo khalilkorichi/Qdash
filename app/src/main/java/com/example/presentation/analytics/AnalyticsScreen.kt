@@ -1006,12 +1006,12 @@ fun AnalyticsScreen(
                                         val leftPadding = 56.dp.toPx()
                                         val rightPadding = 8.dp.toPx()
                                         val chartWidth = size.width - leftPadding - rightPadding
-                                        if (trendData.isNotEmpty()) {
-                                            val groupWidth = chartWidth / trendData.size
-                                            val clickedIndex = ((offset.x - leftPadding) / groupWidth).toInt()
-                                            if (clickedIndex in trendData.indices) {
-                                                selectedTrendIndex = if (selectedTrendIndex == clickedIndex) null else clickedIndex
-                                            }
+                                        if (trendData.size > 1) {
+                                            val stepX = chartWidth / (trendData.size - 1)
+                                            val clickedIndex = ((offset.x - leftPadding + stepX / 2f) / stepX).toInt().coerceIn(0, trendData.size - 1)
+                                            selectedTrendIndex = if (selectedTrendIndex == clickedIndex) null else clickedIndex
+                                        } else if (trendData.isNotEmpty()) {
+                                            selectedTrendIndex = 0
                                         }
                                     }
                                 }
@@ -1028,7 +1028,7 @@ fun AnalyticsScreen(
                                 val maxAmount = trendData.maxOfOrNull { maxOf(it.income, it.expense) }?.takeIf { it > 0 } ?: 10000.0
                                 val yAxisMax = maxAmount * 1.15 // 15% padding at top
 
-                                // â”€â”€ 1. Draw Gridlines & Y-Axis Labels â”€â”€
+                                // ── 1. Draw Gridlines & Y-Axis Labels ──
                                 val gridLines = 4
                                 for (i in 0 until gridLines) {
                                     val fraction = i.toFloat() / (gridLines - 1)
@@ -1057,73 +1057,135 @@ fun AnalyticsScreen(
                                     }
                                 }
 
-                                // â”€â”€ 2. Draw Bars & X-Axis Labels â”€â”€
-                                val numGroups = trendData.size
-                                val groupWidth = chartWidth / numGroups
+                                // ── 2. Calculate Step & Paths ──
+                                val stepX = chartWidth / (trendData.size - 1).coerceAtLeast(1)
 
-                                val cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
+                                val incomePath = androidx.compose.ui.graphics.Path()
+                                val expensePath = androidx.compose.ui.graphics.Path()
 
                                 trendData.forEachIndexed { i, trend ->
-                                    val centerX = leftPadding + (i + 0.5f) * groupWidth
-                                    
-                                    val barWidth = (groupWidth * 0.25f).coerceIn(8.dp.toPx(), 16.dp.toPx())
-                                    val barSpacing = (barWidth * 0.3f).coerceIn(2.dp.toPx(), 6.dp.toPx())
+                                    val x = leftPadding + i * stepX
+                                    val yIncome = size.height - bottomPadding - ((trend.income / yAxisMax) * chartHeight).toFloat().coerceIn(0f, chartHeight)
+                                    val yExpense = size.height - bottomPadding - ((trend.expense / yAxisMax) * chartHeight).toFloat().coerceIn(0f, chartHeight)
 
-                                    // Calculate bar heights
-                                    val incomeHeight = ((trend.income / yAxisMax) * chartHeight).toFloat().coerceAtLeast(0f)
-                                    val expenseHeight = ((trend.expense / yAxisMax) * chartHeight).toFloat().coerceAtLeast(0f)
+                                    if (i == 0) {
+                                        incomePath.moveTo(x, yIncome)
+                                        expensePath.moveTo(x, yExpense)
+                                    } else {
+                                        val prevX = leftPadding + (i - 1) * stepX
+                                        val prevYIncome = size.height - bottomPadding - ((trendData[i - 1].income / yAxisMax) * chartHeight).toFloat().coerceIn(0f, chartHeight)
+                                        val prevYExpense = size.height - bottomPadding - ((trendData[i - 1].expense / yAxisMax) * chartHeight).toFloat().coerceIn(0f, chartHeight)
 
-                                    // Draw selection background indicator
+                                        incomePath.cubicTo(
+                                            prevX + (x - prevX) / 2f, prevYIncome,
+                                            prevX + (x - prevX) / 2f, yIncome,
+                                            x, yIncome
+                                        )
+                                        expensePath.cubicTo(
+                                            prevX + (x - prevX) / 2f, prevYExpense,
+                                            prevX + (x - prevX) / 2f, yExpense,
+                                            x, yExpense
+                                        )
+                                    }
+                                }
+
+                                // ── 3. Draw Gradient Fills ──
+                                if (trendData.size > 1) {
+                                    val incomeFillPath = androidx.compose.ui.graphics.Path().apply {
+                                        addPath(incomePath)
+                                        lineTo(leftPadding + chartWidth, size.height - bottomPadding)
+                                        lineTo(leftPadding, size.height - bottomPadding)
+                                        close()
+                                    }
+                                    drawPath(
+                                        path = incomeFillPath,
+                                        brush = Brush.verticalGradient(
+                                            colors = listOf(IncomeGreen.copy(alpha = 0.18f), Color.Transparent),
+                                            startY = topPadding,
+                                            endY = size.height - bottomPadding
+                                        ),
+                                        style = androidx.compose.ui.graphics.drawscope.Fill
+                                    )
+
+                                    val expenseFillPath = androidx.compose.ui.graphics.Path().apply {
+                                        addPath(expensePath)
+                                        lineTo(leftPadding + chartWidth, size.height - bottomPadding)
+                                        lineTo(leftPadding, size.height - bottomPadding)
+                                        close()
+                                    }
+                                    drawPath(
+                                        path = expenseFillPath,
+                                        brush = Brush.verticalGradient(
+                                            colors = listOf(ExpenseRed.copy(alpha = 0.12f), Color.Transparent),
+                                            startY = topPadding,
+                                            endY = size.height - bottomPadding
+                                        ),
+                                        style = androidx.compose.ui.graphics.drawscope.Fill
+                                    )
+                                }
+
+                                // ── 4. Draw Line Strokes ──
+                                drawPath(
+                                    path = incomePath,
+                                    color = IncomeGreen,
+                                    style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                        width = 3.dp.toPx(),
+                                        cap = StrokeCap.Round
+                                    )
+                                )
+
+                                drawPath(
+                                    path = expensePath,
+                                    color = ExpenseRed,
+                                    style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                        width = 3.dp.toPx(),
+                                        cap = StrokeCap.Round
+                                    )
+                                )
+
+                                // ── 5. Draw Points, selection guides & X-Axis labels ──
+                                trendData.forEachIndexed { i, trend ->
+                                    val x = leftPadding + i * stepX
+                                    val yIncome = size.height - bottomPadding - ((trend.income / yAxisMax) * chartHeight).toFloat().coerceIn(0f, chartHeight)
+                                    val yExpense = size.height - bottomPadding - ((trend.expense / yAxisMax) * chartHeight).toFloat().coerceIn(0f, chartHeight)
+
+                                    // Draw vertical selection guide line
                                     if (selectedTrendIndex == i) {
-                                        drawRoundRect(
-                                            color = primaryColor.copy(alpha = 0.08f),
-                                            topLeft = androidx.compose.ui.geometry.Offset(centerX - groupWidth / 2, topPadding),
-                                            size = androidx.compose.ui.geometry.Size(groupWidth, chartHeight),
-                                            cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx())
+                                        drawLine(
+                                            color = primaryColor.copy(alpha = 0.18f),
+                                            start = Offset(x, topPadding),
+                                            end = Offset(x, size.height - bottomPadding),
+                                            strokeWidth = 1.5.dp.toPx(),
+                                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
                                         )
                                     }
 
-                                    // Draw Income Bar (Green Gradient)
-                                    if (incomeHeight > 0f) {
-                                        val incomeGradient = Brush.verticalGradient(
-                                            colors = listOf(IncomeGreen, IncomeGreen.copy(alpha = 0.25f)),
-                                            startY = size.height - bottomPadding - incomeHeight,
-                                            endY = size.height - bottomPadding
-                                        )
-                                        drawRoundRect(
-                                            brush = incomeGradient,
-                                            topLeft = androidx.compose.ui.geometry.Offset(
-                                                centerX - barWidth - barSpacing / 2,
-                                                size.height - bottomPadding - incomeHeight
-                                            ),
-                                            size = androidx.compose.ui.geometry.Size(barWidth, incomeHeight),
-                                            cornerRadius = cornerRadius
-                                        )
+                                    // Draw selection highlighted or normal dots
+                                    if (selectedTrendIndex == i) {
+                                        // Income dot selection glow
+                                        drawCircle(color = Color.Black, radius = 7.dp.toPx(), center = Offset(x, yIncome))
+                                        drawCircle(color = IncomeGreen, radius = 5.dp.toPx(), center = Offset(x, yIncome))
+                                        drawCircle(color = Color.White, radius = 2.dp.toPx(), center = Offset(x, yIncome))
+
+                                        // Expense dot selection glow
+                                        drawCircle(color = Color.Black, radius = 7.dp.toPx(), center = Offset(x, yExpense))
+                                        drawCircle(color = ExpenseRed, radius = 5.dp.toPx(), center = Offset(x, yExpense))
+                                        drawCircle(color = Color.White, radius = 2.dp.toPx(), center = Offset(x, yExpense))
+                                    } else {
+                                        // Normal Income dot
+                                        drawCircle(color = Color.White, radius = 4.dp.toPx(), center = Offset(x, yIncome))
+                                        drawCircle(color = IncomeGreen, radius = 2.dp.toPx(), center = Offset(x, yIncome))
+
+                                        // Normal Expense dot
+                                        drawCircle(color = Color.White, radius = 4.dp.toPx(), center = Offset(x, yExpense))
+                                        drawCircle(color = ExpenseRed, radius = 2.dp.toPx(), center = Offset(x, yExpense))
                                     }
 
-                                    // Draw Expense Bar (Red Gradient)
-                                    if (expenseHeight > 0f) {
-                                        val expenseGradient = Brush.verticalGradient(
-                                            colors = listOf(ExpenseRed, ExpenseRed.copy(alpha = 0.25f)),
-                                            startY = size.height - bottomPadding - expenseHeight,
-                                            endY = size.height - bottomPadding
-                                        )
-                                        drawRoundRect(
-                                            brush = expenseGradient,
-                                            topLeft = androidx.compose.ui.geometry.Offset(
-                                                centerX + barSpacing / 2,
-                                                size.height - bottomPadding - expenseHeight
-                                            ),
-                                            size = androidx.compose.ui.geometry.Size(barWidth, expenseHeight),
-                                            cornerRadius = cornerRadius
-                                        )
-                                    }
-
-                                    // Draw X-Axis Period Label (centered below the group)
+                                    // Draw Month label on X-axis (centered below the point)
                                     drawIntoCanvas { canvas ->
                                         canvas.nativeCanvas.drawText(
                                             trend.periodLabel,
-                                            centerX,
+                                            x,
                                             size.height - bottomPadding + 18.dp.toPx(),
                                             xTextPaint
                                         )
