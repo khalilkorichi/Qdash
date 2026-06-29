@@ -89,6 +89,8 @@ import androidx.compose.ui.geometry.Size
 import kotlin.math.asin
 
 
+private const val DONUT_SMALL_CATEGORY_THRESHOLD = 2000.0
+
 @Composable
 fun DonutChartSkeleton(modifier: Modifier = Modifier) {
     AppCard(
@@ -386,9 +388,8 @@ fun InteractiveDonutCard(
     var showOtherBottomSheet by remember { mutableStateOf(false) }
     var isLegendExpanded by remember { mutableStateOf(false) }
 
-    val threshold = 0.04f
-    val smallShares = remember(shares) { shares.filter { it.percentage < threshold } }
-    val largeShares = remember(shares) { shares.filter { it.percentage >= threshold } }
+    val smallShares = remember(shares) { shares.filter { it.amount <= DONUT_SMALL_CATEGORY_THRESHOLD } }
+    val largeShares = remember(shares) { shares.filter { it.amount > DONUT_SMALL_CATEGORY_THRESHOLD } }
 
     val chartShares = remember(shares, smallShares, largeShares) {
         if (smallShares.size > 1) {
@@ -1122,7 +1123,7 @@ fun InteractiveDonutCard(
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
                                             Text(
-                                                text = FormatterUtils.formatCurrency(share.amount) + " دج",
+                                                text = FormatterUtils.formatCurrency(share.amount),
                                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.ExtraBold),
                                                 color = MaterialTheme.colorScheme.onSurface
                                             )
