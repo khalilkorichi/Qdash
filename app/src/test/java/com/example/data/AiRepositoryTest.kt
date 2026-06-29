@@ -64,6 +64,7 @@ class AiRepositoryTest {
         override suspend fun deleteTransactionsBulk(ids: List<Long>) {}
         override suspend fun updateTransactionsCategoryBulk(ids: List<Long>, newCategoryId: Long) {}
         override suspend fun bulkEditTransactions(params: com.example.domain.usecase.transaction.BulkEditParams): Result<Int> = Result.success(0)
+        override suspend fun getPeakTransactionHours(): List<Int> = listOf(9, 14, 20)
     }
 
     private val fakeBudgetGoalRepository = object : BudgetGoalRepository {

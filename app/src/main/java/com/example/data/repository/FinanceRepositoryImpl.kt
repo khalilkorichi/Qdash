@@ -6,13 +6,20 @@ import com.example.domain.model.*
 import com.example.domain.repository.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 import com.example.domain.usecase.transaction.BulkEditParams
 import androidx.room.withTransaction
+import com.example.domain.usecase.budget.GetBudgetAlertsUseCase
+import com.example.domain.usecase.budget.GetBudgetGoalsUseCase
 
 class TransactionRepositoryImpl(
     private val database: com.example.data.local.AppDatabase,
     private val transactionDao: TransactionDao,
-    private val accountDao: AccountDao
+    private val accountDao: AccountDao,
+    private val budgetGoalRepositoryProvider: () -> BudgetGoalRepository,
+    private val notificationRepositoryProvider: () -> NotificationRepository,
+    private val getBudgetAlertsUseCaseProvider: () -> GetBudgetAlertsUseCase,
+    private val getBudgetGoalsUseCaseProvider: () -> GetBudgetGoalsUseCase
 ) : TransactionRepository {
 
     override fun getAllTransactions(): Flow<List<Transaction>> {
@@ -39,60 +46,126 @@ class TransactionRepositoryImpl(
         return transactionDao.getTransactionById(id)?.toDomain()
     }
 
-    override suspend fun insertTransaction(transaction: Transaction): Long = database.withTransaction {
-        if (transaction.type == TransactionType.TRANSFER) {
-            if (transaction.transferId != null) {
-                // Mirrored transfer branch
+    override suspend fun insertTransaction(transaction: Transaction): Long {
+        val resultId = database.withTransaction {
+            if (transaction.type == TransactionType.TRANSFER) {
+                if (transaction.transferId != null) {
+                    // Mirrored transfer branch
+                    val account = accountDao.getAccountById(transaction.accountId)
+                        ?: throw IllegalArgumentException("الحساب المالي المحدد غير موجود!")
+                    val offset = if (transaction.isDebit) -transaction.amount else transaction.amount
+                    accountDao.updateAccount(account.copy(balance = account.balance + offset))
+                    
+                    val resultId = transactionDao.insertTransaction(transaction.toEntity())
+                    syncAggregateForDate(transaction.date)
+                    resultId
+                } else {
+                    // Initial transfer request: create two mirrored transactions with a shared transferId
+                    val sharedId = "TRF-" + java.util.UUID.randomUUID().toString().take(6).uppercase()
+                    val debitTx = transaction.copy(transferId = sharedId, isDebit = true, kind = TransactionKind.TRANSFER)
+                    val creditTx = transaction.copy(
+                        accountId = transaction.toAccountId ?: throw IllegalArgumentException("حساب الوجهة مطلوب للتحويل!"),
+                        toAccountId = transaction.accountId,
+                        transferId = sharedId,
+                        isDebit = false,
+                        kind = TransactionKind.TRANSFER
+                    )
+                    
+                    val resultId = transactionDao.insertTransaction(debitTx.toEntity())
+                    transactionDao.insertTransaction(creditTx.toEntity())
+                    
+                    val sourceAccount = accountDao.getAccountById(debitTx.accountId)
+                    if (sourceAccount != null) {
+                        accountDao.updateAccount(sourceAccount.copy(balance = sourceAccount.balance - debitTx.amount))
+                    }
+                    val destAccount = accountDao.getAccountById(creditTx.accountId)
+                    if (destAccount != null) {
+                        accountDao.updateAccount(destAccount.copy(balance = destAccount.balance + creditTx.amount))
+                    }
+                    
+                    syncAggregateForDate(transaction.date)
+                    resultId
+                }
+            } else {
+                // Normal transaction branch: INCOME, EXPENSE, SALARY, SAVINGS_CONTRIBUTION, SAVINGS_WITHDRAWAL
                 val account = accountDao.getAccountById(transaction.accountId)
-                    ?: throw IllegalArgumentException("الحساب المالي المحدد غير موجود!")
-                val offset = if (transaction.isDebit) -transaction.amount else transaction.amount
+                    ?: throw IllegalArgumentException("الحساب المالي المحدد غير موجود في قاعدة البيانات!")
+
+                val offset = when (transaction.kind) {
+                    TransactionKind.EXPENSE, TransactionKind.SAVINGS_WITHDRAWAL -> -transaction.amount
+                    TransactionKind.INCOME, TransactionKind.SALARY, TransactionKind.SAVINGS_CONTRIBUTION -> transaction.amount
+                    TransactionKind.TRANSFER -> -transaction.amount
+                }
                 accountDao.updateAccount(account.copy(balance = account.balance + offset))
-                
+
                 val resultId = transactionDao.insertTransaction(transaction.toEntity())
                 syncAggregateForDate(transaction.date)
                 resultId
-            } else {
-                // Initial transfer request: create two mirrored transactions with a shared transferId
-                val sharedId = "TRF-" + java.util.UUID.randomUUID().toString().take(6).uppercase()
-                val debitTx = transaction.copy(transferId = sharedId, isDebit = true, kind = TransactionKind.TRANSFER)
-                val creditTx = transaction.copy(
-                    accountId = transaction.toAccountId ?: throw IllegalArgumentException("حساب الوجهة مطلوب للتحويل!"),
-                    toAccountId = transaction.accountId,
-                    transferId = sharedId,
-                    isDebit = false,
-                    kind = TransactionKind.TRANSFER
-                )
-                
-                val resultId = transactionDao.insertTransaction(debitTx.toEntity())
-                transactionDao.insertTransaction(creditTx.toEntity())
-                
-                val sourceAccount = accountDao.getAccountById(debitTx.accountId)
-                if (sourceAccount != null) {
-                    accountDao.updateAccount(sourceAccount.copy(balance = sourceAccount.balance - debitTx.amount))
-                }
-                val destAccount = accountDao.getAccountById(creditTx.accountId)
-                if (destAccount != null) {
-                    accountDao.updateAccount(destAccount.copy(balance = destAccount.balance + creditTx.amount))
-                }
-                
-                syncAggregateForDate(transaction.date)
-                resultId
             }
-        } else {
-            // Normal transaction branch: INCOME, EXPENSE, SALARY, SAVINGS_CONTRIBUTION, SAVINGS_WITHDRAWAL
-            val account = accountDao.getAccountById(transaction.accountId)
-                ?: throw IllegalArgumentException("الحساب المالي المحدد غير موجود في قاعدة البيانات!")
+        }
 
-            val offset = when (transaction.kind) {
-                TransactionKind.EXPENSE, TransactionKind.SAVINGS_WITHDRAWAL -> -transaction.amount
-                TransactionKind.INCOME, TransactionKind.SALARY, TransactionKind.SAVINGS_CONTRIBUTION -> transaction.amount
-                TransactionKind.TRANSFER -> -transaction.amount
+        checkAndTriggerNotifications(transaction, resultId)
+
+        return resultId
+    }
+
+    private suspend fun checkAndTriggerNotifications(transaction: Transaction, transactionId: Long) {
+        try {
+            val notificationRepository = notificationRepositoryProvider()
+
+            // 1. Check for Salary Added
+            if (transaction.type == TransactionType.INCOME && transaction.categoryId != null) {
+                val category = database.categoryDao().getCategoryById(transaction.categoryId)
+                if (category != null && (category.name.contains("راتب") || category.name.contains("الراتب"))) {
+                    val notification = AppNotification(
+                        title = "تم إضافة الراتب 💰",
+                        message = "تم إضافة راتب بقيمة ${transaction.amount.toInt()} د.ج إلى حسابك.",
+                        type = NotificationType.SALARY_ADDED,
+                        relatedEntityId = transactionId
+                    )
+                    notificationRepository.insertNotification(notification)
+                }
             }
-            accountDao.updateAccount(account.copy(balance = account.balance + offset))
 
-            val resultId = transactionDao.insertTransaction(transaction.toEntity())
-            syncAggregateForDate(transaction.date)
-            resultId
+            // 2. Check for Budget Alerts (Exceeded or Critical)
+            val isExpense = transaction.type == TransactionType.EXPENSE ||
+                    transaction.kind == TransactionKind.EXPENSE ||
+                    transaction.kind == TransactionKind.SAVINGS_WITHDRAWAL
+            if (isExpense) {
+                val budgetGoals = getBudgetGoalsUseCaseProvider()().first()
+                val alerts = getBudgetAlertsUseCaseProvider()(budgetGoals)
+                val existingNotifications = notificationRepository.getAllNotifications().first()
+                val now = System.currentTimeMillis()
+
+                for (alert in alerts) {
+                    if (alert.status == BudgetStatus.EXCEEDED || alert.status == BudgetStatus.CRITICAL) {
+                        // Throttling: Check if we already notified for this budget in the last 1 hour
+                        val alreadyNotified = existingNotifications.any {
+                            it.type == NotificationType.BUDGET_ALERT &&
+                                    it.relatedEntityId == alert.budgetId &&
+                                    (now - it.timestamp) < 60L * 60 * 1000 // 1 hour
+                        }
+
+                        if (!alreadyNotified) {
+                            val title = if (alert.status == BudgetStatus.EXCEEDED) {
+                                "تجاوز الميزانية! ⚠️"
+                            } else {
+                                "تنبيه ميزانية حرج! ⚠️"
+                            }
+                            val notification = AppNotification(
+                                title = title,
+                                message = alert.message,
+                                type = NotificationType.BUDGET_ALERT,
+                                relatedEntityId = alert.budgetId,
+                                deepLinkRoute = "budget_goals"
+                            )
+                            notificationRepository.insertNotification(notification)
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
@@ -373,6 +446,39 @@ class TransactionRepositoryImpl(
                     activityScore = score
                 )
             )
+        }
+    }
+
+    override suspend fun getPeakTransactionHours(): List<Int> {
+        try {
+            val txs = getRecentTransactions(100).first()
+            if (txs.size < 5) {
+                return listOf(9, 14, 20)
+            }
+
+            val calendar = java.util.Calendar.getInstance()
+            val hourGroups = txs.map {
+                calendar.timeInMillis = it.date
+                calendar.get(java.util.Calendar.HOUR_OF_DAY)
+            }.groupBy { it }
+            
+            val sortedHours = hourGroups.entries
+                .sortedByDescending { it.value.size }
+                .map { it.key }
+                .take(3)
+
+            val result = sortedHours.toMutableList()
+            val defaults = listOf(9, 14, 20)
+            for (defaultHour in defaults) {
+                if (result.size >= 3) break
+                if (!result.contains(defaultHour)) {
+                    result.add(defaultHour)
+                }
+            }
+            return result.take(3)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return listOf(9, 14, 20)
         }
     }
 }

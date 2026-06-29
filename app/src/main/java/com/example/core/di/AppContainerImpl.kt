@@ -41,7 +41,15 @@ class AppContainerImpl(private val context: Context) : AppContainer {
     }
 
     override val transactionRepository: TransactionRepository by lazy {
-        TransactionRepositoryImpl(database, database.transactionDao(), database.accountDao())
+        TransactionRepositoryImpl(
+            database = database,
+            transactionDao = database.transactionDao(),
+            accountDao = database.accountDao(),
+            budgetGoalRepositoryProvider = { budgetGoalRepository },
+            notificationRepositoryProvider = { notificationRepository },
+            getBudgetAlertsUseCaseProvider = { getBudgetAlertsUseCase },
+            getBudgetGoalsUseCaseProvider = { getBudgetGoalsUseCase }
+        )
     }
 
     override val accountRepository: AccountRepository by lazy {

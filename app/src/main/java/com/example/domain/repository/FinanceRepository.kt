@@ -20,6 +20,7 @@ interface TransactionRepository {
     suspend fun deleteTransactionsBulk(ids: List<Long>)
     suspend fun updateTransactionsCategoryBulk(ids: List<Long>, newCategoryId: Long)
     suspend fun bulkEditTransactions(params: BulkEditParams): Result<Int>
+    suspend fun getPeakTransactionHours(): List<Int>
 }
 
 interface AccountRepository {

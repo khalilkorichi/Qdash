@@ -8,6 +8,8 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.ExistingPeriodicWorkPolicy
 import com.example.data.update.UpdateCheckWorker
+import com.example.data.notification.FinancialAlertsWorker
+import com.example.data.notification.SmartReminderSchedulerWorker
 import java.util.concurrent.TimeUnit
 import com.example.core.di.AppContainer
 import com.example.core.di.AppContainerImpl
@@ -32,6 +34,8 @@ class FinTrackApp : Application() {
         container.preferencesManager.loadInitialThemeSync()
         SystemNotificationHelper.createNotificationChannel(this)
         schedulePeriodicUpdateChecks()
+        schedulePeriodicFinancialAlerts()
+        schedulePeriodicSmartReminders()
     }
 
     private fun schedulePeriodicUpdateChecks() {
@@ -51,6 +55,46 @@ class FinTrackApp : Application() {
             )
         } catch (e: Exception) {
             android.util.Log.w("FinTrackApp", "WorkManager initialization/scheduling failed, this is normal in tests.", e)
+        }
+    }
+
+    private fun schedulePeriodicFinancialAlerts() {
+        try {
+            val constraints = Constraints.Builder()
+                .setRequiresBatteryNotLow(true)
+                .build()
+
+            val financialAlertsRequest = PeriodicWorkRequestBuilder<FinancialAlertsWorker>(24, TimeUnit.HOURS)
+                .setConstraints(constraints)
+                .build()
+
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "PeriodicFinancialAlerts",
+                ExistingPeriodicWorkPolicy.KEEP,
+                financialAlertsRequest
+            )
+        } catch (e: Exception) {
+            android.util.Log.w("FinTrackApp", "FinancialAlertsWorker scheduling failed, this is normal in tests.", e)
+        }
+    }
+
+    private fun schedulePeriodicSmartReminders() {
+        try {
+            val constraints = Constraints.Builder()
+                .setRequiresBatteryNotLow(true)
+                .build()
+
+            val schedulerRequest = PeriodicWorkRequestBuilder<SmartReminderSchedulerWorker>(24, TimeUnit.HOURS)
+                .setConstraints(constraints)
+                .build()
+
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "SmartReminderScheduler",
+                ExistingPeriodicWorkPolicy.KEEP,
+                schedulerRequest
+            )
+        } catch (e: Exception) {
+            android.util.Log.w("FinTrackApp", "SmartReminderSchedulerWorker scheduling failed, this is normal in tests.", e)
         }
     }
 }

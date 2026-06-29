@@ -5,7 +5,7 @@ import com.example.data.local.entities.NotificationEntity
 enum class NotificationType {
     BUDGET_ALERT, SUBSCRIPTION_REMINDER, SAVINGS_MILESTONE,
     DEBT_DUE, BACKUP_DONE, EXPORT_DONE, SALARY_ADDED,
-    TIP, OVERSPEND_FORECAST
+    TIP, OVERSPEND_FORECAST, SMART_REMINDER
 }
 
 data class AppNotification(

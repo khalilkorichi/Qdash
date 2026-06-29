@@ -68,6 +68,7 @@ private fun notificationVisual(type: NotificationType): TypeVisual {
         NotificationType.SALARY_ADDED       -> TypeVisual(successColor,   Icons.Default.TrendingUp)
         NotificationType.TIP                -> TypeVisual(warningColor,  Icons.Default.Lightbulb)
         NotificationType.OVERSPEND_FORECAST -> TypeVisual(dangerColor,    Icons.Default.Warning)
+        NotificationType.SMART_REMINDER     -> TypeVisual(primaryColor,   Icons.Default.Schedule)
     }
 }
 
@@ -97,6 +98,7 @@ private val FILTER_CHIPS = listOf(
     FilterChipInfo("الاشتراكات",   NotificationType.SUBSCRIPTION_REMINDER),
     FilterChipInfo("الادخار",      NotificationType.SAVINGS_MILESTONE),
     FilterChipInfo("الديون",       NotificationType.DEBT_DUE),
+    FilterChipInfo("التذكيرات",     NotificationType.SMART_REMINDER),
     FilterChipInfo("نصائح",        NotificationType.TIP)
 )
 
