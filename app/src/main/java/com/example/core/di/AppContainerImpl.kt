@@ -99,13 +99,16 @@ class AppContainerImpl(private val context: Context) : AppContainer {
 
     override val aiRepository: AiRepository by lazy {
         AiRepositoryImpl(
-            database.aiChatDao(),
-            transactionRepository,
-            accountRepository,
-            categoryRepository,
-            budgetGoalRepository,
-            debtRepository,
-            notificationRepository
+            aiChatDao = database.aiChatDao(),
+            transactionRepository = transactionRepository,
+            accountRepository = accountRepository,
+            categoryRepository = categoryRepository,
+            budgetGoalRepository = budgetGoalRepository,
+            debtRepository = debtRepository,
+            notificationRepository = notificationRepository,
+            geminiApiKey = com.example.BuildConfig.GEMINI_API_KEY,
+            openRouterApiKey = com.example.BuildConfig.OPENROUTER_API_KEY,
+            nvidiaApiKey = com.example.BuildConfig.NVIDIA_API_KEY
         )
     }
 

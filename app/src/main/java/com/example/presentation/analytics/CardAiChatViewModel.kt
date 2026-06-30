@@ -6,7 +6,7 @@ import com.example.domain.model.AiChatMessage
 import com.example.domain.model.CardAiContext
 import com.example.domain.model.ChatSender
 import com.example.domain.usecase.ai.CardDbSnapshotUseCase
-import com.example.domain.usecase.ai.SendCardAiMessageUseCase
+import com.example.domain.repository.AiRepository
 import com.example.domain.ai.CardSystemPromptBuilder
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +27,7 @@ data class CardAiChatState(
 
 class CardAiChatViewModel(
     private val cardDbSnapshotUseCase: CardDbSnapshotUseCase,
-    private val sendCardAiMessageUseCase: SendCardAiMessageUseCase
+    private val aiRepository: AiRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CardAiChatState())
@@ -81,7 +81,7 @@ class CardAiChatViewModel(
         viewModelScope.launch {
             try {
                 val initialPrompt = "حلل هذه البيانات المالية للبطاقة الحالية واقترح توصيات عملية لترشيد الاستهلاك وتحسين الادخار."
-                val replyText = sendCardAiMessageUseCase(
+                val replyText = aiRepository.sendCardMessage(
                     systemPrompt = systemPrompt,
                     history = emptyList(),
                     userMessage = initialPrompt
@@ -103,9 +103,14 @@ class CardAiChatViewModel(
                 }
             } catch (e: Exception) {
                 stepJob.cancel()
+                val errorMsgText = if (e.message?.contains("All AI providers failed") == true) {
+                    "تعذّر الاتصال بالمساعد الذكي. تحقق من اتصالك بالإنترنت."
+                } else {
+                    "حدث خطأ أثناء تحليل البيانات. يرجى المحاولة مرة أخرى."
+                }
                 val errorMessage = AiChatMessage(
                     sender = ChatSender.AI,
-                    message = "حدث خطأ أثناء تحليل البيانات. يرجى المحاولة مرة أخرى.",
+                    message = errorMsgText,
                     sessionTitle = currentContext?.cardId ?: "card_chat"
                 )
                 _uiState.update {
@@ -147,7 +152,7 @@ class CardAiChatViewModel(
         
         viewModelScope.launch {
             try {
-                val replyText = sendCardAiMessageUseCase(
+                val replyText = aiRepository.sendCardMessage(
                     systemPrompt = systemPrompt,
                     history = _uiState.value.messages.dropLast(1),
                     userMessage = text
@@ -166,9 +171,14 @@ class CardAiChatViewModel(
                     )
                 }
             } catch (e: Exception) {
+                val errorMsgText = if (e.message?.contains("All AI providers failed") == true) {
+                    "تعذّر الاتصال بالمساعد الذكي. تحقق من اتصالك بالإنترنت."
+                } else {
+                    "حدث خطأ أثناء معالجة رسالتك. يرجى المحاولة مرة أخرى."
+                }
                 val errorMessage = AiChatMessage(
                     sender = ChatSender.AI,
-                    message = "حدث خطأ أثناء معالجة رسالتك. يرجى المحاولة مرة أخرى.",
+                    message = errorMsgText,
                     sessionTitle = currentContext?.cardId ?: "card_chat"
                 )
                 _uiState.update {

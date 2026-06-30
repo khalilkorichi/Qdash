@@ -120,7 +120,10 @@ class AiRepositoryTest {
             categoryRepository = fakeCategoryRepository,
             budgetGoalRepository = fakeBudgetGoalRepository,
             debtRepository = fakeDebtRepository,
-            notificationRepository = fakeNotificationRepository
+            notificationRepository = fakeNotificationRepository,
+            geminiApiKey = "",
+            openRouterApiKey = "",
+            nvidiaApiKey = ""
         )
 
         // Query: "كم رصيدي؟" (General query)
@@ -143,7 +146,10 @@ class AiRepositoryTest {
             categoryRepository = fakeCategoryRepository,
             budgetGoalRepository = fakeBudgetGoalRepository,
             debtRepository = fakeDebtRepository,
-            notificationRepository = fakeNotificationRepository
+            notificationRepository = fakeNotificationRepository,
+            geminiApiKey = "",
+            openRouterApiKey = "",
+            nvidiaApiKey = ""
         )
 
         // Query: "رصيد CCP"
@@ -168,7 +174,10 @@ class AiRepositoryTest {
             categoryRepository = fakeCategoryRepository,
             budgetGoalRepository = fakeBudgetGoalRepository,
             debtRepository = fakeDebtRepository,
-            notificationRepository = fakeNotificationRepository
+            notificationRepository = fakeNotificationRepository,
+            geminiApiKey = "",
+            openRouterApiKey = "",
+            nvidiaApiKey = ""
         )
 
         // Network error trigger
@@ -215,7 +224,10 @@ class AiRepositoryTest {
             categoryRepository = fakeCategoryRepository,
             budgetGoalRepository = fakeBudgetGoalRepository,
             debtRepository = fakeDebtRepository,
-            notificationRepository = fakeNotificationRepository
+            notificationRepository = fakeNotificationRepository,
+            geminiApiKey = "",
+            openRouterApiKey = "",
+            nvidiaApiKey = ""
         )
 
         val session = "test_retry_session"

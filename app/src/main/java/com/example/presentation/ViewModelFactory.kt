@@ -36,7 +36,7 @@ class ViewModelFactory(
             modelClass.isAssignableFrom(com.example.presentation.analytics.CardAiChatViewModel::class.java) -> {
                 com.example.presentation.analytics.CardAiChatViewModel(
                     cardDbSnapshotUseCase = container.cardDbSnapshotUseCase,
-                    sendCardAiMessageUseCase = container.sendCardAiMessageUseCase
+                    aiRepository = container.aiRepository
                 ) as T
             }
             modelClass.isAssignableFrom(AiChatViewModel::class.java) -> {
