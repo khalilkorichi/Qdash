@@ -33,6 +33,12 @@ class ViewModelFactory(
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return when {
+            modelClass.isAssignableFrom(com.example.presentation.analytics.CardAiChatViewModel::class.java) -> {
+                com.example.presentation.analytics.CardAiChatViewModel(
+                    cardDbSnapshotUseCase = container.cardDbSnapshotUseCase,
+                    sendCardAiMessageUseCase = container.sendCardAiMessageUseCase
+                ) as T
+            }
             modelClass.isAssignableFrom(AiChatViewModel::class.java) -> {
                 AiChatViewModel(
                     container.aiRepository,

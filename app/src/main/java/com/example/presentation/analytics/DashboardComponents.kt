@@ -43,6 +43,8 @@ import androidx.compose.ui.unit.sp
 import com.example.core.utils.FormatterUtils
 import com.example.domain.model.Category
 import com.example.domain.model.CategoryType
+import com.example.domain.model.CardAiContext
+import com.example.domain.model.CardAiContextType
 import com.example.domain.model.Transaction
 import com.example.domain.model.TransactionType
 import com.example.ui.theme.*
@@ -67,8 +69,10 @@ private val arabicMonths = arrayOf(
 fun DashboardOverviewCard(
     totalIncome: Double,
     totalExpenses: Double,
-    onHelpClick: (String, String) -> Unit,
-    modifier: Modifier = Modifier
+    onAiChatClick: (CardAiContext) -> Unit,
+    modifier: Modifier = Modifier,
+    periodStart: Long = 0L,
+    periodEnd: Long = Long.MAX_VALUE
 ) {
     val savings = (totalIncome - totalExpenses).coerceAtLeast(0.0)
     val spentRatio = if (totalIncome > 0) (totalExpenses / totalIncome).toFloat() else 0f
@@ -116,12 +120,25 @@ fun DashboardOverviewCard(
                         color = TextGray
                     )
                 }
-                HelpIconButton(
+                CardAiChatButton(
                     onClick = {
-                        onHelpClick(
-                            "ملخص الدخل والاستهلاك",
-                            "يقيس هذا الكارت نسبة ما تستهلكه مصاريفك الإجمالية من دخلك المالي الكلي.\n\nالهدف المالي: يفضل إبقاء هذه النسبة دون الـ 80% دائماً لضمان توفير 20% على الأقل كمدخرات للطوارئ والمستقبل."
+                        val chartDataString = org.json.JSONObject().apply {
+                            put("totalIncome", totalIncome)
+                            put("totalExpenses", totalExpenses)
+                            put("savings", savings)
+                            put("spentRatio", spentRatio)
+                        }.toString()
+                        
+                        val cardContext = CardAiContext(
+                            cardId = "dashboard_overview",
+                            cardTitle = "ملخص الدخل والاستهلاك",
+                            cardType = CardAiContextType.DashboardOverview,
+                            chartData = chartDataString,
+                            periodStart = periodStart,
+                            periodEnd = periodEnd,
+                            tooltipContent = "يقيس هذا الكارت نسبة ما تستهلكه مصاريفك الإجمالية من دخلك المالي الكلي.\n\nالهدف المالي: يفضل إبقاء هذه النسبة دون الـ 80% دائماً لضمان توفير 20% على الأقل كمدخرات للطوارئ والمستقبل."
                         )
+                        onAiChatClick(cardContext)
                     }
                 )
             }
@@ -843,8 +860,10 @@ fun MonthComparisonCard(
     compareYearB: Int,
     onMonthAChange: (Int, Int) -> Unit,
     onMonthBChange: (Int, Int) -> Unit,
-    onHelpClick: (String, String) -> Unit,
-    modifier: Modifier = Modifier
+    onAiChatClick: (CardAiContext) -> Unit,
+    modifier: Modifier = Modifier,
+    periodStart: Long = 0L,
+    periodEnd: Long = Long.MAX_VALUE
 ) {
     var showPickerA by remember { mutableStateOf(false) }
     var showPickerB by remember { mutableStateOf(false) }
@@ -956,12 +975,41 @@ fun MonthComparisonCard(
                         color = TextGray
                     )
                 }
-                HelpIconButton(
+                CardAiChatButton(
                     onClick = {
-                        onHelpClick(
-                            "مقارنة المصاريف بين الأشهر",
-                            "تسمح لك هذه الميزة باختيار أي شهرين ومقارنة حجم ومجالات الصرف بينهما.\n\nالفائدة: توضح لك بدقة الفئات التي ارتفع فيها الصرف فجأة لكي تبحث عن الأسباب وتحاول معالجتها في الفترات القادمة."
+                        val chartDataString = org.json.JSONObject().apply {
+                            put("compareMonthA", compareMonthA + 1)
+                            put("compareYearA", compareYearA)
+                            put("compareMonthB", compareMonthB + 1)
+                            put("compareYearB", compareYearB)
+                            put("totalExpensesA", totalExpA)
+                            put("totalExpensesB", totalExpB)
+                            put("difference", diff)
+                            put("percentageDifference", pctDiff)
+                            
+                            put("categoryComparisons", org.json.JSONArray().apply {
+                                comparisonList.forEach {
+                                    put(org.json.JSONObject().apply {
+                                        put("category", it.name)
+                                        put("amountA", it.amountA)
+                                        put("amountB", it.amountB)
+                                        put("difference", it.diff)
+                                        put("percentageDifference", it.pctDiff)
+                                    })
+                                }
+                            })
+                        }.toString()
+                        
+                        val cardContext = CardAiContext(
+                            cardId = "month_comparison",
+                            cardTitle = "مقارنة المصاريف بين الأشهر",
+                            cardType = CardAiContextType.MonthComparison,
+                            chartData = chartDataString,
+                            periodStart = periodStart,
+                            periodEnd = periodEnd,
+                            tooltipContent = "تسمح لك هذه الميزة باختيار أي شهرين ومقارنة حجم ومجالات الصرف بينهما.\n\nالفائدة: توضح لك بدقة الفئات التي ارتفع فيها الصرف فجأة لكي تبحث عن الأسباب وتحاول معالجتها في الفترات القادمة."
                         )
+                        onAiChatClick(cardContext)
                     }
                 )
             }

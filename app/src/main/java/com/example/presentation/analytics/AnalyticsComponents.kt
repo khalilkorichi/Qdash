@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.QuestionMark
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import com.example.ui.designsystem.components.AppBottomSheet
@@ -87,7 +88,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.ui.geometry.Size
 import kotlin.math.asin
-
+import com.example.domain.model.CardAiContext
+import com.example.domain.model.CardAiContextType
 
 private const val DONUT_SMALL_CATEGORY_THRESHOLD = 2000.0
 
@@ -379,9 +381,11 @@ fun InteractiveDonutCard(
     shares: List<CategoryShare>,
     selectedCategory: CategoryShare?,
     onSelectedCategoryChange: (CategoryShare?) -> Unit,
-    onHelpClick: (String, String) -> Unit,
+    onAiChatClick: (CardAiContext) -> Unit,
     onCategoryLongClick: (CategoryShare) -> Unit,
-    categories: List<Category> = emptyList()
+    categories: List<Category> = emptyList(),
+    periodStart: Long = 0L,
+    periodEnd: Long = Long.MAX_VALUE
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     var viewMode by remember { mutableStateOf(ChartViewMode.DONUT) }
@@ -472,12 +476,28 @@ fun InteractiveDonutCard(
                             color = TextGray
                         )
                     }
-                    HelpIconButton(
+                    CardAiChatButton(
                         onClick = {
-                            onHelpClick(
-                                "توزيع المصاريف حسب الفئة",
-                                "يقيس هذا المخطط النسبة المئوية لإجمالي نفقاتك الموزعة على مختلف الفئات المالية (كالأغذية، النقل، الفواتير، إلخ) خلال الفترة الزمنية المحددة.\n\nالفائدة: يساعدك على رصد الفئات الرئيسية الأكثر استهلاكاً لسيولتك النقدية لتتمكن من اتخاذ قرارات واعية بكبح الصرف في الجوانب الترفيهية وزيادة مدخراتك."
+                            val chartDataString = org.json.JSONArray().apply {
+                                shares.forEach {
+                                    put(org.json.JSONObject().apply {
+                                        put("category", it.categoryName)
+                                        put("amount", it.amount)
+                                        put("percentage", it.percentage)
+                                    })
+                                }
+                            }.toString()
+                            
+                            val cardContext = CardAiContext(
+                                cardId = "donut_chart",
+                                cardTitle = "توزيع المصاريف حسب الفئة",
+                                cardType = CardAiContextType.DonutChart,
+                                chartData = chartDataString,
+                                periodStart = periodStart,
+                                periodEnd = periodEnd,
+                                tooltipContent = "يقيس هذا المخطط النسبة المئوية لإجمالي نفقاتك الموزعة على مختلف الفئات المالية (كالأغذية، النقل، الفواتير، إلخ) خلال الفترة الزمنية المحددة.\n\nالفائدة: يساعدك على رصد الفئات الرئيسية الأكثر استهلاكاً لسيولتك النقدية لتتمكن من اتخاذ قرارات واعية بكبح الصرف في الجوانب الترفيهية وزيادة مدخراتك."
                             )
+                            onAiChatClick(cardContext)
                         }
                     )
                 }
@@ -1803,10 +1823,35 @@ fun HelpIconButton(
 }
 
 @Composable
+fun CardAiChatButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .size(28.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f), CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.AutoAwesome,
+            contentDescription = "الذكاء الاصطناعي",
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(14.dp)
+        )
+    }
+}
+
+@Composable
 fun EmergencyFundCard(
     uiState: com.example.presentation.analytics.AnalyticsUiState,
-    onHelpClick: (String, String) -> Unit,
-    modifier: Modifier = Modifier
+    onAiChatClick: (CardAiContext) -> Unit,
+    modifier: Modifier = Modifier,
+    periodStart: Long = 0L,
+    periodEnd: Long = Long.MAX_VALUE
 ) {
     if (uiState.isDatabaseEmpty) return
 
@@ -1847,12 +1892,25 @@ fun EmergencyFundCard(
                         color = TextGray
                     )
                 }
-                HelpIconButton(
+                CardAiChatButton(
                     onClick = {
-                        onHelpClick(
-                            "مؤشر صندوق الطوارئ والأمان المالي",
-                            "يقيس هذا المؤشر عدد الأشهر الافتراضية التي يمكنك العيش فيها معتمداً بالكامل على مدخراتك الحالية لتغطية متوسط نفقاتك الشهرية إذا انقطع دخلك فجأة.\n\nالفائدة: يوفر مقياساً حقيقياً لمدى أمانك المالي وصمودك أمام الأزمات المفاجئة (مثل فقدان العمل أو الطوارئ الصحية) دون الحاجة للاقتراض أو الديون."
+                        val chartDataString = org.json.JSONObject().apply {
+                            put("emergencyFundStatus", uiState.emergencyFundStatus)
+                            put("currentSavings", uiState.totalSavingsAmount)
+                            put("averageExpenses", uiState.averageMonthlyExpense)
+                            put("monthsFunded", uiState.emergencyFundRunwayMonths)
+                        }.toString()
+                        
+                        val cardContext = CardAiContext(
+                            cardId = "emergency_fund",
+                            cardTitle = "مؤشر صندوق الطوارئ والأمان المالي",
+                            cardType = CardAiContextType.EmergencyFund,
+                            chartData = chartDataString,
+                            periodStart = periodStart,
+                            periodEnd = periodEnd,
+                            tooltipContent = "يقيس هذا المؤشر عدد الأشهر الافتراضية التي يمكنك العيش فيها معتمداً بالكامل على مدخراتك الحالية لتغطية متوسط نفقاتك الشهرية إذا انقطع دخلك فجأة.\n\nالفائدة: يوفر مقياساً حقيقياً لمدى أمانك المالي وصمودك أمام الأزمات المفاجئة (مثل فقدان العمل أو الطوارئ الصحية) دون الحاجة للاقتراض أو الديون."
                         )
+                        onAiChatClick(cardContext)
                     }
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -1966,8 +2024,10 @@ fun EmergencyFundCard(
 @Composable
 fun SalaryCycleCard(
     uiState: com.example.presentation.analytics.AnalyticsUiState,
-    onHelpClick: (String, String) -> Unit,
-    modifier: Modifier = Modifier
+    onAiChatClick: (CardAiContext) -> Unit,
+    modifier: Modifier = Modifier,
+    periodStart: Long = 0L,
+    periodEnd: Long = Long.MAX_VALUE
 ) {
     if (uiState.selectedPeriod != "MONTH" || uiState.spendingsByCategory.isEmpty()) return
 
@@ -2002,12 +2062,28 @@ fun SalaryCycleCard(
                         color = TextGray
                     )
                 }
-                HelpIconButton(
+                CardAiChatButton(
                     onClick = {
-                        onHelpClick(
-                            "توقعات الإنفاق ودورة الراتب",
-                            "يقيس هذا المؤشر سرعة وتقدم معدل إنفاقك اليومي الفعلي ومقارنته بالميزانية المحددة أو الراتب المرجعي على مدار أيام دورة الراتب المالي المتبقية.\n\nالفائدة: يتنبأ بإجمالي نفقاتك بنهاية الشهر الجاري ويحذرك مبكراً إذا كنت متجهاً لتجاوز الميزانية لتتمكن من ترشيد نفقاتك وتعديل سلوك الاستهلاك قبل فوات الأوان."
+                        val chartDataString = org.json.JSONObject().apply {
+                            put("hasSalarySource", uiState.hasSalarySource)
+                            put("salaryCycleStartLabel", uiState.salaryCycleStartLabel)
+                            put("salaryCycleEndLabel", uiState.salaryCycleEndLabel)
+                            put("projectedSpend", uiState.projectedEndMonthSpending)
+                            put("referenceSalary", uiState.salaryAmount)
+                            put("referenceBudget", uiState.referenceBudget)
+                            put("daysRemaining", uiState.daysRemainingInCycle)
+                        }.toString()
+                        
+                        val cardContext = CardAiContext(
+                            cardId = "salary_cycle",
+                            cardTitle = "توقعات الإنفاق ودورة الراتب",
+                            cardType = CardAiContextType.SalaryCycle,
+                            chartData = chartDataString,
+                            periodStart = periodStart,
+                            periodEnd = periodEnd,
+                            tooltipContent = "يقيس هذا المؤشر سرعة وتقدم معدل إنفاقك اليومي الفعلي ومقارنته بالميزانية المحددة أو الراتب المرجعي على مدار أيام دورة الراتب المالي المتبقية.\n\nالفائدة: يتنبأ بإجمالي نفقاتك بنهاية الشهر الجاري ويحذرك مبكراً إذا كنت متجهاً لتجاوز الميزانية لتتمكن من ترشيد نفقاتك وتعديل سلوك الاستهلاك قبل فوات الأوان."
                         )
+                        onAiChatClick(cardContext)
                     }
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -2134,8 +2210,10 @@ fun SalaryCycleCard(
 @Composable
 fun WeekendWeekdayCard(
     uiState: com.example.presentation.analytics.AnalyticsUiState,
-    onHelpClick: (String, String) -> Unit,
-    modifier: Modifier = Modifier
+    onAiChatClick: (CardAiContext) -> Unit,
+    modifier: Modifier = Modifier,
+    periodStart: Long = 0L,
+    periodEnd: Long = Long.MAX_VALUE
 ) {
     if (!uiState.hasWeekendData || uiState.spendingsByCategory.isEmpty()) return
 
@@ -2174,12 +2252,27 @@ fun WeekendWeekdayCard(
                         color = TextGray
                     )
                 }
-                HelpIconButton(
+                CardAiChatButton(
                     onClick = {
-                        onHelpClick(
-                            "تحليل أيام العمل مقابل عطلة نهاية الأسبوع",
-                            "يقيس هذا التحليل متوسط حجم إنفاقك المالي في أيام الأسبوع العادية (من الأحد إلى الخميس) مقارنة بمتوسط إنفاقك في عطلة نهاية الأسبوع (الجمعة والسبت بالجزائر).\n\nالفائدة: يوضح لك سلوكك الترفيهي أو الاستهلاكي خلال العطلات، مما يساعدك على كبح المصاريف غير الضرورية أو المبالغ فيها خلال عطلة نهاية الأسبوع."
+                        val chartDataString = org.json.JSONObject().apply {
+                            put("weekdayDailyAverage", weekdayAvg)
+                            put("weekendDailyAverage", weekendAvg)
+                            put("weekdayPercentage", weekdayPercent)
+                            put("weekendPercentage", weekendPercent)
+                            put("totalWeekdaySpend", uiState.weekdayExpensesSum)
+                            put("totalWeekendSpend", uiState.weekendExpensesSum)
+                        }.toString()
+                        
+                        val cardContext = CardAiContext(
+                            cardId = "weekend_weekday",
+                            cardTitle = "تحليل الإنفاق: أيام العمل مقابل نهاية الأسبوع",
+                            cardType = CardAiContextType.WeekendWeekday,
+                            chartData = chartDataString,
+                            periodStart = periodStart,
+                            periodEnd = periodEnd,
+                            tooltipContent = "يقيس هذا التحليل متوسط حجم إنفاقك المالي في أيام الأسبوع العادية (من الأحد إلى الخميس) مقارنة بمتوسط إنفاقك في عطلة نهاية الأسبوع (الجمعة والسبت بالجزائر).\n\nالفائدة: يوضح لك سلوكك الترفيهي أو الاستهلاكي خلال العطلات، مما يساعدك على كبح المصاريف غير الضرورية أو المبالغ فيها خلال عطلة نهاية الأسبوع."
                         )
+                        onAiChatClick(cardContext)
                     }
                 )
             }

@@ -1269,6 +1269,112 @@ class AiRepositoryImpl(
         aiChatDao.deleteSession(sessionTitle)
     }
 
+    override suspend fun sendCardMessage(
+        systemPrompt: String,
+        history: List<AiChatMessage>,
+        userMessage: String
+    ): String = withContext(Dispatchers.IO) {
+        val models = listOf(
+            "gemini-2.5-pro",
+            "gemini-2.0-flash",
+            "gemini-1.5-pro",
+            "gemini-1.5-flash",
+            "gemini-1.0-pro",
+            "gemini-1.0-flash"
+        )
+        
+        var lastException: Exception? = null
+        for (modelId in models) {
+            try {
+                val apiKey = getApiKey()
+                if (apiKey.isNullOrBlank()) {
+                    throw AiFailureException.AiServiceFailure("Google API key is missing")
+                }
+                val reply = callGeminiApiForCard(apiKey, systemPrompt, history, userMessage, modelId)
+                return@withContext reply
+            } catch (e: Exception) {
+                lastException = e
+                try {
+                    android.util.Log.w("AiRepository", "Fallback chain: Model $modelId failed, trying next. Error: ${e.localizedMessage}")
+                } catch (logEx: Exception) {
+                    println("AiRepository: Fallback chain: Model $modelId failed. Error: ${e.localizedMessage}")
+                }
+            }
+        }
+        
+        // Final fallback if all failed: friendly message in Algerian Arabic
+        "سمحلي خويا، راني نواجه صعوبة في الاتصال بالخادم حالياً. عاود جرب بعد قليل!"
+    }
+
+    private suspend fun callGeminiApiForCard(
+        apiKey: String,
+        systemPrompt: String,
+        history: List<AiChatMessage>,
+        userMessage: String,
+        modelId: String
+    ): String = withContext(Dispatchers.IO) {
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/$modelId:generateContent?key=$apiKey"
+        
+        val contentsArray = JSONArray()
+        for (msg in history) {
+            val role = if (msg.sender == ChatSender.USER) "user" else "model"
+            contentsArray.put(
+                JSONObject().apply {
+                    put("role", role)
+                    put("parts", JSONArray().put(JSONObject().put("text", msg.message)))
+                }
+            )
+        }
+        // Append user message
+        contentsArray.put(
+            JSONObject().apply {
+                put("role", "user")
+                put("parts", JSONArray().put(JSONObject().put("text", userMessage)))
+            }
+        )
+        
+        val systemInstruction = JSONObject().apply {
+            put("parts", JSONArray().put(JSONObject().put("text", systemPrompt)))
+        }
+        
+        val requestBodyJson = JSONObject().apply {
+            put("contents", contentsArray)
+            put("systemInstruction", systemInstruction)
+        }
+        
+        val request = Request.Builder()
+            .url(url)
+            .addHeader("Content-Type", "application/json")
+            .post(requestBodyJson.toString().toRequestBody(jsonMediaType))
+            .build()
+            
+        val response = try {
+            okHttpClient.newCall(request).execute()
+        } catch (e: java.io.IOException) {
+            throw AiFailureException.NetworkFailure("Network call failed: ${e.localizedMessage}", e)
+        }
+        
+        if (!response.isSuccessful) {
+            val errorBody = response.body?.string() ?: ""
+            throw AiFailureException.AiServiceFailure("Gemini API call failed with code: ${response.code}. Details: $errorBody")
+        }
+        
+        val responseBody = response.body?.string() ?: throw AiFailureException.AiServiceFailure("Empty response body")
+        val responseJson = JSONObject(responseBody)
+        val candidates = responseJson.optJSONArray("candidates")
+        if (candidates == null || candidates.length() == 0) {
+            throw AiFailureException.AiServiceFailure("No candidates generated")
+        }
+        
+        val contentObj = candidates.getJSONObject(0).optJSONObject("content") ?: throw AiFailureException.AiServiceFailure("Empty content object")
+        val parts = contentObj.optJSONArray("parts")
+        if (parts == null || parts.length() == 0) {
+            throw AiFailureException.AiServiceFailure("No parts in content")
+        }
+        
+        parts.getJSONObject(0).optString("text", "")
+    }
+
     private suspend fun getDatabaseContextString(): String {
         return try {
             val accounts = accountRepository.getAllAccounts().first().filter { !it.isArchived }

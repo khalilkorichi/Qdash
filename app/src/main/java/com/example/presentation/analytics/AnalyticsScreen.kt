@@ -87,6 +87,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.ui.geometry.Size
 import kotlin.math.asin
 import java.util.Calendar
+import com.example.domain.model.CardAiContext
+import com.example.domain.model.CardAiContextType
 
 private data class AnalyticsTab(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
@@ -94,6 +96,7 @@ private data class AnalyticsTab(val label: String, val icon: androidx.compose.ui
 @Composable
 fun AnalyticsScreen(
     viewModel: AnalyticsViewModel,
+    cardAiChatViewModel: CardAiChatViewModel,
     modifier: Modifier = Modifier
 ) {
     val Primary = MaterialTheme.colorScheme.primary
@@ -105,6 +108,9 @@ fun AnalyticsScreen(
     var selectedCategory by remember { mutableStateOf<CategoryShare?>(null) }
     var activeExplanationInfo by remember { mutableStateOf<Pair<String, String>?>(null) }
     var longClickedCategory by remember { mutableStateOf<CategoryShare?>(null) }
+    
+    var activeAiChatContext by remember { mutableStateOf<CardAiContext?>(null) }
+    val currentPeriodRange = remember(uiState) { computePeriodRange(uiState) }
     val scope = rememberCoroutineScope()
     var longClickJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
@@ -767,11 +773,16 @@ fun AnalyticsScreen(
                         shares = shares,
                         selectedCategory = selectedCategory,
                         onSelectedCategoryChange = { selectedCategory = it },
-                        onHelpClick = { title, desc -> activeExplanationInfo = title to desc },
+                        onAiChatClick = { context ->
+                            activeAiChatContext = context
+                            cardAiChatViewModel.openSheet(context)
+                        },
                         onCategoryLongClick = { category ->
                             longClickedCategory = category
                         },
-                        categories = uiState.categories
+                        categories = uiState.categories,
+                        periodStart = currentPeriodRange.first,
+                        periodEnd = currentPeriodRange.second
                     )
                 }
             }
@@ -1483,7 +1494,12 @@ fun AnalyticsScreen(
                         DashboardOverviewCard(
                             totalIncome = dashIncome,
                             totalExpenses = dashExpenses,
-                            onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
+                            onAiChatClick = { context ->
+                                activeAiChatContext = context
+                                cardAiChatViewModel.openSheet(context)
+                            },
+                            periodStart = currentPeriodRange.first,
+                            periodEnd = currentPeriodRange.second
                         )
                     }
 
@@ -1498,7 +1514,12 @@ fun AnalyticsScreen(
                             compareYearB = uiState.compareYearB,
                             onMonthAChange = { m, y -> viewModel.setCompareMonthA(m, y) },
                             onMonthBChange = { m, y -> viewModel.setCompareMonthB(m, y) },
-                            onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
+                            onAiChatClick = { context ->
+                                activeAiChatContext = context
+                                cardAiChatViewModel.openSheet(context)
+                            },
+                            periodStart = currentPeriodRange.first,
+                            periodEnd = currentPeriodRange.second
                         )
                     }
                 }
@@ -1535,7 +1556,12 @@ fun AnalyticsScreen(
                     item {
                         EmergencyFundCard(
                             uiState = uiState,
-                            onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
+                            onAiChatClick = { context ->
+                                activeAiChatContext = context
+                                cardAiChatViewModel.openSheet(context)
+                            },
+                            periodStart = currentPeriodRange.first,
+                            periodEnd = currentPeriodRange.second
                         )
                     }
                     if (uiState.selectedPeriod == "MONTH" && uiState.spendingsByCategory.isNotEmpty()) {
@@ -1543,7 +1569,12 @@ fun AnalyticsScreen(
                         item {
                             SalaryCycleCard(
                                 uiState = uiState,
-                                onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
+                                onAiChatClick = { context ->
+                                    activeAiChatContext = context
+                                    cardAiChatViewModel.openSheet(context)
+                                },
+                                periodStart = currentPeriodRange.first,
+                                periodEnd = currentPeriodRange.second
                             )
                         }
                     }
@@ -1551,7 +1582,12 @@ fun AnalyticsScreen(
                     item {
                         WeekendWeekdayCard(
                             uiState = uiState,
-                            onHelpClick = { title, desc -> activeExplanationInfo = title to desc }
+                            onAiChatClick = { context ->
+                                activeAiChatContext = context
+                                cardAiChatViewModel.openSheet(context)
+                            },
+                            periodStart = currentPeriodRange.first,
+                            periodEnd = currentPeriodRange.second
                         )
                     }
                     if (uiState.spendingsByCategory.isEmpty()) {
@@ -1644,5 +1680,106 @@ fun AnalyticsScreen(
             }
         } // end LazyColumn
         } // end PullToRefreshBox
+
+        if (activeAiChatContext != null) {
+            CardAiChatSheet(
+                viewModel = cardAiChatViewModel,
+                onDismiss = { 
+                    activeAiChatContext = null
+                    cardAiChatViewModel.closeSheet()
+                }
+            )
+        }
     } // end Scaffold
+}
+
+private fun computePeriodRange(uiState: AnalyticsUiState): Pair<Long, Long> {
+    val firstDayOfWeek = Calendar.getInstance().firstDayOfWeek
+    return when (uiState.selectedPeriod) {
+        "YEAR" -> {
+            val start = Calendar.getInstance().apply {
+                set(Calendar.YEAR, uiState.selectedYear)
+                set(Calendar.MONTH, Calendar.JANUARY)
+                set(Calendar.DAY_OF_MONTH, 1)
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val end = start.clone() as Calendar
+            end.set(Calendar.MONTH, Calendar.DECEMBER)
+            end.set(Calendar.DAY_OF_MONTH, 31)
+            end.set(Calendar.HOUR_OF_DAY, 23)
+            end.set(Calendar.MINUTE, 59)
+            end.set(Calendar.SECOND, 59)
+            end.set(Calendar.MILLISECOND, 999)
+            Pair(start.timeInMillis, end.timeInMillis)
+        }
+        "WEEK" -> {
+            val targetCal = Calendar.getInstance().apply {
+                add(Calendar.WEEK_OF_YEAR, -uiState.selectedWeekOffset)
+                set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val startOfWeek = targetCal.timeInMillis
+            val endOfWeek = startOfWeek + (7L * 24 * 60 * 60 * 1000) - 1
+            Pair(startOfWeek, endOfWeek)
+        }
+        "DAY" -> {
+            val targetCal = Calendar.getInstance().apply {
+                add(Calendar.DAY_OF_YEAR, -uiState.selectedDayOffset)
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val startOfDay = targetCal.timeInMillis
+            val endOfDay = startOfDay + (24L * 60 * 60 * 1000) - 1
+            Pair(startOfDay, endOfDay)
+        }
+        "MONTH" -> {
+            if (uiState.hasSalarySource) {
+                val startCal = Calendar.getInstance().apply {
+                    set(Calendar.YEAR, uiState.selectedYear)
+                    set(Calendar.MONTH, uiState.selectedMonth)
+                    add(Calendar.MONTH, -1) // starts in previous month
+                    val maxDay = getActualMaximum(Calendar.DAY_OF_MONTH)
+                    set(Calendar.DAY_OF_MONTH, uiState.salaryDayOfMonth.coerceAtMost(maxDay))
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                val endCal = startCal.clone() as Calendar
+                endCal.add(Calendar.MONTH, 1)
+                val nextMonthMax = endCal.getActualMaximum(Calendar.DAY_OF_MONTH)
+                endCal.set(Calendar.DAY_OF_MONTH, uiState.salaryDayOfMonth.coerceAtMost(nextMonthMax))
+                endCal.add(Calendar.MILLISECOND, -1)
+                Pair(startCal.timeInMillis, endCal.timeInMillis)
+            } else {
+                val start = Calendar.getInstance().apply {
+                    set(Calendar.YEAR, uiState.selectedYear)
+                    set(Calendar.MONTH, uiState.selectedMonth)
+                    set(Calendar.DAY_OF_MONTH, 1)
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                val end = start.clone() as Calendar
+                end.set(Calendar.DAY_OF_MONTH, end.getActualMaximum(Calendar.DAY_OF_MONTH))
+                end.set(Calendar.HOUR_OF_DAY, 23)
+                end.set(Calendar.MINUTE, 59)
+                end.set(Calendar.SECOND, 59)
+                end.set(Calendar.MILLISECOND, 999)
+                Pair(start.timeInMillis, end.timeInMillis)
+            }
+        }
+        else -> { // ALL
+            Pair(0L, Long.MAX_VALUE)
+        }
+    }
 }

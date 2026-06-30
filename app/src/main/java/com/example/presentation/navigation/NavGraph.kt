@@ -15,6 +15,7 @@ import com.example.presentation.accounts.AccountsScreen
 import com.example.presentation.accounts.AccountsViewModel
 import com.example.presentation.analytics.AnalyticsScreen
 import com.example.presentation.analytics.AnalyticsViewModel
+import com.example.presentation.analytics.CardAiChatViewModel
 import com.example.presentation.home.HomeScreen
 import com.example.presentation.home.HomeViewModel
 import com.example.presentation.onboarding.OnboardingScreen
@@ -283,8 +284,10 @@ internal fun FinTrackNavGraph(
 
         composable(Screen.Analytics.route) {
             val analyticsViewModel: AnalyticsViewModel = viewModel(factory = factory)
+            val cardAiChatViewModel: CardAiChatViewModel = viewModel(factory = factory)
             AnalyticsScreen(
-                viewModel = analyticsViewModel
+                viewModel = analyticsViewModel,
+                cardAiChatViewModel = cardAiChatViewModel
             )
         }
 

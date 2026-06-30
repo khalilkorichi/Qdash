@@ -22,4 +22,5 @@ interface AiRepository {
 
     fun getAllSessionTitles(): Flow<List<String>>
     suspend fun deleteSession(sessionTitle: String)
+    suspend fun sendCardMessage(systemPrompt: String, history: List<AiChatMessage>, userMessage: String): String
 }

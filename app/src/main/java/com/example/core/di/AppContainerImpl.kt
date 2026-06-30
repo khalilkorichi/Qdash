@@ -324,6 +324,20 @@ class AppContainerImpl(private val context: Context) : AppContainer {
         com.example.domain.usecase.transaction.BulkEditTransactionsUseCase(transactionRepository)
     }
 
+    override val cardDbSnapshotUseCase: com.example.domain.usecase.ai.CardDbSnapshotUseCase by lazy {
+        com.example.domain.usecase.ai.CardDbSnapshotUseCase(
+            transactionRepository,
+            accountRepository,
+            budgetGoalRepository,
+            savingRepository,
+            categoryRepository
+        )
+    }
+
+    override val sendCardAiMessageUseCase: com.example.domain.usecase.ai.SendCardAiMessageUseCase by lazy {
+        com.example.domain.usecase.ai.SendCardAiMessageUseCase(aiRepository)
+    }
+
     init {
         // Pre-warm SharedPreferences to avoid main-thread blocking I/O on startup
         preferencesManager
