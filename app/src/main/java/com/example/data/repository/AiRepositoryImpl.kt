@@ -1274,30 +1274,45 @@ class AiRepositoryImpl(
         history: List<AiChatMessage>,
         userMessage: String
     ): String = withContext(Dispatchers.IO) {
-        val models = listOf(
-            "gemini-2.5-pro",
-            "gemini-2.0-flash",
-            "gemini-1.5-pro",
-            "gemini-1.5-flash",
-            "gemini-1.0-pro",
-            "gemini-1.0-flash"
-        )
-        
-        var lastException: Exception? = null
-        for (modelId in models) {
-            try {
-                val apiKey = getApiKey()
-                if (apiKey.isNullOrBlank()) {
-                    throw AiFailureException.AiServiceFailure("Google API key is missing")
+        val apiKey = getApiKey()
+        if (!apiKey.isNullOrBlank()) {
+            val models = listOf(
+                "gemini-2.5-pro",
+                "gemini-2.0-flash",
+                "gemini-1.5-pro",
+                "gemini-1.5-flash",
+                "gemini-1.0-pro",
+                "gemini-1.0-flash"
+            )
+            for (modelId in models) {
+                try {
+                    val reply = callGeminiApiForCard(apiKey, systemPrompt, history, userMessage, modelId)
+                    return@withContext reply
+                } catch (e: Exception) {
+                    try {
+                        android.util.Log.w("AiRepository", "Direct Gemini Fallback chain: Model $modelId failed, trying next. Error: ${e.localizedMessage}")
+                    } catch (logEx: Exception) {
+                        println("AiRepository: Direct Gemini Fallback chain: Model $modelId failed. Error: ${e.localizedMessage}")
+                    }
                 }
-                val reply = callGeminiApiForCard(apiKey, systemPrompt, history, userMessage, modelId)
+            }
+        }
+        
+        // If Google API key is missing or all direct Gemini calls fail, try OpenRouter fallback
+        val openRouterModels = listOf(
+            "google/gemini-2.5-pro",
+            "google/gemini-2.5-flash:free",
+            "google/gemini-2.5-flash"
+        )
+        for (modelId in openRouterModels) {
+            try {
+                val reply = callOpenRouterApiForCard(systemPrompt, history, userMessage, modelId)
                 return@withContext reply
             } catch (e: Exception) {
-                lastException = e
                 try {
-                    android.util.Log.w("AiRepository", "Fallback chain: Model $modelId failed, trying next. Error: ${e.localizedMessage}")
+                    android.util.Log.w("AiRepository", "OpenRouter Fallback chain: Model $modelId failed, trying next. Error: ${e.localizedMessage}")
                 } catch (logEx: Exception) {
-                    println("AiRepository: Fallback chain: Model $modelId failed. Error: ${e.localizedMessage}")
+                    println("AiRepository: OpenRouter Fallback chain: Model $modelId failed. Error: ${e.localizedMessage}")
                 }
             }
         }
@@ -1373,6 +1388,63 @@ class AiRepositoryImpl(
         }
         
         parts.getJSONObject(0).optString("text", "")
+    }
+
+    private suspend fun callOpenRouterApiForCard(
+        systemPrompt: String,
+        history: List<AiChatMessage>,
+        userMessage: String,
+        modelId: String
+    ): String = withContext(Dispatchers.IO) {
+        val url = "$OPENROUTER_BASE_URL/chat/completions"
+        val messagesArray = JSONArray()
+        messagesArray.put(
+            JSONObject().apply {
+                put("role", "system")
+                put("content", systemPrompt)
+            }
+        )
+        for (msg in history) {
+            val role = if (msg.sender == ChatSender.USER) "user" else "assistant"
+            messagesArray.put(
+                JSONObject().apply {
+                    put("role", role)
+                    put("content", msg.message)
+                }
+            )
+        }
+        messagesArray.put(
+            JSONObject().apply {
+                put("role", "user")
+                put("content", userMessage)
+            }
+        )
+        val requestBodyJson = JSONObject().apply {
+            put("model", modelId)
+            put("messages", messagesArray)
+        }
+        val request = Request.Builder()
+            .url(url)
+            .addHeader("Authorization", "Bearer $OPENROUTER_API_KEY")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("HTTP-Referer", "https://github.com/khalilkorichi/Qdash")
+            .addHeader("X-Title", "Qdash")
+            .post(requestBodyJson.toString().toRequestBody(jsonMediaType))
+            .build()
+        val response = okHttpClient.newCall(request).execute()
+        if (!response.isSuccessful) {
+            val errorBody = response.body?.string() ?: ""
+            throw AiFailureException.AiServiceFailure("OpenRouter call failed: ${response.code}. Details: $errorBody")
+        }
+        val responseBody = response.body?.string() ?: throw AiFailureException.AiServiceFailure("Empty response body")
+        val responseJson = JSONObject(responseBody)
+        val choices = responseJson.optJSONArray("choices") ?: throw AiFailureException.AiServiceFailure("No choices generated")
+        if (choices.length() == 0) {
+            throw AiFailureException.AiServiceFailure("Empty choices array")
+        }
+        val choice = choices.getJSONObject(0)
+        val message = choice.getJSONObject("message")
+        message.optString("content", "لم يتم إرجاع أي نص.")
     }
 
     private suspend fun getDatabaseContextString(): String {

@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.example.domain.model.AiChatMessage
 import com.example.domain.model.ChatSender
 import com.example.presentation.ai.components.MarkdownMessageText
+import com.example.presentation.analytics.components.CardAiThinkingPanel
 import com.example.ui.designsystem.components.AppBottomSheet
 import com.example.ui.designsystem.components.AppCard
 import com.example.ui.designsystem.components.CardVariant
@@ -82,20 +83,20 @@ fun CardAiChatSheet(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(0.75f)
+                        .fillMaxHeight(0.50f)
                         .background(MaterialTheme.colorScheme.surface)
                 ) {
                     // Header Bar
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
                             .border(
                                 width = 1.dp,
                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
                                 shape = RoundedCornerShape(8.dp)
                             )
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -159,22 +160,13 @@ fun CardAiChatSheet(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
+                            .padding(horizontal = 12.dp)
                     ) {
-                        if (!uiState.isContextReady) {
-                            Column(
-                                modifier = Modifier.fillMaxSize(),
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary, strokeWidth = 3.dp)
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text(
-                                    text = "جاري جمع وتحليل بيانات البطاقة وسياق الميزانية...",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                        if (uiState.thinkingStep < 3) {
+                            CardAiThinkingPanel(
+                                thinkingStep = uiState.thinkingStep,
+                                modifier = Modifier.align(Alignment.Center)
+                            )
                         } else if (uiState.messages.isEmpty()) {
                             Column(
                                 modifier = Modifier
@@ -208,8 +200,8 @@ fun CardAiChatSheet(
                             LazyColumn(
                                 state = listState,
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(vertical = 16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                contentPadding = PaddingValues(vertical = 12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 items(uiState.messages) { message ->
                                     CardChatMessageBubble(message = message)
@@ -230,34 +222,35 @@ fun CardAiChatSheet(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         OutlinedTextField(
                             value = uiState.inputText,
                             onValueChange = { viewModel.updateInput(it) },
-                            placeholder = { Text("اسألني عن هذه البطاقة...", fontSize = 14.sp) },
+                            placeholder = { Text("اسألني عن هذه البطاقة...", fontSize = 12.sp) },
                             modifier = Modifier
                                 .weight(1f)
-                                .heightIn(max = 120.dp),
+                                .height(48.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                                 unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
                             ),
-                            maxLines = 4
+                            singleLine = true,
+                            maxLines = 1
                         )
 
                         val isSendEnabled = uiState.inputText.isNotBlank() && !uiState.isLoading && uiState.isContextReady
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
+                                .size(40.dp)
                                 .clip(CircleShape)
                                 .background(
                                     if (isSendEnabled) MaterialTheme.colorScheme.primary 
                                     else MaterialTheme.colorScheme.surfaceVariant
-                                )
+                                  )
                                 .clickable(enabled = isSendEnabled) {
                                     viewModel.sendMessage()
                                 },
@@ -267,7 +260,7 @@ fun CardAiChatSheet(
                                 imageVector = Icons.Default.Send,
                                 contentDescription = "إرسال",
                                 tint = if (isSendEnabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
