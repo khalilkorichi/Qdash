@@ -287,6 +287,19 @@ fun UpdatesScreen(
                                     color = MaterialTheme.colorScheme.primary
                                 )
                             }
+                            if (state.speed.isNotEmpty() || (state.eta.isNotEmpty() && state.eta != "حساب...")) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    if (state.speed.isNotEmpty()) {
+                                        Text(text = "السرعة: ${state.speed}", style = MaterialTheme.typography.bodySmall, color = TextGray)
+                                    }
+                                    if (state.eta.isNotEmpty() && state.eta != "حساب...") {
+                                        Text(text = "المتبقي: ${state.eta}", style = MaterialTheme.typography.bodySmall, color = TextGray)
+                                    }
+                                }
+                            }
                             Spacer(modifier = Modifier.height(4.dp))
                             OutlinedButton(
                                 onClick = { viewModel.pauseDownload(state.info) },

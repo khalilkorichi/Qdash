@@ -6,16 +6,26 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import androidx.core.content.FileProvider
+import androidx.work.Data
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.example.BuildConfig
 import com.example.data.backup.BackupManager
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -30,6 +40,152 @@ import java.util.concurrent.TimeUnit
 class UpdateRepositoryImpl(
     private val context: Context
 ) : UpdateRepository {
+
+    private val _downloadState = MutableStateFlow<DownloadState>(DownloadState.Idle)
+    override val downloadState: StateFlow<DownloadState> = _downloadState.asStateFlow()
+
+    fun setDownloadState(state: DownloadState) {
+        _downloadState.value = state
+        if (state is DownloadState.Success || state is DownloadState.Error || state is DownloadState.Idle) {
+            saveActiveUpdateInfo(null)
+        }
+    }
+
+    private fun getSavedActiveUpdateInfo(): UpdateInfo? {
+        val json = context.getSharedPreferences("update_download_prefs", Context.MODE_PRIVATE)
+            .getString("active_update_info", null) ?: return null
+        return try {
+            val moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
+            moshi.adapter(UpdateInfo::class.java).fromJson(json)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun saveActiveUpdateInfo(info: UpdateInfo?) {
+        val prefs = context.getSharedPreferences("update_download_prefs", Context.MODE_PRIVATE)
+        if (info == null) {
+            prefs.edit().remove("active_update_info").apply()
+        } else {
+            try {
+                val moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
+                val json = moshi.adapter(UpdateInfo::class.java).toJson(info)
+                prefs.edit().putString("active_update_info", json).apply()
+            } catch (e: Exception) {
+                // ignore
+            }
+        }
+    }
+
+    init {
+        val wm = try {
+            WorkManager.getInstance(context)
+        } catch (e: Exception) {
+            null
+        }
+        if (wm != null) {
+            val workInfoFlow = wm.getWorkInfosForUniqueWorkFlow("apk_download")
+            CoroutineScope(Dispatchers.IO).launch {
+                workInfoFlow.collect { workInfos ->
+                    val workInfo = workInfos.firstOrNull() ?: return@collect
+                    val state = workInfo.state
+                    val progressData = workInfo.progress
+                    
+                    val progress = progressData.getInt("progress", -1)
+                    val speed = progressData.getString("speed") ?: ""
+                    val eta = progressData.getString("eta") ?: ""
+                    
+                    val activeInfo = getSavedActiveUpdateInfo()
+                    if (activeInfo != null) {
+                        when (state) {
+                            androidx.work.WorkInfo.State.RUNNING -> {
+                                val currentProg = if (progress >= 0) progress else 0
+                                _downloadState.value = DownloadState.Downloading(currentProg, speed, eta, activeInfo)
+                            }
+                            androidx.work.WorkInfo.State.FAILED -> {
+                                if (_downloadState.value !is DownloadState.Error) {
+                                    _downloadState.value = DownloadState.Error("فشل تحميل الملف.", activeInfo)
+                                }
+                            }
+                            androidx.work.WorkInfo.State.CANCELLED -> {
+                                if (UpdateDownloadWorker.isPaused(activeInfo.apkUrl)) {
+                                    val tempFile = File(context.cacheDir, "Qdash-update-temp.apk")
+                                    val currentProgress = if (tempFile.exists() && activeInfo.apkSize > 0L) {
+                                        (tempFile.length() * 100 / activeInfo.apkSize).toInt().coerceIn(0, 100)
+                                    } else 0
+                                    _downloadState.value = DownloadState.Paused(currentProgress, activeInfo)
+                                } else if (_downloadState.value !is DownloadState.Idle) {
+                                    _downloadState.value = DownloadState.Idle
+                                }
+                            }
+                            else -> {}
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    override fun startDownload(info: UpdateInfo) {
+        val currentState = _downloadState.value
+        if (currentState is DownloadState.Downloading && currentState.info.versionName == info.versionName) {
+            return
+        }
+
+        UpdateDownloadWorker.setPaused(info.apkUrl, false)
+        saveActiveUpdateInfo(info)
+
+        val moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
+        val infoJson = moshi.adapter(UpdateInfo::class.java).toJson(info)
+
+        val data = Data.Builder()
+            .putString("apkUrl", info.apkUrl)
+            .putString("apkSha256", info.apkSha256)
+            .putString("versionName", info.versionName)
+            .putLong("apkSize", info.apkSize)
+            .putString("infoJson", infoJson)
+            .build()
+
+        val workRequest = OneTimeWorkRequestBuilder<UpdateDownloadWorker>()
+            .setInputData(data)
+            .addTag("apk_download")
+            .build()
+
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            "apk_download",
+            ExistingWorkPolicy.REPLACE,
+            workRequest
+        )
+        
+        val startBytes = File(context.cacheDir, "Qdash-update-temp.apk").let { if (it.exists()) it.length() else 0L }
+        val initialPercent = if (info.apkSize > 0L) (startBytes * 100 / info.apkSize).toInt().coerceIn(0, 100) else 0
+        _downloadState.value = DownloadState.Downloading(initialPercent, "", "", info)
+    }
+
+    override fun pauseDownload(info: UpdateInfo) {
+        Log.d("UpdateRepositoryImpl", "Pausing download...")
+        UpdateDownloadWorker.setPaused(info.apkUrl, true)
+        
+        val currentState = _downloadState.value
+        val progress = if (currentState is DownloadState.Downloading) currentState.progress else 0
+        _downloadState.value = DownloadState.Paused(progress, info)
+        
+        WorkManager.getInstance(context).cancelUniqueWork("apk_download")
+    }
+
+    override fun cancelDownload(info: UpdateInfo) {
+        Log.d("UpdateRepositoryImpl", "Cancelling download...")
+        WorkManager.getInstance(context).cancelUniqueWork("apk_download")
+        UpdateDownloadWorker.clearPaused(info.apkUrl)
+
+        val tempFile = File(context.cacheDir, "Qdash-update-temp.apk")
+        if (tempFile.exists()) {
+            tempFile.delete()
+        }
+
+        _downloadState.value = DownloadState.Idle
+        saveActiveUpdateInfo(null)
+    }
 
     private val moshi: Moshi = Moshi.Builder()
         .addLast(KotlinJsonAdapterFactory())
@@ -162,66 +318,9 @@ class UpdateRepositoryImpl(
         }
     }
 
-    override fun downloadApk(url: String, startBytes: Long): Flow<DownloadState> = flow {
-        emit(DownloadState.Progress(if (startBytes > 0L) -2 else 0))
-        try {
-            val requestBuilder = Request.Builder().url(url)
-            if (startBytes > 0L) {
-                requestBuilder.addHeader("Range", "bytes=$startBytes-")
-            }
-            val request = requestBuilder.build()
-            val response = downloadHttpClient.newCall(request).execute()
-            if (!response.isSuccessful) {
-                throw java.io.IOException("فشل تحميل الملف: ${response.message}")
-            }
-            val body = response.body ?: throw java.io.IOException("محتوى الملف فارغ.")
-            val remainingLength = body.contentLength()
-            val totalLength = if (startBytes > 0L && (response.code == 206 || response.code == 200)) {
-                if (response.code == 206) remainingLength + startBytes else remainingLength
-            } else {
-                remainingLength
-            }
-            
-            val tempFile = File(context.cacheDir, "Qdash-update-temp.apk")
-            val isAppend = startBytes > 0L && response.code == 206
-            if (startBytes > 0L && response.code == 200 && tempFile.exists()) {
-                tempFile.delete()
-            }
-            if (startBytes > 0L && response.code == 206) {
-                val contentRange = response.header("Content-Range")
-                require(contentRange?.startsWith("bytes $startBytes-") == true) {
-                    "الخادم أعاد نطاق تحميل غير متوافق."
-                }
-            }
-            
-            body.byteStream().use { input ->
-                FileOutputStream(tempFile, isAppend).use { output ->
-                    val buffer = ByteArray(8192)
-                    var bytesRead: Int
-                    var totalBytesRead = 0L
-                    var lastEmittedProgress = 0
-                    
-                    while (input.read(buffer).also { bytesRead = it } != -1) {
-                        output.write(buffer, 0, bytesRead)
-                        totalBytesRead += bytesRead
-                        val currentTotalRead = totalBytesRead + (if (isAppend) startBytes else 0L)
-                        if (totalLength > 0) {
-                            val progress = ((currentTotalRead * 100) / totalLength).toInt()
-                            if (progress > lastEmittedProgress) {
-                                emit(DownloadState.Progress(progress))
-                                lastEmittedProgress = progress
-                            }
-                        } else {
-                            emit(DownloadState.Progress(-1))
-                        }
-                    }
-                }
-            }
-            emit(DownloadState.Success(tempFile))
-        } catch (e: Exception) {
-            emit(DownloadState.Error(e))
-        }
-    }.flowOn(Dispatchers.IO)
+    override fun downloadApk(url: String, startBytes: Long): Flow<DownloadState> {
+        return downloadState
+    }
 
     override fun verifyApkSha256(file: File, expectedSha256: String): Boolean {
         return try {

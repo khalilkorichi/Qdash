@@ -19,9 +19,10 @@ data class UpdateInfo(
 
 sealed class DownloadState {
     object Idle : DownloadState()
-    data class Progress(val percentage: Int) : DownloadState()
-    data class Success(val file: File) : DownloadState()
-    data class Error(val throwable: Throwable) : DownloadState()
+    data class Downloading(val progress: Int, val speed: String, val eta: String, val info: UpdateInfo) : DownloadState()
+    data class Paused(val progress: Int, val info: UpdateInfo) : DownloadState()
+    data class Success(val file: File, val info: UpdateInfo) : DownloadState()
+    data class Error(val message: String, val info: UpdateInfo) : DownloadState()
 }
 
 sealed class CheckingStep {
@@ -35,6 +36,11 @@ sealed class CheckingStep {
 }
 
 interface UpdateRepository {
+    val downloadState: Flow<DownloadState>
+    fun startDownload(info: UpdateInfo)
+    fun pauseDownload(info: UpdateInfo)
+    fun cancelDownload(info: UpdateInfo)
+
     suspend fun checkForUpdates(onStep: suspend (CheckingStep) -> Unit = {}): Result<UpdateInfo>
     fun downloadApk(url: String, startBytes: Long = 0L): Flow<DownloadState>
     fun verifyApkSha256(file: File, expectedSha256: String): Boolean

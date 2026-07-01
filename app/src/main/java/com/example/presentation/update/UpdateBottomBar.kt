@@ -168,22 +168,23 @@ fun UpdateBottomBar(
                     is UpdateUiState.Downloading -> {
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "جاري تحميل التحديث...",
+                                text = if (uiState.speed.isNotEmpty()) "تحميل: ${uiState.speed}" else "جاري تحميل التحديث...",
                                 style = MaterialTheme.typography.titleSmall.copy(
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
+                                    fontSize = 11.sp
                                 )
                             )
                             Text(
-                                text = "${com.example.core.utils.FormatterUtils.convertNumerals(uiState.progress.toString())}%",
+                                text = "${com.example.core.utils.FormatterUtils.convertNumerals(uiState.progress.toString())}%" + if (uiState.eta.isNotEmpty() && uiState.eta != "حساب...") " (${uiState.eta})" else "",
                                 style = MaterialTheme.typography.titleSmall.copy(
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
+                                    fontSize = 11.sp
                                 )
                             )
                         }

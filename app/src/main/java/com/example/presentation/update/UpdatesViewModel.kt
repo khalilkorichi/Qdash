@@ -24,7 +24,7 @@ sealed class UpdateUiState {
     object Checking : UpdateUiState()
     data class NoUpdate(val localVersion: String) : UpdateUiState()
     data class UpdateAvailable(val info: UpdateInfo) : UpdateUiState()
-    data class Downloading(val info: UpdateInfo, val progress: Int) : UpdateUiState()
+    data class Downloading(val info: UpdateInfo, val progress: Int, val speed: String = "", val eta: String = "") : UpdateUiState()
     data class Paused(val info: UpdateInfo, val progress: Int) : UpdateUiState()
     data class DownloadFailed(val info: UpdateInfo, val error: String) : UpdateUiState()
     data class ReadyToInstall(val info: UpdateInfo, val localApkFile: File) : UpdateUiState()
@@ -79,6 +79,55 @@ class UpdatesViewModel(
 
     init {
         loadDownloadedApks()
+        observeDownloadState()
+    }
+
+    private fun observeDownloadState() {
+        viewModelScope.launch {
+            repository.downloadState.collect { downloadState ->
+                when (downloadState) {
+                    is DownloadState.Idle -> {
+                        val lastInfo = lastUpdateInfo
+                        if (lastInfo != null) {
+                            _uiState.value = UpdateUiState.UpdateAvailable(lastInfo)
+                        } else {
+                            _uiState.value = UpdateUiState.Idle
+                        }
+                    }
+                    is DownloadState.Downloading -> {
+                        lastUpdateInfo = downloadState.info
+                        _uiState.value = UpdateUiState.Downloading(
+                            info = downloadState.info,
+                            progress = downloadState.progress,
+                            speed = downloadState.speed,
+                            eta = downloadState.eta
+                        )
+                    }
+                    is DownloadState.Paused -> {
+                        lastUpdateInfo = downloadState.info
+                        _uiState.value = UpdateUiState.Paused(
+                            info = downloadState.info,
+                            progress = downloadState.progress
+                        )
+                    }
+                    is DownloadState.Success -> {
+                        lastUpdateInfo = downloadState.info
+                        _uiState.value = UpdateUiState.ReadyToInstall(
+                            info = downloadState.info,
+                            localApkFile = downloadState.file
+                        )
+                        loadDownloadedApks()
+                    }
+                    is DownloadState.Error -> {
+                        lastUpdateInfo = downloadState.info
+                        _uiState.value = UpdateUiState.DownloadFailed(
+                            info = downloadState.info,
+                            error = downloadState.message
+                        )
+                    }
+                }
+            }
+        }
     }
 
     fun loadDownloadedApks() {
@@ -216,48 +265,7 @@ class UpdatesViewModel(
             _uiState.value = UpdateUiState.DownloadFailed(info, "مساحة التخزين غير كافية لتحميل هذا التحديث. يرجى توفير مساحة إضافية.")
             return
         }
-
-        val startBytes = if (_uiState.value is UpdateUiState.Paused) {
-            File(context.cacheDir, "Qdash-update-temp.apk").let { if (it.exists()) it.length() else 0L }
-        } else {
-            File(context.cacheDir, "Qdash-update-temp.apk").let { if (it.exists()) it.delete() }
-            0L
-        }
-
-        downloadJob?.cancel()
-        downloadJob = viewModelScope.launch {
-            repository.downloadApk(info.apkUrl, startBytes).collect { downloadState ->
-                when (downloadState) {
-                    is DownloadState.Idle -> {
-                        if (_uiState.value !is UpdateUiState.Downloading) {
-                            val initialPercent = if (info.apkSize > 0) (startBytes * 100 / info.apkSize).toInt().coerceIn(0, 100) else 0
-                            _uiState.value = UpdateUiState.Downloading(info, initialPercent)
-                        }
-                    }
-                    is DownloadState.Progress -> {
-                        val percentage = if (downloadState.percentage >= 0) downloadState.percentage else currentProgress
-                        currentProgress = percentage
-                        _uiState.value = UpdateUiState.Downloading(info, percentage)
-                    }
-                    is DownloadState.Success -> {
-                        val isValid = repository.verifyApkSha256(downloadState.file, info.apkSha256)
-
-                        if (isValid) {
-                            viewModelScope.launch {
-                                val savedFile = repository.saveDownloadedApk(downloadState.file, info.versionName)
-                                _uiState.value = UpdateUiState.ReadyToInstall(info, savedFile)
-                                loadDownloadedApks()
-                            }
-                        } else {
-                            _uiState.value = UpdateUiState.DownloadFailed(info, "فشلت عملية التحقق من سلامة الملف (SHA256 Mismatch).")
-                        }
-                    }
-                    is DownloadState.Error -> {
-                        _uiState.value = UpdateUiState.DownloadFailed(info, downloadState.throwable.localizedMessage ?: "فشل تحميل الملف.")
-                    }
-                }
-            }
-        }
+        repository.startDownload(info)
     }
 
     fun deleteDownloadedApk(file: File) {
@@ -285,12 +293,15 @@ class UpdatesViewModel(
     }
 
     fun pauseDownload(info: UpdateInfo) {
-        downloadJob?.cancel()
-        _uiState.value = UpdateUiState.Paused(info, currentProgress)
+        repository.pauseDownload(info)
     }
 
     fun resumeDownload(info: UpdateInfo) {
-        downloadUpdate(info)
+        repository.startDownload(info)
+    }
+
+    fun cancelDownload(info: UpdateInfo) {
+        repository.cancelDownload(info)
     }
 
     fun triggerSafetyBackupAndInstall(context: Context, info: UpdateInfo, file: File) {
