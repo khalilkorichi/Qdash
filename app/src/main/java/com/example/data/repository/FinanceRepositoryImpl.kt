@@ -704,6 +704,119 @@ class IncomeRepositoryImpl(
             )
         )
     }
+
+    override suspend fun deleteSalaryDelay(delayId: Long) = database.withTransaction {
+        val delayEntity = salaryDelayDao.getSalaryDelayById(delayId) ?: return@withTransaction
+
+        // 1. Rollback nextExpectedDate of the salary
+        val salaryEntity = incomeSourceDao.getIncomeSourceById(delayEntity.salaryId)
+        if (salaryEntity != null) {
+            incomeSourceDao.updateIncomeSource(salaryEntity.copy(nextExpectedDate = delayEntity.originalDate))
+        }
+
+        // 2. Rollback auto-shiftable obligations (subtract delayDays * 86400000L)
+        val activeSubscriptions = subscriptionDao.getActiveSubscriptions().first()
+        for (subEntity in activeSubscriptions) {
+            if (subEntity.isAutoShiftableBySalary) {
+                val newBillingDate = subEntity.nextBillingDate - (delayEntity.delayDays * 86400000L)
+                subscriptionDao.updateSubscription(subEntity.copy(nextBillingDate = newBillingDate))
+            }
+        }
+
+        // 3. Delete the delay record
+        salaryDelayDao.deleteSalaryDelay(delayEntity)
+
+        // 4. Create Notification Entity
+        val formattedOriginalDate = FormatterUtils.formatShortDate(delayEntity.originalDate)
+        val notification = NotificationEntity(
+            title = "إلغاء تأجيل الراتب",
+            message = "تم إلغاء تأجيل الراتب وإعادة جدولة الالتزامات إلى مواعيدها الأصلية قبل تاريخ $formattedOriginalDate.",
+            type = "SMART_REMINDER",
+            isRead = false,
+            timestamp = System.currentTimeMillis(),
+            deepLinkRoute = "salary",
+            relatedEntityId = delayEntity.salaryId
+        )
+        val notificationId = notificationDao.insertNotification(notification)
+
+        com.example.core.utils.SystemNotificationHelper.showNotification(
+            context = context,
+            appNotification = com.example.domain.model.AppNotification(
+                id = notificationId,
+                title = notification.title,
+                message = notification.message,
+                type = com.example.domain.model.NotificationType.SMART_REMINDER,
+                isRead = false,
+                timestamp = notification.timestamp,
+                deepLinkRoute = notification.deepLinkRoute,
+                relatedEntityId = notification.relatedEntityId
+            )
+        )
+    }
+
+    override suspend fun updateSalaryDelay(
+        delayId: Long,
+        newDelayDays: Int,
+        newDate: Long,
+        newSeverityScore: Int,
+        affectedObligations: List<AffectedObligation>
+    ) = database.withTransaction {
+        val delayEntity = salaryDelayDao.getSalaryDelayById(delayId) ?: return@withTransaction
+        val oldDelayDays = delayEntity.delayDays
+
+        // 1. Update salary nextExpectedDate
+        val salaryEntity = incomeSourceDao.getIncomeSourceById(delayEntity.salaryId)
+        if (salaryEntity != null) {
+            incomeSourceDao.updateIncomeSource(salaryEntity.copy(nextExpectedDate = newDate))
+        }
+
+        // 2. Adjust auto-shiftable obligations nextBillingDate by the difference: newDelayDays - oldDelayDays
+        val diffDays = newDelayDays - oldDelayDays
+        val activeSubscriptions = subscriptionDao.getActiveSubscriptions().first()
+        for (subEntity in activeSubscriptions) {
+            if (subEntity.isAutoShiftableBySalary) {
+                val newBillingDate = subEntity.nextBillingDate + (diffDays * 86400000L)
+                subscriptionDao.updateSubscription(subEntity.copy(nextBillingDate = newBillingDate))
+            }
+        }
+
+        // 3. Update the delay record
+        val updatedDelay = delayEntity.copy(
+            delayDays = newDelayDays,
+            newDate = newDate,
+            severityScore = newSeverityScore,
+            createdAt = System.currentTimeMillis()
+        )
+        salaryDelayDao.updateSalaryDelay(updatedDelay)
+
+        // 4. Create Notification Entity
+        val formattedOriginalDate = FormatterUtils.formatShortDate(delayEntity.originalDate)
+        val formattedNewDate = FormatterUtils.formatShortDate(newDate)
+        val notification = NotificationEntity(
+            title = "تعديل تأجيل الراتب",
+            message = "تم تعديل تأجيل الراتب من $formattedOriginalDate إلى $formattedNewDate ($newDelayDays يوم).",
+            type = "SMART_REMINDER",
+            isRead = false,
+            timestamp = System.currentTimeMillis(),
+            deepLinkRoute = "salary",
+            relatedEntityId = delayEntity.salaryId
+        )
+        val notificationId = notificationDao.insertNotification(notification)
+
+        com.example.core.utils.SystemNotificationHelper.showNotification(
+            context = context,
+            appNotification = com.example.domain.model.AppNotification(
+                id = notificationId,
+                title = notification.title,
+                message = notification.message,
+                type = com.example.domain.model.NotificationType.SMART_REMINDER,
+                isRead = false,
+                timestamp = notification.timestamp,
+                deepLinkRoute = notification.deepLinkRoute,
+                relatedEntityId = notification.relatedEntityId
+            )
+        )
+    }
 }
 
 class SavingRepositoryImpl(

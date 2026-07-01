@@ -213,6 +213,8 @@ class ViewModelFactory(
                     container.getSalaryManagementOverviewUseCase,
                     container.analyzeSalaryDelayImpactUseCase,
                     container.confirmSalaryDelayUseCase,
+                    container.deleteSalaryDelayUseCase,
+                    container.updateSalaryDelayUseCase,
                     container.subscriptionRepository
                 ) as T
             }

@@ -107,4 +107,6 @@ interface AppContainer {
     val getSalaryManagementOverviewUseCase: com.example.domain.usecase.salary.GetSalaryManagementOverviewUseCase
     val analyzeSalaryDelayImpactUseCase: com.example.domain.usecase.salary.AnalyzeSalaryDelayImpactUseCase
     val confirmSalaryDelayUseCase: com.example.domain.usecase.salary.ConfirmSalaryDelayUseCase
+    val deleteSalaryDelayUseCase: com.example.domain.usecase.salary.DeleteSalaryDelayUseCase
+    val updateSalaryDelayUseCase: com.example.domain.usecase.salary.UpdateSalaryDelayUseCase
 }

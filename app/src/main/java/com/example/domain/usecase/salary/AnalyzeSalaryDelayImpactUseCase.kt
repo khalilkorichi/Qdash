@@ -7,9 +7,11 @@ class AnalyzeSalaryDelayImpactUseCase {
         salary: IncomeSource,
         delayDays: Int,
         subscriptions: List<Subscription>,
-        debts: List<Debt>
+        debts: List<Debt>,
+        originalDateOverride: Long? = null,
+        oldDelayDays: Int = 0
     ): SalaryDelayImpact {
-        val originalDate = salary.nextExpectedDate
+        val originalDate = originalDateOverride ?: salary.nextExpectedDate
         val delayMillis = delayDays * 86400000L
         val newDate = originalDate + delayMillis
 
@@ -17,13 +19,19 @@ class AnalyzeSalaryDelayImpactUseCase {
 
         // Analyze subscriptions
         for (sub in subscriptions) {
-            if (sub.nextBillingDate in originalDate..newDate) {
+            val originalBillingDate = if (sub.isAutoShiftableBySalary && oldDelayDays > 0) {
+                sub.nextBillingDate - (oldDelayDays * 86400000L)
+            } else {
+                sub.nextBillingDate
+            }
+
+            if (originalBillingDate in originalDate..newDate) {
                 affectedObligations.add(
                     AffectedObligation(
                         id = sub.id,
                         name = sub.name,
                         amount = sub.amount,
-                        originalDueDate = sub.nextBillingDate,
+                        originalDueDate = originalBillingDate,
                         type = "SUBSCRIPTION",
                         isAutoShiftable = sub.isAutoShiftableBySalary
                     )

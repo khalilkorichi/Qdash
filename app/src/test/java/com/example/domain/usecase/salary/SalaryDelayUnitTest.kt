@@ -104,4 +104,42 @@ class SalaryDelayUnitTest {
         assertEquals(100, impactExtreme.severityScore)
         assertEquals(DelaySeverity.CRITICAL, impactExtreme.severity)
     }
+
+    @Test
+    fun testEditSalaryDelayImpact() {
+        val useCase = AnalyzeSalaryDelayImpactUseCase()
+        val salary = IncomeSource(
+            id = 1,
+            name = "راتب",
+            amount = 150000.0,
+            type = "SALARY",
+            dayOfMonth = 1,
+            accountId = 1,
+            nextExpectedDate = 1008640000L // shifted by 10 days (original was 1000000000L)
+        )
+
+        val subscriptions = listOf(
+            Subscription(
+                id = 10,
+                name = "Netflix",
+                amount = 1500.0,
+                billingCycle = "MONTHLY",
+                nextBillingDate = 1000200000L + 864000000L, // shifted by 10 days
+                accountId = 1,
+                categoryId = 1,
+                isAutoShiftableBySalary = true
+            )
+        )
+
+        val impactEdit = useCase(
+            salary = salary,
+            delayDays = 15,
+            subscriptions = subscriptions,
+            debts = emptyList(),
+            originalDateOverride = 1000000000L,
+            oldDelayDays = 10
+        )
+        assertEquals(1, impactEdit.affectedCount)
+        assertEquals(1000000000L + 15 * 86400000L, impactEdit.newDate)
+    }
 }

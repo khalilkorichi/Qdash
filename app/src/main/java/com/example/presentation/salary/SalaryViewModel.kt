@@ -34,6 +34,9 @@ data class SalaryUiState(
     val delayImpact: SalaryDelayImpact? = null,
     val isAnalyzingDelay: Boolean = false,
     val isConfirmingDelay: Boolean = false,
+    val isEditMode: Boolean = false,
+    val editingDelayId: Long? = null,
+    val originalDelayDays: Int = 0,
     val userMessage: String? = null
 ) {
     // Keep legacy support for IncomeSource list
@@ -48,6 +51,8 @@ class SalaryViewModel(
     private val getSalaryManagementOverviewUseCase: GetSalaryManagementOverviewUseCase,
     private val analyzeSalaryDelayImpactUseCase: AnalyzeSalaryDelayImpactUseCase,
     private val confirmSalaryDelayUseCase: ConfirmSalaryDelayUseCase,
+    private val deleteSalaryDelayUseCase: DeleteSalaryDelayUseCase,
+    private val updateSalaryDelayUseCase: UpdateSalaryDelayUseCase,
     private val subscriptionRepository: SubscriptionRepository
 ) : ViewModel() {
 
@@ -84,9 +89,10 @@ class SalaryViewModel(
             _delayDaysFlow
                 .debounce(300)
                 .collect { daysStr ->
-                    val salary = _uiState.value.overview?.salary ?: return@collect
-                    val subscriptions = _uiState.value.overview?.activeSubscriptions ?: emptyList()
-                    val debts = _uiState.value.overview?.activeDebts ?: emptyList()
+                    val state = _uiState.value
+                    val salary = state.overview?.salary ?: return@collect
+                    val subscriptions = state.overview?.activeSubscriptions ?: emptyList()
+                    val debts = state.overview?.activeDebts ?: emptyList()
                     
                     val days = daysStr.toIntOrNull()
                     if (days == null || days <= 0) {
@@ -95,11 +101,21 @@ class SalaryViewModel(
                     }
 
                     _uiState.update { it.copy(isAnalyzingDelay = true) }
+                    
+                    val originalDateOverride = if (state.isEditMode) {
+                        salary.nextExpectedDate - (state.originalDelayDays * 86400000L)
+                    } else {
+                        null
+                    }
+                    val oldDelayDays = if (state.isEditMode) state.originalDelayDays else 0
+
                     val impact = analyzeSalaryDelayImpactUseCase(
                         salary = salary,
                         delayDays = days,
                         subscriptions = subscriptions,
-                        debts = debts
+                        debts = debts,
+                        originalDateOverride = originalDateOverride,
+                        oldDelayDays = oldDelayDays
                     )
                     _uiState.update { it.copy(delayImpact = impact, isAnalyzingDelay = false) }
                 }
@@ -196,6 +212,9 @@ class SalaryViewModel(
                 showDelayDialog = show,
                 delayDaysInput = "",
                 delayImpact = null,
+                isEditMode = false,
+                editingDelayId = null,
+                originalDelayDays = 0,
                 userMessage = null
             ) 
         }
@@ -215,6 +234,47 @@ class SalaryViewModel(
         }
     }
 
+    fun startAddSalaryDelay() {
+        _uiState.update { 
+            it.copy(
+                showDelayDialog = true,
+                isEditMode = false,
+                editingDelayId = null,
+                originalDelayDays = 0,
+                delayDaysInput = ""
+            ) 
+        }
+        _delayDaysFlow.value = ""
+    }
+
+    fun startEditSalaryDelay(delay: SalaryDelay) {
+        _uiState.update { 
+            it.copy(
+                showDelayDialog = true,
+                isEditMode = true,
+                editingDelayId = delay.id,
+                originalDelayDays = delay.delayDays,
+                delayDaysInput = delay.delayDays.toString()
+            ) 
+        }
+        _delayDaysFlow.value = delay.delayDays.toString()
+    }
+
+    fun deleteSalaryDelay(delayId: Long) {
+        viewModelScope.launch {
+            try {
+                deleteSalaryDelayUseCase(delayId)
+                _uiState.update { 
+                    it.copy(userMessage = "تم إلغاء تأجيل الراتب وإعادة الالتزامات لمواعيدها بنجاح!") 
+                }
+            } catch (e: Exception) {
+                _uiState.update { 
+                    it.copy(userMessage = "حدث خطأ أثناء إلغاء التأجيل: ${e.message}") 
+                }
+            }
+        }
+    }
+
     fun confirmSalaryDelay() {
         val state = _uiState.value
         val salary = state.overview?.salary ?: return
@@ -226,26 +286,43 @@ class SalaryViewModel(
         _uiState.update { it.copy(isConfirmingDelay = true) }
         viewModelScope.launch {
             try {
-                confirmSalaryDelayUseCase(
-                    salaryId = salary.id,
-                    delayDays = days,
-                    originalDate = salary.nextExpectedDate,
-                    newDate = impact.newDate,
-                    severityScore = impact.severityScore,
-                    affectedObligations = impact.affectedObligations
-                )
-                _uiState.update { 
-                    it.copy(
-                        isConfirmingDelay = false,
-                        showDelayDialog = false,
-                        userMessage = "تم تأجيل موعد الراتب وتحديث الالتزامات بنجاح!"
-                    ) 
+                if (state.isEditMode && state.editingDelayId != null) {
+                    updateSalaryDelayUseCase(
+                        delayId = state.editingDelayId,
+                        newDelayDays = days,
+                        newDate = impact.newDate,
+                        newSeverityScore = impact.severityScore,
+                        affectedObligations = impact.affectedObligations
+                    )
+                    _uiState.update { 
+                        it.copy(
+                            isConfirmingDelay = false,
+                            showDelayDialog = false,
+                            userMessage = "تم تعديل تأجيل الراتب وتحديث الالتزامات بنجاح!"
+                        ) 
+                    }
+                } else {
+                    confirmSalaryDelayUseCase(
+                        salaryId = salary.id,
+                        delayDays = days,
+                        originalDate = salary.nextExpectedDate,
+                        newDate = impact.newDate,
+                        severityScore = impact.severityScore,
+                        affectedObligations = impact.affectedObligations
+                    )
+                    _uiState.update { 
+                        it.copy(
+                            isConfirmingDelay = false,
+                            showDelayDialog = false,
+                            userMessage = "تم تأجيل موعد الراتب وتحديث الالتزامات بنجاح!"
+                        ) 
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.update { 
                     it.copy(
                         isConfirmingDelay = false,
-                        userMessage = "حدث خطأ أثناء تأجيل الراتب: ${e.message}"
+                        userMessage = "حدث خطأ: ${e.message}"
                     ) 
                 }
             }

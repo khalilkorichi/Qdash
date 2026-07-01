@@ -68,6 +68,16 @@ interface IncomeRepository {
         severityScore: Int,
         affectedObligations: List<AffectedObligation>
     )
+
+    suspend fun deleteSalaryDelay(delayId: Long)
+
+    suspend fun updateSalaryDelay(
+        delayId: Long,
+        newDelayDays: Int,
+        newDate: Long,
+        newSeverityScore: Int,
+        affectedObligations: List<AffectedObligation>
+    )
 }
 
 interface SavingRepository {

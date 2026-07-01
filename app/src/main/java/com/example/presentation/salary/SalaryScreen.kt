@@ -149,7 +149,7 @@ fun SalaryScreen(
                     SalaryOverviewCard(
                         salary = salary,
                         onEdit = { viewModel.setShowAddDialog(true, salary) },
-                        onDelayClick = { viewModel.setShowDelayDialog(true) }
+                        onDelayClick = { viewModel.startAddSalaryDelay() }
                     )
                 }
 
@@ -163,7 +163,11 @@ fun SalaryScreen(
                         )
                     }
                     items(uiState.overview!!.delays.take(3)) { delay ->
-                        SalaryDelayHistoryCard(delay)
+                        SalaryDelayHistoryCard(
+                            delay = delay,
+                            onEdit = { viewModel.startEditSalaryDelay(delay) },
+                            onDelete = { viewModel.deleteSalaryDelay(delay.id) }
+                        )
                     }
                 }
 
@@ -304,7 +308,38 @@ fun SalaryOverviewCard(
 }
 
 @Composable
-fun SalaryDelayHistoryCard(delay: com.example.domain.model.SalaryDelay) {
+fun SalaryDelayHistoryCard(
+    delay: com.example.domain.model.SalaryDelay,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    var showConfirmDelete by remember { mutableStateOf(false) }
+
+    if (showConfirmDelete) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDelete = false },
+            title = { Text("إلغاء تأجيل الراتب", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
+            text = { Text("هل أنت متأكد من رغبتك في إلغاء تأجيل الراتب وإعادة الالتزامات المالية المرتبطة لمواعيدها الأصلية؟", style = MaterialTheme.typography.bodyMedium) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDelete()
+                        showConfirmDelete = false
+                    }
+                ) {
+                    Text("تأكيد الإلغاء", color = ExpenseRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDelete = false }) {
+                    Text("تراجع", color = TextGray)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
@@ -317,7 +352,10 @@ fun SalaryDelayHistoryCard(delay: com.example.domain.model.SalaryDelay) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(
                     text = "تم تأجيل الصرف بمقدار ${delay.delayDays} أيام",
                     style = MaterialTheme.typography.bodyMedium,
@@ -330,30 +368,59 @@ fun SalaryDelayHistoryCard(delay: com.example.domain.model.SalaryDelay) {
                 )
             }
 
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(
-                        when {
-                            delay.severityScore <= 20 -> IncomeGreen.copy(alpha = 0.15f)
-                            delay.severityScore <= 45 -> Color.Yellow.copy(alpha = 0.15f)
-                            delay.severityScore <= 70 -> Color(0xFFFFA500).copy(alpha = 0.15f)
-                            else -> ExpenseRed.copy(alpha = 0.15f)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(
+                            when {
+                                delay.severityScore <= 20 -> IncomeGreen.copy(alpha = 0.15f)
+                                delay.severityScore <= 45 -> Color.Yellow.copy(alpha = 0.15f)
+                                delay.severityScore <= 70 -> Color(0xFFFFA500).copy(alpha = 0.15f)
+                                else -> ExpenseRed.copy(alpha = 0.15f)
+                            }
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "الضرر: ${delay.severityScore}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = when {
+                            delay.severityScore <= 20 -> IncomeGreen
+                            delay.severityScore <= 45 -> MaterialTheme.colorScheme.onSurface
+                            delay.severityScore <= 70 -> Color(0xFFFFA500)
+                            else -> ExpenseRed
                         }
                     )
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = "درجة الضرر: ${delay.severityScore}",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = when {
-                        delay.severityScore <= 20 -> IncomeGreen
-                        delay.severityScore <= 45 -> MaterialTheme.colorScheme.onSurface
-                        delay.severityScore <= 70 -> Color(0xFFFFA500)
-                        else -> ExpenseRed
-                    }
-                )
+                }
+
+                IconButton(
+                    onClick = onEdit,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "تعديل",
+                        tint = Primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                IconButton(
+                    onClick = { showConfirmDelete = true },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "إلغاء التعديل",
+                        tint = ExpenseRed,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }
@@ -528,7 +595,7 @@ fun DelaySalaryForm(uiState: SalaryUiState, viewModel: SalaryViewModel) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "تأجيل راتب الشهر الحالي",
+            text = if (uiState.isEditMode) "تعديل تأجيل الراتب" else "تأجيل راتب الشهر الحالي",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
@@ -668,7 +735,7 @@ fun DelaySalaryForm(uiState: SalaryUiState, viewModel: SalaryViewModel) {
             if (uiState.isConfirmingDelay) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
             } else {
-                Text("تأكيد تأجيل الراتب", color = Color.White)
+                Text(if (uiState.isEditMode) "تأكيد تعديل التأجيل" else "تأكيد تأجيل الراتب", color = Color.White)
             }
         }
     }

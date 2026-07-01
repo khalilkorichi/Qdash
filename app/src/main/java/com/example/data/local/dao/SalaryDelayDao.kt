@@ -14,4 +14,10 @@ interface SalaryDelayDao {
 
     @Delete
     suspend fun deleteSalaryDelay(salaryDelay: SalaryDelayEntity)
+
+    @Query("SELECT * FROM salary_delays WHERE id = :id")
+    suspend fun getSalaryDelayById(id: Long): SalaryDelayEntity?
+
+    @Update
+    suspend fun updateSalaryDelay(salaryDelay: SalaryDelayEntity)
 }
