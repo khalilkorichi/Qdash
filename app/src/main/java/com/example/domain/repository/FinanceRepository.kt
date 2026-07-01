@@ -58,6 +58,16 @@ interface IncomeRepository {
     suspend fun insertIncomeSource(incomeSource: IncomeSource): Long
     suspend fun updateIncomeSource(incomeSource: IncomeSource)
     suspend fun deleteIncomeSource(incomeSource: IncomeSource)
+    
+    fun getSalaryDelays(salaryId: Long): Flow<List<SalaryDelay>>
+    suspend fun confirmSalaryDelay(
+        salaryId: Long,
+        delayDays: Int,
+        originalDate: Long,
+        newDate: Long,
+        severityScore: Int,
+        affectedObligations: List<AffectedObligation>
+    )
 }
 
 interface SavingRepository {

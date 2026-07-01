@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -26,6 +27,9 @@ import androidx.compose.ui.unit.sp
 import com.example.core.ui.components.UnifiedScreenHeader
 import com.example.core.utils.FormatterUtils
 import com.example.domain.model.IncomeSource
+import com.example.domain.model.Subscription
+import com.example.domain.model.AffectedObligation
+import com.example.domain.model.DelaySeverity
 import com.example.ui.designsystem.tokens.ColorTokens
 import com.example.ui.theme.ExpenseRed
 import com.example.ui.theme.IncomeGreen
@@ -41,12 +45,21 @@ fun SalaryScreen(
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.userMessage) {
+        uiState.userMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearUserMessage()
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            if (uiState.incomeSources.isEmpty()) {
+            if (uiState.overview?.salary == null && !uiState.isLoading) {
                 FloatingActionButton(
                     onClick = { viewModel.setShowAddDialog(true) },
                     containerColor = Primary,
@@ -74,7 +87,18 @@ fun SalaryScreen(
                 )
             }
 
-            if (uiState.incomeSources.isEmpty()) {
+            if (uiState.isLoading) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Primary)
+                    }
+                }
+            } else if (uiState.overview?.salary == null) {
                 item {
                     Column(
                         modifier = Modifier
@@ -85,8 +109,8 @@ fun SalaryScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(80.dp)
-                                .background(Primary.copy(alpha = 0.1f), CircleShape),
+                               .size(80.dp)
+                               .background(Primary.copy(alpha = 0.1f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -102,7 +126,7 @@ fun SalaryScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "أضف راتبك الأساسي لتمكين ميزات التوزيع التلقائي وإدارة الميزانية الذكية.",
+                            text = "أضف راتبك الأساسي لتمكين ميزات التوزيع التلقائي وإدارة الميزانية الذكية وتأجيل الرواتب.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextGray,
                             textAlign = TextAlign.Center,
@@ -119,16 +143,32 @@ fun SalaryScreen(
                     }
                 }
             } else {
-                items(uiState.incomeSources) { source ->
-                    SalaryCard(
-                        source = source,
-                        onEdit = { viewModel.setShowAddDialog(true, source) },
-                        onDelete = { viewModel.deleteSalary(source) }
+                val salary = uiState.overview!!.salary!!
+                
+                item {
+                    SalaryOverviewCard(
+                        salary = salary,
+                        onEdit = { viewModel.setShowAddDialog(true, salary) },
+                        onDelayClick = { viewModel.setShowDelayDialog(true) }
                     )
                 }
 
+                if (uiState.overview!!.delays.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "سجل التأجيلات الأخير",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                    items(uiState.overview!!.delays.take(3)) { delay ->
+                        SalaryDelayHistoryCard(delay)
+                    }
+                }
+
                 item {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     DistributionConfigCard(uiState, viewModel)
                 }
             }
@@ -144,14 +184,23 @@ fun SalaryScreen(
                 AddSalaryForm(uiState, viewModel)
             }
         }
+
+        if (uiState.showDelayDialog) {
+            ModalBottomSheet(
+                onDismissRequest = { viewModel.setShowDelayDialog(false) },
+                containerColor = MaterialTheme.colorScheme.surface
+            ) {
+                DelaySalaryForm(uiState, viewModel)
+            }
+        }
     }
 }
 
 @Composable
-fun SalaryCard(
-    source: IncomeSource,
+fun SalaryOverviewCard(
+    salary: IncomeSource,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelayClick: () -> Unit
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     Card(
@@ -178,12 +227,12 @@ fun SalaryCard(
                     }
                     Column {
                         Text(
-                            text = source.name,
+                            text = salary.name,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "يوم الاستلام: ${source.dayOfMonth} من كل شهر",
+                            text = "اليوم المعتاد: ${salary.dayOfMonth} من كل شهر",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextGray
                         )
@@ -194,20 +243,117 @@ fun SalaryCard(
                 }
             }
             
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
+            
             Text(
-                text = FormatterUtils.formatCurrency(source.amount),
+                text = FormatterUtils.formatCurrency(salary.amount),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onDelete, colors = ButtonDefaults.textButtonColors(contentColor = ExpenseRed)) {
-                    Icon(Icons.Default.Delete, null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("حذف الراتب")
+            
+            val colloquialText = remember(salary.amount) {
+                FormatterUtils.formatColloquialAlgerian(salary.amount)
+            }
+            if (colloquialText != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "أي ما يعادل: $colloquialText",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextGray
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "الدفعة القادمة المتوقعة",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextGray
+                    )
+                    Text(
+                        text = FormatterUtils.formatDate(salary.nextExpectedDate),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Primary
+                    )
                 }
+
+                Button(
+                    onClick = onDelayClick,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("تأجيل الصرف")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SalaryDelayHistoryCard(delay: com.example.domain.model.SalaryDelay) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "تم تأجيل الصرف بمقدار ${delay.delayDays} أيام",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "من ${FormatterUtils.formatShortDate(delay.originalDate)} إلى ${FormatterUtils.formatShortDate(delay.newDate)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextGray
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(
+                        when {
+                            delay.severityScore <= 20 -> IncomeGreen.copy(alpha = 0.15f)
+                            delay.severityScore <= 45 -> Color.Yellow.copy(alpha = 0.15f)
+                            delay.severityScore <= 70 -> Color(0xFFFFA500).copy(alpha = 0.15f)
+                            else -> ExpenseRed.copy(alpha = 0.15f)
+                        }
+                    )
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = "درجة الضرر: ${delay.severityScore}",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = when {
+                        delay.severityScore <= 20 -> IncomeGreen
+                        delay.severityScore <= 45 -> MaterialTheme.colorScheme.onSurface
+                        delay.severityScore <= 70 -> Color(0xFFFFA500)
+                        else -> ExpenseRed
+                    }
+                )
             }
         }
     }
@@ -253,8 +399,6 @@ fun DistributionConfigCard(
             AnimatedVisibility(visible = uiState.distributionEnabled) {
                 Column(modifier = Modifier.padding(top = 16.dp)) {
                     Text("سيتم تفعيل هذه الميزة قريباً لتقسيم راتبك تلقائياً على أظرف أو حسابات فرعية لضمان التزامك بخطتك المالية المحددة.", style = MaterialTheme.typography.bodyMedium, color = TextGray)
-                    
-                    // Future Implementation: Sliders for Needs, Wants, Savings.
                 }
             }
         }
@@ -286,15 +430,34 @@ fun AddSalaryForm(uiState: SalaryUiState, viewModel: SalaryViewModel) {
             modifier = Modifier.fillMaxWidth()
         )
 
-        OutlinedTextField(
-            value = uiState.amount,
-            onValueChange = viewModel::onAmountChange,
-            label = { Text("قيمة الراتب (دج)") },
-            leadingIcon = { Icon(Icons.Default.AttachMoney, contentDescription = null) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
+        Column(modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = uiState.amount,
+                onValueChange = viewModel::onAmountChange,
+                label = { Text("قيمة الراتب (دج)") },
+                leadingIcon = { Icon(Icons.Default.AttachMoney, contentDescription = null) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation(),
+                modifier = Modifier.fillMaxWidth()
+            )
+            
+            val amtDouble = uiState.amount.toDoubleOrNull()
+            if (amtDouble != null && amtDouble > 0) {
+                val colloquialText = remember(amtDouble) {
+                    FormatterUtils.formatColloquialAlgerian(amtDouble)
+                }
+                if (colloquialText != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "أي ما يعادل: $colloquialText",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Primary,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                }
+            }
+        }
 
         // Account Selection
         Text("يودع في حساب", style = MaterialTheme.typography.labelMedium)
@@ -350,3 +513,236 @@ fun AddSalaryForm(uiState: SalaryUiState, viewModel: SalaryViewModel) {
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DelaySalaryForm(uiState: SalaryUiState, viewModel: SalaryViewModel) {
+    val Primary = MaterialTheme.colorScheme.primary
+    val salary = uiState.overview?.salary ?: return
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp)
+            .navigationBarsPadding(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = "تأجيل راتب الشهر الحالي",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+
+        OutlinedTextField(
+            value = uiState.delayDaysInput,
+            onValueChange = viewModel::onDelayDaysChange,
+            label = { Text("عدد أيام التأجيل") },
+            leadingIcon = { Icon(Icons.Default.CalendarToday, contentDescription = null) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        if (uiState.isAnalyzingDelay) {
+            Box(
+                modifier = Modifier.fillMaxWidth().height(100.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Primary)
+            }
+        } else {
+            uiState.delayImpact?.let { impact ->
+                // New Expected Date Display
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("التاريخ المتوقع الجديد:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
+                        Text(
+                            text = FormatterUtils.formatDate(impact.newDate),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Primary
+                        )
+                    }
+                }
+
+                // Severity Indicator
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("مؤشر ضرر التأجيل:", style = MaterialTheme.typography.bodySmall, color = TextGray)
+                        Text(
+                            text = when (impact.severity) {
+                                DelaySeverity.LOW -> "ضرر منخفض"
+                                DelaySeverity.MEDIUM -> "ضرر متوسط"
+                                DelaySeverity.HIGH -> "ضرر مرتفع"
+                                DelaySeverity.CRITICAL -> "ضرر حرج جداً"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = when (impact.severity) {
+                                DelaySeverity.LOW -> IncomeGreen
+                                DelaySeverity.MEDIUM -> Color(0xFFFFC107)
+                                DelaySeverity.HIGH -> Color(0xFFFF9800)
+                                DelaySeverity.CRITICAL -> ExpenseRed
+                            }
+                        )
+                    }
+
+                    // Monotone Bar with Accent Progress
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        val progressFraction = impact.severityScore / 100f
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .fillMaxWidth(progressFraction)
+                                .background(
+                                    color = when (impact.severity) {
+                                        DelaySeverity.LOW -> IncomeGreen
+                                        DelaySeverity.MEDIUM -> Color(0xFFFFC107)
+                                        DelaySeverity.HIGH -> Color(0xFFFF9800)
+                                        DelaySeverity.CRITICAL -> ExpenseRed
+                                    }
+                                )
+                        )
+                    }
+                }
+
+                // Affected obligations
+                Text(
+                    text = "الالتزامات المتأثرة خلال فترة التأجيل (${impact.affectedCount})",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                if (impact.affectedObligations.isEmpty()) {
+                    Text(
+                        text = "لا توجد التزامات مالية متأثرة في هذه الفترة.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextGray,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 200.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(impact.affectedObligations) { obs ->
+                            AffectedObligationRow(obs = obs, viewModel = viewModel, uiState = uiState)
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = { viewModel.confirmSalaryDelay() },
+            enabled = uiState.delayImpact != null && !uiState.isConfirmingDelay,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = when (uiState.delayImpact?.severity) {
+                    DelaySeverity.CRITICAL -> ExpenseRed
+                    DelaySeverity.HIGH -> Color(0xFFFF9800)
+                    else -> Primary
+                }
+            )
+        ) {
+            if (uiState.isConfirmingDelay) {
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+            } else {
+                Text("تأكيد تأجيل الراتب", color = Color.White)
+            }
+        }
+    }
+}
+
+@Composable
+fun AffectedObligationRow(
+    obs: AffectedObligation,
+    viewModel: SalaryViewModel,
+    uiState: SalaryUiState
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = obs.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "المستحق: ${FormatterUtils.formatCurrency(obs.amount)} في ${FormatterUtils.formatShortDate(obs.originalDueDate)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextGray
+                )
+                
+                // Badge for obligation type
+                Spacer(modifier = Modifier.height(4.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = if (obs.type == "DEBT") "دين مستحق" else "اشتراك شهري",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 10.sp,
+                        color = TextGray
+                    )
+                }
+            }
+
+            // If it is a subscription, allow toggling auto-shift
+            if (obs.type == "SUBSCRIPTION") {
+                val fullSubscription = uiState.overview?.activeSubscriptions?.firstOrNull { it.id == obs.id }
+                if (fullSubscription != null) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = "تأجيل تلقائي",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
+                            color = TextGray
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Switch(
+                            checked = fullSubscription.isAutoShiftableBySalary,
+                            onCheckedChange = { viewModel.toggleSubscriptionAutoShift(fullSubscription) },
+                            modifier = Modifier.scale(0.8f) // Scale it slightly smaller
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+

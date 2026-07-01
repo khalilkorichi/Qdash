@@ -51,11 +51,21 @@ class AiRepositoryImpl(
         }
     }
     private val resolvedNvidiaApiKey by lazy { nvidiaApiKey }
+    private val resolvedOpenCodeApiKey by lazy {
+        try {
+            com.example.core.utils.CryptoUtils.decrypt("15bkTg0mKwU6Rn0XKnXXM+JrxD3Y/Yc8106zO7lGWlFu0quR2wqv0Sg9WzALUff0DpeAKQxbcVDGhlW+JU74X4NiYV4DQ5xq9yq0xs2ILwlVKaoB396+PXcKfTODCaY=")
+        } catch (e: Exception) {
+            ""
+        }
+    }
+    private val resolvedAgentRouterApiKey by lazy { System.getenv("AGENT_ROUTER_API_KEY") ?: "" }
 
     private val providers: List<com.example.data.ai.AiProvider> by lazy {
         listOf(
             com.example.data.ai.providers.GeminiProvider(resolvedGeminiApiKey, okHttpClient),
             com.example.data.ai.providers.OpenRouterProvider(resolvedOpenRouterApiKey, okHttpClient),
+            com.example.data.ai.providers.OpenCodeProvider(resolvedOpenCodeApiKey, okHttpClient),
+            com.example.data.ai.providers.AgentRouterProvider(resolvedAgentRouterApiKey, okHttpClient),
             com.example.data.ai.providers.NvidiaProvider(resolvedNvidiaApiKey, okHttpClient)
         )
     }

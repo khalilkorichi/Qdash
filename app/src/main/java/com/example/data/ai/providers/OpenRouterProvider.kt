@@ -17,9 +17,9 @@ class OpenRouterProvider(
     override val name = "OpenRouter"
 
     private val client = parentClient.newBuilder()
-        .connectTimeout(12, TimeUnit.SECONDS)
-        .readTimeout(12, TimeUnit.SECONDS)
-        .writeTimeout(12, TimeUnit.SECONDS)
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(45, TimeUnit.SECONDS)
+        .writeTimeout(20, TimeUnit.SECONDS)
         .build()
 
     override suspend fun sendCardMessage(

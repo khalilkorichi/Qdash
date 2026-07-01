@@ -102,4 +102,9 @@ interface AppContainer {
     val bulkEditTransactionsUseCase: com.example.domain.usecase.transaction.BulkEditTransactionsUseCase
     val cardDbSnapshotUseCase: com.example.domain.usecase.ai.CardDbSnapshotUseCase
     val sendCardAiMessageUseCase: com.example.domain.usecase.ai.SendCardAiMessageUseCase
+    
+    // Salary Use Cases
+    val getSalaryManagementOverviewUseCase: com.example.domain.usecase.salary.GetSalaryManagementOverviewUseCase
+    val analyzeSalaryDelayImpactUseCase: com.example.domain.usecase.salary.AnalyzeSalaryDelayImpactUseCase
+    val confirmSalaryDelayUseCase: com.example.domain.usecase.salary.ConfirmSalaryDelayUseCase
 }

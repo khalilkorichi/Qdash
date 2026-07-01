@@ -21,9 +21,9 @@ class GeminiProvider(
     override val name = "Gemini"
 
     private val client = parentClient.newBuilder()
-        .connectTimeout(12, TimeUnit.SECONDS)
-        .readTimeout(12, TimeUnit.SECONDS)
-        .writeTimeout(12, TimeUnit.SECONDS)
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(45, TimeUnit.SECONDS)
+        .writeTimeout(20, TimeUnit.SECONDS)
         .build()
 
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
@@ -38,12 +38,12 @@ class GeminiProvider(
         }
 
         val models = listOf(
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
             "gemini-2.5-pro",
             "gemini-2.0-flash",
-            "gemini-1.5-pro",
             "gemini-1.5-flash",
-            "gemini-1.0-pro",
-            "gemini-1.0-flash"
+            "gemini-1.5-pro"
         )
 
         val errors = mutableListOf<String>()

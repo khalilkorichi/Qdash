@@ -114,5 +114,6 @@ data class SubscriptionEntity(
     val categoryId: Long,
     val icon: String? = null,
     val isActive: Boolean = true,
-    val reminderDaysBefore: Int = 3
+    val reminderDaysBefore: Int = 3,
+    val isAutoShiftableBySalary: Boolean = false
 )

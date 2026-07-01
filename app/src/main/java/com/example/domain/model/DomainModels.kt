@@ -101,7 +101,8 @@ data class Subscription(
     val categoryId: Long,
     val icon: String? = null,
     val isActive: Boolean = true,
-    val reminderDaysBefore: Int = 3
+    val reminderDaysBefore: Int = 3,
+    val isAutoShiftableBySalary: Boolean = false
 )
 
 // Mappers from Entity to Domain
@@ -183,7 +184,8 @@ fun SubscriptionEntity.toDomain() = Subscription(
     categoryId = categoryId,
     icon = icon,
     isActive = isActive,
-    reminderDaysBefore = reminderDaysBefore
+    reminderDaysBefore = reminderDaysBefore,
+    isAutoShiftableBySalary = isAutoShiftableBySalary
 )
 
 // Mappers from Domain to Entity
@@ -265,5 +267,68 @@ fun Subscription.toEntity() = SubscriptionEntity(
     categoryId = categoryId,
     icon = icon,
     isActive = isActive,
-    reminderDaysBefore = reminderDaysBefore
+    reminderDaysBefore = reminderDaysBefore,
+    isAutoShiftableBySalary = isAutoShiftableBySalary
+)
+
+data class SalaryDelay(
+    val id: Long = 0,
+    val salaryId: Long,
+    val delayDays: Int,
+    val originalDate: Long,
+    val newDate: Long,
+    val severityScore: Int,
+    val status: String = "CONFIRMED",
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+fun SalaryDelayEntity.toDomain() = SalaryDelay(
+    id = id,
+    salaryId = salaryId,
+    delayDays = delayDays,
+    originalDate = originalDate,
+    newDate = newDate,
+    severityScore = severityScore,
+    status = status,
+    createdAt = createdAt
+)
+
+fun SalaryDelay.toEntity() = SalaryDelayEntity(
+    id = id,
+    salaryId = salaryId,
+    delayDays = delayDays,
+    originalDate = originalDate,
+    newDate = newDate,
+    severityScore = severityScore,
+    status = status,
+    createdAt = createdAt
+)
+
+enum class DelaySeverity {
+    LOW, MEDIUM, HIGH, CRITICAL
+}
+
+data class AffectedObligation(
+    val id: Long,
+    val name: String,
+    val amount: Double,
+    val originalDueDate: Long,
+    val type: String, // "SUBSCRIPTION", "DEBT"
+    val isAutoShiftable: Boolean
+)
+
+data class SalaryDelayImpact(
+    val newDate: Long,
+    val affectedCount: Int,
+    val totalAmount: Double,
+    val affectedObligations: List<AffectedObligation>,
+    val severityScore: Int,
+    val severity: DelaySeverity
+)
+
+data class SalaryManagementOverview(
+    val salary: IncomeSource?,
+    val delays: List<SalaryDelay>,
+    val activeSubscriptions: List<Subscription>,
+    val activeDebts: List<Debt>
 )

@@ -209,7 +209,11 @@ class ViewModelFactory(
             modelClass.isAssignableFrom(SalaryViewModel::class.java) -> {
                 SalaryViewModel(
                     container.incomeRepository,
-                    container.accountRepository
+                    container.accountRepository,
+                    container.getSalaryManagementOverviewUseCase,
+                    container.analyzeSalaryDelayImpactUseCase,
+                    container.confirmSalaryDelayUseCase,
+                    container.subscriptionRepository
                 ) as T
             }
             

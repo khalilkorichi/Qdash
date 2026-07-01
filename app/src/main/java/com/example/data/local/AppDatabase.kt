@@ -25,9 +25,10 @@ import com.example.data.local.entities.*
         DailyFinancialAggregateEntity::class,
         TransactionTemplateEntity::class,
         AiChatMessageEntity::class,
-        PostalProfileEntity::class
+        PostalProfileEntity::class,
+        SalaryDelayEntity::class
     ],
-    version = 17,
+    version = 18,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -50,4 +51,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionTemplateDao(): TransactionTemplateDao
     abstract fun aiChatDao(): AiChatDao
     abstract fun postalProfileDao(): PostalProfileDao
+    abstract fun salaryDelayDao(): SalaryDelayDao
 }

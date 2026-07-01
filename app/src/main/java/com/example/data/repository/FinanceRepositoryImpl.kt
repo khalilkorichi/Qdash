@@ -11,6 +11,8 @@ import com.example.domain.usecase.transaction.BulkEditParams
 import androidx.room.withTransaction
 import com.example.domain.usecase.budget.GetBudgetAlertsUseCase
 import com.example.domain.usecase.budget.GetBudgetGoalsUseCase
+import com.example.data.local.AppDatabase
+import com.example.core.utils.FormatterUtils
 
 class TransactionRepositoryImpl(
     private val database: com.example.data.local.AppDatabase,
@@ -595,7 +597,12 @@ class CategoryRepositoryImpl(
 }
 
 class IncomeRepositoryImpl(
-    private val incomeSourceDao: IncomeSourceDao
+    private val database: AppDatabase,
+    private val incomeSourceDao: IncomeSourceDao,
+    private val subscriptionDao: SubscriptionDao,
+    private val salaryDelayDao: SalaryDelayDao,
+    private val notificationDao: NotificationDao,
+    private val context: android.content.Context
 ) : IncomeRepository {
     override fun getAllIncomeSources(): Flow<List<IncomeSource>> {
         return incomeSourceDao.getAllIncomeSources().map { list -> list.map { it.toDomain() } }
@@ -619,6 +626,83 @@ class IncomeRepositoryImpl(
 
     override suspend fun deleteIncomeSource(incomeSource: IncomeSource) {
         incomeSourceDao.deleteIncomeSource(incomeSource.toEntity())
+    }
+
+    override fun getSalaryDelays(salaryId: Long): Flow<List<SalaryDelay>> {
+        return salaryDelayDao.getSalaryDelays(salaryId).map { list -> list.map { it.toDomain() } }
+    }
+
+    override suspend fun confirmSalaryDelay(
+        salaryId: Long,
+        delayDays: Int,
+        originalDate: Long,
+        newDate: Long,
+        severityScore: Int,
+        affectedObligations: List<AffectedObligation>
+    ) = database.withTransaction {
+        // 1. Update salary nextExpectedDate
+        val salaryEntity = incomeSourceDao.getIncomeSourceById(salaryId)
+        if (salaryEntity != null) {
+            incomeSourceDao.updateIncomeSource(salaryEntity.copy(nextExpectedDate = newDate))
+        }
+
+        // 2. Shift auto-shiftable obligations
+        for (obs in affectedObligations) {
+            if (obs.type == "SUBSCRIPTION" && obs.isAutoShiftable) {
+                val subEntity = subscriptionDao.getSubscriptionById(obs.id)
+                if (subEntity != null) {
+                    val newBillingDate = subEntity.nextBillingDate + (delayDays * 86400000L)
+                    subscriptionDao.updateSubscription(subEntity.copy(nextBillingDate = newBillingDate))
+                }
+            }
+        }
+
+        // 3. Insert SalaryDelay record
+        val delayEntity = SalaryDelayEntity(
+            salaryId = salaryId,
+            delayDays = delayDays,
+            originalDate = originalDate,
+            newDate = newDate,
+            severityScore = severityScore,
+            status = "CONFIRMED",
+            createdAt = System.currentTimeMillis()
+        )
+        salaryDelayDao.insertSalaryDelay(delayEntity)
+
+        // 4. Create Notification Entity
+        val formattedOriginalDate = FormatterUtils.formatShortDate(originalDate)
+        val formattedNewDate = FormatterUtils.formatShortDate(newDate)
+        
+        val affectedText = if (affectedObligations.isNotEmpty()) {
+            "مع تأثر ${affectedObligations.size} التزام مالي."
+        } else {
+            "بدون أي التزامات متأثرة."
+        }
+
+        val notification = NotificationEntity(
+            title = "تأجيل تاريخ الراتب",
+            message = "تم تأجيل موعد استلام الراتب من $formattedOriginalDate إلى $formattedNewDate بنجاح ($affectedText)",
+            type = "SMART_REMINDER",
+            isRead = false,
+            timestamp = System.currentTimeMillis(),
+            deepLinkRoute = "salary",
+            relatedEntityId = salaryId
+        )
+        val notificationId = notificationDao.insertNotification(notification)
+
+        com.example.core.utils.SystemNotificationHelper.showNotification(
+            context = context,
+            appNotification = com.example.domain.model.AppNotification(
+                id = notificationId,
+                title = notification.title,
+                message = notification.message,
+                type = com.example.domain.model.NotificationType.SMART_REMINDER,
+                isRead = false,
+                timestamp = notification.timestamp,
+                deepLinkRoute = notification.deepLinkRoute,
+                relatedEntityId = notification.relatedEntityId
+            )
+        )
     }
 }
 
