@@ -180,9 +180,13 @@ fun SalaryScreen(
             item { Spacer(modifier = Modifier.height(80.dp)) }
         }
 
+        val addSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val delaySheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
         if (uiState.showAddDialog) {
             ModalBottomSheet(
                 onDismissRequest = { viewModel.setShowAddDialog(false) },
+                sheetState = addSheetState,
                 containerColor = MaterialTheme.colorScheme.surface
             ) {
                 AddSalaryForm(uiState, viewModel)
@@ -192,6 +196,7 @@ fun SalaryScreen(
         if (uiState.showDelayDialog) {
             ModalBottomSheet(
                 onDismissRequest = { viewModel.setShowDelayDialog(false) },
+                sheetState = delaySheetState,
                 containerColor = MaterialTheme.colorScheme.surface
             ) {
                 DelaySalaryForm(uiState, viewModel)
@@ -314,6 +319,7 @@ fun SalaryDelayHistoryCard(
     onDelete: () -> Unit
 ) {
     var showConfirmDelete by remember { mutableStateOf(false) }
+    val Primary = MaterialTheme.colorScheme.primary
 
     if (showConfirmDelete) {
         AlertDialog(
@@ -340,85 +346,114 @@ fun SalaryDelayHistoryCard(
         )
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = "تم تأجيل الصرف بمقدار ${delay.delayDays} أيام",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "من ${FormatterUtils.formatShortDate(delay.originalDate)} إلى ${FormatterUtils.formatShortDate(delay.newDate)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextGray
-                )
-            }
+    val severityColor = when {
+        delay.severityScore <= 20 -> IncomeGreen
+        delay.severityScore <= 45 -> Color(0xFFFFC107)
+        delay.severityScore <= 70 -> Color(0xFFFF9800)
+        else -> ExpenseRed
+    }
 
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(8.dp, RoundedCornerShape(20.dp), spotColor = Primary.copy(alpha = 0.05f)),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(severityColor.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarToday,
+                            contentDescription = null,
+                            tint = severityColor
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "تأجيل صرف الراتب",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "بمقدار ${delay.delayDays} أيام",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = severityColor
+                        )
+                    }
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Default.Edit, contentDescription = "تعديل", tint = Primary)
+                    }
+                    IconButton(onClick = { showConfirmDelete = true }) {
+                        Icon(Icons.Default.Delete, contentDescription = "إلغاء", tint = ExpenseRed)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "التاريخ الأصلي",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextGray
+                    )
+                    Text(
+                        text = FormatterUtils.formatShortDate(delay.originalDate),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Column {
+                    Text(
+                        text = "التاريخ الجديد",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextGray
+                    )
+                    Text(
+                        text = FormatterUtils.formatShortDate(delay.newDate),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Primary
+                    )
+                }
+
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            when {
-                                delay.severityScore <= 20 -> IncomeGreen.copy(alpha = 0.15f)
-                                delay.severityScore <= 45 -> Color.Yellow.copy(alpha = 0.15f)
-                                delay.severityScore <= 70 -> Color(0xFFFFA500).copy(alpha = 0.15f)
-                                else -> ExpenseRed.copy(alpha = 0.15f)
-                            }
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .background(severityColor.copy(alpha = 0.15f))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {
                     Text(
                         text = "الضرر: ${delay.severityScore}",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = when {
-                            delay.severityScore <= 20 -> IncomeGreen
-                            delay.severityScore <= 45 -> MaterialTheme.colorScheme.onSurface
-                            delay.severityScore <= 70 -> Color(0xFFFFA500)
-                            else -> ExpenseRed
-                        }
-                    )
-                }
-
-                IconButton(
-                    onClick = onEdit,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "تعديل",
-                        tint = Primary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-
-                IconButton(
-                    onClick = { showConfirmDelete = true },
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "إلغاء التعديل",
-                        tint = ExpenseRed,
-                        modifier = Modifier.size(18.dp)
+                        color = severityColor
                     )
                 }
             }

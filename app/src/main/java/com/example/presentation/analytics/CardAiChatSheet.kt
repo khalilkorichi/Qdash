@@ -72,18 +72,21 @@ fun CardAiChatSheet(
             )
         }
 
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
         AppBottomSheet(
             onDismissRequest = {
                 viewModel.closeSheet()
                 onDismiss()
             },
+            sheetState = sheetState,
             modifier = modifier
         ) {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(0.50f)
+                        .fillMaxHeight(0.80f)
                         .background(MaterialTheme.colorScheme.surface)
                 ) {
                     // Header Bar
