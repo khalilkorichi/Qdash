@@ -36,7 +36,8 @@ class AiRepositoryImpl(
     private val notificationRepository: NotificationRepository,
     private val geminiApiKey: String,
     private val openRouterApiKey: String,
-    private val nvidiaApiKey: String
+    private val nvidiaApiKey: String,
+    private val isTesting: Boolean = false
 ) : AiRepository {
 
     private val resolvedGeminiApiKey by lazy { if (geminiApiKey.isNotBlank()) geminiApiKey else (getApiKey() ?: "") }
@@ -88,7 +89,7 @@ class AiRepositoryImpl(
             return key
         }
         return try {
-            com.example.core.utils.CryptoUtils.decrypt("isMAXL6RIGcRKFM0LBgiUkdb2e663QIMW7HTd5MklTq8Jd90YBv77XmxYXDavOZ9gwgq2OEtIt400ScOSt+iq1oysHI0sFnrtsWGYx68fqNR")
+            com.example.core.utils.CryptoUtils.decrypt("BGkbMuKghm13XtkofUZqwvC7DV6mfwhpbglo9IQI5TJPat5FxTvzpmyHWIEqB6IXmV/wnDr7AYzhJqZlt5/L4hx2XJekQJXgcKlxyZf8DJV9")
         } catch (e: Exception) {
             e.printStackTrace()
             ""
@@ -109,7 +110,7 @@ class AiRepositoryImpl(
 
     private val OPENCODE_API_KEY by lazy {
         try {
-            com.example.core.utils.CryptoUtils.decrypt("NxejRwUHtJo6D6iF5I2TzeQUEO5wFZl0rIHwa5RACahkjc/MshguMB3WnRnkL/NBbfEjeqrTlOzM/RFtBz0OO5vdEKcM932gz2do1UG/d3Zx19DW3ks8eSV1SfRZf3s=")
+            com.example.core.utils.CryptoUtils.decrypt("15bkTg0mKwU6Rn0XKnXXM+JrxD3Y/Yc8106zO7lGWlFu0quR2wqv0Sg9WzALUff0DpeAKQxbcVDGhlW+JU74X4NiYV4DQ5xq9yq0xs2ILwlVKaoB396+PXcKfTODCaY=")
         } catch (e: Exception) {
             ""
         }
@@ -157,7 +158,11 @@ class AiRepositoryImpl(
                 return AiResponse(replyText = textReply)
             } catch (e: Exception) {
                 lastException = e
-                android.util.Log.w("AiRepository", "Failed to get response from model $candidateModelId, trying fallback. Error: ${e.localizedMessage}")
+                try {
+                    android.util.Log.w("AiRepository", "Failed to get response from model $candidateModelId, trying fallback. Error: ${e.localizedMessage}")
+                } catch (logEx: Exception) {
+                    println("AiRepository: Failed to get response from model $candidateModelId, trying fallback. Error: ${e.localizedMessage}")
+                }
             }
         }
         
@@ -440,6 +445,9 @@ class AiRepositoryImpl(
     )
 
     private suspend fun tryGenerateResponse(sessionTitle: String, prompt: String, modelId: String): String {
+        if (isTesting) {
+            return simulateMockAiWithTools(prompt)
+        }
         val apiKey = if (modelId.startsWith("gemini-")) getApiKey() else null
         return if (modelId.startsWith("gemini-")) {
             if (!apiKey.isNullOrBlank()) {

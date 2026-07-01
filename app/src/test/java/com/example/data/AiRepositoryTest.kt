@@ -123,7 +123,8 @@ class AiRepositoryTest {
             notificationRepository = fakeNotificationRepository,
             geminiApiKey = "",
             openRouterApiKey = "",
-            nvidiaApiKey = ""
+            nvidiaApiKey = "",
+            isTesting = true
         )
 
         // Query: "كم رصيدي؟" (General query)
@@ -149,7 +150,8 @@ class AiRepositoryTest {
             notificationRepository = fakeNotificationRepository,
             geminiApiKey = "",
             openRouterApiKey = "",
-            nvidiaApiKey = ""
+            nvidiaApiKey = "",
+            isTesting = true
         )
 
         // Query: "رصيد CCP"
@@ -177,7 +179,8 @@ class AiRepositoryTest {
             notificationRepository = fakeNotificationRepository,
             geminiApiKey = "",
             openRouterApiKey = "",
-            nvidiaApiKey = ""
+            nvidiaApiKey = "",
+            isTesting = true
         )
 
         // Network error trigger
@@ -227,7 +230,8 @@ class AiRepositoryTest {
             notificationRepository = fakeNotificationRepository,
             geminiApiKey = "",
             openRouterApiKey = "",
-            nvidiaApiKey = ""
+            nvidiaApiKey = "",
+            isTesting = true
         )
 
         val session = "test_retry_session"

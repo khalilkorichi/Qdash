@@ -38,31 +38,28 @@ class ExampleUnitTest {
 
     @Test
     fun encryptKey() {
-        val geminiKey = "YOUR_GEMINI_API_KEY_HERE"
-        val opencodeKey = "YOUR_OPENCODE_API_KEY_HERE"
+        val newKey = "YOUR_GEMINI_API_KEY_HERE"
         
-        fun encrypt(keyText: String): String {
-            val passphrase = "FinTrack-DZ-Secure-Backup-Passphrase-2026-dz"
-            val digest = java.security.MessageDigest.getInstance("SHA-256")
-            val keyBytes = digest.digest(passphrase.toByteArray(Charsets.UTF_8))
-            val secretKeySpec = javax.crypto.spec.SecretKeySpec(keyBytes, "AES")
+        val passphrase = "FinTrack-DZ-Secure-Backup-Passphrase-2026-dz"
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        val keyBytes = digest.digest(passphrase.toByteArray(Charsets.UTF_8))
+        val secretKeySpec = javax.crypto.spec.SecretKeySpec(keyBytes, "AES")
 
-            val cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
-            val iv = ByteArray(12)
-            java.security.SecureRandom().nextBytes(iv)
-            val parameterSpec = javax.crypto.spec.GCMParameterSpec(128, iv)
+        val cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+        val iv = ByteArray(12)
+        java.security.SecureRandom().nextBytes(iv)
+        val parameterSpec = javax.crypto.spec.GCMParameterSpec(128, iv)
 
-            cipher.init(javax.crypto.Cipher.ENCRYPT_MODE, secretKeySpec, parameterSpec)
-            val cipherText = cipher.doFinal(keyText.toByteArray(Charsets.UTF_8))
+        cipher.init(javax.crypto.Cipher.ENCRYPT_MODE, secretKeySpec, parameterSpec)
+        val cipherText = cipher.doFinal(newKey.toByteArray(Charsets.UTF_8))
 
-            val combined = ByteArray(iv.size + cipherText.size)
-            System.arraycopy(iv, 0, combined, 0, iv.size)
-            System.arraycopy(cipherText, 0, combined, iv.size, cipherText.size)
+        val combined = ByteArray(iv.size + cipherText.size)
+        System.arraycopy(iv, 0, combined, 0, iv.size)
+        System.arraycopy(cipherText, 0, combined, iv.size, cipherText.size)
 
-            return java.util.Base64.getEncoder().encodeToString(combined)
-        }
-
-        println("ENCRYPTED_GEMINI_KEY: ${encrypt(geminiKey)}")
-        println("ENCRYPTED_OPENCODE_KEY: ${encrypt(opencodeKey)}")
+        val encrypted = java.util.Base64.getEncoder().encodeToString(combined)
+        println("ENCRYPTED_KEY_START")
+        println(encrypted)
+        println("ENCRYPTED_KEY_END")
     }
 }
