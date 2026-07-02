@@ -16,6 +16,7 @@
             android:layout_alignParentStart="true"
             android:layout_alignParentTop="true"
             android:src="@drawable/ic_notification"
+            android:tint="@color/notification_text_title"
             android:contentDescription="Icon" />
 
         <TextView
@@ -29,7 +30,7 @@
             android:layout_alignParentTop="true"
             android:text="جاري تحميل التحديث..."
             android:textStyle="bold"
-            android:textColor="?android:attr/textColorPrimary"
+            android:textColor="@color/notification_text_title"
             android:textSize="14sp" />
 
         <TextView
@@ -40,7 +41,7 @@
             android:layout_alignParentTop="true"
             android:text="0%"
             android:textStyle="bold"
-            android:textColor="?android:attr/textColorPrimary"
+            android:textColor="@color/notification_text_title"
             android:textSize="14sp" />
     </RelativeLayout>
 
@@ -52,14 +53,16 @@
         android:layout_marginTop="8dp"
         android:layout_marginBottom="4dp"
         android:max="100"
-        android:progress="0" />
+        android:progress="0"
+        android:progressTint="@color/notification_progress_tint"
+        android:progressBackgroundTint="@color/notification_progress_bg" />
 
     <TextView
         android:id="@+id/notification_info"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="السرعة: -- • المتبقي: --"
-        android:textColor="?android:attr/textColorSecondary"
+        android:textColor="@color/notification_text_subtitle"
         android:textSize="12sp"
         android:layout_marginBottom="8dp" />
 
@@ -70,13 +73,26 @@
         android:gravity="end">
 
         <TextView
+            android:id="@+id/notification_btn_install"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:text="تثبيت الآن"
+            android:textStyle="bold"
+            android:textColor="@color/notification_button_success"
+            android:textSize="13sp"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone" />
+
+        <TextView
             android:id="@+id/notification_btn_pause"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:padding="8dp"
             android:text="إيقاف مؤقت"
             android:textStyle="bold"
-            android:textColor="?android:attr/colorAccent"
+            android:textColor="@color/notification_button_primary"
             android:textSize="13sp"
             android:clickable="true"
             android:focusable="true"
@@ -89,7 +105,7 @@
             android:padding="8dp"
             android:text="إلغاء"
             android:textStyle="bold"
-            android:textColor="#EF4444"
+            android:textColor="@color/notification_button_danger"
             android:textSize="13sp"
             android:clickable="true"
             android:focusable="true" />

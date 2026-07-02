@@ -28,6 +28,7 @@ import com.example.core.ui.components.UnifiedScreenHeader
 import com.example.core.utils.FormatterUtils
 import com.example.domain.model.IncomeSource
 import com.example.domain.model.Subscription
+import com.example.domain.model.Account
 import com.example.domain.model.AffectedObligation
 import com.example.domain.model.Category
 import com.example.domain.model.DelaySeverity
@@ -605,7 +606,9 @@ fun DistributionConfigCard(
                             EnvelopeCard(
                                 envelope = envelope,
                                 categories = uiState.categories,
-                                onLinkCategory = { viewModel.showCategoryPickerFor(envelope.id) }
+                                accounts = uiState.accounts,
+                                onLinkCategory = { viewModel.showCategoryPickerFor(envelope.id) },
+                                onLinkAccount = { accountId -> viewModel.linkAccountToEnvelope(envelope.id, accountId) }
                             )
                         }
                     }
@@ -747,7 +750,9 @@ private fun PercentageSliderRow(
 private fun EnvelopeCard(
     envelope: SalaryEnvelope,
     categories: List<Category>,
-    onLinkCategory: () -> Unit
+    accounts: List<Account>,
+    onLinkCategory: () -> Unit,
+    onLinkAccount: (Long?) -> Unit
 ) {
     val envelopeColor = try {
         Color(android.graphics.Color.parseColor(envelope.color))
@@ -866,6 +871,64 @@ private fun EnvelopeCard(
                             text = "+${linked.size - 4}",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextGray
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            // Sub-account mapping dropdown selector
+            var showAccountDropdown by remember { mutableStateOf(false) }
+            val linkedAccount = accounts.find { it.id == envelope.linkedAccountId }
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .clickable { showAccountDropdown = true }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("🏦", fontSize = 14.sp)
+                    Text(
+                        text = linkedAccount?.name ?: "ربط حساب للتوزيع التلقائي",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (linkedAccount != null) envelopeColor else TextGray,
+                        fontWeight = if (linkedAccount != null) FontWeight.Bold else FontWeight.Normal
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = TextGray
+                )
+                
+                DropdownMenu(
+                    expanded = showAccountDropdown,
+                    onDismissRequest = { showAccountDropdown = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("إلغاء ربط الحساب", color = ExpenseRed) },
+                        onClick = {
+                            onLinkAccount(null)
+                            showAccountDropdown = false
+                        }
+                    )
+                    accounts.forEach { acc ->
+                        DropdownMenuItem(
+                            text = { Text(acc.name) },
+                            onClick = {
+                                onLinkAccount(acc.id)
+                                showAccountDropdown = false
+                            }
                         )
                     }
                 }

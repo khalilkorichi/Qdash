@@ -2,9 +2,12 @@ package com.example.domain.usecase.salary
 
 import com.example.domain.model.*
 import com.example.domain.repository.SalaryDistributionRepository
+import com.example.domain.repository.CategoryRepository
+import kotlinx.coroutines.flow.first
 
 class SaveSalaryDistributionUseCase(
-    private val repository: SalaryDistributionRepository
+    private val repository: SalaryDistributionRepository,
+    private val categoryRepository: CategoryRepository
 ) {
     /**
      * Save or update distribution settings, then create/update the 3 envelopes.
@@ -49,6 +52,12 @@ class SaveSalaryDistributionUseCase(
             )
         }
 
+        // Fetch all categories for smart auto-mapping
+        val allCategories = categoryRepository.getAllCategories().first()
+        val needsKeywords = listOf("إيجار", "كهرباء وغاز", "ماء", "إنترنت", "بقالة", "تاكسي", "حافلة", "وقود", "صحة", "صيدلية", "مستحقات البريد (CCP)", "البطاقة الذهبية")
+        val wantsKeywords = listOf("مطاعم", "قهوة", "ملابس", "عناية شخصية", "ألعاب", "بث مباشر", "فعاليات", "أعراس وحفلات", "رمضان", "الدخول المدرسي")
+        val savingsKeywords = listOf("ادخار", "توفير", "استثمار")
+
         // Create or update envelopes
         val existingEnvelopes = repository.getEnvelopesForDistributionOnce(distributionId)
         
@@ -64,6 +73,17 @@ class SaveSalaryDistributionUseCase(
             val allocatedAmount = salaryAmount * percentage / 100.0
             val existingEnvelope = existingEnvelopes.find { it.type == type }
 
+            val linkedCategoryIds = if (existingEnvelope != null) {
+                existingEnvelope.linkedCategoryIds
+            } else {
+                val keywords = when (type) {
+                    EnvelopeType.NEEDS -> needsKeywords
+                    EnvelopeType.WANTS -> wantsKeywords
+                    EnvelopeType.SAVINGS -> savingsKeywords
+                }
+                allCategories.filter { it.name in keywords }.map { it.id }
+            }
+
             SalaryEnvelope(
                 id = existingEnvelope?.id ?: 0,
                 distributionId = distributionId,
@@ -72,7 +92,8 @@ class SaveSalaryDistributionUseCase(
                 percentage = percentage,
                 allocatedAmount = allocatedAmount,
                 spentAmount = existingEnvelope?.spentAmount ?: 0.0,
-                linkedCategoryIds = existingEnvelope?.linkedCategoryIds ?: emptyList(),
+                linkedCategoryIds = linkedCategoryIds,
+                linkedAccountId = existingEnvelope?.linkedAccountId,
                 color = color,
                 icon = icon
             )

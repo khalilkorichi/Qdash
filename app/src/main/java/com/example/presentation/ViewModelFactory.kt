@@ -219,7 +219,9 @@ class ViewModelFactory(
                     container.subscriptionRepository,
                     container.getSalaryDistributionUseCase,
                     container.saveSalaryDistributionUseCase,
-                    container.categoryRepository
+                    container.categoryRepository,
+                    container.salaryDistributionRepository,
+                    container.transferBetweenAccountsUseCase
                 ) as T
             }
             

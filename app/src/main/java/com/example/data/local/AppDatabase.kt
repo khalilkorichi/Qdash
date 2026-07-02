@@ -30,7 +30,7 @@ import com.example.data.local.entities.*
         SalaryDistributionEntity::class,
         SalaryEnvelopeEntity::class
     ],
-    version = 19,
+    version = 20,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {

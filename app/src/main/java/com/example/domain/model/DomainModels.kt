@@ -361,6 +361,7 @@ data class SalaryEnvelope(
     val allocatedAmount: Double,
     val spentAmount: Double = 0.0,
     val linkedCategoryIds: List<Long> = emptyList(),
+    val linkedAccountId: Long? = null,
     val color: String,
     val icon: String
 ) {
@@ -399,6 +400,7 @@ fun com.example.data.local.entities.SalaryEnvelopeEntity.toDomain() = SalaryEnve
     allocatedAmount = allocatedAmount,
     spentAmount = spentAmount,
     linkedCategoryIds = if (linkedCategoryIds.isBlank()) emptyList() else linkedCategoryIds.split(",").mapNotNull { it.trim().toLongOrNull() },
+    linkedAccountId = linkedAccountId,
     color = color,
     icon = icon
 )
@@ -412,6 +414,7 @@ fun SalaryEnvelope.toEntity() = com.example.data.local.entities.SalaryEnvelopeEn
     allocatedAmount = allocatedAmount,
     spentAmount = spentAmount,
     linkedCategoryIds = linkedCategoryIds.joinToString(","),
+    linkedAccountId = linkedAccountId,
     color = color,
     icon = icon
 )

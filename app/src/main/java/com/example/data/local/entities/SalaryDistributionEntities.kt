@@ -32,6 +32,7 @@ data class SalaryEnvelopeEntity(
     val allocatedAmount: Double,
     val spentAmount: Double = 0.0,
     val linkedCategoryIds: String = "", // comma-separated IDs
+    val linkedAccountId: Long? = null,
     val color: String,
     val icon: String
 )

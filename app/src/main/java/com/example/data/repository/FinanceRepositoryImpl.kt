@@ -166,6 +166,67 @@ class TransactionRepositoryImpl(
                     }
                 }
             }
+
+            // 3. Check for Salary Envelope Overspending and update spentAmount
+            if (transaction.type == TransactionType.EXPENSE && transaction.categoryId != null) {
+                val categoryId = transaction.categoryId
+                val envelopes = database.salaryDistributionDao().getAllEnvelopesOnce()
+                
+                envelopes.forEach { env ->
+                    val linkedIds = if (env.linkedCategoryIds.isBlank()) emptyList() else env.linkedCategoryIds.split(",").mapNotNull { it.trim().toLongOrNull() }
+                    if (categoryId in linkedIds) {
+                        // Recalculate spentAmount for this envelope
+                        val allTxList = database.transactionDao().getTransactionsByDateRangeList(0L, System.currentTimeMillis() + 86400000L)
+                        val envelopeSpent = allTxList.filter { 
+                            it.type == "EXPENSE" && it.categoryId in linkedIds
+                        }.sumOf { it.amount }
+                        
+                        val updatedEnv = env.copy(spentAmount = envelopeSpent)
+                        database.salaryDistributionDao().updateEnvelope(updatedEnv)
+                        
+                        // Check if overspent and notify
+                        if (env.allocatedAmount > 0) {
+                            val oldProgress = env.spentAmount / env.allocatedAmount
+                            val newProgress = envelopeSpent / env.allocatedAmount
+                            
+                            val now = System.currentTimeMillis()
+                            val existingNotifications = notificationRepository.getAllNotifications().first()
+                            
+                            val alreadyNotified = existingNotifications.any {
+                                it.type == NotificationType.BUDGET_ALERT &&
+                                        it.message.contains(env.label) &&
+                                        (now - it.timestamp) < 12L * 60 * 60 * 1000
+                            }
+                            
+                            if (!alreadyNotified) {
+                                if (newProgress >= 1.0 && oldProgress < 1.0) {
+                                    val alertMsg = "تنبيه 🚨: لقد استهلكت 100% من ميزانية ظرف \"${env.label}\" (${env.allocatedAmount.toInt()} د.ج)." + 
+                                            if (env.type == "WANTS") " نقترح إيقاف الإنفاق الترفيهي أو نقل جزء من ميزانية الاحتياجات." else ""
+                                    
+                                    val notification = AppNotification(
+                                        title = "تجاوز حد الظرف! ⚠️",
+                                        message = alertMsg,
+                                        type = NotificationType.BUDGET_ALERT,
+                                        relatedEntityId = env.id,
+                                        deepLinkRoute = "salary"
+                                    )
+                                    notificationRepository.insertNotification(notification)
+                                } else if (newProgress >= 0.8 && oldProgress < 0.8) {
+                                    val alertMsg = "تنبيه ⚠️: لقد استهلكت 80% من ميزانية ظرف \"${env.label}\" (المتبقي: ${(env.allocatedAmount - envelopeSpent).toInt()} د.ج)."
+                                    val notification = AppNotification(
+                                        title = "اقتراب حد الظرف ⏳",
+                                        message = alertMsg,
+                                        type = NotificationType.BUDGET_ALERT,
+                                        relatedEntityId = env.id,
+                                        deepLinkRoute = "salary"
+                                    )
+                                    notificationRepository.insertNotification(notification)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }

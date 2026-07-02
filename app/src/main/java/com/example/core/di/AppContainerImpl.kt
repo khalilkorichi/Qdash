@@ -106,6 +106,7 @@ class AppContainerImpl(private val context: Context) : AppContainer {
 
     override val aiRepository: AiRepository by lazy {
         AiRepositoryImpl(
+            salaryDistributionDao = database.salaryDistributionDao(),
             aiChatDao = database.aiChatDao(),
             transactionRepository = transactionRepository,
             accountRepository = accountRepository,
@@ -358,7 +359,7 @@ class AppContainerImpl(private val context: Context) : AppContainer {
     }
 
     override val confirmSalaryDelayUseCase: com.example.domain.usecase.salary.ConfirmSalaryDelayUseCase by lazy {
-        com.example.domain.usecase.salary.ConfirmSalaryDelayUseCase(incomeRepository)
+        com.example.domain.usecase.salary.ConfirmSalaryDelayUseCase(incomeRepository, salaryDistributionRepository)
     }
 
     override val deleteSalaryDelayUseCase: com.example.domain.usecase.salary.DeleteSalaryDelayUseCase by lazy {
@@ -387,7 +388,7 @@ class AppContainerImpl(private val context: Context) : AppContainer {
     }
 
     override val saveSalaryDistributionUseCase: com.example.domain.usecase.salary.SaveSalaryDistributionUseCase by lazy {
-        com.example.domain.usecase.salary.SaveSalaryDistributionUseCase(salaryDistributionRepository)
+        com.example.domain.usecase.salary.SaveSalaryDistributionUseCase(salaryDistributionRepository, categoryRepository)
     }
 
     init {

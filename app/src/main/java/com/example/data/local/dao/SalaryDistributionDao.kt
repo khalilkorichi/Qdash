@@ -25,6 +25,12 @@ interface SalaryDistributionDao {
     @Query("DELETE FROM salary_distributions WHERE id = :id")
     suspend fun deleteDistribution(id: Long)
 
+    @Query("SELECT * FROM salary_distributions")
+    suspend fun getAllDistributionsOnce(): List<SalaryDistributionEntity>
+
+    @Query("SELECT * FROM salary_envelopes")
+    suspend fun getAllEnvelopesOnce(): List<SalaryEnvelopeEntity>
+
     // --- Envelopes ---
 
     @Query("SELECT * FROM salary_envelopes WHERE distributionId = :distributionId ORDER BY `type` ASC")

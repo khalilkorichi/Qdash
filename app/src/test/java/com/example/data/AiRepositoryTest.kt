@@ -1,7 +1,10 @@
 package com.example.data
 
 import com.example.data.local.dao.AiChatDao
+import com.example.data.local.dao.SalaryDistributionDao
 import com.example.data.local.entities.AiChatMessageEntity
+import com.example.data.local.entities.SalaryDistributionEntity
+import com.example.data.local.entities.SalaryEnvelopeEntity
 import com.example.data.repository.AiRepositoryImpl
 import com.example.domain.model.*
 import com.example.domain.repository.*
@@ -111,9 +114,26 @@ class AiRepositoryTest {
         override suspend fun deleteSession(sessionTitle: String) {}
     }
 
+    private val fakeSalaryDistributionDao = object : SalaryDistributionDao {
+        override fun getDistributionForSalary(salaryId: Long): Flow<SalaryDistributionEntity?> = flowOf(null)
+        override suspend fun getDistributionForSalaryOnce(salaryId: Long): SalaryDistributionEntity? = null
+        override suspend fun insertDistribution(distribution: SalaryDistributionEntity): Long = 0
+        override suspend fun updateDistribution(distribution: SalaryDistributionEntity) {}
+        override suspend fun deleteDistribution(id: Long) {}
+        override suspend fun getAllDistributionsOnce(): List<SalaryDistributionEntity> = emptyList()
+        override suspend fun getAllEnvelopesOnce(): List<SalaryEnvelopeEntity> = emptyList()
+        override fun getEnvelopesForDistribution(distributionId: Long): Flow<List<SalaryEnvelopeEntity>> = flowOf(emptyList())
+        override suspend fun getEnvelopesForDistributionOnce(distributionId: Long): List<SalaryEnvelopeEntity> = emptyList()
+        override suspend fun insertEnvelopes(envelopes: List<SalaryEnvelopeEntity>) {}
+        override suspend fun updateEnvelope(envelope: SalaryEnvelopeEntity) {}
+        override suspend fun deleteEnvelopesForDistribution(distributionId: Long) {}
+        override suspend fun updateLinkedCategories(envelopeId: Long, categoryIds: String) {}
+    }
+
     @Test
     fun testGeneralBalanceInquiry() = runBlocking {
         val aiRepository = AiRepositoryImpl(
+            salaryDistributionDao = fakeSalaryDistributionDao,
             aiChatDao = fakeAiChatDao,
             transactionRepository = fakeTransactionRepository,
             accountRepository = fakeAccountRepository,
@@ -141,6 +161,7 @@ class AiRepositoryTest {
     @Test
     fun testSpecificAccountBalanceInquiry() = runBlocking {
         val aiRepository = AiRepositoryImpl(
+            salaryDistributionDao = fakeSalaryDistributionDao,
             aiChatDao = fakeAiChatDao,
             transactionRepository = fakeTransactionRepository,
             accountRepository = fakeAccountRepository,
@@ -170,6 +191,7 @@ class AiRepositoryTest {
     @Test
     fun testMockErrorTriggers() = runBlocking {
         val aiRepository = AiRepositoryImpl(
+            salaryDistributionDao = fakeSalaryDistributionDao,
             aiChatDao = fakeAiChatDao,
             transactionRepository = fakeTransactionRepository,
             accountRepository = fakeAccountRepository,
@@ -221,6 +243,7 @@ class AiRepositoryTest {
         }
 
         val aiRepository = AiRepositoryImpl(
+            salaryDistributionDao = fakeSalaryDistributionDao,
             aiChatDao = statefulDao,
             transactionRepository = fakeTransactionRepository,
             accountRepository = fakeAccountRepository,

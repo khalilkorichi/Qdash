@@ -14,4 +14,13 @@
     <color name="sfp_border_brown">#8A5E3A</color>
     <color name="sfp_beneficiary_green">#1B5E20</color>
     <color name="sfp_sender_red">#B71C1C</color>
+
+    <!-- Notification Colors (Light Mode) -->
+    <color name="notification_text_title">#1E293B</color>
+    <color name="notification_text_subtitle">#64748B</color>
+    <color name="notification_button_primary">#3B82F6</color>
+    <color name="notification_button_success">#10B981</color>
+    <color name="notification_button_danger">#EF4444</color>
+    <color name="notification_progress_tint">#3B82F6</color>
+    <color name="notification_progress_bg">#E2E8F0</color>
 </resources>

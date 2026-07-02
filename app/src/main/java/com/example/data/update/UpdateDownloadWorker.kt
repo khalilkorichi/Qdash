@@ -265,6 +265,10 @@ class UpdateDownloadWorker(
         // Construct Custom RemoteViews
         val remoteViews = RemoteViews(context.packageName, R.layout.notification_download)
         
+        remoteViews.setViewVisibility(R.id.notification_btn_install, android.view.View.GONE)
+        remoteViews.setViewVisibility(R.id.notification_btn_pause, android.view.View.VISIBLE)
+        remoteViews.setViewVisibility(R.id.notification_btn_cancel, android.view.View.VISIBLE)
+        
         val titleText = if (isPaused) "تم إيقاف تحميل التحديث مؤقتاً" else "جاري تحميل التحديث (v$versionName)..."
         remoteViews.setTextViewText(R.id.notification_title, titleText)
         
@@ -369,12 +373,31 @@ class UpdateDownloadWorker(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Construct Custom RemoteViews for completed/success state
+        val remoteViews = RemoteViews(context.packageName, R.layout.notification_download)
+        
+        remoteViews.setTextViewText(R.id.notification_title, "اكتمل تحميل التحديث 🎉")
+        
+        val arabicProgress = FormatterUtils.convertNumerals("100%")
+        remoteViews.setTextViewText(R.id.notification_progress_text, arabicProgress)
+        remoteViews.setProgressBar(R.id.notification_progress_bar, 100, 100, false)
+        
+        remoteViews.setTextViewText(R.id.notification_info, "الإصدار v$versionName جاهز للتثبيت الآن.")
+        
+        // Configure button visibilities
+        remoteViews.setViewVisibility(R.id.notification_btn_pause, android.view.View.GONE)
+        remoteViews.setViewVisibility(R.id.notification_btn_cancel, android.view.View.GONE)
+        remoteViews.setViewVisibility(R.id.notification_btn_install, android.view.View.VISIBLE)
+        
+        // Bind installation trigger to the "Install Now" button
+        remoteViews.setOnClickPendingIntent(R.id.notification_btn_install, pendingInstall)
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("اكتمل تحميل التحديث 🎉")
-            .setContentText("الإصدار v$versionName جاهز للتثبيت الآن. اضغط للبدء.")
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCustomContentView(remoteViews)
+            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .setContentIntent(pendingInstall)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setOngoing(false)
             .build()

@@ -1,6 +1,7 @@
 package com.example.data.repository
 
 import com.example.data.local.dao.AiChatDao
+import com.example.data.local.dao.SalaryDistributionDao
 import com.example.domain.model.AiChatMessage
 import com.example.domain.model.ChatSender
 import com.example.domain.model.toDomain
@@ -27,6 +28,7 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 class AiRepositoryImpl(
+    private val salaryDistributionDao: SalaryDistributionDao,
     private val aiChatDao: AiChatDao,
     private val transactionRepository: TransactionRepository,
     private val accountRepository: AccountRepository,
@@ -1384,6 +1386,20 @@ class AiRepositoryImpl(
                 }
             } else "لا توجد ديون"
 
+            val envelopes = salaryDistributionDao.getAllEnvelopesOnce()
+            val distributions = salaryDistributionDao.getAllDistributionsOnce()
+            
+            val distributionStr = if (distributions.isNotEmpty()) {
+                val dist = distributions.first()
+                if (dist.isEnabled) {
+                    val envsStr = envelopes.filter { it.distributionId == dist.id }.joinToString("\n") { env ->
+                        val linkedCats = categories.filter { it.id in (if (env.linkedCategoryIds.isBlank()) emptyList() else env.linkedCategoryIds.split(",").mapNotNull { it.trim().toLongOrNull() }) }.map { it.name }
+                        "- ظرف ${env.label} (${env.type}): النسبة = ${env.percentage}% | المخصص = ${env.allocatedAmount} دج | المُنفق = ${env.spentAmount} دج | الفئات المربوطة = [${linkedCats.joinToString(", ")}]"
+                    }
+                    "التوزيع التلقائي للراتب مفعّل:\n$envsStr"
+                } else "التوزيع التلقائي للراتب معطّل حالياً."
+            } else "التوزيع التلقائي للراتب غير مهيأ."
+
             """
             ═══════════════════════════════════════
             سياق قاعدة بيانات المستخدم الكاملة — لديك صلاحية قراءة كاملة لجميع البيانات التالية واستخدامها للإجابة بدقة:
@@ -1410,6 +1426,9 @@ class AiRepositoryImpl(
 
             💳 الديون:
             $debtsStr
+
+            ✉️ الأظرف المالية (توزيع الراتب 50/30/20):
+            $distributionStr
             ═══════════════════════════════════════
             """.trimIndent()
         } catch (e: Exception) {

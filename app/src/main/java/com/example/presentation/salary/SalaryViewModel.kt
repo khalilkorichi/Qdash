@@ -64,7 +64,9 @@ class SalaryViewModel(
     private val subscriptionRepository: SubscriptionRepository,
     private val getSalaryDistributionUseCase: GetSalaryDistributionUseCase,
     private val saveSalaryDistributionUseCase: SaveSalaryDistributionUseCase,
-    private val categoryRepository: CategoryRepository
+    private val categoryRepository: CategoryRepository,
+    private val salaryDistributionRepository: com.example.domain.repository.SalaryDistributionRepository,
+    private val transferBetweenAccountsUseCase: com.example.domain.usecase.transfer.TransferBetweenAccountsUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SalaryUiState(isLoading = true))
@@ -326,7 +328,24 @@ class SalaryViewModel(
             )
             
             if (state.editingId == null) {
-                incomeRepository.insertIncomeSource(source)
+                val insertedId = incomeRepository.insertIncomeSource(source)
+                
+                // Automatic transfers to sub-accounts (Sub-account Auto-Transfer)
+                if (state.distributionEnabled) {
+                    state.envelopes.forEach { env ->
+                        if (env.linkedAccountId != null && env.linkedAccountId != accountId && env.allocatedAmount > 0) {
+                            transferBetweenAccountsUseCase(
+                                com.example.domain.model.TransferRequest(
+                                    fromAccountId = accountId,
+                                    toAccountId = env.linkedAccountId,
+                                    amount = env.allocatedAmount,
+                                    note = "توزيع تلقائي للراتب: ${env.label}",
+                                    date = System.currentTimeMillis()
+                                )
+                            )
+                        }
+                    }
+                }
             } else {
                 incomeRepository.updateIncomeSource(source)
                 // Recalculate envelopes if distribution is enabled and amount changed
@@ -335,6 +354,21 @@ class SalaryViewModel(
                 }
             }
             setShowAddDialog(false)
+        }
+    }
+
+    fun linkAccountToEnvelope(envelopeId: Long, accountId: Long?) {
+        val updatedEnvelopes = _uiState.value.envelopes.map { env ->
+            if (env.id == envelopeId) env.copy(linkedAccountId = accountId) else env
+        }
+        _uiState.update { it.copy(envelopes = updatedEnvelopes) }
+        
+        viewModelScope.launch {
+            try {
+                salaryDistributionRepository.saveEnvelopes(updatedEnvelopes)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(userMessage = "خطأ في ربط الحساب بالظرف") }
+            }
         }
     }
 
