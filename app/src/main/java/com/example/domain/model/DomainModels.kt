@@ -330,5 +330,89 @@ data class SalaryManagementOverview(
     val salary: IncomeSource?,
     val delays: List<SalaryDelay>,
     val activeSubscriptions: List<Subscription>,
-    val activeDebts: List<Debt>
+    val activeDebts: List<Debt>,
+    val distribution: SalaryDistribution? = null,
+    val envelopes: List<SalaryEnvelope> = emptyList()
 )
+
+// --- Salary Distribution (50/30/20 Rule) ---
+
+enum class EnvelopeType {
+    NEEDS, WANTS, SAVINGS
+}
+
+data class SalaryDistribution(
+    val id: Long = 0,
+    val salaryId: Long,
+    val isEnabled: Boolean = false,
+    val needsPercentage: Int = 50,
+    val wantsPercentage: Int = 30,
+    val savingsPercentage: Int = 20,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+data class SalaryEnvelope(
+    val id: Long = 0,
+    val distributionId: Long,
+    val type: EnvelopeType,
+    val label: String,
+    val percentage: Int,
+    val allocatedAmount: Double,
+    val spentAmount: Double = 0.0,
+    val linkedCategoryIds: List<Long> = emptyList(),
+    val color: String,
+    val icon: String
+) {
+    val remainingAmount: Double get() = allocatedAmount - spentAmount
+    val usagePercentage: Double get() = if (allocatedAmount > 0) (spentAmount / allocatedAmount * 100) else 0.0
+}
+
+fun com.example.data.local.entities.SalaryDistributionEntity.toDomain() = SalaryDistribution(
+    id = id,
+    salaryId = salaryId,
+    isEnabled = isEnabled,
+    needsPercentage = needsPercentage,
+    wantsPercentage = wantsPercentage,
+    savingsPercentage = savingsPercentage,
+    createdAt = createdAt,
+    updatedAt = updatedAt
+)
+
+fun SalaryDistribution.toEntity() = com.example.data.local.entities.SalaryDistributionEntity(
+    id = id,
+    salaryId = salaryId,
+    isEnabled = isEnabled,
+    needsPercentage = needsPercentage,
+    wantsPercentage = wantsPercentage,
+    savingsPercentage = savingsPercentage,
+    createdAt = createdAt,
+    updatedAt = updatedAt
+)
+
+fun com.example.data.local.entities.SalaryEnvelopeEntity.toDomain() = SalaryEnvelope(
+    id = id,
+    distributionId = distributionId,
+    type = try { EnvelopeType.valueOf(type) } catch (e: Exception) { EnvelopeType.NEEDS },
+    label = label,
+    percentage = percentage,
+    allocatedAmount = allocatedAmount,
+    spentAmount = spentAmount,
+    linkedCategoryIds = if (linkedCategoryIds.isBlank()) emptyList() else linkedCategoryIds.split(",").mapNotNull { it.trim().toLongOrNull() },
+    color = color,
+    icon = icon
+)
+
+fun SalaryEnvelope.toEntity() = com.example.data.local.entities.SalaryEnvelopeEntity(
+    id = id,
+    distributionId = distributionId,
+    type = type.name,
+    label = label,
+    percentage = percentage,
+    allocatedAmount = allocatedAmount,
+    spentAmount = spentAmount,
+    linkedCategoryIds = linkedCategoryIds.joinToString(","),
+    color = color,
+    icon = icon
+)
+

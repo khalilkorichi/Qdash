@@ -891,3 +891,46 @@ class SubscriptionRepositoryImpl(
         subscriptionDao.deleteSubscription(subscription.toEntity())
     }
 }
+
+class SalaryDistributionRepositoryImpl(
+    private val salaryDistributionDao: com.example.data.local.dao.SalaryDistributionDao
+) : SalaryDistributionRepository {
+
+    override fun getDistributionForSalary(salaryId: Long): Flow<SalaryDistribution?> {
+        return salaryDistributionDao.getDistributionForSalary(salaryId).map { it?.toDomain() }
+    }
+
+    override suspend fun getDistributionForSalaryOnce(salaryId: Long): SalaryDistribution? {
+        return salaryDistributionDao.getDistributionForSalaryOnce(salaryId)?.toDomain()
+    }
+
+    override fun getEnvelopesForDistribution(distributionId: Long): Flow<List<SalaryEnvelope>> {
+        return salaryDistributionDao.getEnvelopesForDistribution(distributionId).map { list ->
+            list.map { it.toDomain() }
+        }
+    }
+
+    override suspend fun getEnvelopesForDistributionOnce(distributionId: Long): List<SalaryEnvelope> {
+        return salaryDistributionDao.getEnvelopesForDistributionOnce(distributionId).map { it.toDomain() }
+    }
+
+    override suspend fun insertDistribution(distribution: SalaryDistribution): Long {
+        return salaryDistributionDao.insertDistribution(distribution.toEntity())
+    }
+
+    override suspend fun updateDistribution(distribution: SalaryDistribution) {
+        salaryDistributionDao.updateDistribution(distribution.toEntity())
+    }
+
+    override suspend fun saveEnvelopes(envelopes: List<SalaryEnvelope>) {
+        if (envelopes.isEmpty()) return
+        val distId = envelopes.first().distributionId
+        salaryDistributionDao.deleteEnvelopesForDistribution(distId)
+        salaryDistributionDao.insertEnvelopes(envelopes.map { it.toEntity() })
+    }
+
+    override suspend fun updateLinkedCategories(envelopeId: Long, categoryIds: List<Long>) {
+        salaryDistributionDao.updateLinkedCategories(envelopeId, categoryIds.joinToString(","))
+    }
+}
+

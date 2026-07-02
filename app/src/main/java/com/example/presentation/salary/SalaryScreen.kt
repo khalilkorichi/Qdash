@@ -29,8 +29,10 @@ import com.example.core.utils.FormatterUtils
 import com.example.domain.model.IncomeSource
 import com.example.domain.model.Subscription
 import com.example.domain.model.AffectedObligation
+import com.example.domain.model.Category
 import com.example.domain.model.DelaySeverity
-import com.example.ui.designsystem.tokens.ColorTokens
+import com.example.domain.model.EnvelopeType
+import com.example.domain.model.SalaryEnvelope
 import com.example.ui.theme.ExpenseRed
 import com.example.ui.theme.IncomeGreen
 import com.example.ui.theme.Primary
@@ -467,6 +469,9 @@ fun DistributionConfigCard(
     viewModel: SalaryViewModel
 ) {
     val Primary = MaterialTheme.colorScheme.primary
+    val salary = uiState.overview?.salary
+    val salaryAmount = salary?.amount ?: 0.0
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -475,6 +480,7 @@ fun DistributionConfigCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
+            // Header with toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -499,8 +505,318 @@ fun DistributionConfigCard(
             }
 
             AnimatedVisibility(visible = uiState.distributionEnabled) {
-                Column(modifier = Modifier.padding(top = 16.dp)) {
-                    Text("سيتم تفعيل هذه الميزة قريباً لتقسيم راتبك تلقائياً على أظرف أو حسابات فرعية لضمان التزامك بخطتك المالية المحددة.", style = MaterialTheme.typography.bodyMedium, color = TextGray)
+                Column(
+                    modifier = Modifier.padding(top = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Visual distribution bar
+                    DistributionBar(
+                        needsPercentage = uiState.needsPercentage,
+                        wantsPercentage = uiState.wantsPercentage,
+                        savingsPercentage = uiState.savingsPercentage
+                    )
+
+                    // Percentage Sliders
+                    PercentageSliderRow(
+                        label = "🏠 احتياجات",
+                        percentage = uiState.needsPercentage,
+                        color = Color(0xFF4CAF50),
+                        amount = salaryAmount * uiState.needsPercentage / 100.0,
+                        onValueChange = { viewModel.updateDistributionPercentage(EnvelopeType.NEEDS, it) },
+                        onValueChangeFinished = { viewModel.commitDistributionPercentages() }
+                    )
+                    PercentageSliderRow(
+                        label = "🎮 رغبات",
+                        percentage = uiState.wantsPercentage,
+                        color = Color(0xFFFF9800),
+                        amount = salaryAmount * uiState.wantsPercentage / 100.0,
+                        onValueChange = { viewModel.updateDistributionPercentage(EnvelopeType.WANTS, it) },
+                        onValueChangeFinished = { viewModel.commitDistributionPercentages() }
+                    )
+                    PercentageSliderRow(
+                        label = "💰 ادخار",
+                        percentage = uiState.savingsPercentage,
+                        color = Color(0xFF2196F3),
+                        amount = salaryAmount * uiState.savingsPercentage / 100.0,
+                        onValueChange = { viewModel.updateDistributionPercentage(EnvelopeType.SAVINGS, it) },
+                        onValueChangeFinished = { viewModel.commitDistributionPercentages() }
+                    )
+
+                    // Envelope cards (when saved to DB)
+                    if (uiState.envelopes.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "الأظرف المالية",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        uiState.envelopes.forEach { envelope ->
+                            EnvelopeCard(
+                                envelope = envelope,
+                                categories = uiState.categories,
+                                onLinkCategory = { viewModel.showCategoryPickerFor(envelope.id) }
+                            )
+                        }
+                    }
+
+                    if (uiState.isDistributionSaving) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = Primary,
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DistributionBar(
+    needsPercentage: Int,
+    wantsPercentage: Int,
+    savingsPercentage: Int
+) {
+    val needsColor = Color(0xFF4CAF50)
+    val wantsColor = Color(0xFFFF9800)
+    val savingsColor = Color(0xFF2196F3)
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(12.dp)
+                .clip(RoundedCornerShape(6.dp))
+        ) {
+            if (needsPercentage > 0) {
+                Box(
+                    modifier = Modifier
+                        .weight(needsPercentage.toFloat())
+                        .fillMaxHeight()
+                        .background(needsColor)
+                )
+            }
+            if (wantsPercentage > 0) {
+                Box(
+                    modifier = Modifier
+                        .weight(wantsPercentage.toFloat())
+                        .fillMaxHeight()
+                        .background(wantsColor)
+                )
+            }
+            if (savingsPercentage > 0) {
+                Box(
+                    modifier = Modifier
+                        .weight(savingsPercentage.toFloat())
+                        .fillMaxHeight()
+                        .background(savingsColor)
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            DistributionLegendItem("احتياجات", needsPercentage, needsColor)
+            DistributionLegendItem("رغبات", wantsPercentage, wantsColor)
+            DistributionLegendItem("ادخار", savingsPercentage, savingsColor)
+        }
+    }
+}
+
+@Composable
+private fun DistributionLegendItem(label: String, percentage: Int, color: Color) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(color, CircleShape)
+        )
+        Text(
+            text = "$label $percentage%",
+            style = MaterialTheme.typography.labelSmall,
+            color = TextGray
+        )
+    }
+}
+
+@Composable
+private fun PercentageSliderRow(
+    label: String,
+    percentage: Int,
+    color: Color,
+    amount: Double,
+    onValueChange: (Int) -> Unit,
+    onValueChangeFinished: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "${FormatterUtils.formatCurrency(amount)} ($percentage%)",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+        }
+
+        Slider(
+            value = percentage.toFloat(),
+            onValueChange = { onValueChange(it.toInt()) },
+            onValueChangeFinished = onValueChangeFinished,
+            valueRange = 0f..100f,
+            colors = SliderDefaults.colors(
+                thumbColor = color,
+                activeTrackColor = color,
+                inactiveTrackColor = color.copy(alpha = 0.2f)
+            )
+        )
+    }
+}
+
+@Composable
+private fun EnvelopeCard(
+    envelope: SalaryEnvelope,
+    categories: List<Category>,
+    onLinkCategory: () -> Unit
+) {
+    val envelopeColor = try {
+        Color(android.graphics.Color.parseColor(envelope.color))
+    } catch (e: Exception) {
+        MaterialTheme.colorScheme.primary
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(envelopeColor.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = when (envelope.type) {
+                                EnvelopeType.NEEDS -> "🏠"
+                                EnvelopeType.WANTS -> "🎮"
+                                EnvelopeType.SAVINGS -> "💰"
+                            },
+                            fontSize = 18.sp
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = envelope.label,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "${envelope.percentage}%",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = envelopeColor,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = FormatterUtils.formatCurrency(envelope.allocatedAmount),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = envelopeColor
+                    )
+                    Text(
+                        text = "متبقي: ${FormatterUtils.formatCurrency(envelope.remainingAmount)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextGray
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Usage progress bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                val progress = (envelope.usagePercentage / 100.0).toFloat().coerceIn(0f, 1f)
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(progress)
+                        .background(
+                            if (progress > 0.9f) ExpenseRed
+                            else if (progress > 0.7f) Color(0xFFFF9800)
+                            else envelopeColor
+                        )
+                )
+            }
+
+            // Linked categories
+            if (envelope.linkedCategoryIds.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    val linked = categories.filter { it.id in envelope.linkedCategoryIds }
+                    linked.take(4).forEach { cat ->
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(envelopeColor.copy(alpha = 0.1f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = cat.name,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 10.sp,
+                                color = envelopeColor
+                            )
+                        }
+                    }
+                    if (linked.size > 4) {
+                        Text(
+                            text = "+${linked.size - 4}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextGray
+                        )
+                    }
                 }
             }
         }

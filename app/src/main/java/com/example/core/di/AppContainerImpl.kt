@@ -369,6 +369,19 @@ class AppContainerImpl(private val context: Context) : AppContainer {
         com.example.domain.usecase.salary.UpdateSalaryDelayUseCase(incomeRepository)
     }
 
+    // Salary Distribution
+    override val salaryDistributionRepository: com.example.domain.repository.SalaryDistributionRepository by lazy {
+        com.example.data.repository.SalaryDistributionRepositoryImpl(database.salaryDistributionDao())
+    }
+
+    override val getSalaryDistributionUseCase: com.example.domain.usecase.salary.GetSalaryDistributionUseCase by lazy {
+        com.example.domain.usecase.salary.GetSalaryDistributionUseCase(salaryDistributionRepository)
+    }
+
+    override val saveSalaryDistributionUseCase: com.example.domain.usecase.salary.SaveSalaryDistributionUseCase by lazy {
+        com.example.domain.usecase.salary.SaveSalaryDistributionUseCase(salaryDistributionRepository)
+    }
+
     init {
         // Pre-warm SharedPreferences to avoid main-thread blocking I/O on startup
         preferencesManager

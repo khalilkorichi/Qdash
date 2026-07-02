@@ -102,3 +102,15 @@ interface SubscriptionRepository {
     suspend fun updateSubscription(subscription: Subscription)
     suspend fun deleteSubscription(subscription: Subscription)
 }
+
+interface SalaryDistributionRepository {
+    fun getDistributionForSalary(salaryId: Long): Flow<SalaryDistribution?>
+    suspend fun getDistributionForSalaryOnce(salaryId: Long): SalaryDistribution?
+    fun getEnvelopesForDistribution(distributionId: Long): Flow<List<SalaryEnvelope>>
+    suspend fun getEnvelopesForDistributionOnce(distributionId: Long): List<SalaryEnvelope>
+    suspend fun insertDistribution(distribution: SalaryDistribution): Long
+    suspend fun updateDistribution(distribution: SalaryDistribution)
+    suspend fun saveEnvelopes(envelopes: List<SalaryEnvelope>)
+    suspend fun updateLinkedCategories(envelopeId: Long, categoryIds: List<Long>)
+}
+

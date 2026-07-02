@@ -14,10 +14,10 @@ android {
     applicationId = "com.aistudio.fintrackdz.agkdlm"
     minSdk = 24
     targetSdk = 36
-    versionCode = 57
-    versionName = "1.0.0.57"
+    versionCode = 58
+    versionName = "1.0.0.58"
     buildConfigField("Long", "BUILD_TIMESTAMP", "${System.currentTimeMillis()}L")
-    buildConfigField("Long", "UPDATE_IDENTITY", "158L")
+    buildConfigField("Long", "UPDATE_IDENTITY", "159L")
     buildConfigField("String", "GEMINI_API_KEY", "\"${System.getenv("GEMINI_API_KEY") ?: ""}\"")
     buildConfigField("String", "OPENROUTER_API_KEY", "\"${System.getenv("OPENROUTER_API_KEY") ?: ""}\"")
     buildConfigField("String", "NVIDIA_API_KEY", "\"${System.getenv("NVIDIA_API_KEY") ?: ""}\"")

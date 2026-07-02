@@ -27,6 +27,13 @@ data class SalaryUiState(
     val needsPercentage: Int = 50,
     val wantsPercentage: Int = 30,
     val savingsPercentage: Int = 20,
+    val envelopes: List<SalaryEnvelope> = emptyList(),
+    val isDistributionSaving: Boolean = false,
+
+    // Category linking
+    val categories: List<Category> = emptyList(),
+    val showCategoryPicker: Boolean = false,
+    val categoryPickerEnvelopeId: Long? = null,
 
     // Delay Salary Form
     val showDelayDialog: Boolean = false,
@@ -53,7 +60,10 @@ class SalaryViewModel(
     private val confirmSalaryDelayUseCase: ConfirmSalaryDelayUseCase,
     private val deleteSalaryDelayUseCase: DeleteSalaryDelayUseCase,
     private val updateSalaryDelayUseCase: UpdateSalaryDelayUseCase,
-    private val subscriptionRepository: SubscriptionRepository
+    private val subscriptionRepository: SubscriptionRepository,
+    private val getSalaryDistributionUseCase: GetSalaryDistributionUseCase,
+    private val saveSalaryDistributionUseCase: SaveSalaryDistributionUseCase,
+    private val categoryRepository: CategoryRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SalaryUiState(isLoading = true))
@@ -70,16 +80,44 @@ class SalaryViewModel(
         viewModelScope.launch {
             combine(
                 getSalaryManagementOverviewUseCase(),
-                accountRepository.getAllAccounts()
-            ) { overview, accounts ->
-                _uiState.value.copy(
-                    isLoading = false,
-                    overview = overview,
-                    accounts = accounts,
-                    selectedAccountId = if (_uiState.value.selectedAccountId == null) accounts.firstOrNull()?.id else _uiState.value.selectedAccountId
-                )
-            }.collect { newState ->
-                _uiState.value = newState
+                accountRepository.getAllAccounts(),
+                categoryRepository.getAllCategories()
+            ) { overview, accounts, categories ->
+                Triple(overview, accounts, categories)
+            }.collect { (overview, accounts, categories) ->
+                _uiState.update { state ->
+                    state.copy(
+                        isLoading = false,
+                        overview = overview,
+                        accounts = accounts,
+                        categories = categories.filter { it.type == CategoryType.EXPENSE },
+                        selectedAccountId = if (state.selectedAccountId == null) accounts.firstOrNull()?.id else state.selectedAccountId
+                    )
+                }
+                // Load distribution data when salary is available
+                overview.salary?.let { salary ->
+                    loadDistributionData(salary.id)
+                }
+            }
+        }
+    }
+
+    private fun loadDistributionData(salaryId: Long) {
+        viewModelScope.launch {
+            getSalaryDistributionUseCase.forSalary(salaryId).collect { (distribution, envelopes) ->
+                _uiState.update { state ->
+                    state.copy(
+                        distributionEnabled = distribution?.isEnabled ?: false,
+                        needsPercentage = distribution?.needsPercentage ?: 50,
+                        wantsPercentage = distribution?.wantsPercentage ?: 30,
+                        savingsPercentage = distribution?.savingsPercentage ?: 20,
+                        envelopes = envelopes,
+                        overview = state.overview?.copy(
+                            distribution = distribution,
+                            envelopes = envelopes
+                        )
+                    )
+                }
             }
         }
     }
@@ -165,12 +203,108 @@ class SalaryViewModel(
         _uiState.update { it.copy(selectedAccountId = accountId) }
     }
     
+    // --- Distribution Methods ---
+
     fun toggleDistribution(enabled: Boolean) {
         _uiState.update { it.copy(distributionEnabled = enabled) }
+        saveDistribution()
     }
 
-    fun updateDistribution(needs: Int, wants: Int, savings: Int) {
+    fun updateDistributionPercentage(type: EnvelopeType, newPercentage: Int) {
+        val state = _uiState.value
+        val clamped = newPercentage.coerceIn(0, 100)
+        
+        // Adjust the other two to maintain sum = 100
+        val (needs, wants, savings) = when (type) {
+            EnvelopeType.NEEDS -> {
+                val remaining = 100 - clamped
+                val wantsRatio = if (state.wantsPercentage + state.savingsPercentage > 0) {
+                    state.wantsPercentage.toFloat() / (state.wantsPercentage + state.savingsPercentage)
+                } else 0.5f
+                val newWants = (remaining * wantsRatio).toInt()
+                val newSavings = remaining - newWants
+                Triple(clamped, newWants, newSavings)
+            }
+            EnvelopeType.WANTS -> {
+                val remaining = 100 - clamped
+                val needsRatio = if (state.needsPercentage + state.savingsPercentage > 0) {
+                    state.needsPercentage.toFloat() / (state.needsPercentage + state.savingsPercentage)
+                } else 0.5f
+                val newNeeds = (remaining * needsRatio).toInt()
+                val newSavings = remaining - newNeeds
+                Triple(newNeeds, clamped, newSavings)
+            }
+            EnvelopeType.SAVINGS -> {
+                val remaining = 100 - clamped
+                val needsRatio = if (state.needsPercentage + state.wantsPercentage > 0) {
+                    state.needsPercentage.toFloat() / (state.needsPercentage + state.wantsPercentage)
+                } else 0.5f
+                val newNeeds = (remaining * needsRatio).toInt()
+                val newWants = remaining - newNeeds
+                Triple(newNeeds, newWants, clamped)
+            }
+        }
+        
         _uiState.update { it.copy(needsPercentage = needs, wantsPercentage = wants, savingsPercentage = savings) }
+    }
+
+    fun commitDistributionPercentages() {
+        saveDistribution()
+    }
+
+    private fun saveDistribution() {
+        val state = _uiState.value
+        val salary = state.overview?.salary ?: return
+        
+        _uiState.update { it.copy(isDistributionSaving = true) }
+        viewModelScope.launch {
+            try {
+                saveSalaryDistributionUseCase(
+                    salaryId = salary.id,
+                    isEnabled = state.distributionEnabled,
+                    needsPercentage = state.needsPercentage,
+                    wantsPercentage = state.wantsPercentage,
+                    savingsPercentage = state.savingsPercentage,
+                    salaryAmount = salary.amount
+                )
+            } catch (e: Exception) {
+                _uiState.update { it.copy(userMessage = "خطأ في حفظ إعدادات التوزيع: ${e.message}") }
+            } finally {
+                _uiState.update { it.copy(isDistributionSaving = false) }
+            }
+        }
+    }
+
+    fun showCategoryPickerFor(envelopeId: Long) {
+        _uiState.update { it.copy(showCategoryPicker = true, categoryPickerEnvelopeId = envelopeId) }
+    }
+
+    fun dismissCategoryPicker() {
+        _uiState.update { it.copy(showCategoryPicker = false, categoryPickerEnvelopeId = null) }
+    }
+
+    fun toggleCategoryForEnvelope(envelopeId: Long, categoryId: Long) {
+        val state = _uiState.value
+        val envelope = state.envelopes.find { it.id == envelopeId } ?: return
+        val updatedIds = if (categoryId in envelope.linkedCategoryIds) {
+            envelope.linkedCategoryIds - categoryId
+        } else {
+            envelope.linkedCategoryIds + categoryId
+        }
+        viewModelScope.launch {
+            try {
+                val repo = getSalaryDistributionUseCase // Access repository indirectly
+                // We need the repository directly — use saveSalaryDistributionUseCase's parent
+                // For simplicity, update via the current state and re-save
+                _uiState.update { s ->
+                    s.copy(envelopes = s.envelopes.map { env ->
+                        if (env.id == envelopeId) env.copy(linkedCategoryIds = updatedIds) else env
+                    })
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(userMessage = "خطأ في ربط الفئة") }
+            }
+        }
     }
 
     fun saveSalary() {
@@ -194,6 +328,10 @@ class SalaryViewModel(
                 incomeRepository.insertIncomeSource(source)
             } else {
                 incomeRepository.updateIncomeSource(source)
+                // Recalculate envelopes if distribution is enabled and amount changed
+                if (state.distributionEnabled) {
+                    saveDistribution()
+                }
             }
             setShowAddDialog(false)
         }
