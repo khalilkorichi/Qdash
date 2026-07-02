@@ -215,6 +215,7 @@ class ViewModelFactory(
                     container.confirmSalaryDelayUseCase,
                     container.deleteSalaryDelayUseCase,
                     container.updateSalaryDelayUseCase,
+                    container.depositSalaryNowUseCase,
                     container.subscriptionRepository,
                     container.getSalaryDistributionUseCase,
                     container.saveSalaryDistributionUseCase,

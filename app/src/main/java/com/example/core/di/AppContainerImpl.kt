@@ -369,6 +369,14 @@ class AppContainerImpl(private val context: Context) : AppContainer {
         com.example.domain.usecase.salary.UpdateSalaryDelayUseCase(incomeRepository)
     }
 
+    override val depositSalaryNowUseCase: com.example.domain.usecase.salary.DepositSalaryNowUseCase by lazy {
+        com.example.domain.usecase.salary.DepositSalaryNowUseCase(
+            incomeRepository = incomeRepository,
+            transactionRepository = transactionRepository,
+            categoryRepository = categoryRepository
+        )
+    }
+
     // Salary Distribution
     override val salaryDistributionRepository: com.example.domain.repository.SalaryDistributionRepository by lazy {
         com.example.data.repository.SalaryDistributionRepositoryImpl(database.salaryDistributionDao())

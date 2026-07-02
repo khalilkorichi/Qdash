@@ -60,6 +60,7 @@ class SalaryViewModel(
     private val confirmSalaryDelayUseCase: ConfirmSalaryDelayUseCase,
     private val deleteSalaryDelayUseCase: DeleteSalaryDelayUseCase,
     private val updateSalaryDelayUseCase: UpdateSalaryDelayUseCase,
+    private val depositSalaryNowUseCase: DepositSalaryNowUseCase,
     private val subscriptionRepository: SubscriptionRepository,
     private val getSalaryDistributionUseCase: GetSalaryDistributionUseCase,
     private val saveSalaryDistributionUseCase: SaveSalaryDistributionUseCase,
@@ -408,6 +409,22 @@ class SalaryViewModel(
             } catch (e: Exception) {
                 _uiState.update { 
                     it.copy(userMessage = "حدث خطأ أثناء إلغاء التأجيل: ${e.message}") 
+                }
+            }
+        }
+    }
+
+    fun depositSalaryNow(delayId: Long) {
+        val salary = _uiState.value.overview?.salary ?: return
+        viewModelScope.launch {
+            try {
+                depositSalaryNowUseCase(salaryId = salary.id, delayId = delayId)
+                _uiState.update { 
+                    it.copy(userMessage = "تم إيداع الراتب وإعادة جدولة الالتزامات بنجاح!") 
+                }
+            } catch (e: Exception) {
+                _uiState.update { 
+                    it.copy(userMessage = "حدث خطأ أثناء إيداع الراتب: ${e.message}") 
                 }
             }
         }

@@ -168,7 +168,8 @@ fun SalaryScreen(
                         SalaryDelayHistoryCard(
                             delay = delay,
                             onEdit = { viewModel.startEditSalaryDelay(delay) },
-                            onDelete = { viewModel.deleteSalaryDelay(delay.id) }
+                            onDelete = { viewModel.deleteSalaryDelay(delay.id) },
+                            onDepositNow = { viewModel.depositSalaryNow(delay.id) }
                         )
                     }
                 }
@@ -318,9 +319,11 @@ fun SalaryOverviewCard(
 fun SalaryDelayHistoryCard(
     delay: com.example.domain.model.SalaryDelay,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onDepositNow: () -> Unit
 ) {
     var showConfirmDelete by remember { mutableStateOf(false) }
+    var showConfirmDeposit by remember { mutableStateOf(false) }
     val Primary = MaterialTheme.colorScheme.primary
 
     if (showConfirmDelete) {
@@ -340,6 +343,31 @@ fun SalaryDelayHistoryCard(
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmDelete = false }) {
+                    Text("تراجع", color = TextGray)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
+    if (showConfirmDeposit) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDeposit = false },
+            title = { Text("تأكيد إيداع الراتب", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
+            text = { Text("هل تم تلقي الراتب بالفعل وتريد إلغاء التأجيل الحالي وإثبات استلام الراتب في الحساب الآن؟", style = MaterialTheme.typography.bodyMedium) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDepositNow()
+                        showConfirmDeposit = false
+                    }
+                ) {
+                    Text("تأكيد الإيداع", color = IncomeGreen, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDeposit = false }) {
                     Text("تراجع", color = TextGray)
                 }
             },
@@ -399,7 +427,24 @@ fun SalaryDelayHistoryCard(
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(severityColor.copy(alpha = 0.15f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "الضرر: ${delay.severityScore}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = severityColor
+                        )
+                    }
+
                     IconButton(onClick = onEdit) {
                         Icon(Icons.Default.Edit, contentDescription = "تعديل", tint = Primary)
                     }
@@ -445,17 +490,23 @@ fun SalaryDelayHistoryCard(
                     )
                 }
 
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(severityColor.copy(alpha = 0.15f))
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                Button(
+                    onClick = { showConfirmDeposit = true },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = IncomeGreen,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "الضرر: ${delay.severityScore}",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = severityColor
+                        text = "إيداع الآن",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                     )
                 }
             }

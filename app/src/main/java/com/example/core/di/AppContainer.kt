@@ -109,6 +109,7 @@ interface AppContainer {
     val confirmSalaryDelayUseCase: com.example.domain.usecase.salary.ConfirmSalaryDelayUseCase
     val deleteSalaryDelayUseCase: com.example.domain.usecase.salary.DeleteSalaryDelayUseCase
     val updateSalaryDelayUseCase: com.example.domain.usecase.salary.UpdateSalaryDelayUseCase
+    val depositSalaryNowUseCase: com.example.domain.usecase.salary.DepositSalaryNowUseCase
 
     // Salary Distribution
     val salaryDistributionRepository: SalaryDistributionRepository
