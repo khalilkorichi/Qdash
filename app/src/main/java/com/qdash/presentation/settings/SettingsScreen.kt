@@ -134,6 +134,12 @@ fun SettingsScreen(
 
     val pagerState = rememberPagerState(initialPage = 0) { settingsTabs.size }
 
+    LaunchedEffect(pagerState.currentPage) {
+        if (pagerState.currentPage == 0) {
+            viewModel.refreshSyncTimestamp()
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()

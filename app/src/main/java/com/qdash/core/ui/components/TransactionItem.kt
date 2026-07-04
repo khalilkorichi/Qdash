@@ -140,7 +140,7 @@ fun TransactionItem(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = transaction.note ?: category?.name ?: "عملية مالية",
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
@@ -157,10 +157,21 @@ fun TransactionItem(
                                 .background(accentColor)
                         )
                         Spacer(modifier = Modifier.width(5.dp))
+                        val subtitleText = buildString {
+                            append(accountName)
+                            category?.name?.let {
+                                append(" • ")
+                                append(it)
+                            }
+                            append(" • ")
+                            append(FormatterUtils.formatDate(transaction.date))
+                        }
                         Text(
-                            text = "$accountName • ${FormatterUtils.formatDate(transaction.date)}",
+                            text = subtitleText,
                             style = MaterialTheme.typography.labelSmall,
-                            color = TextGray
+                            color = TextGray,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }

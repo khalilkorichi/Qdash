@@ -95,6 +95,15 @@ class SettingsViewModel(
         }
     }
 
+    fun refreshSyncTimestamp() {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val lastSync = preferencesManager.lastSyncTimestamp
+            _uiState.update {
+                it.copy(lastSyncTimestamp = lastSync)
+            }
+        }
+    }
+
     fun toggleDarkTheme(enabled: Boolean) {
         preferencesManager.darkModeEnabled = enabled
         _uiState.update { it.copy(isDarkTheme = enabled) }

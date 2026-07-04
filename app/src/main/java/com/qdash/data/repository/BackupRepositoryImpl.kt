@@ -8,6 +8,7 @@ import com.qdash.data.local.entities.*
 import com.qdash.domain.model.TransactionType
 import com.qdash.domain.repository.BackupRepository
 import kotlinx.coroutines.flow.first
+import com.qdash.core.data.DatabaseSeeder
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.*
@@ -42,19 +43,17 @@ class BackupRepositoryImpl(
         // 2. Capture Categories
         val catsArray = JSONArray()
         database.categoryDao().getAllCategories().first().forEach {
-            if (!it.isSystem) {
-                catsArray.put(JSONObject().apply {
-                    put("id", it.id)
-                    put("name", it.name)
-                    put("type", it.type)
-                    put("icon", it.icon)
-                    put("color", it.color)
-                    put("budgetLimit", it.budgetLimit ?: JSONObject.NULL)
-                    put("isSystem", it.isSystem)
-                    put("parentId", it.parentId ?: JSONObject.NULL)
-                    put("sortOrder", it.sortOrder)
-                })
-            }
+            catsArray.put(JSONObject().apply {
+                put("id", it.id)
+                put("name", it.name)
+                put("type", it.type)
+                put("icon", it.icon)
+                put("color", it.color)
+                put("budgetLimit", it.budgetLimit ?: JSONObject.NULL)
+                put("isSystem", it.isSystem)
+                put("parentId", it.parentId ?: JSONObject.NULL)
+                put("sortOrder", it.sortOrder)
+            })
         }
         backupObj.put("categories", catsArray)
 
@@ -290,7 +289,7 @@ class BackupRepositoryImpl(
         // Clear existing tables
         database.openHelper.writableDatabase.execSQL("DELETE FROM transactions")
         database.openHelper.writableDatabase.execSQL("DELETE FROM accounts")
-        database.openHelper.writableDatabase.execSQL("DELETE FROM categories WHERE isSystem = 0")
+        database.openHelper.writableDatabase.execSQL("DELETE FROM categories")
         database.openHelper.writableDatabase.execSQL("DELETE FROM income_sources")
         database.openHelper.writableDatabase.execSQL("DELETE FROM saving_goals")
         database.openHelper.writableDatabase.execSQL("DELETE FROM savings_contributions")
@@ -617,6 +616,7 @@ class BackupRepositoryImpl(
         }
 
         regenerateDailyFinancialAggregates()
+        DatabaseSeeder.prepopulateSystemDefaults(database)
     }
 
     private suspend fun regenerateDailyFinancialAggregates() {
@@ -687,10 +687,9 @@ class BackupRepositoryImpl(
         // 2. Categories
         if (isSelected("categories")) {
             val list = database.categoryDao().getAllCategories().first()
-            val customCats = list.filter { !it.isSystem }
-            counts["categories"] = customCats.size
+            counts["categories"] = list.size
             writer.name("categories").beginArray()
-            customCats.forEach {
+            list.forEach {
                 writer.beginObject()
                 writer.name("id").value(it.id)
                 writer.name("name").value(it.name)
@@ -1190,7 +1189,7 @@ class BackupRepositoryImpl(
         // Clear only selected tables to be restored
         if (isSelected("transactions")) database.openHelper.writableDatabase.execSQL("DELETE FROM transactions")
         if (isSelected("accounts")) database.openHelper.writableDatabase.execSQL("DELETE FROM accounts")
-        if (isSelected("categories")) database.openHelper.writableDatabase.execSQL("DELETE FROM categories WHERE isSystem = 0")
+        if (isSelected("categories")) database.openHelper.writableDatabase.execSQL("DELETE FROM categories")
         if (isSelected("income_sources")) database.openHelper.writableDatabase.execSQL("DELETE FROM income_sources")
         if (isSelected("saving_goals")) database.openHelper.writableDatabase.execSQL("DELETE FROM saving_goals")
         if (isSelected("savings_contributions")) database.openHelper.writableDatabase.execSQL("DELETE FROM savings_contributions")
@@ -1250,6 +1249,9 @@ class BackupRepositoryImpl(
 
         if (isSelected("transactions")) {
             regenerateDailyFinancialAggregates()
+        }
+        if (isSelected("categories")) {
+            DatabaseSeeder.prepopulateSystemDefaults(database)
         }
     }
 

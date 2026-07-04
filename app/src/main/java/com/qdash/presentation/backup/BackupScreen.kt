@@ -23,6 +23,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
@@ -192,7 +194,14 @@ fun BackupScreen(
                 )
             }
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .padding(bottom = if (!showTopBar) 96.dp else 16.dp)
+            )
+        },
         modifier = Modifier.fillMaxSize()
     ) { paddingValues ->
         Box(
@@ -689,22 +698,25 @@ fun BackupScreen(
                 } else {
                     // TAB 1: CLOUD BACKUP
                     Text(
-                        text = "المزامنة السحابية وآمنة عبر السحاب",
+                        text = "المزامنة السحابية عبر Google Drive",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
 
                     val isLinked = userProfile?.isGoogleLinked == true
+                    val textMutedColor = if (isDark) ColorTokens.TextMutedDark else ColorTokens.TextSecondaryLight
+                    
+                    // 1. Status Card (بطاقة حالة اتصال مستقلة)
                     AppCard(
                         variant = CardVariant.OUTLINED,
                         shape = ShapeTokens.Lg,
-                        backgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                        backgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -715,15 +727,25 @@ fun BackupScreen(
                                     Icon(
                                         imageVector = Icons.Default.Cloud,
                                         contentDescription = null,
-                                        tint = textSecondaryColor,
-                                        modifier = Modifier.size(22.dp)
+                                        tint = if (isLinked) Color(0xFF22C55E) else textSecondaryColor,
+                                        modifier = Modifier.size(24.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "النسخ الاحتياطي عبر سحابة Google",
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(
+                                            text = "حالة الاتصال بالسحاب",
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        if (isLinked && !userProfile?.email.isNullOrEmpty()) {
+                                            Text(
+                                                text = userProfile?.email ?: "",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = textMutedColor
+                                            )
+                                        }
+                                    }
                                 }
                                 
                                 // Connected indicator badge
@@ -732,71 +754,25 @@ fun BackupScreen(
                                         .background(
                                             if (isLinked) Color(0xFF22C55E).copy(alpha = 0.12f)
                                             else textSecondaryColor.copy(alpha = 0.12f),
-                                            RoundedCornerShape(4.dp)
+                                            RoundedCornerShape(6.dp)
                                         )
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        .padding(horizontal = 10.dp, vertical = 6.dp)
                                 ) {
                                     Text(
                                         text = if (isLinked) "متصل" else "غير متصل",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (isLinked) Color(0xFF22C55E) else textSecondaryColor,
-                                        fontWeight = FontWeight.Bold
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
+                                        color = if (isLinked) Color(0xFF22C55E) else textSecondaryColor
                                     )
                                 }
                             }
-                            Text(
-                                text = "مزامنة سحابية تلقائية وآمنة لملفات النسخ الاحتياطي عبر حسابك الشخصي في Google Drive.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = textSecondaryColor
-                            )
                             
-                            if (isLinked) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    AppButton(
-                                        onClick = {
-                                            viewModel.triggerDriveSync(
-                                                onSuccess = { Toast.makeText(context, "تمت المزامنة بنجاح!", Toast.LENGTH_SHORT).show() },
-                                                onFailure = { err -> Toast.makeText(context, "فشلت المزامنة: $err", Toast.LENGTH_LONG).show() }
-                                            )
-                                        },
-                                        modifier = Modifier.weight(1f),
-                                        variant = ButtonVariant.SOLID,
-                                        intent = ButtonIntent.PRIMARY,
-                                        enabled = !uiState.isLoading
-                                    ) {
-                                        Text("مزامنة الآن", fontWeight = FontWeight.Bold)
-                                    }
-
-                                    AppButton(
-                                        onClick = {
-                                            viewModel.triggerDriveRestore(
-                                                onSuccess = { Toast.makeText(context, "تمت الاستعادة بنجاح!", Toast.LENGTH_SHORT).show() },
-                                                onFailure = { err -> Toast.makeText(context, "فشلت الاستعادة: $err", Toast.LENGTH_LONG).show() }
-                                            )
-                                        },
-                                        modifier = Modifier.weight(1f),
-                                        variant = ButtonVariant.LIGHT,
-                                        intent = ButtonIntent.PRIMARY,
-                                        enabled = !uiState.isLoading
-                                    ) {
-                                        Text("استعادة من السحاب", fontWeight = FontWeight.Bold)
-                                    }
-                                }
-
-                                val lastSync = viewModel.lastSyncTimestamp
-                                if (lastSync > 0) {
-                                    Text(
-                                        text = "آخر مزامنة: ${formatRelativeSyncTime(lastSync)}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = textSecondaryColor,
-                                        modifier = Modifier.fillMaxWidth(),
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            } else {
+                            if (!isLinked) {
+                                Text(
+                                    text = "قم بربط حسابك في Google للتمكن من أخذ نسخة احتياطية سحابية واستعادتها في أي وقت.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = textSecondaryColor
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
                                 AppButton(
                                     onClick = { launchGoogleSignIn() },
                                     modifier = Modifier.fillMaxWidth(),
@@ -810,16 +786,101 @@ fun BackupScreen(
                             }
                         }
                     }
+
+                    // 2. Actions Card (بطاقة إجراءات مستقلة)
+                    if (isLinked) {
+                        AppCard(
+                            variant = CardVariant.OUTLINED,
+                            shape = ShapeTokens.Lg,
+                            backgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Text(
+                                    text = "إجراءات المزامنة السحابية",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    AppButton(
+                                        onClick = {
+                                            viewModel.triggerDriveSync(
+                                                onSuccess = { Toast.makeText(context, "تمت المزامنة بنجاح!", Toast.LENGTH_SHORT).show() },
+                                                onFailure = { err -> Toast.makeText(context, "فشلت المزامنة: $err", Toast.LENGTH_LONG).show() }
+                                            )
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        variant = ButtonVariant.SOLID,
+                                        intent = ButtonIntent.PRIMARY,
+                                        enabled = !uiState.isLoading,
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.CloudUpload,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    ) {
+                                        Text("مزامنة الآن", fontWeight = FontWeight.Bold, color = Color.White)
+                                    }
+
+                                    AppButton(
+                                        onClick = {
+                                            viewModel.triggerDriveRestore(
+                                                onSuccess = { Toast.makeText(context, "تمت الاستعادة بنجاح!", Toast.LENGTH_SHORT).show() },
+                                                onFailure = { err -> Toast.makeText(context, "فشلت الاستعادة: $err", Toast.LENGTH_LONG).show() }
+                                            )
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        variant = ButtonVariant.LIGHT,
+                                        intent = ButtonIntent.PRIMARY,
+                                        enabled = !uiState.isLoading,
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.CloudDownload,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    ) {
+                                        Text("استعادة من السحاب", fontWeight = FontWeight.Bold)
+                                    }
+                                }
+
+                                val lastSync = viewModel.lastSyncTimestamp
+                                if (lastSync > 0) {
+                                    Text(
+                                        text = "آخر مزامنة سحابية ناجحة: ${formatRelativeSyncTime(lastSync)}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = textMutedColor,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
             // Processing overlay (Default imports/exports)
             if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.3f)),
-                    contentAlignment = Alignment.Center
+                Dialog(
+                    onDismissRequest = {},
+                    properties = DialogProperties(
+                        dismissOnBackPress = false,
+                        dismissOnClickOutside = false
+                    )
                 ) {
                     Card(
                         shape = ShapeTokens.Lg,
