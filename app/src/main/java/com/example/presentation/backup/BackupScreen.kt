@@ -76,10 +76,16 @@ fun BackupScreen(
     // Light mode design system alignment
     val isDark = MaterialTheme.colorScheme.background != ColorTokens.BackgroundLight
     val textSecondaryColor = if (isDark) ColorTokens.TextSecondaryDark else ColorTokens.TextSecondaryLight
-    val segmentedControlBg = if (isDark) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else Color(0xFFF1F1EF)
+    val segmentedControlBg = if (isDark) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else Color(0xFFEEEEEC)
     val selectedOptionBg = if (isDark) MaterialTheme.colorScheme.surface else Color.White
-    val selectedOptionBorder = if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f) else ColorTokens.BorderLight
+    val selectedOptionBorder = if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f) else Color(0xFFD0D0CD)
     val cardBgColor = if (isDark) ColorTokens.CardDark else ColorTokens.CardLight
+    // Pill tab colors — light mode: unselected = subtle warm surface, selected = white + colored border
+    val tabUnselectedBg = if (isDark) MaterialTheme.colorScheme.surface.copy(alpha = 0.5f) else Color(0xFFF3F3F1)
+    val tabUnselectedBorder = if (isDark) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f) else ColorTokens.BorderLight
+    val tabUnselectedContent = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else ColorTokens.TextSecondaryLight
+    val infoBannerBg = if (isDark) Primary.copy(alpha = 0.12f) else Color(0xFFF8F8F6)
+    val infoBannerBorder = if (isDark) Primary.copy(alpha = 0.0f) else ColorTokens.BorderLight
 
     // SAF Activity Result Launchers
     val createBackupLauncher = rememberLauncherForActivityResult(
@@ -156,15 +162,16 @@ fun BackupScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Info Card
-                AppCard(
-                    variant = CardVariant.FLAT,
-                    shape = ShapeTokens.Lg,
-                    backgroundColor = Primary.copy(alpha = 0.08f),
-                    modifier = Modifier.fillMaxWidth()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(ShapeTokens.Lg)
+                        .background(infoBannerBg)
+                        .border(1.dp, infoBannerBorder, ShapeTokens.Lg)
                 ) {
                     Row(
                         modifier = Modifier.padding(16.dp),
@@ -173,13 +180,16 @@ fun BackupScreen(
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
-                                .background(Primary.copy(alpha = 0.15f), ShapeTokens.Md),
+                                .background(
+                                    if (isDark) Primary.copy(alpha = 0.20f) else ColorTokens.BorderLight,
+                                    ShapeTokens.Md
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Security,
                                 contentDescription = null,
-                                tint = Primary,
+                                tint = if (isDark) Primary else ColorTokens.TextPrimaryLight,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -215,17 +225,21 @@ fun BackupScreen(
                         val isSelected = activeTab == index
 
                         val bgColor by animateColorAsState(
-                            targetValue = if (isSelected) Primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                            targetValue = if (isSelected) {
+                                if (isDark) Primary.copy(alpha = 0.15f) else Color.White
+                            } else tabUnselectedBg,
                             animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                             label = "backupTabBg"
                         )
                         val contentColor by animateColorAsState(
-                            targetValue = if (isSelected) Primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            targetValue = if (isSelected) Primary else tabUnselectedContent,
                             animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                             label = "backupTabContent"
                         )
                         val borderColor by animateColorAsState(
-                            targetValue = if (isSelected) Primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            targetValue = if (isSelected) {
+                                if (isDark) Primary.copy(alpha = 0.3f) else Color(0xFFB0B0AD)
+                            } else tabUnselectedBorder,
                             animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                             label = "backupTabBorder"
                         )
@@ -483,31 +497,40 @@ fun BackupScreen(
                     }
 
                     // Import ZIP button (Stays in manual section)
-                    AppButton(
-                        onClick = {
-                            openBackupLauncher.launch(arrayOf("application/zip"))
-                        },
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(54.dp),
-                        variant = ButtonVariant.FLAT,
-                        intent = ButtonIntent.PRIMARY,
-                        shape = ShapeTokens.Lg,
-                        leadingIcon = {
+                            .height(54.dp)
+                            .clip(ShapeTokens.Lg)
+                            .background(if (isDark) MaterialTheme.colorScheme.surfaceVariant.copy(0.3f) else Color(0xFFF3F3F1))
+                            .border(
+                                width = 1.dp,
+                                color = if (isDark) MaterialTheme.colorScheme.outlineVariant else ColorTokens.BorderLight,
+                                shape = ShapeTokens.Lg
+                            )
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { openBackupLauncher.launch(arrayOf("application/zip")) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.CloudDownload,
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp),
-                                tint = Primary
+                                tint = if (isDark) Primary else ColorTokens.TextPrimaryLight
+                            )
+                            Text(
+                                text = "استيراد واستعادة البيانات من ملف (ZIP)",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDark) Primary else ColorTokens.TextPrimaryLight
                             )
                         }
-                    ) {
-                        Text(
-                            text = "استيراد واستعادة البيانات من ملف (ZIP)",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Primary
-                        )
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -579,32 +602,46 @@ fun BackupScreen(
                     }
 
                     // Export JSON data share
-                    AppButton(
-                        onClick = {
-                            val timestamp = System.currentTimeMillis() / 1000
-                            createJsonLauncher.launch("kdach-share-$timestamp.json")
-                        },
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp),
-                        variant = ButtonVariant.BORDERED,
-                        intent = ButtonIntent.INFO,
-                        shape = ShapeTokens.Lg,
-                        leadingIcon = {
+                            .height(52.dp)
+                            .clip(ShapeTokens.Lg)
+                            .background(
+                                if (isDark) ColorTokens.Info.copy(alpha = 0.10f)
+                                else ColorTokens.Info.copy(alpha = 0.08f)
+                            )
+                            .border(
+                                width = 1.5.dp,
+                                color = ColorTokens.Info.copy(alpha = if (isDark) 0.30f else 0.40f),
+                                shape = ShapeTokens.Lg
+                            )
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                val timestamp = System.currentTimeMillis() / 1000
+                                createJsonLauncher.launch("kdach-share-$timestamp.json")
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Share,
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp),
-                                tint = ColorTokens.Info
+                                tint = if (isDark) ColorTokens.InfoDark else ColorTokens.Info
+                            )
+                            Text(
+                                text = "مشاركة وتبادل البيانات الفردية (JSON)",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDark) ColorTokens.InfoDark else ColorTokens.Info
                             )
                         }
-                    ) {
-                        Text(
-                            text = "مشاركة وتبادل البيانات الفردية (JSON)",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = ColorTokens.Info
-                        )
                     }
                 } else {
                     // TAB 1: CLOUD BACKUP
