@@ -36,6 +36,7 @@ import com.qdash.domain.model.Debt
 import com.qdash.domain.model.DebtPayment
 import com.qdash.domain.model.DebtPaymentType
 import com.qdash.domain.model.DebtType
+import com.qdash.presentation.debt.components.EditDebtBottomSheet
 import com.qdash.ui.theme.*
 import com.qdash.ui.designsystem.components.*
 import com.qdash.ui.designsystem.tokens.ColorTokens
@@ -89,6 +90,11 @@ fun DebtsScreen(
     var sourceAccountId by remember { mutableStateOf<Long?>(null) }
     var paymentDate by remember { mutableStateOf(System.currentTimeMillis()) }
     var showPaymentDatePicker by remember { mutableStateOf(false) }
+
+    // Edit, Delete, Forgive states
+    var showEditDebtBottomSheet by remember { mutableStateOf<Debt?>(null) }
+    var showDeleteConfirmDialog by remember { mutableStateOf<Debt?>(null) }
+    var showForgiveConfirmDialog by remember { mutableStateOf<Debt?>(null) }
 
     LaunchedEffect(uiState.accounts) {
         if (uiState.accounts.isNotEmpty() && selectedAccountId == null) {
@@ -147,7 +153,10 @@ fun DebtsScreen(
                         paymentNote = ""
                         paymentDate = System.currentTimeMillis()
                         showPaymentDialog = debt
-                    }
+                    },
+                    onEditClick = { d -> showEditDebtBottomSheet = d },
+                    onDeleteClick = { d -> showDeleteConfirmDialog = d },
+                    onForgiveClick = { d -> showForgiveConfirmDialog = d }
                 )
             } else {
                 // DEBTS MAIN HUB
@@ -175,7 +184,10 @@ fun DebtsScreen(
                         debtType = DebtType.REGULAR
                         dueDate = null
                         showAddDebtDialog = true
-                    }
+                    },
+                    onEditClick = { d -> showEditDebtBottomSheet = d },
+                    onDeleteClick = { d -> showDeleteConfirmDialog = d },
+                    onForgiveClick = { d -> showForgiveConfirmDialog = d }
                 )
             }
 
@@ -566,6 +578,86 @@ fun DebtsScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             }
+            // EDIT DEBT BOTTOM SHEET
+            showEditDebtBottomSheet?.let { targetDebt ->
+                EditDebtBottomSheet(
+                    debt = targetDebt,
+                    accounts = uiState.accounts,
+                    onDismissRequest = { showEditDebtBottomSheet = null },
+                    onConfirm = { title, creditorName, totalAmount, minimumPayment, paymentFrequency, linkedAccountId, priority, notes, color, interestRate, dueDate ->
+                        viewModel.updateDebtDetails(
+                            debtId = targetDebt.id,
+                            title = title,
+                            creditorName = creditorName,
+                            totalAmount = totalAmount,
+                            minimumPayment = minimumPayment,
+                            paymentFrequency = paymentFrequency,
+                            linkedAccountId = linkedAccountId,
+                            priority = priority,
+                            notes = notes,
+                            color = color,
+                            interestRate = interestRate,
+                            dueDate = dueDate,
+                            onSuccess = {
+                                showEditDebtBottomSheet = null
+                                Toast.makeText(context, "تم تحديث الدين بنجاح", Toast.LENGTH_SHORT).show()
+                            },
+                            onError = { error ->
+                                Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                            }
+                        )
+                    }
+                )
+            }
+
+            // DELETE DEBT CONFIRM DIALOG
+            showDeleteConfirmDialog?.let { targetDebt ->
+                AppDialog(
+                    onDismissRequest = { showDeleteConfirmDialog = null },
+                    title = "حذف السجل المالي للدين",
+                    text = "هل أنت متأكد من حذف دين '${targetDebt.title}' نهائياً؟ سيؤدي ذلك أيضاً إلى حذف جميع دفعات السداد المسجلة المرتبطة به وإلغاء تأثيرها على رصيد محفظتك المالية (حذف المعاملات). لا يمكن التراجع عن هذا الإجراء.",
+                    confirmButtonText = "تأكيد الحذف",
+                    onConfirm = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.deleteDebt(targetDebt.id)
+                        showDeleteConfirmDialog = null
+                        if (activeDebtForDetails?.id == targetDebt.id) {
+                            activeDebtForDetails = null
+                        }
+                        Toast.makeText(context, "تم حذف الدين وإلغاء دفعاته بنجاح", Toast.LENGTH_SHORT).show()
+                    },
+                    dismissButtonText = "إلغاء",
+                    onDismiss = { showDeleteConfirmDialog = null },
+                    isDestructive = true
+                )
+            }
+
+            // FORGIVE DEBT CONFIRM DIALOG
+            showForgiveConfirmDialog?.let { targetDebt ->
+                AppDialog(
+                    onDismissRequest = { showForgiveConfirmDialog = null },
+                    title = "الإعفاء من الدين",
+                    text = "هل أنت متأكد من الإعفاء من المتبقي لدين '${targetDebt.title}'؟ سيتم تصفير المبلغ المتبقي وتعيين الدين كمغلق دون خصم أي مبلغ من رصيدك المالي أو إنشاء معاملة سداد.",
+                    confirmButtonText = "تأكيد الإعفاء",
+                    onConfirm = {
+                        viewModel.forgiveDebt(
+                            debtId = targetDebt.id,
+                            onSuccess = {
+                                showForgiveConfirmDialog = null
+                                if (activeDebtForDetails?.id == targetDebt.id) {
+                                    activeDebtForDetails = uiState.debts.find { it.id == targetDebt.id }
+                                }
+                                Toast.makeText(context, "تم الإعفاء من الدين وتصفيره", Toast.LENGTH_SHORT).show()
+                            },
+                            onError = { error ->
+                                Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                            }
+                        )
+                    },
+                    dismissButtonText = "إلغاء",
+                    onDismiss = { showForgiveConfirmDialog = null }
+                )
+            }
         }
         } // end PullToRefreshBox
     }
@@ -577,7 +669,10 @@ fun DebtsMainContent(
     viewModel: DebtViewModel,
     onSelectDebt: (Debt) -> Unit,
     onPayClick: (Debt) -> Unit,
-    onAddDebtClick: () -> Unit
+    onAddDebtClick: () -> Unit,
+    onEditClick: (Debt) -> Unit,
+    onDeleteClick: (Debt) -> Unit,
+    onForgiveClick: (Debt) -> Unit
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     LazyColumn(
@@ -907,6 +1002,54 @@ fun DebtsMainContent(
                                         Text("تسديد دفعة", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                     }
                                 }
+
+                                val isDark = MaterialTheme.colorScheme.background != ColorTokens.BackgroundLight
+                                var menuExpanded by remember { mutableStateOf(false) }
+                                Box {
+                                    IconButton(
+                                        onClick = { menuExpanded = true },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.MoreVert,
+                                            contentDescription = "خيارات الدين",
+                                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = menuExpanded,
+                                        onDismissRequest = { menuExpanded = false },
+                                        modifier = Modifier.background(if (isDark) ColorTokens.ElevatedSurfaceDark else MaterialTheme.colorScheme.surface)
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text("تعديل تفاصيل الدين", textAlign = TextAlign.Right, modifier = Modifier.fillMaxWidth()) },
+                                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                                            onClick = {
+                                                menuExpanded = false
+                                                onEditClick(debt)
+                                            }
+                                        )
+                                        if (!isClosed) {
+                                            DropdownMenuItem(
+                                                text = { Text("إعفاء من المتبقي", textAlign = TextAlign.Right, modifier = Modifier.fillMaxWidth()) },
+                                                leadingIcon = { Icon(Icons.Default.CardGiftcard, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                                                onClick = {
+                                                    menuExpanded = false
+                                                    onForgiveClick(debt)
+                                                }
+                                            )
+                                        }
+                                        DropdownMenuItem(
+                                            text = { Text("حذف السجل المالي", textAlign = TextAlign.Right, modifier = Modifier.fillMaxWidth(), color = ExpenseRed) },
+                                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = ExpenseRed, modifier = Modifier.size(18.dp)) },
+                                            onClick = {
+                                                menuExpanded = false
+                                                onDeleteClick(debt)
+                                            }
+                                        )
+                                    }
+                                }
                             }
                         }
 
@@ -960,7 +1103,10 @@ fun DebtDetailsContent(
     debt: Debt,
     uiState: DebtUiState,
     viewModel: DebtViewModel,
-    onPayClick: () -> Unit
+    onPayClick: () -> Unit,
+    onEditClick: (Debt) -> Unit,
+    onDeleteClick: (Debt) -> Unit,
+    onForgiveClick: (Debt) -> Unit
 ) {
     val progress = if (debt.totalAmount > 0) ((debt.totalAmount - debt.remainingAmount) / debt.totalAmount).toFloat() else 1f
     
@@ -1128,7 +1274,7 @@ fun DebtDetailsContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp),
-                    horizontalArrangement = Arrangement.SpaceAround,
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (!debt.isClosed) {
@@ -1136,19 +1282,37 @@ fun DebtDetailsContent(
                             onClick = { viewModel.closeDebt(debt.id) },
                             variant = ButtonVariant.LIGHT,
                             intent = ButtonIntent.SUCCESS,
-                            leadingIcon = { Icon(Icons.Default.CheckCircle, "قفل الدين", modifier = Modifier.size(18.dp)) }
+                            leadingIcon = { Icon(Icons.Default.CheckCircle, "إغلاق", modifier = Modifier.size(16.dp)) }
                         ) {
-                            Text("تعليم كمغلق", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("إغلاق", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        AppButton(
+                            onClick = { onForgiveClick(debt) },
+                            variant = ButtonVariant.LIGHT,
+                            intent = ButtonIntent.SUCCESS,
+                            leadingIcon = { Icon(Icons.Default.CardGiftcard, "إعفاء", modifier = Modifier.size(16.dp)) }
+                        ) {
+                            Text("إعفاء", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
                     }
                     AppButton(
-                        onClick = { viewModel.deleteDebt(debt.id) },
+                        onClick = { onEditClick(debt) },
+                        variant = ButtonVariant.LIGHT,
+                        intent = ButtonIntent.PRIMARY,
+                        leadingIcon = { Icon(Icons.Default.Edit, "تعديل", modifier = Modifier.size(16.dp)) }
+                    ) {
+                        Text("تعديل", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    AppButton(
+                        onClick = { onDeleteClick(debt) },
                         variant = ButtonVariant.LIGHT,
                         intent = ButtonIntent.DANGER,
-                        leadingIcon = { Icon(Icons.Default.Delete, "مسح", modifier = Modifier.size(18.dp)) }
+                        leadingIcon = { Icon(Icons.Default.Delete, "مسح", modifier = Modifier.size(16.dp)) }
                     ) {
-                        Text("مسح السجل المالي", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("مسح", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

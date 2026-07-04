@@ -34,6 +34,9 @@ class DebtViewModel(
     private val compareDebtStrategiesUseCase = CompareDebtStrategiesUseCase()
     private val getDebtInsightsUseCase = GetDebtInsightsUseCase(debtRepository)
     private val closeDebtUseCase = CloseDebtUseCase(debtRepository)
+    private val updateDebtUseCase = UpdateDebtUseCase(debtRepository)
+    private val deleteDebtUseCase = DeleteDebtUseCase(debtRepository, transactionRepository)
+    private val forgiveDebtUseCase = ForgiveDebtUseCase(debtRepository)
 
     private val _uiState = MutableStateFlow(DebtUiState())
     val uiState: StateFlow<DebtUiState> = _uiState.asStateFlow()
@@ -117,6 +120,47 @@ class DebtViewModel(
         }
     }
 
+    fun updateDebtDetails(
+        debtId: Long,
+        title: String,
+        creditorName: String,
+        totalAmount: Double,
+        minimumPayment: Double,
+        paymentFrequency: String,
+        linkedAccountId: Long?,
+        priority: Int,
+        notes: String?,
+        color: String,
+        interestRate: Double? = null,
+        dueDate: Long? = null,
+        debtType: DebtType = DebtType.INSTALLMENT,
+        onSuccess: () -> Unit = {},
+        onError: (String) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            val result = updateDebtUseCase(
+                debtId = debtId,
+                title = title,
+                creditorName = creditorName,
+                totalAmount = totalAmount,
+                minimumPayment = minimumPayment,
+                paymentFrequency = paymentFrequency,
+                linkedAccountId = linkedAccountId,
+                priority = priority,
+                notes = notes,
+                color = color,
+                interestRate = interestRate,
+                dueDate = dueDate,
+                debtType = debtType
+            )
+            result.onSuccess {
+                onSuccess()
+            }.onFailure {
+                onError(it.localizedMessage ?: "حدث خطأ أثناء تعديل الدين")
+            }
+        }
+    }
+
     fun makePayment(debtId: Long, accountId: Long, amount: Double, paymentType: DebtPaymentType, note: String?, date: Long = System.currentTimeMillis()) {
         viewModelScope.launch {
             recordDebtPaymentUseCase(debtId, accountId, amount, paymentType, note, date)
@@ -155,13 +199,23 @@ class DebtViewModel(
 
     fun deleteDebt(debtId: Long) {
         viewModelScope.launch {
-            val debt = debtRepository.getDebtById(debtId)
-            if (debt != null) {
-                debtRepository.deleteDebt(debt)
-                debtRepository.deletePaymentsForDebt(debtId)
+            deleteDebtUseCase(debtId)
+            if (_uiState.value.selectedDebt?.id == debtId) {
+                _uiState.update { it.copy(selectedDebt = null, selectedDebtPayments = emptyList()) }
+            }
+        }
+    }
+
+    fun forgiveDebt(debtId: Long, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            val result = forgiveDebtUseCase(debtId)
+            result.onSuccess {
                 if (_uiState.value.selectedDebt?.id == debtId) {
-                    _uiState.update { it.copy(selectedDebt = null, selectedDebtPayments = emptyList()) }
+                    selectDebt(debtId)
                 }
+                onSuccess()
+            }.onFailure {
+                onError(it.localizedMessage ?: "حدث خطأ أثناء الإعفاء من الدين")
             }
         }
     }
