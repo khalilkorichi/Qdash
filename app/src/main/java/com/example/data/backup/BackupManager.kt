@@ -293,6 +293,24 @@ class BackupManager(
                 tempWalFile?.delete()
             } else {
                 // Execute New JSON V2 Restore
+                if (preview.manifest.isEncrypted) {
+                    val encFile = File(stagingDir, "data.json.gz.enc")
+                    if (encFile.exists()) {
+                        val calculatedChecksum = calculateSHA256(encFile)
+                        if (calculatedChecksum != preview.manifest.checksumSHA256) {
+                            throw Exception("تنبيه أمان: تم تعديل ملف النسخة الاحتياطية (فشل فحص Checksum)!")
+                        }
+                    }
+                } else {
+                    val gzipFile = File(stagingDir, "data.json.gz")
+                    if (gzipFile.exists()) {
+                        val calculatedChecksum = calculateSHA256(gzipFile)
+                        if (calculatedChecksum != preview.manifest.checksumSHA256) {
+                            throw Exception("تنبيه أمان: تم تعديل ملف النسخة الاحتياطية (فشل فحص Checksum)!")
+                        }
+                    }
+                }
+
                 val gzipFile = File(stagingDir, "data.json.gz")
                 if (!gzipFile.exists()) {
                     throw Exception("ملف البيانات غير موجود داخل النسخة الاحتياطية.")
