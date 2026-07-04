@@ -76,6 +76,18 @@ class PreferencesManager(context: Context) {
         get() = mainPrefs.getBoolean("auto_backup_enabled", false)
         set(value) = mainPrefs.edit().putBoolean("auto_backup_enabled", value).apply()
 
+    var backupFolderUri: String?
+        get() = mainPrefs.getString("backup_folder_uri", null)
+        set(value) = mainPrefs.edit().putString("backup_folder_uri", value).apply()
+
+    var backupScheduleInterval: String
+        get() = mainPrefs.getString("backup_schedule_interval", "none") ?: "none"
+        set(value) = mainPrefs.edit().putString("backup_schedule_interval", value).apply()
+
+    var keepMaxBackupsCount: Int
+        get() = mainPrefs.getInt("keep_max_backups_count", 5)
+        set(value) = mainPrefs.edit().putInt("keep_max_backups_count", value).apply()
+
     var connectedEmail: String?
         get() = mainPrefs.getString("connected_email", null)
         set(value) = mainPrefs.edit().putString("connected_email", value).apply()

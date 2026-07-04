@@ -4,6 +4,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import android.os.Build
+import android.provider.DocumentsContract
 import com.example.data.local.AppDatabase
 import com.example.data.repository.BackupRepositoryImpl
 import com.example.core.utils.CryptoUtils
@@ -29,31 +30,38 @@ class BackupManager(
 
     private val backupRepository = BackupRepositoryImpl(database)
 
+    data class FileDetails(val name: String, val sizeBytes: Long, val path: String)
+
     // --- New V2 Unified Backup API ---
 
     suspend fun exportBackupV2(
         outputUri: Uri,
         password: CharArray?,
-        includeAttachments: Boolean
+        includeAttachments: Boolean,
+        onProgress: (suspend (stage: String, percent: Int) -> Unit)? = null
     ): Result<Unit> = withContext(Dispatchers.IO) {
         val tempDir = File(context.cacheDir, "backup_export_temp").apply {
             deleteRecursively()
             mkdirs()
         }
         try {
+            onProgress?.invoke("جاري فحص وتجهيز قاعدة البيانات...", 15)
             val rawJsonFile = File(tempDir, "data.json")
             val gzipJsonFile = File(tempDir, "data.json.gz")
 
+            onProgress?.invoke("تجميع وتحويل جداول قاعدة البيانات إلى صيغة JSON...", 30)
             // 1. Serialize DB to JSON stream
             FileOutputStream(rawJsonFile).use { fos ->
                 backupRepository.exportBackupV2(fos)
             }
 
+            onProgress?.invoke("جاري ضغط البيانات باستخدام GZIP...", 65)
             // 2. Compress JSON to GZIP
             gzipCompress(rawJsonFile, gzipJsonFile)
 
             // 3. Encrypt GZIP if password provided
             val (payloadFile, salt, iv, isEncrypted) = if (password != null && password.isNotEmpty()) {
+                onProgress?.invoke("تشفير ملف البيانات لحماية الخصوصية...", 80)
                 val saltBytes = CryptoUtils.generateSalt()
                 val key = CryptoUtils.deriveKey(password, saltBytes)
                 val plainBytes = gzipJsonFile.readBytes()
@@ -64,8 +72,6 @@ class BackupManager(
 
                 val ivBytes = android.util.Base64.decode(encrypted.iv, android.util.Base64.NO_WRAP)
                 // We'll write the IV to the file itself or keep it.
-                // In CryptoUtils, we do not auto-prepend IV in encryptBytes, we keep them separate.
-                // Let's write IV at the beginning of the file so we can read it easily during decryption.
                 val combined = ByteArray(12 + encFile.length().toInt())
                 System.arraycopy(ivBytes, 0, combined, 0, 12)
                 System.arraycopy(encFile.readBytes(), 0, combined, 12, encFile.length().toInt())
@@ -76,6 +82,7 @@ class BackupManager(
                 Quadruple(gzipJsonFile, null, null, false)
             }
 
+            onProgress?.invoke("حساب البصمة الرقمية للتحقق من سلامة البيانات...", 90)
             // 4. Generate Checksum
             val checksum = calculateSHA256(payloadFile)
 
@@ -83,6 +90,7 @@ class BackupManager(
             val recordCounts = getRecordCounts()
             val manifestJson = generateManifestV2(isEncrypted, salt, checksum, recordCounts)
 
+            onProgress?.invoke("إنشاء حزمة النسخ الاحتياطي ZIP وحفظها...", 95)
             // 6. Write ZIP Package
             context.contentResolver.openOutputStream(outputUri)?.use { outputStream ->
                 ZipOutputStream(BufferedOutputStream(outputStream)).use { zos ->
@@ -113,6 +121,7 @@ class BackupManager(
                 }
             }
 
+            onProgress?.invoke("اكتملت عملية النسخ بنجاح!", 100)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -159,8 +168,7 @@ class BackupManager(
             // Validate format compatibility
             val isCompatible = manifest.schemaVersion <= currentSchemaVersion
 
-            // Return preview (if encrypted, we will decrypt and verify checksum inside performRestore, 
-            // but we need to check if password is correct if isEncrypted = true)
+            // Return preview
             if (manifest.isEncrypted) {
                 if (password == null || password.isEmpty()) {
                     return@withContext Result.success(
@@ -192,7 +200,7 @@ class BackupManager(
                         android.util.Base64.encodeToString(ivBytes, android.util.Base64.NO_WRAP),
                         key
                     )
-                    // Temporary save decrypted file to staging to make performRestore faster
+                    // Temporary save decrypted file to staging
                     val decryptedGzipFile = File(stagingDir, "data.json.gz")
                     decryptedGzipFile.writeBytes(decryptedBytes)
                 } catch (e: Exception) {
@@ -217,7 +225,8 @@ class BackupManager(
 
     suspend fun performRestoreV2(
         preview: RestorePreview,
-        selectedTables: List<String>?
+        selectedTables: List<String>?,
+        onProgress: (suspend (stage: String, percent: Int) -> Unit)? = null
     ): Result<Unit> = withContext(Dispatchers.IO) {
         val stagingDir = File(preview.tempZipFile)
         var tempDbFile: File? = null
@@ -229,6 +238,7 @@ class BackupManager(
         val walFile = File(dbFile.path + "-wal")
 
         try {
+            onProgress?.invoke("جاري استخراج وفحص ملفات النسخة الاحتياطية...", 15)
             // 1. Detect if Legacy ZIP or JSON V2
             val isLegacy = preview.manifest.schemaVersion == 1 && !File(stagingDir, "data.json.gz").exists()
 
@@ -240,6 +250,7 @@ class BackupManager(
 
                 validateStagedDatabase(stagedDbFile)
 
+                onProgress?.invoke("إنشاء نقطة استعادة فيزيائية وقائية...", 40)
                 // Create physical rollback point
                 database.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(FULL)").close()
                 if (dbFile.exists()) {
@@ -255,6 +266,7 @@ class BackupManager(
                     walFile.copyTo(tempWalFile, overwrite = true)
                 }
 
+                onProgress?.invoke("كتابة ملفات قاعدة البيانات القديمة...", 70)
                 // Close database to overwrite files
                 database.close()
 
@@ -263,6 +275,7 @@ class BackupManager(
                 if (stagedShmFile.exists()) stagedShmFile.copyTo(shmFile, overwrite = true) else shmFile.delete()
                 if (stagedWalFile.exists()) stagedWalFile.copyTo(walFile, overwrite = true) else walFile.delete()
 
+                onProgress?.invoke("نقل المرفقات والإيصالات المسترجعة...", 90)
                 // Copy attachments
                 val stagedAttachmentsDir = File(stagingDir, "attachments")
                 if (stagedAttachmentsDir.exists()) {
@@ -285,10 +298,12 @@ class BackupManager(
                     throw Exception("ملف البيانات غير موجود داخل النسخة الاحتياطية.")
                 }
 
+                onProgress?.invoke("فك ضغط بيانات JSON (GZIP)...", 30)
                 val decompressedJsonFile = File(stagingDir, "data.json")
                 gzipDecompress(gzipFile, decompressedJsonFile)
 
-                // Create physical rollback point (in case Room transaction fails and sqlite file gets corrupted)
+                onProgress?.invoke("إنشاء نقطة استعادة فيزيائية وقائية...", 50)
+                // Create physical rollback point
                 database.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(FULL)").close()
                 if (dbFile.exists()) {
                     tempDbFile = File(context.cacheDir, "temp_backup.db")
@@ -303,11 +318,13 @@ class BackupManager(
                     walFile.copyTo(tempWalFile, overwrite = true)
                 }
 
+                onProgress?.invoke("بدء استيراد وتحديث جداول قاعدة البيانات المحددة...", 70)
                 // Run JSON V2 restore transaction
                 FileInputStream(decompressedJsonFile).use { fis ->
                     backupRepository.restoreBackupV2(fis, selectedTables)
                 }
 
+                onProgress?.invoke("تحديث ونقل الملفات المرفقة...", 90)
                 // Copy attachments if present
                 val stagedAttachmentsDir = File(stagingDir, "attachments")
                 if (stagedAttachmentsDir.exists()) {
@@ -325,9 +342,11 @@ class BackupManager(
                 tempWalFile?.delete()
             }
 
+            onProgress?.invoke("اكتملت استعادة البيانات بنجاح!", 100)
             stagingDir.deleteRecursively()
             Result.success(Unit)
         } catch (e: Exception) {
+            onProgress?.invoke("حدث خطأ! جاري التراجع واستعادة الحالة السابقة...", 95)
             // Restore database physically from rollback backups on failure
             try {
                 database.close()
@@ -348,6 +367,133 @@ class BackupManager(
             }
             stagingDir.deleteRecursively()
             Result.failure(e)
+        }
+    }
+
+    // --- local SAF Folder Backup integration ---
+
+    suspend fun exportBackupToFolder(
+        folderUri: Uri,
+        password: CharArray?,
+        includeAttachments: Boolean,
+        maxKeepBackups: Int = 5,
+        onProgress: (suspend (stage: String, percent: Int) -> Unit)? = null
+    ): Result<FileDetails> = withContext(Dispatchers.IO) {
+        try {
+            onProgress?.invoke("جاري التحقق من المجلد المختار...", 5)
+            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm", java.util.Locale.US)
+            val filename = "Qdash_Backup_${sdf.format(java.util.Date())}.zip"
+
+            // Check space before starting
+            onProgress?.invoke("التحقق من المساحة المتوفرة...", 7)
+            val folderDocId = DocumentsContract.getTreeDocumentId(folderUri)
+            val folderDocumentUri = DocumentsContract.buildDocumentUriUsingTree(folderUri, folderDocId)
+            
+            // Check free space on cache or system if possible (external directory size isn't directly queryable, but cache is a proxy)
+            val freeBytes = context.cacheDir.freeSpace
+            if (freeBytes < 20 * 1024 * 1024) { // Needs at least 20MB free
+                return@withContext Result.failure(Exception("المساحة المتوفرة في جهازك غير كافية لإنشاء نسخة احتياطية."))
+            }
+
+            // Create file inside folder tree
+            val fileUri = createDocumentInTree(context, folderUri, filename, "application/zip")
+                ?: return@withContext Result.failure(Exception("تعذر إنشاء ملف النسخة الاحتياطية داخل المجلد المختار. يرجى التحقق من أذونات الوصول."))
+
+            onProgress?.invoke("بدء تصدير البيانات...", 10)
+
+            val res = exportBackupV2(fileUri, password, includeAttachments, onProgress)
+            if (res.isSuccess) {
+                val size = try {
+                    context.contentResolver.openFileDescriptor(fileUri, "r")?.use { it.statSize } ?: 0L
+                } catch (e: Exception) {
+                    0L
+                }
+
+                // Cleanup older backups
+                onProgress?.invoke("جاري تنظيف وتدوير النسخ الاحتياطية القديمة...", 98)
+                cleanupOldBackups(context, folderUri, maxKeepBackups)
+
+                onProgress?.invoke("اكتمل حفظ وتصدير النسخة الاحتياطية بنجاح!", 100)
+                Result.success(FileDetails(filename, size, fileUri.toString()))
+            } else {
+                try {
+                    DocumentsContract.deleteDocument(context.contentResolver, fileUri)
+                } catch (e: Exception) {}
+                Result.failure(res.exceptionOrNull() ?: Exception("فشل تصدير البيانات."))
+            }
+        } catch (e: SecurityException) {
+            Result.failure(Exception("فشلت الصلاحية: لم يعد للبرنامج حق الوصول للمجلد المحدد. يرجى إعادة اختياره."))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    fun isFolderUriValid(uriString: String?): Boolean {
+        if (uriString.isNullOrEmpty()) return false
+        val uri = Uri.parse(uriString)
+        val persistedUriPermissions = context.contentResolver.persistedUriPermissions
+        val hasPersisted = persistedUriPermissions.any { 
+            it.uri.toString() == uriString && (it.isReadPermission || it.isWritePermission) 
+        }
+        if (!hasPersisted) return false
+
+        return try {
+            val documentId = DocumentsContract.getTreeDocumentId(uri)
+            val parentDocumentUri = DocumentsContract.buildDocumentUriUsingTree(uri, documentId)
+            context.contentResolver.query(parentDocumentUri, null, null, null, null)?.use {
+                true
+            } ?: false
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun createDocumentInTree(context: Context, treeUri: Uri, displayName: String, mimeType: String): Uri? {
+        return try {
+            val documentId = DocumentsContract.getTreeDocumentId(treeUri)
+            val parentDocumentUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, documentId)
+            DocumentsContract.createDocument(context.contentResolver, parentDocumentUri, mimeType, displayName)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private fun cleanupOldBackups(context: Context, treeUri: Uri, maxKeep: Int) {
+        try {
+            val resolver = context.contentResolver
+            val documentId = DocumentsContract.getTreeDocumentId(treeUri)
+            val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, documentId)
+            val projection = arrayOf(
+                DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                DocumentsContract.Document.COLUMN_LAST_MODIFIED
+            )
+            val files = mutableListOf<BackupFileInfo>()
+            resolver.query(childrenUri, projection, null, null, null)?.use { cursor ->
+                val idIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+                val nameIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+                val modifiedIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_LAST_MODIFIED)
+                while (cursor.moveToNext()) {
+                    val name = cursor.getString(nameIdx)
+                    if (name.startsWith("Qdash_Backup_") && name.endsWith(".zip")) {
+                        val docId = cursor.getString(idIdx)
+                        val lastModified = cursor.getLong(modifiedIdx)
+                        files.add(BackupFileInfo(docId, name, lastModified))
+                    }
+                }
+            }
+            if (files.size > maxKeep) {
+                files.sortBy { it.lastModified }
+                val toDeleteCount = files.size - maxKeep
+                for (i in 0 until toDeleteCount) {
+                    val fileToDelete = files[i]
+                    val docUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, fileToDelete.docId)
+                    DocumentsContract.deleteDocument(resolver, docUri)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
@@ -430,7 +576,6 @@ class BackupManager(
         val schemaVer = json.optInt("schemaVersion", legacyBackupFormatVersion)
 
         if (schemaVer == legacyBackupFormatVersion) {
-            // Adapt legacy manifest to manifest V2
             val dbVer = json.optInt("dbVersion", 1)
             val appVer = json.optString("appVersion", "1.0")
             val createdAt = json.optLong("createdAt", System.currentTimeMillis())
@@ -516,5 +661,6 @@ class BackupManager(
         }
     }
 
+    private data class BackupFileInfo(val docId: String, val name: String, val lastModified: Long)
     private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 }

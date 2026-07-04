@@ -194,7 +194,9 @@ class ViewModelFactory(
                     container.backupManager,
                     container.transactionRepository,
                     container.categoryRepository,
-                    container.accountRepository
+                    container.accountRepository,
+                    container.preferencesManager,
+                    context
                 ) as T
             }
             modelClass.isAssignableFrom(com.example.presentation.update.UpdatesViewModel::class.java) -> {

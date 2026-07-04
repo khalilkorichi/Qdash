@@ -119,6 +119,15 @@ object FormatterUtils {
         return convertNumerals(sdf.format(Date(timestamp)))
     }
 
+    fun formatFileSize(size: Long): String {
+        if (size <= 0) return "0 ب"
+        val units = arrayOf("ب", "ك.ب", "م.ب", "ج.ب")
+        val digitGroups = (Math.log10(size.toDouble()) / Math.log10(1024.toDouble())).toInt()
+        val num = size / Math.pow(1024.toDouble(), digitGroups.toDouble())
+        val formatted = java.text.DecimalFormat("#,##0.#").format(num)
+        return convertNumerals("$formatted ${units[digitGroups]}")
+    }
+
     fun normalizeAmount(input: String): String {
         return input.map { char ->
             when (char) {

@@ -185,4 +185,19 @@ class BackupV2Test {
         assertTrue(restoreResult.isFailure)
         assertTrue(restoreResult.exceptionOrNull()?.message?.contains("النسخة الاحتياطية") == true || restoreResult.exceptionOrNull() is Exception)
     }
+
+    @Test
+    fun testProgressEmissions_EmitsCorrectStages() = runBlocking {
+        val backupFile = File(context.cacheDir, "progress_backup.zip")
+        val backupUri = Uri.fromFile(backupFile)
+
+        val stages = mutableListOf<String>()
+        val result = backupManager.exportBackupV2(backupUri, null, false) { stage, percent ->
+            stages.add(stage)
+        }
+        assertTrue(result.isSuccess)
+        assertTrue(stages.isNotEmpty())
+        assertTrue(stages.any { it.contains("قاعدة البيانات") })
+        assertTrue(stages.any { it.contains("تجميع") })
+    }
 }

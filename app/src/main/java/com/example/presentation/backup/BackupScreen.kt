@@ -1,9 +1,11 @@
 package com.example.presentation.backup
 
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,9 +24,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.ui.components.UnifiedScreenHeader
 import com.example.core.utils.FormatterUtils
+import com.example.domain.model.BackupProgress
+import com.example.domain.model.RestorePreview
 import com.example.ui.designsystem.components.*
 import com.example.ui.designsystem.tokens.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BackupScreen(
     viewModel: BackupViewModel,
@@ -32,17 +37,26 @@ fun BackupScreen(
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     val uiState by viewModel.uiState.collectAsState()
+    val backupProgress by viewModel.backupProgress.collectAsState()
+    val backupFolderUri by viewModel.backupFolderUri.collectAsState()
+    val backupScheduleInterval by viewModel.backupScheduleInterval.collectAsState()
+    val lastBackupUriForShare by viewModel.lastBackupUri.collectAsState()
+
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
     // Dialog state
     var showExportDialog by remember { mutableStateOf(false) }
+    var showFolderBackupPasswordDialog by remember { mutableStateOf(false) }
     var exportEncrypt by remember { mutableStateOf(false) }
     var exportPassword by remember { mutableStateOf("") }
     var pendingExportPassword by remember { mutableStateOf<CharArray?>(null) }
 
     // Password input for restore
     var restorePasswordInput by remember { mutableStateOf("") }
+
+    // Coming soon Bottom Sheet
+    var showComingSoonSheet by remember { mutableStateOf(false) }
 
     // Table selection for restore
     var restoreAccountsAndTransactions by remember { mutableStateOf(true) }
@@ -58,6 +72,12 @@ fun BackupScreen(
             viewModel.exportBackupV2(it, pendingExportPassword, includeAttachments = true)
             pendingExportPassword = null
         }
+    }
+
+    val openFolderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        uri?.let { viewModel.saveBackupFolder(it) }
     }
 
     val openBackupLauncher = rememberLauncherForActivityResult(
@@ -163,7 +183,77 @@ fun BackupScreen(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Section 1: Core backups
+                // SECTION 1: Cloud Backup (Google Drive) - Coming Soon
+                Text(
+                    text = "المزامنة السحابية (Google Drive)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
+                AppCard(
+                    variant = CardVariant.OUTLINED,
+                    shape = ShapeTokens.Lg,
+                    backgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Cloud,
+                                    contentDescription = null,
+                                    tint = ColorTokens.TextGray,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "النسخ الاحتياطي عبر سحابة Google",
+                                    fontWeight = FontWeight.Bold,
+                                    color = ColorTokens.TextGray
+                                )
+                            }
+                            // Badge "قريباً"
+                            Box(
+                                modifier = Modifier
+                                    .background(ColorTokens.TextGray.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "قريباً",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = ColorTokens.TextGray,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        Text(
+                            text = "مزامنة سحابية تلقائية وآمنة لملفات النسخ الاحتياطي عبر حسابك الشخصي في Google Drive.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ColorTokens.TextGray.copy(alpha = 0.8f)
+                        )
+                        AppButton(
+                            onClick = { showComingSoonSheet = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            variant = ButtonVariant.BORDERED,
+                            intent = ButtonIntent.PRIMARY,
+                            shape = ShapeTokens.Lg
+                        ) {
+                            Text("تهيئة المزامنة السحابية", color = ColorTokens.TextGray)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // SECTION 2: Manual Backup Section
                 Text(
                     text = "النسخ الاحتياطي اليدوي الكامل",
                     style = MaterialTheme.typography.titleMedium,
@@ -171,37 +261,202 @@ fun BackupScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
 
-                // Export ZIP button
-                AppButton(
-                    onClick = {
-                        exportPassword = ""
-                        exportEncrypt = false
-                        showExportDialog = true
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    variant = ButtonVariant.SOLID,
-                    intent = ButtonIntent.PRIMARY,
+                AppCard(
+                    variant = CardVariant.FLAT,
                     shape = ShapeTokens.Lg,
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.CloudUpload,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = Color.White
-                        )
-                    }
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "تصدير نسخة احتياطية كاملة (ZIP)",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Folder path check
+                        if (backupFolderUri.isNullOrEmpty()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(ColorTokens.Danger.copy(alpha = 0.08f), ShapeTokens.Md)
+                                    .padding(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = ColorTokens.Danger,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "يرجى تحديد مجلد لحفظ النسخ الاحتياطية لتنشيط الجدولة والنسخ الفوري.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = ColorTokens.Danger,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        } else {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Primary.copy(alpha = 0.04f), ShapeTokens.Md)
+                                    .padding(12.dp)
+                            ) {
+                                Text(
+                                    text = "مجلد الحفظ المعتمد حالياً:",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = ColorTokens.TextGray
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = backupFolderUri!!,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+
+                        // Select Folder Button
+                        AppButton(
+                            onClick = { openFolderLauncher.launch(null) },
+                            modifier = Modifier.fillMaxWidth(),
+                            variant = ButtonVariant.BORDERED,
+                            intent = ButtonIntent.PRIMARY,
+                            shape = ShapeTokens.Lg,
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.FolderOpen,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = Primary
+                                )
+                            }
+                        ) {
+                            Text(
+                                text = if (backupFolderUri.isNullOrEmpty()) "تحديد مجلد الحفظ" else "تغيير مجلد الحفظ",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Primary
+                            )
+                        }
+
+                        HorizontalDivider()
+
+                        // Scheduling Interval Selector
+                        Text(
+                            text = "جدولة النسخ الاحتياطي التلقائي الخلفي:",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                .padding(4.dp)
+                        ) {
+                            val options = listOf(
+                                "none" to "أبداً",
+                                "daily" to "يومياً",
+                                "weekly" to "أسبوعياً",
+                                "monthly" to "شهرياً"
+                            )
+                            options.forEach { (key, label) ->
+                                val selected = backupScheduleInterval == key
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .background(
+                                            if (selected) MaterialTheme.colorScheme.surface else Color.Transparent,
+                                            RoundedCornerShape(6.dp)
+                                        )
+                                        .border(
+                                            width = if (selected) 1.dp else 0.dp,
+                                            color = if (selected) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f) else Color.Transparent,
+                                            shape = RoundedCornerShape(6.dp)
+                                        )
+                                        .clickable { viewModel.updateScheduleInterval(key) }
+                                        .padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (selected) Primary else ColorTokens.TextGray
+                                    )
+                                }
+                            }
+                        }
+
+                        // Immediate backup button
+                        AppButton(
+                            onClick = {
+                                if (!backupFolderUri.isNullOrEmpty()) {
+                                    exportPassword = ""
+                                    exportEncrypt = false
+                                    showFolderBackupPasswordDialog = true
+                                }
+                            },
+                            enabled = !backupFolderUri.isNullOrEmpty(),
+                            modifier = Modifier.fillMaxWidth(),
+                            variant = ButtonVariant.SOLID,
+                            intent = ButtonIntent.PRIMARY,
+                            shape = ShapeTokens.Lg,
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.CloudUpload,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = Color.White
+                                )
+                            }
+                        ) {
+                            Text(
+                                text = "بدء نسخ فوري الآن",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+
+                        // Share Backup option (if lastBackupUriForShare exists)
+                        if (lastBackupUriForShare != null) {
+                            AppButton(
+                                onClick = {
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "application/zip"
+                                        putExtra(Intent.EXTRA_STREAM, lastBackupUriForShare)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, "مشاركة النسخة الاحتياطية"))
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                variant = ButtonVariant.FLAT,
+                                intent = ButtonIntent.INFO,
+                                shape = ShapeTokens.Lg,
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Share,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = ColorTokens.Info
+                                    )
+                                }
+                            ) {
+                                Text(
+                                    text = "مشاركة النسخة الاحتياطية الأخيرة",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = ColorTokens.Info
+                                )
+                            }
+                        }
+                    }
                 }
 
-                // Import ZIP button
+                // Import ZIP button (Stays in manual section)
                 AppButton(
                     onClick = {
                         openBackupLauncher.launch(arrayOf("application/zip"))
@@ -231,7 +486,7 @@ fun BackupScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Section 2: CSV / excel exports
+                // Section 3: CSV / excel exports
                 Text(
                     text = "تصدير التقارير وجداول العمليات",
                     style = MaterialTheme.typography.titleMedium,
@@ -327,7 +582,7 @@ fun BackupScreen(
                 }
             }
 
-            // Processing overlay
+            // Processing overlay (Default imports/exports)
             if (uiState.isLoading) {
                 Box(
                     modifier = Modifier
@@ -368,11 +623,199 @@ fun BackupScreen(
                 }
             }
 
-            // Export Options Dialog
+            // Real-time Progress Dialog (Immediate folder backups)
+            val progressState = backupProgress
+            if (progressState is BackupProgress.Running) {
+                AlertDialog(
+                    onDismissRequest = { /* Non-dismissable */ },
+                    title = {
+                        Text(
+                            text = "جاري إنشاء النسخة الاحتياطية...",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    },
+                    text = {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = progressState.stage,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            
+                            LinearProgressIndicator(
+                                progress = { progressState.progressPercent / 100f },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp),
+                                color = Primary,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                            )
+                            
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Text(
+                                    text = "${progressState.progressPercent}%",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Primary
+                                )
+                            }
+                        }
+                    },
+                    confirmButton = {},
+                    dismissButton = {}
+                )
+            } else if (progressState is BackupProgress.Success) {
+                LaunchedEffect(Unit) {
+                    viewModel.clearProgress()
+                }
+            } else if (progressState is BackupProgress.Failure) {
+                AlertDialog(
+                    onDismissRequest = { viewModel.clearProgress() },
+                    title = {
+                        Text(
+                            text = "فشل النسخ الاحتياطي",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = progressState.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { viewModel.clearProgress() }) {
+                            Text("موافق", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                )
+            }
+
+            // Google Drive Bottom Sheet
+            if (showComingSoonSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showComingSoonSheet = false },
+                    sheetState = rememberModalBottomSheetState(),
+                    shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f), ShapeTokens.Md),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Cloud,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        Text(
+                            text = "المزامنة السحابية (Google Drive) - قريباً",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Text(
+                            text = "الميزة قيد التطوير حالياً. لضمان أقصى درجات الخصوصية والأمان المالي وحماية بياناتك الحساسة، تم تفعيل النسخ الاحتياطي اليدوي الكامل والمشفّر محلياً (BackupFormatV2).\n\nسنقوم بتوفير إمكانية الربط السحابي المباشر بمجرد اكتمال اختبارات المزامنة والتحقق الأمني.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = ColorTokens.TextGray,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+
+                        AppButton(
+                            onClick = { showComingSoonSheet = false },
+                            modifier = Modifier.fillMaxWidth(),
+                            variant = ButtonVariant.SOLID,
+                            intent = ButtonIntent.PRIMARY,
+                            shape = ShapeTokens.Lg
+                        ) {
+                            Text("فهمت ذلك", color = Color.White)
+                        }
+                    }
+                }
+            }
+
+            // Folder Backup Options Dialog
+            if (showFolderBackupPasswordDialog) {
+                AlertDialog(
+                    onDismissRequest = { showFolderBackupPasswordDialog = false },
+                    title = { Text("خيارات النسخ الاحتياطي", fontWeight = FontWeight.Bold) },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Checkbox(
+                                    checked = exportEncrypt,
+                                    onCheckedChange = { exportEncrypt = it }
+                                )
+                                Text("تشفير النسخة الاحتياطية بكلمة مرور")
+                            }
+
+                            if (exportEncrypt) {
+                                OutlinedTextField(
+                                    value = exportPassword,
+                                    onValueChange = { exportPassword = it },
+                                    label = { Text("كلمة المرور") },
+                                    placeholder = { Text("أدخل كلمة مرور قوية") },
+                                    visualTransformation = PasswordVisualTransformation(),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Text(
+                                    "تنبيه: في حال نسيان كلمة المرور، لن تتمكن من استرجاع بياناتك أبداً.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = ColorTokens.Danger
+                                )
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                if (exportEncrypt && exportPassword.isBlank()) return@TextButton
+                                showFolderBackupPasswordDialog = false
+                                val pw = if (exportEncrypt) exportPassword.toCharArray() else null
+                                viewModel.runImmediateFolderBackup(pw)
+                            }
+                        ) {
+                            Text("بدء النسخ", fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showFolderBackupPasswordDialog = false }) {
+                            Text("إلغاء")
+                        }
+                    }
+                )
+            }
+
+            // Export Options Dialog (Single ZIP SAF)
             if (showExportDialog) {
                 AlertDialog(
                     onDismissRequest = { showExportDialog = false },
-                    title = { Text("خيارات النسخ الاحتياطي", fontWeight = FontWeight.Bold) },
+                    title = { Text("خيارات التصدير الفردي", fontWeight = FontWeight.Bold) },
                     text = {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(
@@ -471,7 +914,7 @@ fun BackupScreen(
                 )
             }
 
-            // Restore Preview and Table Selection Dialog
+            // Restore Preview Dialog
             val preview = uiState.restorePreview
             if (preview != null && !uiState.showPasswordPrompt) {
                 AlertDialog(
