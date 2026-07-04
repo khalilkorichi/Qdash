@@ -37,6 +37,7 @@ class DebtViewModel(
     private val updateDebtUseCase = UpdateDebtUseCase(debtRepository)
     private val deleteDebtUseCase = DeleteDebtUseCase(debtRepository, transactionRepository)
     private val forgiveDebtUseCase = ForgiveDebtUseCase(debtRepository)
+    private val cancelDebtPaymentUseCase = CancelDebtPaymentUseCase(debtRepository, transactionRepository)
 
     private val _uiState = MutableStateFlow(DebtUiState())
     val uiState: StateFlow<DebtUiState> = _uiState.asStateFlow()
@@ -216,6 +217,20 @@ class DebtViewModel(
                 onSuccess()
             }.onFailure {
                 onError(it.localizedMessage ?: "حدث خطأ أثناء الإعفاء من الدين")
+            }
+        }
+    }
+
+    fun cancelPayment(paymentId: Long, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            val result = cancelDebtPaymentUseCase(paymentId)
+            result.onSuccess {
+                _uiState.value.selectedDebt?.let { selected ->
+                    selectDebt(selected.id)
+                }
+                onSuccess()
+            }.onFailure {
+                onError(it.localizedMessage ?: "حدث خطأ أثناء إلغاء الدفعة")
             }
         }
     }

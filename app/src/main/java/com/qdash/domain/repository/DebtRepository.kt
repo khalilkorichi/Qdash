@@ -14,6 +14,7 @@ interface DebtRepository {
 
     fun getAllPayments(): Flow<List<DebtPayment>>
     fun getPaymentsForDebt(debtId: Long): Flow<List<DebtPayment>>
+    suspend fun getPaymentById(id: Long): DebtPayment?
     suspend fun insertPayment(payment: DebtPayment): Long
     suspend fun deletePayment(payment: DebtPayment)
     suspend fun deletePaymentsForDebt(debtId: Long)

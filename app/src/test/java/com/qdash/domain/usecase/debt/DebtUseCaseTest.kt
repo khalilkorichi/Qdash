@@ -33,6 +33,7 @@ class DebtUseCaseTest {
     private lateinit var updateDebtUseCase: UpdateDebtUseCase
     private lateinit var deleteDebtUseCase: DeleteDebtUseCase
     private lateinit var forgiveDebtUseCase: ForgiveDebtUseCase
+    private lateinit var cancelDebtPaymentUseCase: CancelDebtPaymentUseCase
 
     @Before
     fun setup() {
@@ -59,6 +60,7 @@ class DebtUseCaseTest {
         updateDebtUseCase = UpdateDebtUseCase(debtRepo)
         deleteDebtUseCase = DeleteDebtUseCase(debtRepo, transactionRepo)
         forgiveDebtUseCase = ForgiveDebtUseCase(debtRepo)
+        cancelDebtPaymentUseCase = CancelDebtPaymentUseCase(debtRepo, transactionRepo)
     }
 
     @After
@@ -227,5 +229,51 @@ class DebtUseCaseTest {
         // Verify no new transaction is inserted
         val transactions = transactionRepo.getAllTransactions().first()
         assertTrue(transactions.isEmpty())
+    }
+
+    @Test
+    fun testCancelDebtPayment_cascadingRollback() = runBlocking {
+        // 1. Insert Account & Debt
+        val accountId = db.accountDao().insertAccount(
+            AccountEntity(name = "البنك", type = "REGULAR", balance = 5000.0, color = "#FFF", icon = "")
+        )
+        val debtId = debtRepo.insertDebt(
+            Debt(
+                title = "قرض", creditorName = "أحمد", totalAmount = 10000.0, remainingAmount = 8000.0,
+                minimumPayment = 1000.0, paymentFrequency = "MONTHLY", priority = 3, color = "#FFF", icon = "",
+                linkedAccountId = accountId, debtType = DebtType.INSTALLMENT, isClosed = true
+            )
+        )
+
+        // 2. Add payment of 2000 (reverts balance to 3000)
+        val txId = transactionRepo.insertTransaction(
+            Transaction(
+                amount = 2000.0, type = TransactionType.EXPENSE, categoryId = DebtConstants.DEBT_EXPENSE_CATEGORY_ID,
+                accountId = accountId, note = "تسديد دين", date = System.currentTimeMillis()
+            )
+        )
+        val paymentId = debtRepo.insertPayment(
+            DebtPayment(debtId = debtId, accountId = accountId, amount = 2000.0, paymentDate = System.currentTimeMillis(), paymentType = DebtPaymentType.MANUAL, linkedTransactionId = txId)
+        )
+
+        // 3. Cancel the payment
+        val result = cancelDebtPaymentUseCase(paymentId)
+        assertTrue(result.isSuccess)
+
+        // Verify remaining amount is updated to 10000.0 and isClosed is false
+        val updatedDebt = debtRepo.getDebtById(debtId)!!
+        assertEquals(10000.0, updatedDebt.remainingAmount, 0.001)
+        assertFalse(updatedDebt.isClosed)
+
+        // Verify payment is deleted
+        assertNull(debtRepo.getPaymentById(paymentId))
+
+        // Verify transaction is deleted
+        val tx = transactionRepo.getTransactionById(txId)
+        assertNull(tx)
+
+        // Verify account balance is rolled back to 5000.0
+        val acc = db.accountDao().getAccountById(accountId)!!
+        assertEquals(5000.0, acc.balance, 0.001)
     }
 }

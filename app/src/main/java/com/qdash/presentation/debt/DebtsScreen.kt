@@ -37,6 +37,7 @@ import com.qdash.domain.model.DebtPayment
 import com.qdash.domain.model.DebtPaymentType
 import com.qdash.domain.model.DebtType
 import com.qdash.presentation.debt.components.EditDebtBottomSheet
+import com.qdash.presentation.debt.components.DebtPaymentsBottomSheet
 import com.qdash.ui.theme.*
 import com.qdash.ui.designsystem.components.*
 import com.qdash.ui.designsystem.tokens.ColorTokens
@@ -95,6 +96,8 @@ fun DebtsScreen(
     var showEditDebtBottomSheet by remember { mutableStateOf<Debt?>(null) }
     var showDeleteConfirmDialog by remember { mutableStateOf<Debt?>(null) }
     var showForgiveConfirmDialog by remember { mutableStateOf<Debt?>(null) }
+    var showPaymentsHistoryBottomSheet by remember { mutableStateOf<Debt?>(null) }
+    var showCancelPaymentConfirmDialog by remember { mutableStateOf<DebtPayment?>(null) }
 
     LaunchedEffect(uiState.accounts) {
         if (uiState.accounts.isNotEmpty() && selectedAccountId == null) {
@@ -187,7 +190,11 @@ fun DebtsScreen(
                     },
                     onEditClick = { d -> showEditDebtBottomSheet = d },
                     onDeleteClick = { d -> showDeleteConfirmDialog = d },
-                    onForgiveClick = { d -> showForgiveConfirmDialog = d }
+                    onForgiveClick = { d -> showForgiveConfirmDialog = d },
+                    onPaymentsHistoryClick = { d ->
+                        viewModel.selectDebt(d.id)
+                        showPaymentsHistoryBottomSheet = d
+                    }
                 )
             }
 
@@ -658,6 +665,44 @@ fun DebtsScreen(
                     onDismiss = { showForgiveConfirmDialog = null }
                 )
             }
+
+            // DEBT PAYMENTS HISTORY BOTTOM SHEET
+            showPaymentsHistoryBottomSheet?.let { targetDebt ->
+                DebtPaymentsBottomSheet(
+                    debt = targetDebt,
+                    payments = uiState.selectedDebtPayments,
+                    onCancelPaymentClick = { payment ->
+                        showCancelPaymentConfirmDialog = payment
+                    },
+                    onDismissRequest = { showPaymentsHistoryBottomSheet = null }
+                )
+            }
+
+            // CANCEL DEBT PAYMENT CONFIRM DIALOG
+            showCancelPaymentConfirmDialog?.let { targetPayment ->
+                AppDialog(
+                    onDismissRequest = { showCancelPaymentConfirmDialog = null },
+                    title = "إلغاء دفعة السداد",
+                    text = "هل أنت متأكد من إلغاء دفعة السداد هذه بقيمة ${targetPayment.amount.toInt()} د.ج؟ سيؤدي ذلك إلى حذف المعاملة المرتبطة بها واستعادة المبلغ لرصيد حسابك المالي، وزيادة المبلغ المتبقي للدين. لا يمكن التراجع عن هذا الإجراء.",
+                    confirmButtonText = "تأكيد الإلغاء",
+                    onConfirm = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.cancelPayment(
+                            paymentId = targetPayment.id,
+                            onSuccess = {
+                                showCancelPaymentConfirmDialog = null
+                                Toast.makeText(context, "تم إلغاء الدفعة واستعادة الرصيد", Toast.LENGTH_SHORT).show()
+                            },
+                            onError = { error ->
+                                Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                            }
+                        )
+                    },
+                    dismissButtonText = "إلغاء",
+                    onDismiss = { showCancelPaymentConfirmDialog = null },
+                    isDestructive = true
+                )
+            }
         }
         } // end PullToRefreshBox
     }
@@ -672,7 +717,8 @@ fun DebtsMainContent(
     onAddDebtClick: () -> Unit,
     onEditClick: (Debt) -> Unit,
     onDeleteClick: (Debt) -> Unit,
-    onForgiveClick: (Debt) -> Unit
+    onForgiveClick: (Debt) -> Unit,
+    onPaymentsHistoryClick: (Debt) -> Unit
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     LazyColumn(
@@ -1022,6 +1068,14 @@ fun DebtsMainContent(
                                         onDismissRequest = { menuExpanded = false },
                                         modifier = Modifier.background(if (isDark) ColorTokens.ElevatedSurfaceDark else MaterialTheme.colorScheme.surface)
                                     ) {
+                                        DropdownMenuItem(
+                                            text = { Text("سجل دفعات السداد", textAlign = TextAlign.Right, modifier = Modifier.fillMaxWidth()) },
+                                            leadingIcon = { Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                                            onClick = {
+                                                menuExpanded = false
+                                                onPaymentsHistoryClick(debt)
+                                            }
+                                        )
                                         DropdownMenuItem(
                                             text = { Text("تعديل تفاصيل الدين", textAlign = TextAlign.Right, modifier = Modifier.fillMaxWidth()) },
                                             leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp)) },

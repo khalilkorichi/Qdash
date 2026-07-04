@@ -54,6 +54,9 @@ interface DebtPaymentDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPayment(payment: DebtPaymentEntity): Long
 
+    @Query("SELECT * FROM debt_payments WHERE id = :id")
+    suspend fun getPaymentById(id: Long): DebtPaymentEntity?
+
     @Delete
     suspend fun deletePayment(payment: DebtPaymentEntity)
 

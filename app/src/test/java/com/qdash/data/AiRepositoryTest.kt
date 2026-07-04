@@ -89,6 +89,7 @@ class AiRepositoryTest {
         override suspend fun deleteDebt(debt: Debt) {}
         override fun getAllPayments(): Flow<List<DebtPayment>> = throw UnsupportedOperationException()
         override fun getPaymentsForDebt(debtId: Long): Flow<List<DebtPayment>> = throw UnsupportedOperationException()
+        override suspend fun getPaymentById(id: Long): DebtPayment? = null
         override suspend fun insertPayment(payment: DebtPayment): Long = 0
         override suspend fun deletePayment(payment: DebtPayment) {}
         override suspend fun deletePaymentsForDebt(debtId: Long) {}

@@ -47,6 +47,10 @@ class DebtRepositoryImpl(
         return debtPaymentDao.getPaymentsForDebt(debtId).map { list -> list.map { it.toDomain() } }
     }
 
+    override suspend fun getPaymentById(id: Long): DebtPayment? {
+        return debtPaymentDao.getPaymentById(id)?.toDomain()
+    }
+
     override suspend fun insertPayment(payment: DebtPayment): Long {
         return debtPaymentDao.insertPayment(payment.toEntity())
     }
