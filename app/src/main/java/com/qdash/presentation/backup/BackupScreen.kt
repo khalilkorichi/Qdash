@@ -1,6 +1,9 @@
 package com.qdash.presentation.backup
 
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
@@ -25,14 +28,24 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.Scope
 import com.qdash.core.ui.components.UnifiedScreenHeader
 import com.qdash.core.utils.FormatterUtils
 import com.qdash.domain.model.BackupProgress
 import com.qdash.domain.model.RestorePreview
+import com.qdash.domain.repository.AccountRepository
+import com.qdash.domain.repository.CategoryRepository
+import com.qdash.domain.repository.TransactionRepository
 import com.qdash.ui.designsystem.components.*
 import com.qdash.ui.designsystem.tokens.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,6 +76,36 @@ fun BackupScreen(
 
     // Coming soon Bottom Sheet
     var showComingSoonSheet by remember { mutableStateOf(false) }
+
+    val userProfile by viewModel.userProfile.collectAsState()
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            if (account != null) {
+                viewModel.connectGoogleDriveAccount(
+                    account,
+                    onSuccess = { Toast.makeText(context, "تم ربط الحساب بنجاح ومزامنة البيانات!", Toast.LENGTH_SHORT).show() },
+                    onFailure = { err -> Toast.makeText(context, "فشل ربط الحساب: $err", Toast.LENGTH_LONG).show() }
+                )
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "فشل تسجيل الدخول: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val launchGoogleSignIn = {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .requestProfile()
+            .requestScopes(Scope("https://www.googleapis.com/auth/drive.appdata"))
+            .build()
+        val client = GoogleSignIn.getClient(context, gso)
+        googleSignInLauncher.launch(client.signInIntent)
+    }
 
     // Tab state
     var activeTab by remember { mutableIntStateOf(0) }
@@ -652,6 +695,7 @@ fun BackupScreen(
                         color = MaterialTheme.colorScheme.onBackground
                     )
 
+                    val isLinked = userProfile?.isGoogleLinked == true
                     AppCard(
                         variant = CardVariant.OUTLINED,
                         shape = ShapeTokens.Lg,
@@ -681,16 +725,21 @@ fun BackupScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
-                                // Badge "قريباً"
+                                
+                                // Connected indicator badge
                                 Box(
                                     modifier = Modifier
-                                        .background(textSecondaryColor.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                        .background(
+                                            if (isLinked) Color(0xFF22C55E).copy(alpha = 0.12f)
+                                            else textSecondaryColor.copy(alpha = 0.12f),
+                                            RoundedCornerShape(4.dp)
+                                        )
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Text(
-                                        text = "قريباً",
+                                        text = if (isLinked) "متصل" else "غير متصل",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = textSecondaryColor,
+                                        color = if (isLinked) Color(0xFF22C55E) else textSecondaryColor,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
@@ -700,28 +749,63 @@ fun BackupScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = textSecondaryColor
                             )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                AppButton(
-                                    onClick = { },
-                                    modifier = Modifier.weight(1f),
-                                    variant = ButtonVariant.SOLID,
-                                    intent = ButtonIntent.PRIMARY,
-                                    enabled = false
+                            
+                            if (isLinked) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Text("مزامنة الآن", fontWeight = FontWeight.Bold)
+                                    AppButton(
+                                        onClick = {
+                                            viewModel.triggerDriveSync(
+                                                onSuccess = { Toast.makeText(context, "تمت المزامنة بنجاح!", Toast.LENGTH_SHORT).show() },
+                                                onFailure = { err -> Toast.makeText(context, "فشلت المزامنة: $err", Toast.LENGTH_LONG).show() }
+                                            )
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        variant = ButtonVariant.SOLID,
+                                        intent = ButtonIntent.PRIMARY,
+                                        enabled = !uiState.isLoading
+                                    ) {
+                                        Text("مزامنة الآن", fontWeight = FontWeight.Bold)
+                                    }
+
+                                    AppButton(
+                                        onClick = {
+                                            viewModel.triggerDriveRestore(
+                                                onSuccess = { Toast.makeText(context, "تمت الاستعادة بنجاح!", Toast.LENGTH_SHORT).show() },
+                                                onFailure = { err -> Toast.makeText(context, "فشلت الاستعادة: $err", Toast.LENGTH_LONG).show() }
+                                            )
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        variant = ButtonVariant.LIGHT,
+                                        intent = ButtonIntent.PRIMARY,
+                                        enabled = !uiState.isLoading
+                                    ) {
+                                        Text("استعادة من السحاب", fontWeight = FontWeight.Bold)
+                                    }
                                 }
 
+                                val lastSync = viewModel.lastSyncTimestamp
+                                if (lastSync > 0) {
+                                    Text(
+                                        text = "آخر مزامنة: ${formatRelativeSyncTime(lastSync)}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = textSecondaryColor,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            } else {
                                 AppButton(
-                                    onClick = { },
-                                    modifier = Modifier.weight(1f),
-                                    variant = ButtonVariant.LIGHT,
+                                    onClick = { launchGoogleSignIn() },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    variant = ButtonVariant.SOLID,
                                     intent = ButtonIntent.PRIMARY,
-                                    enabled = false
+                                    shape = ShapeTokens.Lg,
+                                    enabled = !uiState.isLoading
                                 ) {
-                                    Text("استعادة من السحاب", fontWeight = FontWeight.Bold)
+                                    Text("ربط الحساب بجوجل للمزامنة السحابية", fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -1191,6 +1275,23 @@ fun BackupScreen(
                     }
                 )
             }
+        }
+    }
+}
+
+private fun formatRelativeSyncTime(timestamp: Long): String {
+    val diffMs = System.currentTimeMillis() - timestamp
+    val diffMin = diffMs / 60000
+    return when {
+        diffMin < 1 -> "الآن"
+        diffMin < 60 -> "منذ $diffMin دقيقة"
+        diffMin < 1440 -> {
+            val hours = diffMin / 60
+            if (hours == 1L) "منذ ساعة" else if (hours == 2L) "منذ ساعتين" else "منذ $hours ساعة"
+        }
+        else -> {
+            val days = diffMin / 1440
+            if (days == 1L) "منذ يوم" else if (days == 2L) "منذ يومين" else "منذ $days أيام"
         }
     }
 }

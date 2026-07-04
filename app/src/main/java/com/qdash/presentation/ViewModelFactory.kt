@@ -198,6 +198,8 @@ class ViewModelFactory(
                     container.categoryRepository,
                     container.accountRepository,
                     container.preferencesManager,
+                    container.authRepository,
+                    container.driveSyncRepository,
                     context
                 ) as T
             }
