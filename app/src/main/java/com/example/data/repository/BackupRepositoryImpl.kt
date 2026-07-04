@@ -1,5 +1,7 @@
 package com.example.data.repository
 
+import android.util.JsonReader
+import android.util.JsonWriter
 import androidx.room.withTransaction
 import com.example.data.local.AppDatabase
 import com.example.data.local.entities.*
@@ -8,10 +10,13 @@ import com.example.domain.repository.BackupRepository
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.*
 
 class BackupRepositoryImpl(
     private val database: AppDatabase
 ) : BackupRepository {
+
+    // --- Legacy V1 Methods for backward compatibility ---
 
     override suspend fun exportAllDataAsJson(): JSONObject = database.withTransaction {
         val backupObj = JSONObject()
@@ -72,7 +77,7 @@ class BackupRepositoryImpl(
         }
         backupObj.put("transactions", txArray)
 
-        // 4. Capture Income Sources
+        // Capture remaining basic elements for compatibility
         val incomeArray = JSONArray()
         database.incomeSourceDao().getAllIncomeSources().first().forEach {
             incomeArray.put(JSONObject().apply {
@@ -88,7 +93,6 @@ class BackupRepositoryImpl(
         }
         backupObj.put("income_sources", incomeArray)
 
-        // 5. Capture Saving Goals
         val savingsGoalsArray = JSONArray()
         database.savingGoalDao().getAllSavingGoals().first().forEach {
             savingsGoalsArray.put(JSONObject().apply {
@@ -105,7 +109,6 @@ class BackupRepositoryImpl(
         }
         backupObj.put("saving_goals", savingsGoalsArray)
 
-        // 6. Capture Savings Contributions
         val savingsContributionsArray = JSONArray()
         database.savingsContributionDao().getAllContributions().first().forEach {
             savingsContributionsArray.put(JSONObject().apply {
@@ -122,7 +125,6 @@ class BackupRepositoryImpl(
         }
         backupObj.put("savings_contributions", savingsContributionsArray)
 
-        // 7. Capture Subscriptions
         val subscriptionsArray = JSONArray()
         database.subscriptionDao().getAllSubscriptions().first().forEach {
             subscriptionsArray.put(JSONObject().apply {
@@ -141,7 +143,6 @@ class BackupRepositoryImpl(
         }
         backupObj.put("subscriptions", subscriptionsArray)
 
-        // 8. Capture Debts
         val debtsArray = JSONArray()
         database.debtDao().getAllDebts().first().forEach {
             debtsArray.put(JSONObject().apply {
@@ -162,11 +163,11 @@ class BackupRepositoryImpl(
                 put("icon", it.icon)
                 put("createdAt", it.createdAt)
                 put("isClosed", it.isClosed)
+                put("debtType", it.debtType)
             })
         }
         backupObj.put("debts", debtsArray)
 
-        // 9. Capture Debt Payments
         val debtPaymentsArray = JSONArray()
         database.debtPaymentDao().getAllPayments().first().forEach {
             debtPaymentsArray.put(JSONObject().apply {
@@ -183,7 +184,6 @@ class BackupRepositoryImpl(
         }
         backupObj.put("debt_payments", debtPaymentsArray)
 
-        // 10. Capture Transfers
         val transfersArray = JSONArray()
         database.transferDao().getAllTransfers().first().forEach {
             transfersArray.put(JSONObject().apply {
@@ -200,7 +200,6 @@ class BackupRepositoryImpl(
         }
         backupObj.put("transfers", transfersArray)
 
-        // 11. Capture Budget Goals
         val budgetGoalsArray = JSONArray()
         database.budgetGoalDao().getAllBudgetGoals().first().forEach {
             budgetGoalsArray.put(JSONObject().apply {
@@ -221,7 +220,6 @@ class BackupRepositoryImpl(
         }
         backupObj.put("budget_goals", budgetGoalsArray)
 
-        // 12. Capture Financial Plans
         val plansArray = JSONArray()
         database.financialPlanDao().getAllPlans().first().forEach {
             plansArray.put(JSONObject().apply {
@@ -243,7 +241,6 @@ class BackupRepositoryImpl(
         }
         backupObj.put("financial_plans", plansArray)
 
-        // 13. Capture Transaction Templates
         val templatesArray = JSONArray()
         database.transactionTemplateDao().getAllTemplates().first().forEach {
             templatesArray.put(JSONObject().apply {
@@ -267,7 +264,6 @@ class BackupRepositoryImpl(
         }
         backupObj.put("transaction_templates", templatesArray)
 
-        // 14. Capture Notifications
         val notificationsArray = JSONArray()
         database.notificationDao().getAllNotifications().first().forEach {
             notificationsArray.put(JSONObject().apply {
@@ -287,7 +283,6 @@ class BackupRepositoryImpl(
     }
 
     override suspend fun restoreFromJson(json: JSONObject) = database.withTransaction {
-        // Schema validation
         if (!json.has("accounts") || !json.has("transactions") || !json.has("categories")) {
             throw IllegalArgumentException("ملف النسخة الاحتياطية غير صالح أو لا يحتوي على الجداول الأساسية للتطبيق!")
         }
@@ -375,7 +370,7 @@ class BackupRepositoryImpl(
             }
         }
 
-        // 4. Restore Income Sources
+        // Restore remaining tables
         val incomeArray = json.optJSONArray("income_sources")
         if (incomeArray != null) {
             for (i in 0 until incomeArray.length()) {
@@ -395,7 +390,6 @@ class BackupRepositoryImpl(
             }
         }
 
-        // 5. Restore Saving Goals
         val savingsGoalsArray = json.optJSONArray("saving_goals")
         if (savingsGoalsArray != null) {
             for (i in 0 until savingsGoalsArray.length()) {
@@ -416,7 +410,6 @@ class BackupRepositoryImpl(
             }
         }
 
-        // 6. Restore Savings Contributions
         val savingsContributionsArray = json.optJSONArray("savings_contributions")
         if (savingsContributionsArray != null) {
             for (i in 0 until savingsContributionsArray.length()) {
@@ -437,7 +430,6 @@ class BackupRepositoryImpl(
             }
         }
 
-        // 7. Restore Subscriptions
         val subscriptionsArray = json.optJSONArray("subscriptions")
         if (subscriptionsArray != null) {
             for (i in 0 until subscriptionsArray.length()) {
@@ -460,7 +452,6 @@ class BackupRepositoryImpl(
             }
         }
 
-        // 8. Restore Debts
         val debtsArray = json.optJSONArray("debts")
         if (debtsArray != null) {
             for (i in 0 until debtsArray.length()) {
@@ -483,13 +474,13 @@ class BackupRepositoryImpl(
                         color = obj.getString("color"),
                         icon = obj.getString("icon"),
                         createdAt = obj.optLong("createdAt", System.currentTimeMillis()),
-                        isClosed = obj.optBoolean("isClosed", false)
+                        isClosed = obj.optBoolean("isClosed", false),
+                        debtType = obj.optString("debtType", "INSTALLMENT")
                     )
                 )
             }
         }
 
-        // 9. Restore Debt Payments
         val debtPaymentsArray = json.optJSONArray("debt_payments")
         if (debtPaymentsArray != null) {
             for (i in 0 until debtPaymentsArray.length()) {
@@ -510,7 +501,6 @@ class BackupRepositoryImpl(
             }
         }
 
-        // 10. Restore Transfers
         val transfersArray = json.optJSONArray("transfers")
         if (transfersArray != null) {
             for (i in 0 until transfersArray.length()) {
@@ -531,7 +521,6 @@ class BackupRepositoryImpl(
             }
         }
 
-        // 11. Restore Budget Goals
         val budgetGoalsArray = json.optJSONArray("budget_goals")
         if (budgetGoalsArray != null) {
             for (i in 0 until budgetGoalsArray.length()) {
@@ -556,7 +545,6 @@ class BackupRepositoryImpl(
             }
         }
 
-        // 12. Restore Financial Plans
         val plansArray = json.optJSONArray("financial_plans")
         if (plansArray != null) {
             for (i in 0 until plansArray.length()) {
@@ -582,7 +570,6 @@ class BackupRepositoryImpl(
             }
         }
 
-        // 13. Restore Transaction Templates
         val templatesArray = json.optJSONArray("transaction_templates")
         if (templatesArray != null) {
             for (i in 0 until templatesArray.length()) {
@@ -610,7 +597,6 @@ class BackupRepositoryImpl(
             }
         }
 
-        // 14. Restore Notifications
         val notificationsArray = json.optJSONArray("notifications")
         if (notificationsArray != null) {
             for (i in 0 until notificationsArray.length()) {
@@ -630,7 +616,10 @@ class BackupRepositoryImpl(
             }
         }
 
-        // 15. Regenerate daily financial aggregates
+        regenerateDailyFinancialAggregates()
+    }
+
+    private suspend fun regenerateDailyFinancialAggregates() {
         val allRestoreTxs = database.transactionDao().getTransactionsByDateRangeList(0L, Long.MAX_VALUE)
         val groupedTxs = allRestoreTxs.groupBy {
             val calendar = java.util.Calendar.getInstance().apply {
@@ -657,6 +646,930 @@ class BackupRepositoryImpl(
                     transactionCount = count,
                     netCashflow = totalInc - totalExp,
                     activityScore = score
+                )
+            )
+        }
+    }
+
+    // --- New V2 Streaming APIs ---
+
+    override suspend fun exportBackupV2(outputStream: OutputStream, selectedTables: List<String>?): Map<String, Int> = database.withTransaction {
+        val counts = mutableMapOf<String, Int>()
+        val writer = JsonWriter(BufferedWriter(OutputStreamWriter(outputStream, "UTF-8")))
+        writer.setIndent("  ")
+        writer.beginObject() // {
+
+        fun isSelected(table: String) = selectedTables == null || selectedTables.contains(table)
+
+        // 1. Accounts
+        if (isSelected("accounts")) {
+            val list = database.accountDao().getAllAccountsIncludingArchived().first()
+            counts["accounts"] = list.size
+            writer.name("accounts").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("name").value(it.name)
+                writer.name("type").value(it.type)
+                writer.name("balance").value(it.balance)
+                writer.name("currency").value(it.currency)
+                writer.name("color").value(it.color)
+                writer.name("icon").value(it.icon)
+                writer.name("isDefault").value(it.isDefault)
+                writer.name("isArchived").value(it.isArchived)
+                writer.name("createdAt").value(it.createdAt)
+                writer.name("sortOrder").value(it.sortOrder)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 2. Categories
+        if (isSelected("categories")) {
+            val list = database.categoryDao().getAllCategories().first()
+            val customCats = list.filter { !it.isSystem }
+            counts["categories"] = customCats.size
+            writer.name("categories").beginArray()
+            customCats.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("name").value(it.name)
+                writer.name("type").value(it.type)
+                writer.name("icon").value(it.icon)
+                writer.name("color").value(it.color)
+                writer.name("budgetLimit")
+                if (it.budgetLimit == null) writer.nullValue() else writer.value(it.budgetLimit)
+                writer.name("isSystem").value(it.isSystem)
+                writer.name("parentId")
+                if (it.parentId == null) writer.nullValue() else writer.value(it.parentId)
+                writer.name("sortOrder").value(it.sortOrder)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 3. Transactions
+        if (isSelected("transactions")) {
+            val list = database.transactionDao().getAllTransactions().first()
+            counts["transactions"] = list.size
+            writer.name("transactions").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("amount").value(it.amount)
+                writer.name("type").value(it.type)
+                writer.name("categoryId")
+                if (it.categoryId == null) writer.nullValue() else writer.value(it.categoryId)
+                writer.name("accountId").value(it.accountId)
+                writer.name("toAccountId")
+                if (it.toAccountId == null) writer.nullValue() else writer.value(it.toAccountId)
+                writer.name("note")
+                if (it.note == null) writer.nullValue() else writer.value(it.note)
+                writer.name("date").value(it.date)
+                writer.name("isRecurring").value(it.isRecurring)
+                writer.name("recurringPeriod")
+                if (it.recurringPeriod == null) writer.nullValue() else writer.value(it.recurringPeriod)
+                writer.name("attachmentPath")
+                if (it.attachmentPath == null) writer.nullValue() else writer.value(it.attachmentPath)
+                writer.name("tags")
+                if (it.tags == null) writer.nullValue() else writer.value(it.tags)
+                writer.name("suggestedCategoryId")
+                if (it.suggestedCategoryId == null) writer.nullValue() else writer.value(it.suggestedCategoryId)
+                writer.name("suggestionSource")
+                if (it.suggestionSource == null) writer.nullValue() else writer.value(it.suggestionSource)
+                writer.name("confidenceScore")
+                if (it.confidenceScore == null) writer.nullValue() else writer.value(it.confidenceScore.toDouble())
+                writer.name("userAcceptedSuggestion")
+                if (it.userAcceptedSuggestion == null) writer.nullValue() else writer.value(it.userAcceptedSuggestion)
+                writer.name("kind").value(it.kind)
+                writer.name("transferId")
+                if (it.transferId == null) writer.nullValue() else writer.value(it.transferId)
+                writer.name("isDebit").value(it.isDebit)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 4. Income Sources
+        if (isSelected("income_sources")) {
+            val list = database.incomeSourceDao().getAllIncomeSources().first()
+            counts["income_sources"] = list.size
+            writer.name("income_sources").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("name").value(it.name)
+                writer.name("amount").value(it.amount)
+                writer.name("type").value(it.type)
+                writer.name("accountId").value(it.accountId)
+                writer.name("dayOfMonth").value(it.dayOfMonth.toLong())
+                writer.name("isActive").value(it.isActive)
+                writer.name("nextExpectedDate").value(it.nextExpectedDate)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 5. Saving Goals
+        if (isSelected("saving_goals")) {
+            val list = database.savingGoalDao().getAllSavingGoals().first()
+            counts["saving_goals"] = list.size
+            writer.name("saving_goals").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("name").value(it.name)
+                writer.name("targetAmount").value(it.targetAmount)
+                writer.name("currentAmount").value(it.currentAmount)
+                writer.name("deadline")
+                if (it.deadline == null) writer.nullValue() else writer.value(it.deadline)
+                writer.name("accountId").value(it.accountId)
+                writer.name("icon").value(it.icon)
+                writer.name("color").value(it.color)
+                writer.name("isCompleted").value(it.isCompleted)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 6. Savings Contributions
+        if (isSelected("savings_contributions")) {
+            val list = database.savingsContributionDao().getAllContributions().first()
+            counts["savings_contributions"] = list.size
+            writer.name("savings_contributions").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("savingGoalId").value(it.savingGoalId)
+                writer.name("accountId").value(it.accountId)
+                writer.name("amount").value(it.amount)
+                writer.name("type").value(it.type)
+                writer.name("note")
+                if (it.note == null) writer.nullValue() else writer.value(it.note)
+                writer.name("date").value(it.date)
+                writer.name("linkedTransactionId")
+                if (it.linkedTransactionId == null) writer.nullValue() else writer.value(it.linkedTransactionId)
+                writer.name("createdAt").value(it.createdAt)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 7. Subscriptions
+        if (isSelected("subscriptions")) {
+            val list = database.subscriptionDao().getAllSubscriptions().first()
+            counts["subscriptions"] = list.size
+            writer.name("subscriptions").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("name").value(it.name)
+                writer.name("amount").value(it.amount)
+                writer.name("currency").value(it.currency)
+                writer.name("billingCycle").value(it.billingCycle)
+                writer.name("nextBillingDate").value(it.nextBillingDate)
+                writer.name("accountId").value(it.accountId)
+                writer.name("categoryId").value(it.categoryId)
+                writer.name("icon")
+                if (it.icon == null) writer.nullValue() else writer.value(it.icon)
+                writer.name("isActive").value(it.isActive)
+                writer.name("reminderDaysBefore").value(it.reminderDaysBefore.toLong())
+                writer.name("isAutoShiftableBySalary").value(it.isAutoShiftableBySalary)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 8. Debts
+        if (isSelected("debts")) {
+            val list = database.debtDao().getAllDebts().first()
+            counts["debts"] = list.size
+            writer.name("debts").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("title").value(it.title)
+                writer.name("creditorName").value(it.creditorName)
+                writer.name("totalAmount").value(it.totalAmount)
+                writer.name("remainingAmount").value(it.remainingAmount)
+                writer.name("interestRate")
+                if (it.interestRate == null) writer.nullValue() else writer.value(it.interestRate)
+                writer.name("dueDate")
+                if (it.dueDate == null) writer.nullValue() else writer.value(it.dueDate)
+                writer.name("minimumPayment").value(it.minimumPayment)
+                writer.name("recommendedPayment")
+                if (it.recommendedPayment == null) writer.nullValue() else writer.value(it.recommendedPayment)
+                writer.name("paymentFrequency").value(it.paymentFrequency)
+                writer.name("linkedAccountId")
+                if (it.linkedAccountId == null) writer.nullValue() else writer.value(it.linkedAccountId)
+                writer.name("priority").value(it.priority.toLong())
+                writer.name("notes")
+                if (it.notes == null) writer.nullValue() else writer.value(it.notes)
+                writer.name("color").value(it.color)
+                writer.name("icon").value(it.icon)
+                writer.name("createdAt").value(it.createdAt)
+                writer.name("isClosed").value(it.isClosed)
+                writer.name("debtType").value(it.debtType)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 9. Debt Payments
+        if (isSelected("debt_payments")) {
+            val list = database.debtPaymentDao().getAllPayments().first()
+            counts["debt_payments"] = list.size
+            writer.name("debt_payments").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("debtId").value(it.debtId)
+                writer.name("accountId").value(it.accountId)
+                writer.name("amount").value(it.amount)
+                writer.name("paymentDate").value(it.paymentDate)
+                writer.name("paymentType").value(it.paymentType)
+                writer.name("note")
+                if (it.note == null) writer.nullValue() else writer.value(it.note)
+                writer.name("linkedTransactionId")
+                if (it.linkedTransactionId == null) writer.nullValue() else writer.value(it.linkedTransactionId)
+                writer.name("createdAt").value(it.createdAt)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 10. Transfers
+        if (isSelected("transfers")) {
+            val list = database.transferDao().getAllTransfers().first()
+            counts["transfers"] = list.size
+            writer.name("transfers").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("fromAccountId").value(it.fromAccountId)
+                writer.name("toAccountId").value(it.toAccountId)
+                writer.name("amount").value(it.amount)
+                writer.name("feeAmount")
+                if (it.feeAmount == null) writer.nullValue() else writer.value(it.feeAmount)
+                writer.name("note")
+                if (it.note == null) writer.nullValue() else writer.value(it.note)
+                writer.name("date").value(it.date)
+                writer.name("referenceId").value(it.referenceId)
+                writer.name("createdAt").value(it.createdAt)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 11. Budget Goals
+        if (isSelected("budget_goals")) {
+            val list = database.budgetGoalDao().getAllBudgetGoals().first()
+            counts["budget_goals"] = list.size
+            writer.name("budget_goals").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("title").value(it.title)
+                writer.name("linkedCategoryId")
+                if (it.linkedCategoryId == null) writer.nullValue() else writer.value(it.linkedCategoryId)
+                writer.name("budgetType").value(it.budgetType)
+                writer.name("amountLimit").value(it.amountLimit)
+                writer.name("spentAmount").value(it.spentAmount)
+                writer.name("startDate").value(it.startDate)
+                writer.name("endDate").value(it.endDate)
+                writer.name("alertThresholdPercent").value(it.alertThresholdPercent.toLong())
+                writer.name("isActive").value(it.isActive)
+                writer.name("color").value(it.color)
+                writer.name("icon").value(it.icon)
+                writer.name("createdAt").value(it.createdAt)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 12. Financial Plans
+        if (isSelected("financial_plans")) {
+            val list = database.financialPlanDao().getAllPlans().first()
+            counts["financial_plans"] = list.size
+            writer.name("financial_plans").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("title").value(it.title)
+                writer.name("type").value(it.type)
+                writer.name("targetAmount").value(it.targetAmount)
+                writer.name("currentAmount").value(it.currentAmount)
+                writer.name("linkedAccountIds").value(it.linkedAccountIds)
+                writer.name("linkedCategoryIds").value(it.linkedCategoryIds)
+                writer.name("startDate").value(it.startDate)
+                writer.name("endDate")
+                if (it.endDate == null) writer.nullValue() else writer.value(it.endDate)
+                writer.name("status").value(it.status)
+                writer.name("notes")
+                if (it.notes == null) writer.nullValue() else writer.value(it.notes)
+                writer.name("color").value(it.color)
+                writer.name("icon").value(it.icon)
+                writer.name("createdAt").value(it.createdAt)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 13. Transaction Templates
+        if (isSelected("transaction_templates")) {
+            val list = database.transactionTemplateDao().getAllTemplates().first()
+            counts["transaction_templates"] = list.size
+            writer.name("transaction_templates").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("name").value(it.name)
+                writer.name("amount").value(it.amount)
+                writer.name("transactionType").value(it.transactionType)
+                writer.name("accountId").value(it.accountId)
+                writer.name("targetAccountId")
+                if (it.targetAccountId == null) writer.nullValue() else writer.value(it.targetAccountId)
+                writer.name("categoryId")
+                if (it.categoryId == null) writer.nullValue() else writer.value(it.categoryId)
+                writer.name("subcategoryId")
+                if (it.subcategoryId == null) writer.nullValue() else writer.value(it.subcategoryId)
+                writer.name("notes")
+                if (it.notes == null) writer.nullValue() else writer.value(it.notes)
+                writer.name("iconEmoji")
+                if (it.iconEmoji == null) writer.nullValue() else writer.value(it.iconEmoji)
+                writer.name("colorHex")
+                if (it.colorHex == null) writer.nullValue() else writer.value(it.colorHex)
+                writer.name("isPinned").value(it.isPinned)
+                writer.name("usageCount").value(it.usageCount.toLong())
+                writer.name("lastUsedAt")
+                if (it.lastUsedAt == null) writer.nullValue() else writer.value(it.lastUsedAt)
+                writer.name("createdAt").value(it.createdAt)
+                writer.name("updatedAt").value(it.updatedAt)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 14. Notifications
+        if (isSelected("notifications")) {
+            val list = database.notificationDao().getAllNotifications().first()
+            counts["notifications"] = list.size
+            writer.name("notifications").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("title").value(it.title)
+                writer.name("message").value(it.message)
+                writer.name("type").value(it.type)
+                writer.name("isRead").value(it.isRead)
+                writer.name("timestamp").value(it.timestamp)
+                writer.name("deepLinkRoute")
+                if (it.deepLinkRoute == null) writer.nullValue() else writer.value(it.deepLinkRoute)
+                writer.name("relatedEntityId")
+                if (it.relatedEntityId == null) writer.nullValue() else writer.value(it.relatedEntityId)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 15. Category Rules
+        if (isSelected("category_rules")) {
+            val list = database.categoryRuleDao().getAllRules().first()
+            counts["category_rules"] = list.size
+            writer.name("category_rules").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("keyword").value(it.keyword)
+                writer.name("categoryId").value(it.categoryId)
+                writer.name("priority").value(it.priority.toLong())
+                writer.name("source").value(it.source)
+                writer.name("isActive").value(it.isActive)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 16. User Category Mappings
+        if (isSelected("user_category_mappings")) {
+            val list = database.userCategoryMappingDao().getAllMappings().first()
+            counts["user_category_mappings"] = list.size
+            writer.name("user_category_mappings").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("normalizedText").value(it.normalizedText)
+                writer.name("categoryId").value(it.categoryId)
+                writer.name("usageCount").value(it.usageCount.toLong())
+                writer.name("lastUsedAt").value(it.lastUsedAt)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 17. AI Chat Messages
+        if (isSelected("ai_chat_messages")) {
+            val list = database.aiChatDao().getAllMessagesOnce()
+            counts["ai_chat_messages"] = list.size
+            writer.name("ai_chat_messages").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("sender").value(it.sender)
+                writer.name("message").value(it.message)
+                writer.name("timestamp").value(it.timestamp)
+                writer.name("sessionTitle").value(it.sessionTitle)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 18. Postal Profiles
+        if (isSelected("postal_profiles")) {
+            val list = database.postalProfileDao().getAllProfiles().first()
+            counts["postal_profiles"] = list.size
+            writer.name("postal_profiles").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("profileName").value(it.profileName)
+                writer.name("firstName").value(it.firstName)
+                writer.name("lastName").value(it.lastName)
+                writer.name("fullName").value(it.fullName)
+                writer.name("accountNumber").value(it.accountNumber)
+                writer.name("accountKey").value(it.accountKey)
+                writer.name("phone")
+                if (it.phone == null) writer.nullValue() else writer.value(it.phone)
+                writer.name("address")
+                if (it.address == null) writer.nullValue() else writer.value(it.address)
+                writer.name("city")
+                if (it.city == null) writer.nullValue() else writer.value(it.city)
+                writer.name("defaultRole").value(it.defaultRole)
+                writer.name("isFavorite").value(it.isFavorite)
+                writer.name("createdAt").value(it.createdAt)
+                writer.name("updatedAt").value(it.updatedAt)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 19. Salary Delays
+        if (isSelected("salary_delays")) {
+            val list = database.salaryDelayDao().getAllSalaryDelaysOnce()
+            counts["salary_delays"] = list.size
+            writer.name("salary_delays").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("salaryId").value(it.salaryId)
+                writer.name("delayDays").value(it.delayDays.toLong())
+                writer.name("originalDate").value(it.originalDate)
+                writer.name("newDate").value(it.newDate)
+                writer.name("severityScore").value(it.severityScore.toLong())
+                writer.name("status").value(it.status)
+                writer.name("createdAt").value(it.createdAt)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 20. Salary Distributions
+        if (isSelected("salary_distributions")) {
+            val list = database.salaryDistributionDao().getAllDistributionsOnce()
+            counts["salary_distributions"] = list.size
+            writer.name("salary_distributions").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("salaryId").value(it.salaryId)
+                writer.name("isEnabled").value(it.isEnabled)
+                writer.name("needsPercentage").value(it.needsPercentage.toLong())
+                writer.name("wantsPercentage").value(it.wantsPercentage.toLong())
+                writer.name("savingsPercentage").value(it.savingsPercentage.toLong())
+                writer.name("createdAt").value(it.createdAt)
+                writer.name("updatedAt").value(it.updatedAt)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 21. Salary Envelopes
+        if (isSelected("salary_envelopes")) {
+            val list = database.salaryDistributionDao().getAllEnvelopesOnce()
+            counts["salary_envelopes"] = list.size
+            writer.name("salary_envelopes").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("distributionId").value(it.distributionId)
+                writer.name("type").value(it.type)
+                writer.name("label").value(it.label)
+                writer.name("percentage").value(it.percentage.toLong())
+                writer.name("allocatedAmount").value(it.allocatedAmount)
+                writer.name("spentAmount").value(it.spentAmount)
+                writer.name("linkedCategoryIds").value(it.linkedCategoryIds)
+                writer.name("linkedAccountId")
+                if (it.linkedAccountId == null) writer.nullValue() else writer.value(it.linkedAccountId)
+                writer.name("color").value(it.color)
+                writer.name("icon").value(it.icon)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        writer.endObject() // }
+        writer.close()
+        counts
+    }
+
+    override suspend fun restoreBackupV2(inputStream: InputStream, selectedTables: List<String>?) = database.withTransaction {
+        val reader = JsonReader(BufferedReader(InputStreamReader(inputStream, "UTF-8")))
+
+        fun isSelected(table: String) = selectedTables == null || selectedTables.contains(table)
+
+        // Clear only selected tables to be restored
+        if (isSelected("transactions")) database.openHelper.writableDatabase.execSQL("DELETE FROM transactions")
+        if (isSelected("accounts")) database.openHelper.writableDatabase.execSQL("DELETE FROM accounts")
+        if (isSelected("categories")) database.openHelper.writableDatabase.execSQL("DELETE FROM categories WHERE isSystem = 0")
+        if (isSelected("income_sources")) database.openHelper.writableDatabase.execSQL("DELETE FROM income_sources")
+        if (isSelected("saving_goals")) database.openHelper.writableDatabase.execSQL("DELETE FROM saving_goals")
+        if (isSelected("savings_contributions")) database.openHelper.writableDatabase.execSQL("DELETE FROM savings_contributions")
+        if (isSelected("subscriptions")) database.openHelper.writableDatabase.execSQL("DELETE FROM subscriptions")
+        if (isSelected("debts")) database.openHelper.writableDatabase.execSQL("DELETE FROM debts")
+        if (isSelected("debt_payments")) database.openHelper.writableDatabase.execSQL("DELETE FROM debt_payments")
+        if (isSelected("transfers")) database.openHelper.writableDatabase.execSQL("DELETE FROM transfers")
+        if (isSelected("budget_goals")) database.openHelper.writableDatabase.execSQL("DELETE FROM budget_goals")
+        if (isSelected("financial_plans")) database.openHelper.writableDatabase.execSQL("DELETE FROM financial_plans")
+        if (isSelected("transaction_templates")) database.openHelper.writableDatabase.execSQL("DELETE FROM transaction_templates")
+        if (isSelected("notifications")) database.openHelper.writableDatabase.execSQL("DELETE FROM notifications")
+        if (isSelected("category_rules")) database.openHelper.writableDatabase.execSQL("DELETE FROM category_rules")
+        if (isSelected("user_category_mappings")) database.openHelper.writableDatabase.execSQL("DELETE FROM user_category_mappings")
+        if (isSelected("ai_chat_messages")) database.openHelper.writableDatabase.execSQL("DELETE FROM ai_chat_messages")
+        if (isSelected("postal_profiles")) database.openHelper.writableDatabase.execSQL("DELETE FROM postal_profiles")
+        if (isSelected("salary_delays")) database.openHelper.writableDatabase.execSQL("DELETE FROM salary_delays")
+        if (isSelected("salary_distributions")) database.openHelper.writableDatabase.execSQL("DELETE FROM salary_distributions")
+        if (isSelected("salary_envelopes")) database.openHelper.writableDatabase.execSQL("DELETE FROM salary_envelopes")
+        if (isSelected("transactions")) database.openHelper.writableDatabase.execSQL("DELETE FROM daily_financial_aggregates")
+
+        reader.beginObject() // {
+        while (reader.hasNext()) {
+            val key = reader.nextName()
+            if (!isSelected(key)) {
+                reader.skipValue()
+                continue
+            }
+            reader.beginArray()
+            while (reader.hasNext()) {
+                reader.beginObject()
+                val fields = mutableMapOf<String, Any?>()
+                while (reader.hasNext()) {
+                    val fieldName = reader.nextName()
+                    if (reader.peek() == android.util.JsonToken.NULL) {
+                        reader.nextNull()
+                        fields[fieldName] = null
+                    } else {
+                        when (reader.peek()) {
+                            android.util.JsonToken.BOOLEAN -> fields[fieldName] = reader.nextBoolean()
+                            android.util.JsonToken.NUMBER -> {
+                                val valueStr = reader.nextString()
+                                fields[fieldName] = valueStr.toDoubleOrNull() ?: valueStr.toLongOrNull() ?: valueStr
+                            }
+                            else -> fields[fieldName] = reader.nextString()
+                        }
+                    }
+                }
+                reader.endObject()
+
+                // Map & insert row
+                insertRow(key, fields)
+            }
+            reader.endArray()
+        }
+        reader.endObject()
+        reader.close()
+
+        if (isSelected("transactions")) {
+            regenerateDailyFinancialAggregates()
+        }
+    }
+
+    private suspend fun insertRow(table: String, f: Map<String, Any?>) {
+        // Cast helper
+        fun longVal(k: String) = (f[k] as? Number)?.toLong() ?: 0L
+        fun longValOrNull(k: String) = (f[k] as? Number)?.toLong()
+        fun doubleVal(k: String) = (f[k] as? Number)?.toDouble() ?: 0.0
+        fun doubleValOrNull(k: String) = (f[k] as? Number)?.toDouble()
+        fun floatValOrNull(k: String) = (f[k] as? Number)?.toFloat()
+        fun stringVal(k: String) = f[k]?.toString() ?: ""
+        fun stringValOrNull(k: String) = f[k]?.toString()
+        fun boolVal(k: String) = f[k] as? Boolean ?: false
+        fun boolValOrNull(k: String) = f[k] as? Boolean
+        fun intVal(k: String) = (f[k] as? Number)?.toInt() ?: 0
+
+        when (table) {
+            "accounts" -> database.accountDao().insertAccount(
+                AccountEntity(
+                    id = longVal("id"),
+                    name = stringVal("name"),
+                    type = stringVal("type"),
+                    balance = doubleVal("balance"),
+                    currency = stringVal("currency").ifEmpty { "DZD" },
+                    color = stringVal("color"),
+                    icon = stringVal("icon"),
+                    isDefault = boolVal("isDefault"),
+                    isArchived = boolVal("isArchived"),
+                    createdAt = longVal("createdAt"),
+                    sortOrder = intVal("sortOrder")
+                )
+            )
+            "categories" -> database.categoryDao().insertCategory(
+                CategoryEntity(
+                    id = longVal("id"),
+                    name = stringVal("name"),
+                    type = stringVal("type"),
+                    icon = stringVal("icon"),
+                    color = stringVal("color"),
+                    budgetLimit = doubleValOrNull("budgetLimit"),
+                    isSystem = boolVal("isSystem"),
+                    parentId = longValOrNull("parentId"),
+                    sortOrder = intVal("sortOrder")
+                )
+            )
+            "transactions" -> database.transactionDao().insertTransaction(
+                TransactionEntity(
+                    id = longVal("id"),
+                    amount = doubleVal("amount"),
+                    type = stringVal("type"),
+                    categoryId = longValOrNull("categoryId"),
+                    accountId = longVal("accountId"),
+                    toAccountId = longValOrNull("toAccountId"),
+                    note = stringValOrNull("note"),
+                    date = longVal("date"),
+                    isRecurring = boolVal("isRecurring"),
+                    recurringPeriod = stringValOrNull("recurringPeriod"),
+                    attachmentPath = stringValOrNull("attachmentPath"),
+                    tags = stringValOrNull("tags"),
+                    suggestedCategoryId = longValOrNull("suggestedCategoryId"),
+                    suggestionSource = stringValOrNull("suggestionSource"),
+                    confidenceScore = floatValOrNull("confidenceScore"),
+                    userAcceptedSuggestion = boolValOrNull("userAcceptedSuggestion"),
+                    kind = stringVal("kind").ifEmpty { "INCOME" },
+                    transferId = stringValOrNull("transferId"),
+                    isDebit = boolVal("isDebit")
+                )
+            )
+            "income_sources" -> database.incomeSourceDao().insertIncomeSource(
+                IncomeSourceEntity(
+                    id = longVal("id"),
+                    name = stringVal("name"),
+                    amount = doubleVal("amount"),
+                    type = stringVal("type"),
+                    accountId = longVal("accountId"),
+                    dayOfMonth = intVal("dayOfMonth"),
+                    isActive = boolVal("isActive"),
+                    nextExpectedDate = longVal("nextExpectedDate")
+                )
+            )
+            "saving_goals" -> database.savingGoalDao().insertSavingGoal(
+                SavingGoalEntity(
+                    id = longVal("id"),
+                    name = stringVal("name"),
+                    targetAmount = doubleVal("targetAmount"),
+                    currentAmount = doubleVal("currentAmount"),
+                    deadline = longValOrNull("deadline"),
+                    accountId = longVal("accountId"),
+                    icon = stringVal("icon"),
+                    color = stringVal("color"),
+                    isCompleted = boolVal("isCompleted")
+                )
+            )
+            "savings_contributions" -> database.savingsContributionDao().insertContribution(
+                SavingsContributionEntity(
+                    id = longVal("id"),
+                    savingGoalId = longVal("savingGoalId"),
+                    accountId = longVal("accountId"),
+                    amount = doubleVal("amount"),
+                    type = stringVal("type"),
+                    note = stringValOrNull("note"),
+                    date = longVal("date"),
+                    linkedTransactionId = longValOrNull("linkedTransactionId"),
+                    createdAt = longVal("createdAt")
+                )
+            )
+            "subscriptions" -> database.subscriptionDao().insertSubscription(
+                SubscriptionEntity(
+                    id = longVal("id"),
+                    name = stringVal("name"),
+                    amount = doubleVal("amount"),
+                    currency = stringVal("currency").ifEmpty { "DZD" },
+                    billingCycle = stringVal("billingCycle"),
+                    nextBillingDate = longVal("nextBillingDate"),
+                    accountId = longVal("accountId"),
+                    categoryId = longVal("categoryId"),
+                    icon = stringValOrNull("icon"),
+                    isActive = boolVal("isActive"),
+                    reminderDaysBefore = intVal("reminderDaysBefore"),
+                    isAutoShiftableBySalary = boolVal("isAutoShiftableBySalary")
+                )
+            )
+            "debts" -> database.debtDao().insertDebt(
+                DebtEntity(
+                    id = longVal("id"),
+                    title = stringVal("title"),
+                    creditorName = stringVal("creditorName"),
+                    totalAmount = doubleVal("totalAmount"),
+                    remainingAmount = doubleVal("remainingAmount"),
+                    interestRate = doubleValOrNull("interestRate"),
+                    dueDate = longValOrNull("dueDate"),
+                    minimumPayment = doubleVal("minimumPayment"),
+                    recommendedPayment = doubleValOrNull("recommendedPayment"),
+                    paymentFrequency = stringVal("paymentFrequency"),
+                    linkedAccountId = longValOrNull("linkedAccountId"),
+                    priority = intVal("priority"),
+                    notes = stringValOrNull("notes"),
+                    color = stringVal("color"),
+                    icon = stringVal("icon"),
+                    createdAt = longVal("createdAt"),
+                    isClosed = boolVal("isClosed"),
+                    debtType = stringVal("debtType").ifEmpty { "INSTALLMENT" }
+                )
+            )
+            "debt_payments" -> database.debtPaymentDao().insertPayment(
+                DebtPaymentEntity(
+                    id = longVal("id"),
+                    debtId = longVal("debtId"),
+                    accountId = longVal("accountId"),
+                    amount = doubleVal("amount"),
+                    paymentDate = longVal("paymentDate"),
+                    paymentType = stringVal("paymentType"),
+                    note = stringValOrNull("note"),
+                    linkedTransactionId = longValOrNull("linkedTransactionId"),
+                    createdAt = longVal("createdAt")
+                )
+            )
+            "transfers" -> database.transferDao().insertTransfer(
+                TransferEntity(
+                    id = longVal("id"),
+                    fromAccountId = longVal("fromAccountId"),
+                    toAccountId = longVal("toAccountId"),
+                    amount = doubleVal("amount"),
+                    feeAmount = doubleValOrNull("feeAmount"),
+                    note = stringValOrNull("note"),
+                    date = longVal("date"),
+                    referenceId = stringVal("referenceId"),
+                    createdAt = longVal("createdAt")
+                )
+            )
+            "budget_goals" -> database.budgetGoalDao().insertBudgetGoal(
+                BudgetGoalEntity(
+                    id = longVal("id"),
+                    title = stringVal("title"),
+                    linkedCategoryId = longValOrNull("linkedCategoryId"),
+                    budgetType = stringVal("budgetType"),
+                    amountLimit = doubleVal("amountLimit"),
+                    spentAmount = doubleVal("spentAmount"),
+                    startDate = longVal("startDate"),
+                    endDate = longVal("endDate"),
+                    alertThresholdPercent = intVal("alertThresholdPercent"),
+                    isActive = boolVal("isActive"),
+                    color = stringVal("color"),
+                    icon = stringVal("icon"),
+                    createdAt = longVal("createdAt")
+                )
+            )
+            "financial_plans" -> database.financialPlanDao().insertPlan(
+                FinancialPlanEntity(
+                    id = longVal("id"),
+                    title = stringVal("title"),
+                    type = stringVal("type"),
+                    targetAmount = doubleVal("targetAmount"),
+                    currentAmount = doubleVal("currentAmount"),
+                    linkedAccountIds = stringVal("linkedAccountIds"),
+                    linkedCategoryIds = stringVal("linkedCategoryIds"),
+                    startDate = longVal("startDate"),
+                    endDate = longValOrNull("endDate"),
+                    status = stringVal("status").ifEmpty { "ACTIVE" },
+                    notes = stringValOrNull("notes"),
+                    color = stringVal("color").ifEmpty { "#6C63FF" },
+                    icon = stringVal("icon").ifEmpty { "flag" },
+                    createdAt = longVal("createdAt")
+                )
+            )
+            "transaction_templates" -> database.transactionTemplateDao().insertTemplate(
+                TransactionTemplateEntity(
+                    id = longVal("id"),
+                    name = stringVal("name"),
+                    amount = doubleVal("amount"),
+                    transactionType = stringVal("transactionType"),
+                    accountId = longVal("accountId"),
+                    targetAccountId = longValOrNull("targetAccountId"),
+                    categoryId = longValOrNull("categoryId"),
+                    subcategoryId = longValOrNull("subcategoryId"),
+                    notes = stringValOrNull("notes"),
+                    iconEmoji = stringValOrNull("iconEmoji"),
+                    colorHex = stringValOrNull("colorHex"),
+                    isPinned = boolVal("isPinned"),
+                    usageCount = intVal("usageCount"),
+                    lastUsedAt = longValOrNull("lastUsedAt"),
+                    createdAt = longVal("createdAt"),
+                    updatedAt = longVal("updatedAt")
+                )
+            )
+            "notifications" -> database.notificationDao().insertNotification(
+                NotificationEntity(
+                    id = longVal("id"),
+                    title = stringVal("title"),
+                    message = stringVal("message"),
+                    type = stringVal("type"),
+                    isRead = boolVal("isRead"),
+                    timestamp = longVal("timestamp"),
+                    deepLinkRoute = stringValOrNull("deepLinkRoute"),
+                    relatedEntityId = longValOrNull("relatedEntityId")
+                )
+            )
+            "category_rules" -> database.categoryRuleDao().insertRule(
+                CategoryRuleEntity(
+                    id = longVal("id"),
+                    keyword = stringVal("keyword"),
+                    categoryId = longVal("categoryId"),
+                    priority = intVal("priority"),
+                    source = stringVal("source").ifEmpty { "SYSTEM" },
+                    isActive = boolVal("isActive")
+                )
+            )
+            "user_category_mappings" -> database.userCategoryMappingDao().insertMapping(
+                UserCategoryMappingEntity(
+                    id = longVal("id"),
+                    normalizedText = stringVal("normalizedText"),
+                    categoryId = longVal("categoryId"),
+                    usageCount = intVal("usageCount"),
+                    lastUsedAt = longVal("lastUsedAt")
+                )
+            )
+            "ai_chat_messages" -> database.aiChatDao().insertMessage(
+                AiChatMessageEntity(
+                    id = longVal("id"),
+                    sender = stringVal("sender"),
+                    message = stringVal("message"),
+                    timestamp = longVal("timestamp"),
+                    sessionTitle = stringVal("sessionTitle")
+                )
+            )
+            "postal_profiles" -> database.postalProfileDao().insertProfile(
+                PostalProfileEntity(
+                    id = longVal("id"),
+                    profileName = stringVal("profileName"),
+                    firstName = stringVal("firstName"),
+                    lastName = stringVal("lastName"),
+                    fullName = stringVal("fullName"),
+                    accountNumber = stringVal("accountNumber"),
+                    accountKey = stringVal("accountKey"),
+                    phone = stringValOrNull("phone"),
+                    address = stringValOrNull("address"),
+                    city = stringValOrNull("city"),
+                    defaultRole = stringVal("defaultRole"),
+                    isFavorite = boolVal("isFavorite"),
+                    createdAt = longVal("createdAt"),
+                    updatedAt = longVal("updatedAt")
+                )
+            )
+            "salary_delays" -> database.salaryDelayDao().insertSalaryDelay(
+                SalaryDelayEntity(
+                    id = longVal("id"),
+                    salaryId = longVal("salaryId"),
+                    delayDays = intVal("delayDays"),
+                    originalDate = longVal("originalDate"),
+                    newDate = longVal("newDate"),
+                    severityScore = intVal("severityScore"),
+                    status = stringVal("status").ifEmpty { "CONFIRMED" },
+                    createdAt = longVal("createdAt")
+                )
+            )
+            "salary_distributions" -> database.salaryDistributionDao().insertDistribution(
+                SalaryDistributionEntity(
+                    id = longVal("id"),
+                    salaryId = longVal("salaryId"),
+                    isEnabled = boolVal("isEnabled"),
+                    needsPercentage = intVal("needsPercentage"),
+                    wantsPercentage = intVal("wantsPercentage"),
+                    savingsPercentage = intVal("savingsPercentage"),
+                    createdAt = longVal("createdAt"),
+                    updatedAt = longVal("updatedAt")
+                )
+            )
+            "salary_envelopes" -> database.salaryDistributionDao().insertEnvelope(
+                SalaryEnvelopeEntity(
+                    id = longVal("id"),
+                    distributionId = longVal("distributionId"),
+                    type = stringVal("type"),
+                    label = stringVal("label"),
+                    percentage = intVal("percentage"),
+                    allocatedAmount = doubleVal("allocatedAmount"),
+                    spentAmount = doubleVal("spentAmount"),
+                    linkedCategoryIds = stringVal("linkedCategoryIds"),
+                    linkedAccountId = longValOrNull("linkedAccountId"),
+                    color = stringVal("color"),
+                    icon = stringVal("icon")
                 )
             )
         }

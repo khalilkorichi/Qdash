@@ -27,7 +27,7 @@ class RecordDebtPaymentUseCase(
             Transaction(
                 amount = amount,
                 type = TransactionType.EXPENSE,
-                categoryId = 3L, // maps to "منزلي" / domestic or bills
+                categoryId = DebtConstants.DEBT_EXPENSE_CATEGORY_ID, // maps to "منزلي" / domestic or bills
                 accountId = accountId,
                 note = note ?: "تسديد دين: ${debt.title}",
                 date = paymentDate
@@ -72,29 +72,30 @@ class GetDebtPlanUseCase {
 class CompareDebtStrategiesUseCase {
     operator fun invoke(debts: List<Debt>): List<DebtStrategyResult> {
         val activeDebts = debts.filter { !it.isClosed }
-        if (activeDebts.isEmpty()) return emptyList()
+        val installments = activeDebts.filter { it.debtType == DebtType.INSTALLMENT }
+        if (installments.isEmpty()) return emptyList()
         
-        val totalDebt = activeDebts.sumOf { it.remainingAmount }
+        val totalDebt = installments.sumOf { it.remainingAmount }
         if (totalDebt <= 0.0) return emptyList()
 
         // 1. Snowball strategy
-        val snowballMonths = activeDebts.sumOf { it.remainingAmount } / maxOf(4000.0, activeDebts.sumOf { it.minimumPayment })
+        val snowballMonths = totalDebt / maxOf(DebtConstants.DEFAULT_SNOWBALL_DIVISOR, installments.sumOf { it.minimumPayment })
         val snowballResult = DebtStrategyResult(
             strategyName = "كرة الثلج (الأصغر ديناً أولاً)",
             durationInMonths = snowballMonths,
             estimatedDebtFreeDate = System.currentTimeMillis() + (snowballMonths * 30.0 * 24.0 * 60.0 * 60.0 * 1000.0).toLong(),
-            monthlyPaymentNeeded = activeDebts.sumOf { it.minimumPayment },
-            paymentScheduleSummary = "سداد أصغر الديون أولاً يمنحك دافعاً نفسياً وسيطرة أسرع عبر غلق ملفات الديون تدريجياً."
+            monthlyPaymentNeeded = installments.sumOf { it.minimumPayment },
+            paymentScheduleSummary = "سداد أصغر الديون أولاً يمنحك دافعاً نفسياً وسيطرة أسرع عبر غلق ملفات الديون تدريجياً. (الحسابات لا تشمل الديون العادية)"
         )
 
         // 2. Avalanche strategy
-        val avalancheMonths = activeDebts.sumOf { it.remainingAmount } / maxOf(4500.0, activeDebts.sumOf { it.minimumPayment })
+        val avalancheMonths = totalDebt / maxOf(DebtConstants.DEFAULT_AVALANCHE_DIVISOR, installments.sumOf { it.minimumPayment })
         val avalancheResult = DebtStrategyResult(
             strategyName = "سيل العرم / الانهيار الجبلي (الأعلى تكلفة أولاً)",
             durationInMonths = avalancheMonths,
             estimatedDebtFreeDate = System.currentTimeMillis() + (avalancheMonths * 30.0 * 24.0 * 60.0 * 60.0 * 1000.0).toLong(),
-            monthlyPaymentNeeded = activeDebts.sumOf { it.minimumPayment },
-            paymentScheduleSummary = "التركيز على القروض الأعلى في نسبة الفوائد أو التكاليف أولاً يقلل إجمالي ما تدفعه مستقبلاً."
+            monthlyPaymentNeeded = installments.sumOf { it.minimumPayment },
+            paymentScheduleSummary = "التركيز على القروض الأعلى في نسبة الفوائد أو التكاليف أولاً يقلل إجمالي ما تدفعه مستقبلاً. (الحسابات لا تشمل الديون العادية)"
         )
 
         return listOf(snowballResult, avalancheResult)
@@ -111,9 +112,14 @@ class GetDebtInsightsUseCase(
         if (debts.isEmpty()) {
             list.add("الحمد لله، لا توجد ديون معلقة أو التزامات متأخرة حالياً.")
         } else {
+            val regulars = debts.filter { it.debtType == DebtType.REGULAR }
             val totalRemaining = debts.sumOf { it.remainingAmount }
             list.add("إجمالي المبالغ المطلوبة للسداد: ${String.format(Locale.getDefault(), "%,.1f", totalRemaining)} د.ج.")
             
+            if (regulars.isNotEmpty()) {
+                list.add("لديك ${regulars.size} التزام(ات) دين عادي مستحقة السداد.")
+            }
+
             val highPriority = debts.minByOrNull { it.priority }
             if (highPriority != null) {
                 list.add("نوصي بوضع الأولوية لتسوية '${highPriority.title}' للدائن '${highPriority.creditorName}'.")

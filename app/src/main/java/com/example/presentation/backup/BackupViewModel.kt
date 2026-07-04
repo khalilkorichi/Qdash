@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.backup.BackupManager
 import com.example.core.utils.ExportUtility
+import com.example.domain.model.RestorePreview
 import com.example.domain.repository.AccountRepository
 import com.example.domain.repository.CategoryRepository
 import com.example.domain.repository.TransactionRepository
@@ -17,7 +18,11 @@ import kotlinx.coroutines.launch
 data class BackupUiState(
     val isLoading: Boolean = false,
     val successMessage: String? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val restorePreview: RestorePreview? = null,
+    val showPasswordPrompt: Boolean = false,
+    val passwordError: String? = null,
+    val pendingRestoreUri: Uri? = null
 )
 
 class BackupViewModel(
@@ -30,13 +35,13 @@ class BackupViewModel(
     private val _uiState = MutableStateFlow(BackupUiState())
     val uiState = _uiState.asStateFlow()
 
-    // Export safe full system ZIP backup
-    fun exportBackup(uri: Uri) {
+    // Export safe full JSON-based GZIP ZIP backup
+    fun exportBackupV2(uri: Uri, password: CharArray?, includeAttachments: Boolean) {
         viewModelScope.launch {
             _uiState.value = BackupUiState(isLoading = true)
-            backupManager.exportBackup(uri)
+            backupManager.exportBackupV2(uri, password, includeAttachments)
                 .onSuccess {
-                    _uiState.value = BackupUiState(successMessage = "تم تصدير النسخة الاحتياطية بنجاح!")
+                    _uiState.value = BackupUiState(successMessage = "تم تصدير النسخة الاحتياطية الموحدة بنجاح!")
                 }
                 .onFailure { error ->
                     _uiState.value = BackupUiState(errorMessage = "فشل التصدير: ${error.localizedMessage}")
@@ -44,18 +49,74 @@ class BackupViewModel(
         }
     }
 
-    // Import and restore safe system ZIP backup
-    fun importBackup(uri: Uri) {
+    // Phase 1: Load Backup file, check manifest and decryption
+    fun prepareRestore(uri: Uri, password: CharArray? = null) {
         viewModelScope.launch {
-            _uiState.value = BackupUiState(isLoading = true)
-            backupManager.importBackup(uri)
-                .onSuccess {
-                    _uiState.value = BackupUiState(successMessage = "تمت استعادة البيانات بنجاح! سيتم تحديث قاعدة البيانات الحالية.")
+            _uiState.value = _uiState.value.copy(isLoading = true, passwordError = null, pendingRestoreUri = uri)
+            backupManager.getRestorePreview(uri, password)
+                .onSuccess { preview ->
+                    if (preview.manifest.isEncrypted && (password == null || password.isEmpty())) {
+                        // Needs password input
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            restorePreview = preview,
+                            showPasswordPrompt = true
+                        )
+                    } else {
+                        // Password verified or backup is unencrypted
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            restorePreview = preview,
+                            showPasswordPrompt = false
+                        )
+                    }
                 }
                 .onFailure { error ->
-                    _uiState.value = BackupUiState(errorMessage = "فشل الاستعادة: ${error.localizedMessage}")
+                    if (password != null && password.isNotEmpty()) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            passwordError = error.localizedMessage ?: "كلمة المرور غير صحيحة."
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = "فشل قراءة النسخة الاحتياطية: ${error.localizedMessage}"
+                        )
+                    }
                 }
         }
+    }
+
+    // Phase 2: Execute Restore
+    fun confirmRestore(selectedTables: List<String>?) {
+        val preview = _uiState.value.restorePreview ?: return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            backupManager.performRestoreV2(preview, selectedTables)
+                .onSuccess {
+                    _uiState.value = BackupUiState(
+                        successMessage = "تم استعادة البيانات المحددة بنجاح! سيتم تحديث قاعدة البيانات الحالية."
+                    )
+                }
+                .onFailure { error ->
+                    _uiState.value = BackupUiState(
+                        errorMessage = "فشلت عملية الاستعادة: ${error.localizedMessage}"
+                    )
+                }
+        }
+    }
+
+    fun cancelRestore() {
+        _uiState.value = BackupUiState()
+    }
+
+    // Legacy ZIP backup functions (Redirected to V2 unencrypted)
+    fun exportBackup(uri: Uri) {
+        exportBackupV2(uri, null, true)
+    }
+
+    fun importBackup(uri: Uri) {
+        prepareRestore(uri, null)
     }
 
     // Export Transactions report to Excel-compatible CSV

@@ -12,6 +12,9 @@ interface AiChatDao {
     @Query("SELECT DISTINCT sessionTitle FROM ai_chat_messages ORDER BY timestamp DESC")
     fun getAllSessionTitles(): Flow<List<String>>
 
+    @Query("SELECT * FROM ai_chat_messages ORDER BY timestamp ASC")
+    suspend fun getAllMessagesOnce(): List<AiChatMessageEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(message: AiChatMessageEntity): Long
 

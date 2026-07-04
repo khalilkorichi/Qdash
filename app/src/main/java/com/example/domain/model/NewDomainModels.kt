@@ -24,6 +24,10 @@ data class SavingsInsight(
     val icon: String? = null
 )
 
+enum class DebtType {
+    INSTALLMENT, REGULAR
+}
+
 data class Debt(
     val id: Long = 0,
     val title: String,
@@ -41,7 +45,8 @@ data class Debt(
     val color: String,
     val icon: String,
     val createdAt: Long = System.currentTimeMillis(),
-    val isClosed: Boolean = false
+    val isClosed: Boolean = false,
+    val debtType: DebtType = DebtType.INSTALLMENT
 )
 
 data class DebtPayment(
@@ -163,7 +168,8 @@ fun DebtEntity.toDomain() = Debt(
     color = color,
     icon = icon,
     createdAt = createdAt,
-    isClosed = isClosed
+    isClosed = isClosed,
+    debtType = DebtType.valueOf(debtType)
 )
 
 fun Debt.toEntity() = DebtEntity(
@@ -183,7 +189,8 @@ fun Debt.toEntity() = DebtEntity(
     color = color,
     icon = icon,
     createdAt = createdAt,
-    isClosed = isClosed
+    isClosed = isClosed,
+    debtType = debtType.name
 )
 
 fun DebtPaymentEntity.toDomain() = DebtPayment(

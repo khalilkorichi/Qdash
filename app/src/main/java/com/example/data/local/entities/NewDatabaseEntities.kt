@@ -45,7 +45,8 @@ data class DebtEntity(
     val color: String,
     val icon: String,
     val createdAt: Long = System.currentTimeMillis(),
-    val isClosed: Boolean = false
+    val isClosed: Boolean = false,
+    val debtType: String = "INSTALLMENT"
 )
 
 @Entity(

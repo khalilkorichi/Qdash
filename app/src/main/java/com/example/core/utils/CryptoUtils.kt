@@ -4,7 +4,9 @@ import android.util.Base64
 import java.security.MessageDigest
 import java.security.SecureRandom
 import javax.crypto.Cipher
+import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
 object CryptoUtils {
@@ -68,4 +70,55 @@ object CryptoUtils {
 
         return String(decryptedBytes, Charsets.UTF_8)
     }
+
+    // --- V2 Encryption APIs (PBKDF2 + AES-256-GCM) ---
+
+    private const val PBKDF2_ALGORITHM = "PBKDF2WithHmacSHA256"
+    private const val PBKDF2_ITERATIONS = 10000
+    private const val PBKDF2_KEY_LENGTH_BITS = 256
+    private const val SALT_LENGTH_BYTES = 16
+
+    fun generateSalt(): ByteArray {
+        val salt = ByteArray(SALT_LENGTH_BYTES)
+        SecureRandom().nextBytes(salt)
+        return salt
+    }
+
+    fun deriveKey(password: CharArray, salt: ByteArray): SecretKeySpec {
+        val spec = PBEKeySpec(password, salt, PBKDF2_ITERATIONS, PBKDF2_KEY_LENGTH_BITS)
+        val factory = SecretKeyFactory.getInstance(PBKDF2_ALGORITHM)
+        val keyBytes = factory.generateSecret(spec).encoded
+        return SecretKeySpec(keyBytes, KEY_ALGORITHM)
+    }
+
+    fun encryptBytes(plainBytes: ByteArray, key: SecretKeySpec): EncryptedPayload {
+        val cipher = Cipher.getInstance(ALGORITHM)
+        val iv = ByteArray(IV_LENGTH_BYTES)
+        SecureRandom().nextBytes(iv)
+        val parameterSpec = GCMParameterSpec(TAG_LENGTH_BITS, iv)
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, parameterSpec)
+        val cipherText = cipher.doFinal(plainBytes)
+
+        return EncryptedPayload(
+            iv = Base64.encodeToString(iv, Base64.NO_WRAP),
+            ciphertext = Base64.encodeToString(cipherText, Base64.NO_WRAP)
+        )
+    }
+
+    fun decryptBytes(ciphertextBase64: String, ivBase64: String, key: SecretKeySpec): ByteArray {
+        val iv = Base64.decode(ivBase64, Base64.NO_WRAP)
+        val cipherText = Base64.decode(ciphertextBase64, Base64.NO_WRAP)
+
+        val cipher = Cipher.getInstance(ALGORITHM)
+        val parameterSpec = GCMParameterSpec(TAG_LENGTH_BITS, iv)
+
+        cipher.init(Cipher.DECRYPT_MODE, key, parameterSpec)
+        return cipher.doFinal(cipherText)
+    }
+
+    data class EncryptedPayload(
+        val iv: String,
+        val ciphertext: String
+    )
 }

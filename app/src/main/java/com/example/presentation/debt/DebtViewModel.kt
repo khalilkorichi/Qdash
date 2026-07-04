@@ -93,7 +93,8 @@ class DebtViewModel(
         notes: String?,
         color: String,
         interestRate: Double? = null,
-        dueDate: Long? = null
+        dueDate: Long? = null,
+        debtType: DebtType = DebtType.INSTALLMENT
     ) {
         viewModelScope.launch {
             val debt = Debt(
@@ -101,15 +102,16 @@ class DebtViewModel(
                 creditorName = creditorName,
                 totalAmount = totalAmount,
                 remainingAmount = totalAmount,
-                minimumPayment = minimumPayment,
-                paymentFrequency = paymentFrequency,
+                minimumPayment = if (debtType == DebtType.REGULAR) 0.0 else minimumPayment,
+                paymentFrequency = if (debtType == DebtType.REGULAR) "NONE" else paymentFrequency,
                 linkedAccountId = linkedAccountId,
-                priority = priority,
+                priority = if (debtType == DebtType.REGULAR) 3 else priority,
                 notes = notes,
                 color = color,
                 icon = "credit_card",
-                interestRate = interestRate,
-                dueDate = dueDate
+                interestRate = if (debtType == DebtType.REGULAR) null else interestRate,
+                dueDate = dueDate,
+                debtType = debtType
             )
             addDebtUseCase(debt)
         }

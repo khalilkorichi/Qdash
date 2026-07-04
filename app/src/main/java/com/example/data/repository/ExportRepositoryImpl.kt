@@ -141,7 +141,7 @@ class ExportRepositoryImpl(
                     yPos += 15f
                     canvas.drawLine(50f, yPos, 550f, yPos, linePaint)
                     yPos += 30f
-                    canvas.drawText("• يتبع التطبيق استراتيجية كرة الثلج (Snowball Method) لتسريع سداد الديون الأصغر كخطوة أولى.", 560f, yPos, bodyPaint)
+                    canvas.drawText("• يتبع التطبيق استراتيجية كرة الثلج (Snowball Method) لتسريع سداد الديون (للديون المقسطة).", 560f, yPos, bodyPaint)
                     yPos += 25f
                     canvas.drawText("• تفعيل دفعات شهرية إضافية يعجل بتحقيق الاستقلال المالي الكامل.", 560f, yPos, bodyPaint)
                 }

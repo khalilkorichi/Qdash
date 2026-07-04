@@ -9,6 +9,9 @@ interface SalaryDelayDao {
     @Query("SELECT * FROM salary_delays WHERE salaryId = :salaryId ORDER BY createdAt DESC")
     fun getSalaryDelays(salaryId: Long): Flow<List<SalaryDelayEntity>>
 
+    @Query("SELECT * FROM salary_delays ORDER BY createdAt DESC")
+    suspend fun getAllSalaryDelaysOnce(): List<SalaryDelayEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSalaryDelay(salaryDelay: SalaryDelayEntity): Long
 

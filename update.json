@@ -1,12 +1,12 @@
 {
-  "versionCode": 60,
-  "versionName": "1.0.0.60",
+  "versionCode": 61,
+  "versionName": "1.0.0.61",
   "updateIdentity": 162,
-  "publishedAt": "2026-07-02T23:58:00Z",
+  "publishedAt": "2026-07-04T02:27:00Z",
   "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
-  "apkSize": 24910475,
-  "apkSha256": "773ff2594c5ea00a31b99f0f7279b4bb6f43b8fea2175abb66173343ec745b7f",
-  "releaseNotes": "v1.0.0.60 — تحسين ميزة التوزيع التلقائي للراتب (قاعدة 50/30/20):\n• إضافة واجهة ربط الحسابات الماليّة بالأظرف (Sub-account Dropdown/Selector داخل بطاقة كل ظرف مالي).\n• تنفيذ التوزيع الفيزيائي الفعلي والتحويل التلقائي للأموال بين الحسابات الفرعية عند إدخال راتب جديد.\n• تحديث سياق المساعد الذكي AI Context لتمكينه من تحليل استهلاك الأظرف وتقديم نصائح إعادة التوازن كـ Rebalancing Advisor.",
+  "apkSize": 24976011,
+  "apkSha256": "dd12fb3df2fe6da49181c874ae5339634cbd3bafb74d28935d6c1091b61ecf83",
+  "releaseNotes": "v1.0.0.61 — تحديث أمان وبنية تحتية لنظام النسخ الاحتياطي:\n• توحيد آلية النسخ الاحتياطي بالكامل حول صيغة JSON الموحدة (BackupFormatV2) داخل حزمة ZIP مضغوطة.\n• دعم تشفير ملف النسخة الاحتياطية باستخدام كلمة مرور مخصصة (PBKDF2 + AES-256-GCM).\n• إضافة واجهة معاينة تفصيلية (Restore Preview) تظهر تاريخ النسخة وأعداد السجلات لكل جدول قبل الاستيراد.\n• دعم الاسترداد الانتقائي (Selective Restore) للسماح للمستخدم باختيار الجداول والبيانات المطلوب استعادتها.\n• حماية سلامة قاعدة البيانات عبر التحقق من بصمة التشفير (SHA-256) واستعادة تلقائية لكامل ملفات قاعدة البيانات في حال حدوث أي فشل أثناء الاستيراد.",
   "minSdkVersion": 24,
   "forceUpdate": false,
   "mandatory": false

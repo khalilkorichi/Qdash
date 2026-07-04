@@ -4,6 +4,8 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,6 +35,7 @@ import com.example.domain.model.Account
 import com.example.domain.model.Debt
 import com.example.domain.model.DebtPayment
 import com.example.domain.model.DebtPaymentType
+import com.example.domain.model.DebtType
 import com.example.ui.theme.*
 import com.example.ui.designsystem.components.*
 import com.example.ui.designsystem.tokens.ColorTokens
@@ -71,10 +74,13 @@ fun DebtsScreen(
     var totalAmount by remember { mutableStateOf("") }
     var interestRate by remember { mutableStateOf("") }
     var minimumPayment by remember { mutableStateOf("") }
-    var priority by remember { mutableStateOf("1") }
+    var priority by remember { mutableStateOf("3") }
     var notes by remember { mutableStateOf("") }
     var color by remember { mutableStateOf("#EF4444") }
     var selectedAccountId by remember { mutableStateOf<Long?>(null) }
+    var debtType by remember { mutableStateOf(DebtType.REGULAR) }
+    var dueDate by remember { mutableStateOf<Long?>(null) }
+    var showDueDatePicker by remember { mutableStateOf(false) }
 
     // Payment inputs
     var paymentAmount by remember { mutableStateOf("") }
@@ -137,7 +143,7 @@ fun DebtsScreen(
                     uiState = uiState,
                     viewModel = viewModel,
                     onPayClick = {
-                        paymentAmount = debt.minimumPayment.toInt().toString()
+                        paymentAmount = if (debt.debtType == DebtType.REGULAR) debt.remainingAmount.toInt().toString() else debt.minimumPayment.toInt().toString()
                         paymentNote = ""
                         paymentDate = System.currentTimeMillis()
                         showPaymentDialog = debt
@@ -153,7 +159,7 @@ fun DebtsScreen(
                         viewModel.selectDebt(d.id)
                     },
                     onPayClick = { d ->
-                        paymentAmount = d.minimumPayment.toInt().toString()
+                        paymentAmount = if (d.debtType == DebtType.REGULAR) d.remainingAmount.toInt().toString() else d.minimumPayment.toInt().toString()
                         paymentNote = ""
                         paymentDate = System.currentTimeMillis()
                         showPaymentDialog = d
@@ -166,6 +172,8 @@ fun DebtsScreen(
                         minimumPayment = ""
                         priority = "3"
                         notes = ""
+                        debtType = DebtType.REGULAR
+                        dueDate = null
                         showAddDebtDialog = true
                     }
                 )
@@ -179,7 +187,33 @@ fun DebtsScreen(
                     onDismissRequest = { showAddDebtDialog = false },
                     title = { Text("تسجيل التزام مالي / دين جديد", fontWeight = FontWeight.Bold) },
                     text = {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())
+                        ) {
+                            // Debt Type Selector
+                            Text("نوع الالتزام:", style = MaterialTheme.typography.labelSmall)
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf(DebtType.REGULAR to "دين عادي", DebtType.INSTALLMENT to "دين مقسط").forEach { (type, label) ->
+                                    val isSelected = debtType == type
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(if (isSelected) ExpenseRed.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
+                                            .border(1.dp, if (isSelected) ExpenseRed else Color.Transparent, RoundedCornerShape(8.dp))
+                                            .clickable { debtType = type }
+                                            .padding(vertical = 10.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(text = label, fontWeight = FontWeight.Bold, color = if (isSelected) ExpenseRed else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                                    }
+                                }
+                            }
+
                             AppInput(
                                 value = title,
                                 onValueChange = { title = it },
@@ -193,62 +227,163 @@ fun DebtsScreen(
                                 label = "اسم الدائن / الجهة"
                             )
 
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (debtType == DebtType.REGULAR) {
                                 AppInput(
                                     value = totalAmount,
                                     onValueChange = { totalAmount = it },
                                     label = "المبلغ (د.ج)",
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation(),
-                                    modifier = Modifier.weight(1.5f)
+                                    visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation()
                                 )
+
+                                // Date Selector
+                                Text("تاريخ الاستحقاق (اختياري):", style = MaterialTheme.typography.labelSmall)
+                                AppCard(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    variant = CardVariant.FLAT,
+                                    onClick = { showDueDatePicker = true }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.DateRange, null, tint = ExpenseRed, modifier = Modifier.size(20.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = if (dueDate != null) FormatterUtils.formatDate(dueDate!!) else "بدون تاريخ محدد",
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                        if (dueDate != null) {
+                                            Icon(
+                                                imageVector = Icons.Default.Clear,
+                                                contentDescription = "Clear",
+                                                tint = TextGray,
+                                                modifier = Modifier.size(16.dp).clickable { dueDate = null }
+                                            )
+                                        } else {
+                                            Icon(Icons.Default.Edit, null, tint = TextGray, modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                }
+
+                                if (showDueDatePicker) {
+                                    AppDatePickerDialog(
+                                        initialSelectedDateMillis = dueDate ?: System.currentTimeMillis(),
+                                        onDismissRequest = { showDueDatePicker = false },
+                                        onDateSelected = { 
+                                            dueDate = it
+                                            showDueDatePicker = false
+                                        },
+                                        confirmButtonColor = ExpenseRed
+                                    )
+                                }
+                            } else {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    AppInput(
+                                        value = totalAmount,
+                                        onValueChange = { totalAmount = it },
+                                        label = "المبلغ (د.ج)",
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation(),
+                                        modifier = Modifier.weight(1.5f)
+                                    )
+
+                                    AppInput(
+                                        value = interestRate,
+                                        onValueChange = { interestRate = it },
+                                        label = "النسبة %",
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
 
                                 AppInput(
-                                    value = interestRate,
-                                    onValueChange = { interestRate = it },
-                                    label = "النسبة %",
+                                    value = minimumPayment,
+                                    onValueChange = { minimumPayment = it },
+                                    label = "القسط الشهري الأدنى (د.ج)",
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    modifier = Modifier.weight(1f)
+                                    visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation()
                                 )
+
+                                // Priority Selector
+                                Text("أولوية السداد والاستعجال:", style = MaterialTheme.typography.labelSmall)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    listOf("1" to "طارئ", "3" to "متوسط", "5" to "مرن").forEach { (id, label) ->
+                                        val isSelected = priority == id
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(
+                                                    if (isSelected) ExpenseRed
+                                                    else MaterialTheme.colorScheme.surfaceVariant
+                                                )
+                                                .clickable { priority = id }
+                                                .padding(vertical = 8.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = label,
+                                                fontSize = 11.sp,
+                                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                        }
+                                    }
+                                }
                             }
 
-                            AppInput(
-                                value = minimumPayment,
-                                onValueChange = { minimumPayment = it },
-                                label = "القسط الشهري الأدنى (د.ج)",
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                visualTransformation = com.example.core.utils.ThousandsSeparatorTransformation()
-                            )
-
-                            // Priority Selector
-                            Text("أولوية السداد والاستعجال:", style = MaterialTheme.typography.labelSmall)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                listOf("1" to "طارئ", "3" to "متوسط", "5" to "مرن").forEach { (id, label) ->
-                                    val isSelected = priority == id
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(
-                                                if (isSelected) ExpenseRed
-                                                else MaterialTheme.colorScheme.surfaceVariant
-                                            )
-                                            .clickable { priority = id }
-                                            .padding(vertical = 8.dp),
-                                        contentAlignment = Alignment.Center
+                            // Linked Account Selector
+                            Text("الحساب المرتبط (اختياري):", style = MaterialTheme.typography.labelSmall)
+                            Box {
+                                var expanded by remember { mutableStateOf(false) }
+                                val selectedAccountName = uiState.accounts.find { it.id == selectedAccountId }?.name ?: "بدون حساب مرتبط"
+                                AppCard(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    variant = CardVariant.FLAT,
+                                    onClick = { expanded = true }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
-                                            text = label,
-                                            fontSize = 11.sp,
-                                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                        Text(selectedAccountName)
+                                        Icon(Icons.Default.ArrowDropDown, null)
+                                    }
+                                }
+                                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                                    DropdownMenuItem(
+                                        text = { Text("بدون حساب مرتبط") },
+                                        onClick = {
+                                            selectedAccountId = null
+                                            expanded = false
+                                        }
+                                    )
+                                    uiState.accounts.forEach { account ->
+                                        DropdownMenuItem(
+                                            text = { Text("${account.name} (رصيد: ${account.balance.toInt()} د.ج)") },
+                                            onClick = {
+                                                selectedAccountId = account.id
+                                                expanded = false
+                                            }
                                         )
                                     }
                                 }
                             }
+
+                            AppInput(
+                                value = notes,
+                                onValueChange = { notes = it },
+                                label = "ملاحظات إضافية (اختياري)",
+                                placeholder = "مثال: شروط الدفع، تفاصيل الضمان"
+                            )
                         }
                     },
                     confirmButton = {
@@ -260,7 +395,7 @@ fun DebtsScreen(
                                     Toast.makeText(context, "الرجاء ملء اسم الدين والدائن", Toast.LENGTH_SHORT).show()
                                 } else if (totalAmount.isBlank() || total <= 0.0) {
                                     Toast.makeText(context, "الرجاء إدخال مبلغ دين صالح أكبر من الصفر", Toast.LENGTH_SHORT).show()
-                                } else if (minimumPayment.isBlank() || minPay <= 0.0) {
+                                } else if (debtType == DebtType.INSTALLMENT && (minimumPayment.isBlank() || minPay <= 0.0)) {
                                     Toast.makeText(context, "الرجاء إدخال قسط شهري صالح أكبر من الصفر", Toast.LENGTH_SHORT).show()
                                 } else {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -268,13 +403,15 @@ fun DebtsScreen(
                                         title = title.trim(),
                                         creditorName = creditorName.trim(),
                                         totalAmount = total,
-                                        minimumPayment = minPay,
+                                        minimumPayment = if (debtType == DebtType.REGULAR) 0.0 else minPay,
                                         paymentFrequency = "Monthly",
                                         linkedAccountId = selectedAccountId,
-                                        priority = priority.toIntOrNull() ?: 3,
+                                        priority = if (debtType == DebtType.REGULAR) 3 else (priority.toIntOrNull() ?: 3),
                                         notes = notes.ifBlank { null },
                                         color = color,
-                                        interestRate = interestRate.toDoubleOrNull()
+                                        interestRate = if (debtType == DebtType.REGULAR) null else interestRate.toDoubleOrNull(),
+                                        dueDate = dueDate,
+                                        debtType = debtType
                                     )
                                     showAddDebtDialog = false
                                 }
@@ -721,7 +858,21 @@ fun DebtsMainContent(
                                     )
                                 }
                                 Column {
-                                    Text(debt.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(debt.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                                        val typeLabel = if (debt.debtType == DebtType.REGULAR) "عادي" else "مقسط"
+                                        val typeColor = if (debt.debtType == DebtType.REGULAR) SavingsAmber else ExpenseRed
+                                        Box(
+                                            modifier = Modifier
+                                                .background(typeColor.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(typeLabel, fontSize = 8.sp, color = typeColor, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
                                     Text(debt.creditorName, style = MaterialTheme.typography.labelSmall, color = TextGray)
                                 }
                             }
@@ -775,10 +926,14 @@ fun DebtsMainContent(
                                 )
                             }
                             Column(horizontalAlignment = Alignment.End) {
-                                Text("القسط / الفائدة", style = MaterialTheme.typography.labelSmall, color = TextGray)
+                                Text(if (debt.debtType == DebtType.REGULAR) "النوع" else "القسط / الفائدة", style = MaterialTheme.typography.labelSmall, color = TextGray)
                                 Spacer(modifier = Modifier.height(2.dp))
-                                val interestStr = if (debt.interestRate != null) "${debt.interestRate}%" else "مرن"
-                                Text("${debt.minimumPayment.toInt()} د.ج / $interestStr", fontWeight = FontWeight.Bold)
+                                if (debt.debtType == DebtType.REGULAR) {
+                                    Text("دين عادي", fontWeight = FontWeight.Bold, color = SavingsAmber)
+                                } else {
+                                    val interestStr = if (debt.interestRate != null) "${debt.interestRate}%" else "مرن"
+                                    Text("${debt.minimumPayment.toInt()} د.ج / $interestStr", fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
 
@@ -904,6 +1059,25 @@ fun DebtDetailsContent(
                                 Spacer(modifier = Modifier.height(4.dp))
                                 val pText = if (debt.priority == 1) "عاجل" else "عادي"
                                 Text(pText, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = if (debt.priority == 1) ExpenseRed else MaterialTheme.colorScheme.onSurface)
+                            }
+                        }
+                    }
+
+                    if (debt.dueDate != null) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Default.Event, null, tint = ExpenseRed, modifier = Modifier.size(16.dp))
+                            Text("تاريخ الاستحقاق: ${FormatterUtils.formatDate(debt.dueDate)}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = ExpenseRed)
+                        }
+                    }
+
+                    debt.linkedAccountId?.let { accId ->
+                        val accName = uiState.accounts.find { it.id == accId }?.name
+                        if (accName != null) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(Icons.Default.AccountBalanceWallet, null, tint = TextGray, modifier = Modifier.size(16.dp))
+                                Text("الحساب المرتبط: $accName", style = MaterialTheme.typography.bodySmall, color = TextGray)
                             }
                         }
                     }

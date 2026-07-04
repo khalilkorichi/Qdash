@@ -112,6 +112,7 @@ class AiRepositoryTest {
         override suspend fun insertMessage(message: AiChatMessageEntity): Long = 0
         override suspend fun clearHistory(sessionTitle: String) {}
         override suspend fun deleteSession(sessionTitle: String) {}
+        override suspend fun getAllMessagesOnce(): List<AiChatMessageEntity> = emptyList()
     }
 
     private val fakeSalaryDistributionDao = object : SalaryDistributionDao {
@@ -128,6 +129,8 @@ class AiRepositoryTest {
         override suspend fun updateEnvelope(envelope: SalaryEnvelopeEntity) {}
         override suspend fun deleteEnvelopesForDistribution(distributionId: Long) {}
         override suspend fun updateLinkedCategories(envelopeId: Long, categoryIds: String) {}
+        override suspend fun insertEnvelope(envelope: SalaryEnvelopeEntity): Long = 0L
+        override suspend fun updateEnvelopes(envelopes: List<SalaryEnvelopeEntity>) {}
     }
 
     @Test
@@ -240,6 +243,7 @@ class AiRepositoryTest {
             }
             override suspend fun clearHistory(sessionTitle: String) { list.clear() }
             override suspend fun deleteSession(sessionTitle: String) { list.clear() }
+            override suspend fun getAllMessagesOnce(): List<AiChatMessageEntity> = list
         }
 
         val aiRepository = AiRepositoryImpl(
