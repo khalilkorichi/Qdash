@@ -33,7 +33,8 @@ import com.example.ui.designsystem.tokens.*
 @Composable
 fun BackupScreen(
     viewModel: BackupViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    showTopBar: Boolean = true
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     val uiState by viewModel.uiState.collectAsState()
@@ -117,12 +118,14 @@ fun BackupScreen(
 
     Scaffold(
         topBar = {
-            UnifiedScreenHeader(
-                title = "النسخ الاحتياطي والاستعادة",
-                subtitle = "حماية ونقل بياناتك المالية بأمان وسهولة",
-                showBackButton = true,
-                onBackClick = onBack
-            )
+            if (showTopBar) {
+                UnifiedScreenHeader(
+                    title = "النسخ الاحتياطي والاستعادة",
+                    subtitle = "حماية ونقل بياناتك المالية بأمان وسهولة",
+                    showBackButton = true,
+                    onBackClick = onBack
+                )
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = Modifier.fillMaxSize()

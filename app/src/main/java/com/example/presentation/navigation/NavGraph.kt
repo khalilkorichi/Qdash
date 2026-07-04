@@ -292,8 +292,11 @@ internal fun FinTrackNavGraph(
         }
 
         composable(Screen.Settings.route) {
+            val backupViewModel: com.example.presentation.backup.BackupViewModel =
+                viewModel(factory = factory)
             SettingsScreen(
                 viewModel = settingsViewModel,
+                backupViewModel = backupViewModel,
                 onNavigateToBudgetGoals = { navController.navigate(Screen.BudgetGoals.route) },
                 onNavigateToDebts = { navController.navigate(Screen.Debts.route) },
                 onNavigateToTransfer = { navController.navigate(Screen.Transfer.route) },

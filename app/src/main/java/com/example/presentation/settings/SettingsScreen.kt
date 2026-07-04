@@ -66,6 +66,7 @@ private val settingsTabs = listOf(
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
+    backupViewModel: com.example.presentation.backup.BackupViewModel,
     onNavigateToBudgetGoals: () -> Unit,
     onNavigateToDebts: () -> Unit,
     onNavigateToTransfer: () -> Unit,
@@ -212,22 +213,10 @@ fun SettingsScreen(
                     onWeeklyToggle = { notifWeeklyReport = it },
                     onGoalToggle = { notifGoalProgress = it }
                 )
-                2 -> BackupTab(
-                    uiState = uiState,
-                    onBackupClick = {
-                        viewModel.runBackup(
-                            onSuccess = { _ ->
-                                Toast.makeText(context, "تم رفع النسخة الاحتياطية بنجاح!", Toast.LENGTH_LONG).show()
-                            },
-                            onFailure = { err ->
-                                Toast.makeText(context, "فشل النسخ الاحتياطي: $err", Toast.LENGTH_LONG).show()
-                            }
-                        )
-                    },
-                    onRestoreClick = { showConfirmRestoreDialog = true },
-                    onAutoBackupToggle = { viewModel.toggleAutoBackup(it) },
-                    onConnectGoogleClick = { showGoogleConnectDialog = true },
-                    onDisconnectGoogle = { viewModel.disconnectGoogleDrive() }
+                2 -> com.example.presentation.backup.BackupScreen(
+                    viewModel = backupViewModel,
+                    onBack = {},
+                    showTopBar = false
                 )
                 3 -> CategoriesTab(onNavigateToCategories = onNavigateToCategories)
                 4 -> AdvancedTab()
