@@ -3,7 +3,7 @@
   "versionName": "1.0.0.62",
   "updateIdentity": 163,
   "publishedAt": "2026-07-04T03:01:00Z",
-  "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk",
+  "apkUrl": "https://raw.githubusercontent.com/khalilkorichi/Qdash/main/.build-outputs/New%20folder%20(2)/app-debug.apk?v=62",
   "apkSize": 25025163,
   "apkSha256": "0e1d72da3d7799c9bb304e650a3c7073ffb3ad5da0469050580fb48eb3ee051c",
   "releaseNotes": "v1.0.0.62 — تحسين واجهة النسخ الاحتياطي والجدولة التلقائية:\n• تعطيل بطاقة Google Drive غير المكتملة وإضافة وسم 'قريباً' مع ModalBottomSheet توضيحي لحماية الخصوصية.\n• دعم تحديد مجلد حفظ دائم وثابت للنسخ الاحتياطي عبر الـ Storage Access Framework (SAF) مع الاحتفاظ بالصلاحية عبر إعادات التشغيل.\n• إضافة ميزة الجدولة التلقائية للنسخ الاحتياطي الخلفي (أبداً، يومياً، أسبوعياً، شهرياً) عبر WorkManager.\n• دعم صندوق تتبع مراحل التقدم الحقيقي (0% - 100%) مصحوباً بنص وصفي لكل خطوة في عملية التصدير والاستيراد.\n• تنظيف دوري للنسخ القديمة تلقائياً للحفاظ على المساحة، مع زر لمشاركة ملف النسخة الاحتياطية الأخيرة مباشرة.",
