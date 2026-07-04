@@ -1,0 +1,10 @@
+feat(release): Release v1.0.0.60 - Salary Distribution and Notification Redesign
+
+- Integrate Salary Distribution feature (50/30/20 envelopes mapping)
+- Redesign update download notification with custom theme-adaptive layouts
+- Support auto-detecting and adapting to device dark/light modes
+- Add 'Install Now' action button on successful update download
+- Bump app version to 1.0.0.60 (versionCode 60, updateIdentity 161)
+- Rebuild debug APK and update update.json for in-app updates system
+
+Co-Authored-By: Antigravity <noreply@google.com>

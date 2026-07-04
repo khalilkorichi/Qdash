@@ -45,6 +45,6 @@ Write-Host "Installing APK..."
 & $adb install -r $apk
 
 Write-Host "Launching app..."
-& $adb shell monkey -p com.aistudio.fintrackdz.agkdlm -c android.intent.category.LAUNCHER 1
+& $adb shell monkey -p com.qdash -c android.intent.category.LAUNCHER 1
 
 Write-Host "Deployment completed successfully!"
