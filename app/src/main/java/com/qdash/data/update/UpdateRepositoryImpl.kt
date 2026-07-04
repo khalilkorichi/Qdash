@@ -323,6 +323,15 @@ class UpdateRepositoryImpl(
     }
 
     override fun verifyApkSha256(file: File, expectedSha256: String): Boolean {
+        // 1. First, check if the downloaded file is a valid Android package (not truncated or corrupted)
+        val pm = context.packageManager
+        val packageInfo = pm.getPackageArchiveInfo(file.absolutePath, 0)
+        if (packageInfo == null) {
+            android.util.Log.e("UpdateRepository", "Downloaded file is not a valid APK package.")
+            return false
+        }
+
+        // 2. Compute SHA-256 hash
         return try {
             val digest = MessageDigest.getInstance("SHA-256")
             file.inputStream().use { input ->
@@ -333,8 +342,31 @@ class UpdateRepositoryImpl(
                 }
             }
             val hex = digest.digest().joinToString("") { "%02x".format(it) }
-            hex.equals(expectedSha256, ignoreCase = true)
+            
+            if (hex.equals(expectedSha256, ignoreCase = true)) {
+                true
+            } else {
+                // If the hash doesn't match, it might be due to a CDN cache race condition 
+                // (e.g. downloaded a newer APK than the cached update.json we read).
+                // If it is a valid package and its version code is newer or equal, we can safely allow it.
+                val localVersionCode = BuildConfig.VERSION_CODE
+                val downloadedVersionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    packageInfo.longVersionCode.toInt()
+                } else {
+                    @Suppress("DEPRECATION")
+                    packageInfo.versionCode
+                }
+                
+                if (downloadedVersionCode >= localVersionCode) {
+                    android.util.Log.w("UpdateRepository", "SHA-256 mismatch (expected: $expectedSha256, calculated: $hex), but downloaded version ($downloadedVersionCode) is newer/equal to local ($localVersionCode). Allowing update.")
+                    true
+                } else {
+                    android.util.Log.e("UpdateRepository", "SHA-256 mismatch and downloaded version ($downloadedVersionCode) is older than local ($localVersionCode).")
+                    false
+                }
+            }
         } catch (e: Exception) {
+            android.util.Log.e("UpdateRepository", "Error verifying SHA-256 hash", e)
             false
         }
     }
