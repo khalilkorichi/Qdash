@@ -7,6 +7,9 @@ import androidx.lifecycle.viewModelScope
 import com.qdash.domain.model.Account
 import com.qdash.domain.model.AccountType
 import com.qdash.domain.repository.AccountRepository
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.qdash.domain.repository.AuthRepository
+import com.qdash.domain.repository.DriveSyncRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,12 +22,15 @@ data class OnboardingUiState(
     val baridiMobBalance: String = "",
     val cashBalance: String = "",
     val savingsBalance: String = "",
-    val isSaving: Boolean = false
+    val isSaving: Boolean = false,
+    val savingMessage: String = "جاري تهيئة محفظتك المالية..."
 )
 
 class OnboardingViewModel(
     private val accountRepository: AccountRepository,
-    private val preferencesManager: com.qdash.core.preferences.PreferencesManager
+    private val preferencesManager: com.qdash.core.preferences.PreferencesManager,
+    private val authRepository: AuthRepository,
+    private val driveSyncRepository: DriveSyncRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
@@ -113,10 +119,40 @@ class OnboardingViewModel(
             // Save state flags in shared preferences
             preferencesManager.walletSetupCompleted = !skip
             preferencesManager.walletSetupSkipped = skip
-            preferencesManager.isFirstLaunch = false
 
             _uiState.value = _uiState.value.copy(isSaving = false)
-            onFinished()
+            nextStep()
         }
+    }
+
+    fun linkGoogleAccount(account: GoogleSignInAccount, context: Context, onFinished: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSaving = true, savingMessage = "جاري ربط حساب Google ومزامنة البيانات...")
+            val result = authRepository.signIn(account)
+            if (result.isSuccess) {
+                // Try pulling from Google Drive
+                val syncResult = driveSyncRepository.downloadFromAppData(context)
+                if (syncResult.isSuccess) {
+                    val hasBackup = syncResult.getOrThrow()
+                    if (!hasBackup) {
+                        // No backup found: first-time Google user, upload current local seeded database
+                        driveSyncRepository.uploadToAppData(context)
+                    }
+                }
+                preferencesManager.isFirstLaunch = false
+                _uiState.value = _uiState.value.copy(isSaving = false)
+                onFinished()
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    isSaving = false,
+                    savingMessage = "فشل ربط الحساب: ${result.exceptionOrNull()?.localizedMessage ?: "خطأ غير معروف"}"
+                )
+            }
+        }
+    }
+
+    fun skipGoogleSignIn(onFinished: () -> Unit) {
+        preferencesManager.isFirstLaunch = false
+        onFinished()
     }
 }

@@ -391,6 +391,20 @@ class AppContainerImpl(private val context: Context) : AppContainer {
         com.qdash.domain.usecase.salary.SaveSalaryDistributionUseCase(salaryDistributionRepository, categoryRepository)
     }
 
+    override val authRepository: AuthRepository by lazy {
+        com.qdash.data.repository.AuthRepositoryImpl(
+            database.userProfileDao(),
+            preferencesManager
+        )
+    }
+
+    override val driveSyncRepository: DriveSyncRepository by lazy {
+        com.qdash.data.repository.DriveSyncRepositoryImpl(
+            backupManager,
+            preferencesManager
+        )
+    }
+
     init {
         // Pre-warm SharedPreferences to avoid main-thread blocking I/O on startup
         preferencesManager

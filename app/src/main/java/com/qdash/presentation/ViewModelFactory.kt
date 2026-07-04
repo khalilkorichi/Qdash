@@ -143,6 +143,8 @@ class ViewModelFactory(
                     container.subscriptionRepository,
                     container.backupRepository,
                     container.preferencesManager,
+                    container.authRepository,
+                    container.driveSyncRepository,
                     context
                 ) as T
             }
@@ -230,7 +232,9 @@ class ViewModelFactory(
             modelClass.isAssignableFrom(com.qdash.presentation.onboarding.OnboardingViewModel::class.java) -> {
                 com.qdash.presentation.onboarding.OnboardingViewModel(
                     container.accountRepository,
-                    container.preferencesManager
+                    container.preferencesManager,
+                    container.authRepository,
+                    container.driveSyncRepository
                 ) as T
             }
             modelClass.isAssignableFrom(DocumentSimulatorViewModel::class.java) -> {

@@ -28,9 +28,10 @@ import com.qdash.data.local.entities.*
         PostalProfileEntity::class,
         SalaryDelayEntity::class,
         SalaryDistributionEntity::class,
-        SalaryEnvelopeEntity::class
+        SalaryEnvelopeEntity::class,
+        UserProfileEntity::class
     ],
-    version = 21,
+    version = 22,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -55,4 +56,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun postalProfileDao(): PostalProfileDao
     abstract fun salaryDelayDao(): SalaryDelayDao
     abstract fun salaryDistributionDao(): SalaryDistributionDao
+    abstract fun userProfileDao(): UserProfileDao
 }

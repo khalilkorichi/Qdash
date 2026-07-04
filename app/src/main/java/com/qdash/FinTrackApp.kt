@@ -36,6 +36,28 @@ class FinTrackApp : Application() {
         schedulePeriodicUpdateChecks()
         schedulePeriodicFinancialAlerts()
         schedulePeriodicSmartReminders()
+        schedulePeriodicDriveSync()
+    }
+
+    private fun schedulePeriodicDriveSync() {
+        try {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .setRequiresBatteryNotLow(true)
+                .build()
+
+            val driveSyncRequest = PeriodicWorkRequestBuilder<com.qdash.data.worker.SyncToDriveWorker>(6, java.util.concurrent.TimeUnit.HOURS)
+                .setConstraints(constraints)
+                .build()
+
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "PeriodicDriveSync",
+                ExistingPeriodicWorkPolicy.KEEP,
+                driveSyncRequest
+            )
+        } catch (e: Exception) {
+            android.util.Log.w("FinTrackApp", "SyncToDriveWorker scheduling failed, this is normal in tests.", e)
+        }
     }
 
     private fun schedulePeriodicUpdateChecks() {

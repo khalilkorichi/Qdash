@@ -250,4 +250,16 @@ class PreferencesManager(context: Context) {
     var lowBalanceLimit: Double
         get() = mainPrefs.getFloat("low_balance_limit", 5000.0f).toDouble()
         set(value) = mainPrefs.edit().putFloat("low_balance_limit", value.toFloat()).apply()
+
+    var isGoogleLinked: Boolean
+        get() = mainPrefs.getBoolean("is_google_linked", false)
+        set(value) = mainPrefs.edit().putBoolean("is_google_linked", value).apply()
+
+    var lastSyncTimestamp: Long
+        get() = mainPrefs.getLong("last_sync_timestamp", 0L)
+        set(value) = mainPrefs.edit().putLong("last_sync_timestamp", value).apply()
+
+    var guestBirthdate: String?
+        get() = mainPrefs.getString("guest_birthdate", null)
+        set(value) = mainPrefs.edit().putString("guest_birthdate", value).apply()
 }

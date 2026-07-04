@@ -84,6 +84,18 @@ class MainActivity : ComponentActivity() {
         com.qdash.core.utils.FormatterUtils.hideDecimals = prefs.hideDecimalsEnabled
         com.qdash.core.utils.FormatterUtils.useWesternNumerals = prefs.useWesternNumerals
 
+        // Silent Google Sign-In to refresh session if linked
+        if (prefs.isGoogleLinked) {
+            lifecycleScope.launch {
+                container.authRepository.silentSignIn(applicationContext).collect { result ->
+                    if (result.isSuccess) {
+                        // Optionally trigger a background upload to keep it synced
+                        container.driveSyncRepository.uploadToAppData(applicationContext)
+                    }
+                }
+            }
+        }
+
         setContent {
             FinTrackApp(
                 container = container,

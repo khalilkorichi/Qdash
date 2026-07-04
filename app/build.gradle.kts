@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.compose)
@@ -14,13 +16,23 @@ android {
     applicationId = "com.qdash"
     minSdk = 24
     targetSdk = 36
-    versionCode = 65
-    versionName = "1.0.0.65"
+    versionCode = 66
+    versionName = "1.0.0.66"
     buildConfigField("Long", "BUILD_TIMESTAMP", "${System.currentTimeMillis()}L")
-    buildConfigField("Long", "UPDATE_IDENTITY", "166L")
+    buildConfigField("Long", "UPDATE_IDENTITY", "167L")
     buildConfigField("String", "GEMINI_API_KEY", "\"${System.getenv("GEMINI_API_KEY") ?: ""}\"")
     buildConfigField("String", "OPENROUTER_API_KEY", "\"${System.getenv("OPENROUTER_API_KEY") ?: ""}\"")
     buildConfigField("String", "NVIDIA_API_KEY", "\"${System.getenv("NVIDIA_API_KEY") ?: ""}\"")
+
+    val localProperties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { stream ->
+            localProperties.load(stream)
+        }
+    }
+    val googleClientId = localProperties.getProperty("google.client.id") ?: "DUMMY_CLIENT_ID"
+    buildConfigField("String", "GOOGLE_CLIENT_ID", "\"$googleClientId\"")
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -65,6 +77,20 @@ android {
     buildConfig = true
   }
   testOptions { unitTests { isIncludeAndroidResources = true } }
+
+  packaging {
+      resources {
+          excludes += "/META-INF/{AL2.0,LGPL2.1}"
+          excludes += "META-INF/DEPENDENCIES"
+          excludes += "META-INF/LICENSE"
+          excludes += "META-INF/LICENSE.txt"
+          excludes += "META-INF/license.txt"
+          excludes += "META-INF/NOTICE"
+          excludes += "META-INF/NOTICE.txt"
+          excludes += "META-INF/notice.txt"
+          excludes += "META-INF/ASL2.0"
+      }
+  }
 }
 
 // Configure the Secrets Gradle Plugin to use .env and .env.example files
@@ -130,4 +156,16 @@ dependencies {
   "ksp"(libs.moshi.kotlin.codegen)
   implementation(libs.androidx.startup)
   implementation(libs.androidx.work)
+
+  // Google Sign-In & Google Drive APIs
+  implementation("com.google.android.gms:play-services-auth:21.2.0")
+  implementation("com.google.api-client:google-api-client-android:2.2.0") {
+      exclude(group = "com.google.guava", module = "guava-jdk5")
+  }
+  implementation("com.google.http-client:google-http-client-gson:1.43.3") {
+      exclude(group = "com.google.guava", module = "guava-jdk5")
+  }
+  implementation("com.google.apis:google-api-services-drive:v3-rev20230822-2.0.0") {
+      exclude(group = "com.google.guava", module = "guava-jdk5")
+  }
 }

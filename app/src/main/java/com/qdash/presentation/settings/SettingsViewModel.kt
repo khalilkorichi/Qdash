@@ -3,8 +3,10 @@ package com.qdash.presentation.settings
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.qdash.domain.model.*
 import com.qdash.domain.repository.*
+import com.qdash.data.local.entities.UserProfileEntity
 import com.qdash.core.utils.FormatterUtils
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -35,8 +37,13 @@ class SettingsViewModel(
     private val subscriptionRepository: SubscriptionRepository,
     private val backupRepository: com.qdash.domain.repository.BackupRepository,
     private val preferencesManager: com.qdash.core.preferences.PreferencesManager,
+    private val authRepository: AuthRepository,
+    private val driveSyncRepository: DriveSyncRepository,
     private val context: Context
 ) : ViewModel() {
+
+    val userProfile: StateFlow<UserProfileEntity?> = authRepository.getUserProfile()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val _uiState = MutableStateFlow(
         SettingsUiState(
@@ -112,14 +119,82 @@ class SettingsViewModel(
         _uiState.update { it.copy(isAutoBackupEnabled = enabled) }
     }
 
-    fun connectGoogleDriveAccount(email: String) {
-        preferencesManager.connectedEmail = email
-        _uiState.update { it.copy(connectedAccountEmail = email) }
+    fun connectGoogleDriveAccount(account: GoogleSignInAccount, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSyncing = true, backupRestoreStatus = "جاري ربط حساب Google...") }
+            val result = authRepository.signIn(account)
+            if (result.isSuccess) {
+                // Download backup from Drive
+                val syncResult = driveSyncRepository.downloadFromAppData(context)
+                if (syncResult.isSuccess) {
+                    val hasBackup = syncResult.getOrThrow()
+                    if (!hasBackup) {
+                        // Upload current local database
+                        driveSyncRepository.uploadToAppData(context)
+                    }
+                }
+                _uiState.update { it.copy(connectedAccountEmail = account.email) }
+                onSuccess()
+            } else {
+                val err = result.exceptionOrNull()?.localizedMessage ?: "خطأ غير معروف"
+                onFailure(err)
+            }
+            _uiState.update { it.copy(isSyncing = false) }
+        }
     }
 
-    fun disconnectGoogleDrive() {
-        preferencesManager.connectedEmail = null
-        _uiState.update { it.copy(connectedAccountEmail = null) }
+    fun disconnectGoogleDrive(onFinished: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSyncing = true) }
+            authRepository.signOut(context)
+            _uiState.update { it.copy(connectedAccountEmail = null) }
+            _uiState.update { it.copy(isSyncing = false) }
+            onFinished()
+        }
+    }
+
+    fun saveBirthDate(birthDate: String) {
+        viewModelScope.launch {
+            authRepository.updateBirthDate(birthDate)
+        }
+    }
+
+    fun triggerDriveSync(onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSyncing = true, backupRestoreStatus = "جاري رفع النسخة الاحتياطية للسحابة...") }
+            val result = driveSyncRepository.uploadToAppData(context)
+            if (result.isSuccess) {
+                _uiState.update { it.copy(backupRestoreStatus = "تمت المزامنة السحابية بنجاح!") }
+                onSuccess()
+            } else {
+                val err = result.exceptionOrNull()?.localizedMessage ?: "خطأ غير معروف"
+                _uiState.update { it.copy(backupRestoreStatus = "فشلت المزامنة: $err") }
+                onFailure(err)
+            }
+            _uiState.update { it.copy(isSyncing = false) }
+        }
+    }
+
+    fun triggerDriveRestore(onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSyncing = true, backupRestoreStatus = "جاري استعادة البيانات من السحابة...") }
+            val result = driveSyncRepository.downloadFromAppData(context)
+            if (result.isSuccess) {
+                val hasBackup = result.getOrThrow()
+                if (hasBackup) {
+                    _uiState.update { it.copy(backupRestoreStatus = "تم استعادة البيانات السحابية بنجاح!") }
+                    onSuccess()
+                } else {
+                    _uiState.update { it.copy(backupRestoreStatus = "لا توجد نسخة احتياطية على هذا الحساب.") }
+                    onFailure("لا توجد نسخة احتياطية سحابية محفوظة.")
+                }
+            } else {
+                val err = result.exceptionOrNull()?.localizedMessage ?: "خطأ غير معروف"
+                _uiState.update { it.copy(backupRestoreStatus = "فشلت الاستعادة: $err") }
+                onFailure(err)
+            }
+            _uiState.update { it.copy(isSyncing = false) }
+        }
     }
 
     // JSON Backup System: delegates database serialization to BackupRepository

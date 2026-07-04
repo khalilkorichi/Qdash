@@ -4,6 +4,10 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.Scope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -91,7 +95,7 @@ fun OnboardingScreen(
 
                     // Step Indicator label in Arabic
                     Text(
-                        text = "الخطوة ${uiState.currentStep} من 3",
+                        text = "الخطوة ${uiState.currentStep} من 4",
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                         color = TextGray
                     )
@@ -108,7 +112,7 @@ fun OnboardingScreen(
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    repeat(3) { index ->
+                    repeat(4) { index ->
                         val isCompletedOrCurrent = index + 1 <= uiState.currentStep
                         Box(
                             modifier = Modifier
@@ -167,6 +171,16 @@ fun OnboardingScreen(
                             }
                         )
                     }
+                    4 -> {
+                        AuthSetupScreen(
+                            onSignInSuccess = { account ->
+                                viewModel.linkGoogleAccount(account, context, onFinished)
+                            },
+                            onSkip = {
+                                viewModel.skipGoogleSignIn(onFinished)
+                            }
+                        )
+                    }
             }
         }
     }
@@ -196,13 +210,16 @@ fun OnboardingScreen(
                                 .shimmerEffect(RoundedCornerShape(3.dp))
                         )
                         Text(
-                            text = "جاري تهيئة محفظتك المالية...",
+                            text = uiState.savingMessage,
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
                             color = MaterialTheme.colorScheme.onSurface,
                             textAlign = TextAlign.Center
                         )
                         Text(
-                            text = "نعمل على إعداد الحسابات والفئات الذكية لتتبع ميزانيتك بأفضل طريقة.",
+                            text = if (uiState.currentStep == 4) 
+                                "الرجاء عدم إغلاق التطبيق أثناء مزامنة بيانات حسابك."
+                            else 
+                                "نعمل على إعداد الحسابات والفئات الذكية لتتبع ميزانيتك بأفضل طريقة.",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextGray,
                             textAlign = TextAlign.Center,
@@ -718,6 +735,175 @@ fun WalletSetupCard(
                         focusedTextColor = MaterialTheme.colorScheme.onBackground,
                         unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                     )
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AuthSetupScreen(
+    onSignInSuccess: (com.google.android.gms.auth.api.signin.GoogleSignInAccount) -> Unit,
+    onSkip: () -> Unit
+) {
+    val context = LocalContext.current
+    val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            if (account != null) {
+                onSignInSuccess(account)
+            }
+        } catch (e: Exception) {
+            android.widget.Toast.makeText(context, "فشل تسجيل الدخول: ${e.localizedMessage}", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        // Glowing Cloud Icon
+        Box(
+            modifier = Modifier
+                .size(110.dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Primary.copy(alpha = 0.2f), Color.Transparent)
+                    ),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.CloudSync,
+                contentDescription = null,
+                tint = Primary,
+                modifier = Modifier.size(56.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(28.dp))
+
+        Text(
+            text = "حسابك والمزامنة السحابية",
+            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "اربط حسابك بجوجل لحفظ نسخة احتياطية مشفرة وتلقائية من بياناتك المالية على Google Drive لضمان عدم فقدانها عند تغيير جهازك.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = TextGray,
+            textAlign = TextAlign.Center,
+            lineHeight = 22.sp
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Badge showing connection state
+        var isConnected by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            isConnected = GoogleSignIn.getLastSignedInAccount(context) != null
+        }
+
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(if (isConnected) Color(0xFF22C55E).copy(alpha = 0.12f) else Color(0xFF6B7280).copy(alpha = 0.12f))
+                .border(
+                    width = 1.dp,
+                    color = if (isConnected) Color(0xFF22C55E).copy(alpha = 0.4f) else Color(0xFF6B7280).copy(alpha = 0.4f),
+                    shape = RoundedCornerShape(8.dp)
+                )
+                .padding(horizontal = 14.dp, vertical = 6.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(if (isConnected) Color(0xFF22C55E) else Color(0xFF6B7280), CircleShape)
+                )
+                Text(
+                    text = if (isConnected) "متصل بخدمات Google" else "غير متصل بالسحابة",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = if (isConnected) Color(0xFF22C55E) else TextGray
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Actions
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Button(
+                onClick = {
+                    keyboardController?.hide()
+                    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                        .requestEmail()
+                        .requestProfile()
+                        .requestScopes(Scope("https://www.googleapis.com/auth/drive.appdata"))
+                        .build()
+                    val client = GoogleSignIn.getClient(context, gso)
+                    googleSignInLauncher.launch(client.signInIntent)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+                    .testTag("btn_google_signin"),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 0.dp,
+                    pressedElevation = 0.dp
+                )
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AccountCircle,
+                        contentDescription = null,
+                        tint = Primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "تسجيل الدخول باستخدام Google",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+            }
+
+            TextButton(
+                onClick = onSkip,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text(
+                    text = "تخطي هذه الخطوة للآن",
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                    color = TextGray
                 )
             }
         }

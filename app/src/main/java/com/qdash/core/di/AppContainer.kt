@@ -115,4 +115,7 @@ interface AppContainer {
     val salaryDistributionRepository: SalaryDistributionRepository
     val getSalaryDistributionUseCase: com.qdash.domain.usecase.salary.GetSalaryDistributionUseCase
     val saveSalaryDistributionUseCase: com.qdash.domain.usecase.salary.SaveSalaryDistributionUseCase
+
+    val authRepository: AuthRepository
+    val driveSyncRepository: DriveSyncRepository
 }

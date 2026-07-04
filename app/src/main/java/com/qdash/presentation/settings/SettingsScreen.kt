@@ -1,6 +1,14 @@
 package com.qdash.presentation.settings
 
 import android.widget.Toast
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.Scope
+import com.qdash.data.local.entities.UserProfileEntity
+import coil.compose.AsyncImage
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -81,9 +89,39 @@ fun SettingsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    val userProfile by viewModel.userProfile.collectAsState()
+    var showBirthdateDialog by remember { mutableStateOf(false) }
+    var birthdateInput by remember { mutableStateOf("") }
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            if (account != null) {
+                viewModel.connectGoogleDriveAccount(
+                    account,
+                    onSuccess = { Toast.makeText(context, "تم ربط الحساب بنجاح ومزامنة البيانات!", Toast.LENGTH_SHORT).show() },
+                    onFailure = { err -> Toast.makeText(context, "فشل ربط الحساب: $err", Toast.LENGTH_LONG).show() }
+                )
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "فشل تسجيل الدخول: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val launchGoogleSignIn = {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .requestProfile()
+            .requestScopes(Scope("https://www.googleapis.com/auth/drive.appdata"))
+            .build()
+        val client = GoogleSignIn.getClient(context, gso)
+        googleSignInLauncher.launch(client.signInIntent)
+    }
+
     var showConfirmRestoreDialog by remember { mutableStateOf(false) }
-    var showGoogleConnectDialog by remember { mutableStateOf(false) }
-    var inputEmail by remember { mutableStateOf("") }
     var showDashboardCustomizationDialog by remember { mutableStateOf(false) }
 
     // Notification toggles
@@ -189,6 +227,7 @@ fun SettingsScreen(
             when (page) {
                 0 -> GeneralTab(
                     uiState = uiState,
+                    userProfile = userProfile,
                     onToggleDark = { viewModel.toggleDarkTheme(it) },
                     onToggleHideDecimals = { viewModel.toggleHideDecimals(it) },
                     onToggleAmountWords = { viewModel.toggleAmountWords(it) },
@@ -199,7 +238,29 @@ fun SettingsScreen(
                     onNavigateToExport = onNavigateToExport,
                     onNavigateToFinancialPlans = onNavigateToFinancialPlans,
                     onNavigateToSalary = onNavigateToSalary,
-                    onCustomiseDashboardClick = { showDashboardCustomizationDialog = true }
+                    onCustomiseDashboardClick = { showDashboardCustomizationDialog = true },
+                    onLinkGoogleClick = { launchGoogleSignIn() },
+                    onUnlinkGoogleClick = {
+                        viewModel.disconnectGoogleDrive {
+                            Toast.makeText(context, "تم إلغاء ربط الحساب بنجاح!", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    onAddBirthdateClick = {
+                        birthdateInput = userProfile?.birthDate ?: ""
+                        showBirthdateDialog = true
+                    },
+                    onSyncClick = {
+                        viewModel.triggerDriveSync(
+                            onSuccess = { Toast.makeText(context, "تمت المزامنة بنجاح!", Toast.LENGTH_SHORT).show() },
+                            onFailure = { err -> Toast.makeText(context, "فشلت المزامنة: $err", Toast.LENGTH_LONG).show() }
+                        )
+                    },
+                    onRestoreClick = {
+                        viewModel.triggerDriveRestore(
+                            onSuccess = { Toast.makeText(context, "تمت الاستعادة بنجاح!", Toast.LENGTH_SHORT).show() },
+                            onFailure = { err -> Toast.makeText(context, "فشلت الاستعادة: $err", Toast.LENGTH_LONG).show() }
+                        )
+                    }
                 )
                 1 -> NotificationsTab(
                     billingReminder = notifBillingReminder,
@@ -224,63 +285,7 @@ fun SettingsScreen(
         }
     }
 
-    // ─── Connect Google Dialog ────────────────────────────────────────────────
-    if (showGoogleConnectDialog) {
-        AlertDialog(
-            onDismissRequest = { showGoogleConnectDialog = false },
-            title = {
-                Text(
-                    "ربط حساب Google Drive",
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Right,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        "أدخل بريدك الإلكتروني للمزامنة السحابية الآمنة.",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    AppInput(
-                        value = inputEmail,
-                        onValueChange = { inputEmail = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("google_email_input"),
-                        placeholder = "example@gmail.com"
-                    )
-                }
-            },
-            confirmButton = {
-                AppButton(
-                    onClick = {
-                        if (inputEmail.contains("@") && inputEmail.contains(".")) {
-                            viewModel.connectGoogleDriveAccount(inputEmail)
-                            showGoogleConnectDialog = false
-                            inputEmail = ""
-                            Toast.makeText(context, "تم ربط الحساب بنجاح!", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    variant = ButtonVariant.SOLID,
-                    intent = ButtonIntent.PRIMARY
-                ) { Text("توثيق وربط", fontWeight = FontWeight.Bold) }
-            },
-            dismissButton = {
-                AppButton(
-                    onClick = { showGoogleConnectDialog = false },
-                    variant = ButtonVariant.LIGHT,
-                    intent = ButtonIntent.PRIMARY
-                ) {
-                    Text("إلغاء", fontWeight = FontWeight.Bold)
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    }
+
 
     // ─── Confirm Restore Dialog ───────────────────────────────────────────────
     if (showConfirmRestoreDialog) {
@@ -576,12 +581,65 @@ fun SettingsScreen(
             shape = RoundedCornerShape(24.dp)
         )
     }
+
+    if (showBirthdateDialog) {
+        AlertDialog(
+            onDismissRequest = { showBirthdateDialog = false },
+            title = {
+                Text(
+                    "تاريخ الميلاد",
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Right,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        "أدخل تاريخ ميلادك لحفظه محلياً على جهازك.",
+                        textAlign = TextAlign.Right,
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    AppInput(
+                        value = birthdateInput,
+                        onValueChange = { birthdateInput = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = "مثال: 1995-05-15"
+                    )
+                }
+            },
+            confirmButton = {
+                AppButton(
+                    onClick = {
+                        viewModel.saveBirthDate(birthdateInput)
+                        showBirthdateDialog = false
+                        Toast.makeText(context, "تم حفظ تاريخ الميلاد بنجاح!", Toast.LENGTH_SHORT).show()
+                    },
+                    variant = ButtonVariant.SOLID,
+                    intent = ButtonIntent.PRIMARY
+                ) { Text("حفظ", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                AppButton(
+                    onClick = { showBirthdateDialog = false },
+                    variant = ButtonVariant.LIGHT,
+                    intent = ButtonIntent.PRIMARY
+                ) {
+                    Text("إلغاء", fontWeight = FontWeight.Bold)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    }
 }
 
 // ─── TAB 1: General ──────────────────────────────────────────────────────────
 @Composable
 private fun GeneralTab(
     uiState: SettingsUiState,
+    userProfile: UserProfileEntity?,
     onToggleDark: (Boolean) -> Unit,
     onToggleHideDecimals: (Boolean) -> Unit,
     onToggleAmountWords: (Boolean) -> Unit,
@@ -592,7 +650,12 @@ private fun GeneralTab(
     onNavigateToExport: () -> Unit,
     onNavigateToFinancialPlans: () -> Unit,
     onNavigateToSalary: () -> Unit,
-    onCustomiseDashboardClick: () -> Unit
+    onCustomiseDashboardClick: () -> Unit,
+    onLinkGoogleClick: () -> Unit,
+    onUnlinkGoogleClick: () -> Unit,
+    onAddBirthdateClick: () -> Unit,
+    onSyncClick: () -> Unit,
+    onRestoreClick: () -> Unit
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     var showAboutDialog by remember { mutableStateOf(false) }
@@ -603,6 +666,20 @@ private fun GeneralTab(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // My Account Profile Card
+        UserProfileCard(
+            userProfile = userProfile,
+            isSyncing = uiState.isSyncing,
+            syncStatus = uiState.backupRestoreStatus,
+            onLinkGoogleClick = onLinkGoogleClick,
+            onUnlinkGoogleClick = onUnlinkGoogleClick,
+            onAddBirthdateClick = onAddBirthdateClick,
+            onSyncClick = onSyncClick,
+            onRestoreClick = onRestoreClick
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         if (uiState.isLoading) {
             SettingsSectionTitle("المظهر واللغة")
             SettingsItemSkeleton()
@@ -1482,4 +1559,219 @@ private fun SettingsItemSkeleton(modifier: Modifier = Modifier) {
         }
     }
 }
+
+@Composable
+private fun UserProfileCard(
+    userProfile: UserProfileEntity?,
+    isSyncing: Boolean,
+    syncStatus: String?,
+    onLinkGoogleClick: () -> Unit,
+    onUnlinkGoogleClick: () -> Unit,
+    onAddBirthdateClick: () -> Unit,
+    onSyncClick: () -> Unit,
+    onRestoreClick: () -> Unit
+) {
+    val isLinked = userProfile?.isGoogleLinked == true
+    val name = userProfile?.name ?: "ضيف قداشّ"
+    val email = userProfile?.email
+    val birthDate = userProfile?.birthDate
+    val avatarUrl = userProfile?.avatarUrl
+
+    AppCard(
+        modifier = Modifier.fillMaxWidth(),
+        variant = CardVariant.SOLID,
+        shape = ShapeTokens.Lg,
+        backgroundColor = MaterialTheme.colorScheme.surface
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // Profile Info Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Avatar
+                if (!avatarUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = avatarUrl,
+                        contentDescription = "الصورة الشخصية",
+                        modifier = Modifier
+                            .size(54.dp)
+                            .clip(CircleShape)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(54.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = name.take(1).uppercase(),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                // Name and email
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (!email.isNullOrEmpty()) {
+                        Text(
+                            text = email,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextGray
+                        )
+                    } else {
+                        Text(
+                            text = "ضيف",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextGray
+                        )
+                    }
+                }
+
+                // Status Badge
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (isLinked) Color(0xFF22C55E).copy(alpha = 0.12f) else Color(0xFF6B7280).copy(alpha = 0.12f))
+                        .border(
+                            width = 0.5.dp,
+                            color = if (isLinked) Color(0xFF22C55E).copy(alpha = 0.3f) else Color(0xFF6B7280).copy(alpha = 0.3f),
+                            shape = RoundedCornerShape(6.dp)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(if (isLinked) Color(0xFF22C55E) else Color(0xFF6B7280), CircleShape)
+                        )
+                        Text(
+                            text = if (isLinked) "متصل سحابياً" else "غير متصل",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = if (isLinked) Color(0xFF22C55E) else TextGray
+                        )
+                    }
+                }
+            }
+
+            Spacer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant)
+            )
+
+            // Details and Actions
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Birthdate details
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = if (!birthDate.isNullOrEmpty()) "تاريخ الميلاد: $birthDate" else "تاريخ الميلاد: لم يتم التحديد",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    TextButton(
+                        onClick = onAddBirthdateClick,
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = if (!birthDate.isNullOrEmpty()) "تعديل" else "إضافة تاريخ ميلادك",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                if (isLinked) {
+                    // Sync Status
+                    if (!syncStatus.isNullOrEmpty()) {
+                        Text(
+                            text = syncStatus,
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(vertical = 2.dp)
+                        )
+                    }
+
+                    // Linked Actions
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        AppButton(
+                            onClick = onSyncClick,
+                            modifier = Modifier.weight(1f),
+                            variant = ButtonVariant.SOLID,
+                            intent = ButtonIntent.PRIMARY,
+                            enabled = !isSyncing
+                        ) {
+                            Text("مزامنة الآن", fontWeight = FontWeight.Bold)
+                        }
+
+                        AppButton(
+                            onClick = onRestoreClick,
+                            modifier = Modifier.weight(1f),
+                            variant = ButtonVariant.LIGHT,
+                            intent = ButtonIntent.PRIMARY,
+                            enabled = !isSyncing
+                        ) {
+                            Text("استعادة من السحاب", fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    AppButton(
+                        onClick = onUnlinkGoogleClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        variant = ButtonVariant.LIGHT,
+                        intent = ButtonIntent.DANGER,
+                        enabled = !isSyncing
+                    ) {
+                        Text("قطع ربط الحساب", fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    // Unlinked Actions
+                    AppButton(
+                        onClick = onLinkGoogleClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        variant = ButtonVariant.SOLID,
+                        intent = ButtonIntent.PRIMARY,
+                        enabled = !isSyncing
+                    ) {
+                        Text("ربط الحساب بجوجل للمزامنة السحابية", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
 

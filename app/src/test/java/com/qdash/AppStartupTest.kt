@@ -132,6 +132,8 @@ class AppStartupTest {
             container.subscriptionRepository,
             container.backupRepository,
             container.preferencesManager,
+            container.authRepository,
+            container.driveSyncRepository,
             context
         )
         assertNotNull(settingsViewModel)

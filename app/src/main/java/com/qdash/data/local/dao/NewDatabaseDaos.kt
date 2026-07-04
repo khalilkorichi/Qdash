@@ -90,3 +90,21 @@ interface DailyFinancialAggregateDao {
     @Query("DELETE FROM daily_financial_aggregates WHERE localDateTimestamp = :timestamp")
     suspend fun deleteAggregateForDay(timestamp: Long)
 }
+
+@Dao
+interface UserProfileDao {
+    @Query("SELECT * FROM user_profiles WHERE id = 1")
+    fun getUserProfileFlow(): Flow<UserProfileEntity?>
+
+    @Query("SELECT * FROM user_profiles WHERE id = 1")
+    suspend fun getUserProfile(): UserProfileEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertUserProfile(userProfile: UserProfileEntity): Long
+
+    @Update
+    suspend fun updateUserProfile(userProfile: UserProfileEntity)
+
+    @Query("DELETE FROM user_profiles WHERE id = 1")
+    suspend fun deleteUserProfile()
+}
