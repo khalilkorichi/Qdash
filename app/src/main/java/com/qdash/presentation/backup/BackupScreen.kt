@@ -7,9 +7,10 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.rotate
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -830,7 +831,13 @@ fun BackupScreen(
                                             )
                                         }
                                     ) {
-                                        Text("مزامنة الآن", fontWeight = FontWeight.Bold, color = Color.White)
+                                        Text(
+                                            text = "مزامنة الآن",
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 11.sp),
+                                            maxLines = 1
+                                        )
                                     }
 
                                     AppButton(
@@ -853,7 +860,12 @@ fun BackupScreen(
                                             )
                                         }
                                     ) {
-                                        Text("استعادة من السحاب", fontWeight = FontWeight.Bold)
+                                        Text(
+                                            text = "استعادة من السحاب",
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 11.sp),
+                                            maxLines = 1
+                                        )
                                     }
                                 }
 
@@ -879,37 +891,91 @@ fun BackupScreen(
                     onDismissRequest = {},
                     properties = DialogProperties(
                         dismissOnBackPress = false,
-                        dismissOnClickOutside = false
+                        dismissOnClickOutside = false,
+                        usePlatformDefaultWidth = false
                     )
                 ) {
-                    Card(
-                        shape = ShapeTokens.Lg,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    Box(
                         modifier = Modifier
-                            .width(260.dp)
-                            .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, ShapeTokens.Lg)
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.4f)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Column(
-                            modifier = Modifier.padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        Card(
+                            shape = ShapeTokens.Lg,
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            modifier = Modifier
+                                .width(280.dp)
+                                .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, ShapeTokens.Lg),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(width = 180.dp, height = 6.dp)
-                                    .shimmerEffect(RoundedCornerShape(3.dp))
-                            )
-                            Text(
-                                text = "جاري معالجة البيانات...",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "يرجى الانتظار ولا تغلق الصفحة",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = textSecondaryColor
-                            )
+                            Column(
+                                modifier = Modifier.padding(28.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(20.dp)
+                            ) {
+                                // Rotating Sync Icon
+                                val infiniteTransition = rememberInfiniteTransition(label = "rotation")
+                                val rotation by infiniteTransition.animateFloat(
+                                    initialValue = 0f,
+                                    targetValue = 360f,
+                                    animationSpec = infiniteRepeatable(
+                                        animation = tween(durationMillis = 1500, easing = LinearEasing),
+                                        repeatMode = RepeatMode.Restart
+                                    ),
+                                    label = "rotation"
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(60.dp)
+                                        .background(
+                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                            shape = CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Sync,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .rotate(rotation)
+                                    )
+                                }
+
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "جاري معالجة البيانات...",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                    Text(
+                                        text = "يرجى الانتظار ولا تغلق الصفحة",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = textSecondaryColor,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+
+                                LinearProgressIndicator(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(3.dp)),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                )
+                            }
                         }
                     }
                 }
