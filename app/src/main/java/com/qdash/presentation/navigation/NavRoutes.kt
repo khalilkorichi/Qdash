@@ -79,6 +79,8 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
         fun createRoute(profileId: Long? = null) = "create_edit_postal_profile" + if (profileId != null) "?profileId=$profileId" else ""
     }
     
+    object AccountManagement : Screen("account_management", "إدارة الحساب")
+    
     object Splash : Screen("splash", "الشاشة الترحيبية")
 }
 

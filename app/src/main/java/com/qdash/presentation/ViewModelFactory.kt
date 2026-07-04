@@ -242,6 +242,12 @@ class ViewModelFactory(
                     container.postalProfileRepository
                 ) as T
             }
+            modelClass.isAssignableFrom(com.qdash.presentation.settings.AccountManagementViewModel::class.java) -> {
+                com.qdash.presentation.settings.AccountManagementViewModel(
+                    container.authRepository,
+                    context
+                ) as T
+            }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
     }

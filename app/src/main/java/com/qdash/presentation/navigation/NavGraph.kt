@@ -29,6 +29,8 @@ import com.qdash.presentation.export.ExportViewModel
 import com.qdash.presentation.export.ExportScreen
 import com.qdash.presentation.settings.SettingsScreen
 import com.qdash.presentation.settings.SettingsViewModel
+import com.qdash.presentation.settings.AccountManagementScreen
+import com.qdash.presentation.settings.AccountManagementViewModel
 import com.qdash.presentation.splash.SplashScreen
 import com.qdash.presentation.subscriptions.SubscriptionsScreen
 import com.qdash.presentation.subscriptions.SubscriptionsViewModel
@@ -303,7 +305,16 @@ internal fun FinTrackNavGraph(
                 onNavigateToExport = { navController.navigate(Screen.Export.route) },
                 onNavigateToCategories = { navController.navigate(Screen.Categories.route) },
                 onNavigateToFinancialPlans = { navController.navigate(Screen.FinancialPlans.route) },
-                onNavigateToSalary = { navController.navigate(Screen.Salary.route) }
+                onNavigateToSalary = { navController.navigate(Screen.Salary.route) },
+                onNavigateToAccountManagement = { navController.navigate(Screen.AccountManagement.route) }
+            )
+        }
+
+        composable(Screen.AccountManagement.route) {
+            val accountViewModel: AccountManagementViewModel = viewModel(factory = factory)
+            AccountManagementScreen(
+                viewModel = accountViewModel,
+                onBack = { navController.popBackStack() }
             )
         }
 

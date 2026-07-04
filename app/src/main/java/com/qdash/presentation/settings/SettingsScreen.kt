@@ -82,6 +82,7 @@ fun SettingsScreen(
     onNavigateToCategories: () -> Unit = {},
     onNavigateToFinancialPlans: () -> Unit = {},
     onNavigateToSalary: () -> Unit = {},
+    onNavigateToAccountManagement: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val Primary = MaterialTheme.colorScheme.primary
@@ -238,29 +239,8 @@ fun SettingsScreen(
                     onNavigateToExport = onNavigateToExport,
                     onNavigateToFinancialPlans = onNavigateToFinancialPlans,
                     onNavigateToSalary = onNavigateToSalary,
-                    onCustomiseDashboardClick = { showDashboardCustomizationDialog = true },
-                    onLinkGoogleClick = { launchGoogleSignIn() },
-                    onUnlinkGoogleClick = {
-                        viewModel.disconnectGoogleDrive {
-                            Toast.makeText(context, "تم إلغاء ربط الحساب بنجاح!", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    onAddBirthdateClick = {
-                        birthdateInput = userProfile?.birthDate ?: ""
-                        showBirthdateDialog = true
-                    },
-                    onSyncClick = {
-                        viewModel.triggerDriveSync(
-                            onSuccess = { Toast.makeText(context, "تمت المزامنة بنجاح!", Toast.LENGTH_SHORT).show() },
-                            onFailure = { err -> Toast.makeText(context, "فشلت المزامنة: $err", Toast.LENGTH_LONG).show() }
-                        )
-                    },
-                    onRestoreClick = {
-                        viewModel.triggerDriveRestore(
-                            onSuccess = { Toast.makeText(context, "تمت الاستعادة بنجاح!", Toast.LENGTH_SHORT).show() },
-                            onFailure = { err -> Toast.makeText(context, "فشلت الاستعادة: $err", Toast.LENGTH_LONG).show() }
-                        )
-                    }
+                    onNavigateToAccountManagement = onNavigateToAccountManagement,
+                    onCustomiseDashboardClick = { showDashboardCustomizationDialog = true }
                 )
                 1 -> NotificationsTab(
                     billingReminder = notifBillingReminder,
@@ -650,12 +630,8 @@ private fun GeneralTab(
     onNavigateToExport: () -> Unit,
     onNavigateToFinancialPlans: () -> Unit,
     onNavigateToSalary: () -> Unit,
-    onCustomiseDashboardClick: () -> Unit,
-    onLinkGoogleClick: () -> Unit,
-    onUnlinkGoogleClick: () -> Unit,
-    onAddBirthdateClick: () -> Unit,
-    onSyncClick: () -> Unit,
-    onRestoreClick: () -> Unit
+    onNavigateToAccountManagement: () -> Unit,
+    onCustomiseDashboardClick: () -> Unit
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     var showAboutDialog by remember { mutableStateOf(false) }
@@ -669,13 +645,8 @@ private fun GeneralTab(
         // My Account Profile Card
         UserProfileCard(
             userProfile = userProfile,
-            isSyncing = uiState.isSyncing,
-            syncStatus = uiState.backupRestoreStatus,
-            onLinkGoogleClick = onLinkGoogleClick,
-            onUnlinkGoogleClick = onUnlinkGoogleClick,
-            onAddBirthdateClick = onAddBirthdateClick,
-            onSyncClick = onSyncClick,
-            onRestoreClick = onRestoreClick
+            lastSyncTimestamp = uiState.lastSyncTimestamp,
+            onClick = onNavigateToAccountManagement
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -1563,213 +1534,111 @@ private fun SettingsItemSkeleton(modifier: Modifier = Modifier) {
 @Composable
 private fun UserProfileCard(
     userProfile: UserProfileEntity?,
-    isSyncing: Boolean,
-    syncStatus: String?,
-    onLinkGoogleClick: () -> Unit,
-    onUnlinkGoogleClick: () -> Unit,
-    onAddBirthdateClick: () -> Unit,
-    onSyncClick: () -> Unit,
-    onRestoreClick: () -> Unit
+    lastSyncTimestamp: Long,
+    onClick: () -> Unit
 ) {
     val isLinked = userProfile?.isGoogleLinked == true
     val name = userProfile?.name ?: "ضيف قداشّ"
-    val email = userProfile?.email
-    val birthDate = userProfile?.birthDate
     val avatarUrl = userProfile?.avatarUrl
 
     AppCard(
         modifier = Modifier.fillMaxWidth(),
-        variant = CardVariant.SOLID,
+        variant = CardVariant.INTERACTIVE,
         shape = ShapeTokens.Lg,
+        onClick = onClick,
         backgroundColor = MaterialTheme.colorScheme.surface
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Profile Info Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Avatar
-                if (!avatarUrl.isNullOrEmpty()) {
-                    AsyncImage(
-                        model = avatarUrl,
-                        contentDescription = "الصورة الشخصية",
-                        modifier = Modifier
-                            .size(54.dp)
-                            .clip(CircleShape)
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+            // Avatar
+            if (!avatarUrl.isNullOrEmpty()) {
+                AsyncImage(
+                    model = avatarUrl,
+                    contentDescription = "الصورة الشخصية",
+                    modifier = Modifier
+                        .size(54.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = name.take(1).uppercase(),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
                     )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(54.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = name.take(1).uppercase(),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
                 }
+            }
 
-                // Name and email
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+            // Name, Sync Info and Status
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
                         text = name,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    if (!email.isNullOrEmpty()) {
-                        Text(
-                            text = email,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextGray
-                        )
-                    } else {
-                        Text(
-                            text = "ضيف",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextGray
-                        )
-                    }
-                }
 
-                // Status Badge
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(if (isLinked) Color(0xFF22C55E).copy(alpha = 0.12f) else Color(0xFF6B7280).copy(alpha = 0.12f))
-                        .border(
-                            width = 0.5.dp,
-                            color = if (isLinked) Color(0xFF22C55E).copy(alpha = 0.3f) else Color(0xFF6B7280).copy(alpha = 0.3f),
-                            shape = RoundedCornerShape(6.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .background(if (isLinked) Color(0xFF22C55E) else Color(0xFF6B7280), CircleShape)
-                        )
-                        Text(
-                            text = if (isLinked) "متصل سحابياً" else "غير متصل",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = if (isLinked) Color(0xFF22C55E) else TextGray
-                        )
-                    }
-                }
-            }
-
-            Spacer(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(MaterialTheme.colorScheme.outlineVariant)
-            )
-
-            // Details and Actions
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Birthdate details
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = if (!birthDate.isNullOrEmpty()) "تاريخ الميلاد: $birthDate" else "تاريخ الميلاد: لم يتم التحديد",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                    // Small dot status indicator
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(if (isLinked) Color(0xFF22C55E) else Color(0xFF9CA3AF), CircleShape)
                     )
-                    TextButton(
-                        onClick = onAddBirthdateClick,
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = if (!birthDate.isNullOrEmpty()) "تعديل" else "إضافة تاريخ ميلادك",
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
                 }
 
-                if (isLinked) {
-                    // Sync Status
-                    if (!syncStatus.isNullOrEmpty()) {
-                        Text(
-                            text = syncStatus,
-                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(vertical = 2.dp)
-                        )
-                    }
-
-                    // Linked Actions
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        AppButton(
-                            onClick = onSyncClick,
-                            modifier = Modifier.weight(1f),
-                            variant = ButtonVariant.SOLID,
-                            intent = ButtonIntent.PRIMARY,
-                            enabled = !isSyncing
-                        ) {
-                            Text("مزامنة الآن", fontWeight = FontWeight.Bold)
-                        }
-
-                        AppButton(
-                            onClick = onRestoreClick,
-                            modifier = Modifier.weight(1f),
-                            variant = ButtonVariant.LIGHT,
-                            intent = ButtonIntent.PRIMARY,
-                            enabled = !isSyncing
-                        ) {
-                            Text("استعادة من السحاب", fontWeight = FontWeight.Bold)
-                        }
-                    }
-
-                    AppButton(
-                        onClick = onUnlinkGoogleClick,
-                        modifier = Modifier.fillMaxWidth(),
-                        variant = ButtonVariant.LIGHT,
-                        intent = ButtonIntent.DANGER,
-                        enabled = !isSyncing
-                    ) {
-                        Text("قطع ربط الحساب", fontWeight = FontWeight.Bold)
-                    }
-                } else {
-                    // Unlinked Actions
-                    AppButton(
-                        onClick = onLinkGoogleClick,
-                        modifier = Modifier.fillMaxWidth(),
-                        variant = ButtonVariant.SOLID,
-                        intent = ButtonIntent.PRIMARY,
-                        enabled = !isSyncing
-                    ) {
-                        Text("ربط الحساب بجوجل للمزامنة السحابية", fontWeight = FontWeight.Bold)
-                    }
-                }
+                Text(
+                    text = if (isLinked && lastSyncTimestamp > 0) {
+                        "آخر مزامنة: ${formatRelativeSyncTime(lastSyncTimestamp)}"
+                    } else {
+                        "غير متصل بالسحابة"
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = TextGray
+                )
             }
+
+            // Chevron Left
+            Icon(
+                imageVector = Icons.Default.ArrowBack,
+                contentDescription = null,
+                tint = TextGray.copy(alpha = 0.6f),
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+
+private fun formatRelativeSyncTime(timestamp: Long): String {
+    val diffMs = System.currentTimeMillis() - timestamp
+    val diffMin = diffMs / 60000
+    return when {
+        diffMin < 1 -> "الآن"
+        diffMin < 60 -> "منذ $diffMin دقيقة"
+        diffMin < 1440 -> {
+            val hours = diffMin / 60
+            if (hours == 1L) "منذ ساعة" else if (hours == 2L) "منذ ساعتين" else "منذ $hours ساعة"
+        }
+        else -> {
+            val days = diffMin / 1440
+            if (days == 1L) "منذ يوم" else if (days == 2L) "منذ يومين" else "منذ $days أيام"
         }
     }
 }

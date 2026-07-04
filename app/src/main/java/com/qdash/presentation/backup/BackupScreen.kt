@@ -700,14 +700,29 @@ fun BackupScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = textSecondaryColor
                             )
-                            AppButton(
-                                onClick = { showComingSoonSheet = true },
+                            Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                variant = ButtonVariant.BORDERED,
-                                intent = ButtonIntent.PRIMARY,
-                                shape = ShapeTokens.Lg
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text("تهيئة المزامنة السحابية", color = Primary)
+                                AppButton(
+                                    onClick = { },
+                                    modifier = Modifier.weight(1f),
+                                    variant = ButtonVariant.SOLID,
+                                    intent = ButtonIntent.PRIMARY,
+                                    enabled = false
+                                ) {
+                                    Text("مزامنة الآن", fontWeight = FontWeight.Bold)
+                                }
+
+                                AppButton(
+                                    onClick = { },
+                                    modifier = Modifier.weight(1f),
+                                    variant = ButtonVariant.LIGHT,
+                                    intent = ButtonIntent.PRIMARY,
+                                    enabled = false
+                                ) {
+                                    Text("استعادة من السحاب", fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }

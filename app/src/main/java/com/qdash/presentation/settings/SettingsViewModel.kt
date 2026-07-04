@@ -25,7 +25,8 @@ data class SettingsUiState(
     val isAmountWordsEnabled: Boolean = true,
     val useWesternNumerals: Boolean = true,
     val dashboardSectionsOrder: List<String> = emptyList(),
-    val dashboardSectionsVisibility: Map<String, Boolean> = emptyMap()
+    val dashboardSectionsVisibility: Map<String, Boolean> = emptyMap(),
+    val lastSyncTimestamp: Long = 0L
 )
 
 class SettingsViewModel(
@@ -50,7 +51,8 @@ class SettingsViewModel(
             isDarkTheme = preferencesManager.darkModeEnabled,
             isHideDecimalsEnabled = preferencesManager.hideDecimalsEnabled,
             isAmountWordsEnabled = preferencesManager.amountWordsEnabled,
-            useWesternNumerals = preferencesManager.useWesternNumerals
+            useWesternNumerals = preferencesManager.useWesternNumerals,
+            lastSyncTimestamp = preferencesManager.lastSyncTimestamp
         )
     )
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -86,7 +88,8 @@ class SettingsViewModel(
                     isAmountWordsEnabled = amountWords,
                     useWesternNumerals = useWestern,
                     dashboardSectionsOrder = sectionsOrder,
-                    dashboardSectionsVisibility = sectionsVisibility
+                    dashboardSectionsVisibility = sectionsVisibility,
+                    lastSyncTimestamp = preferencesManager.lastSyncTimestamp
                 )
             }
         }
