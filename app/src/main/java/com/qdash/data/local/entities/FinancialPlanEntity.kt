@@ -1,9 +1,17 @@
 package com.qdash.data.local.entities
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "financial_plans")
+@Entity(
+    tableName = "financial_plans",
+    indices = [
+        Index(value = ["createdAt"]),
+        Index(value = ["status", "createdAt"]),
+        Index(value = ["type", "createdAt"])
+    ]
+)
 data class FinancialPlanEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val title: String,

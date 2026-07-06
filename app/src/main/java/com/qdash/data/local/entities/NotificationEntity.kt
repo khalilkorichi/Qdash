@@ -1,9 +1,17 @@
 package com.qdash.data.local.entities
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "notifications")
+@Entity(
+    tableName = "notifications",
+    indices = [
+        Index(value = ["timestamp"]),
+        Index(value = ["isRead", "timestamp"]),
+        Index(value = ["type", "timestamp"])
+    ]
+)
 data class NotificationEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val title: String,

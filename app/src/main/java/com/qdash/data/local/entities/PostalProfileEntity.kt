@@ -1,9 +1,16 @@
 package com.qdash.data.local.entities
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "postal_profiles")
+@Entity(
+    tableName = "postal_profiles",
+    indices = [
+        Index(value = ["isFavorite", "updatedAt"]),
+        Index(value = ["defaultRole", "isFavorite", "updatedAt"])
+    ]
+)
 data class PostalProfileEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val profileName: String,

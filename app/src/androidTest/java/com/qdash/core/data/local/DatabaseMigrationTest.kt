@@ -25,7 +25,7 @@ class DatabaseMigrationTest {
 
     @Test
     @Throws(IOException::class)
-    fun testAllMigrationsFromV4ToV22() {
+    fun testAllMigrationsFromV4ToV24() {
         // 1. Create database at version 4 schema
         var db = helper.createDatabase(TEST_DB, 4)
 
@@ -36,16 +36,14 @@ class DatabaseMigrationTest {
         """.trimIndent())
 
         db.execSQL("""
-            INSERT INTO transactions (id, amount, type, categoryId, accountId, note, date, isRecurring)
-            VALUES (10, 200.0, 'EXPENSE', 2, 1, 'Coffee', 123456790, 0)
+            INSERT INTO transactions (id, amount, type, categoryId, accountId, note, date, isRecurring, recurringPeriod)
+            VALUES (10, 200.0, 'EXPENSE', NULL, 1, 'Coffee', 123456790, 0, NULL)
         """.trimIndent())
 
-        db.close()
-
-        // 3. Migrate to version 5 to seed Debt
+        // 3. Migrate from V4 to V5 (Debt introduction)
         db = helper.runMigrationsAndValidate(TEST_DB, 5, true, *ALL_MIGRATIONS)
 
-        // Seed version 5 data (Debt)
+        // Seed V5 data (Debt)
         db.execSQL("""
             INSERT INTO debts (id, title, creditorName, totalAmount, remainingAmount, minimumPayment, paymentFrequency, priority, color, icon, createdAt, isClosed)
             VALUES (100, 'Car Loan', 'Bank', 50000.0, 45000.0, 1000.0, 'MONTHLY', 1, '#0000FF', 'car', 123456791, 0)
@@ -53,8 +51,8 @@ class DatabaseMigrationTest {
 
         db.close()
 
-        // 4. Migrate the rest of the way to version 22
-        db = helper.runMigrationsAndValidate(TEST_DB, 22, true, *ALL_MIGRATIONS)
+        // 4. Migrate the rest of the way to version 24
+        db = helper.runMigrationsAndValidate(TEST_DB, 24, true, *ALL_MIGRATIONS)
 
         // 5. Assert all seeded data survived intact
         val accountCursor = db.query("SELECT * FROM accounts WHERE id = 1")
@@ -79,5 +77,27 @@ class DatabaseMigrationTest {
         val profileCursor = db.query("SELECT * FROM user_profiles")
         assert(!profileCursor.moveToFirst()) // Should be empty but must not throw table-not-found
         profileCursor.close()
+
+        // Verify indices from v23 exist
+        val indexCursor = db.query("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='accounts'")
+        var hasIndex = false
+        while (indexCursor.moveToNext()) {
+            if (indexCursor.getString(0) == "index_accounts_isArchived_sortOrder_createdAt") {
+                hasIndex = true
+            }
+        }
+        indexCursor.close()
+        assert(hasIndex) { "Missing index_accounts_isArchived_sortOrder_createdAt" }
+
+        // Verify user_profiles name index from v24 exists
+        val upIndexCursor = db.query("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='user_profiles'")
+        var hasUpIndex = false
+        while (upIndexCursor.moveToNext()) {
+            if (upIndexCursor.getString(0) == "index_user_profiles_name") {
+                hasUpIndex = true
+            }
+        }
+        upIndexCursor.close()
+        assert(hasUpIndex) { "Missing index_user_profiles_name" }
     }
 }

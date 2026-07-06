@@ -34,7 +34,12 @@ data class TransactionEntity(
     val isDebit: Boolean = true
 )
 
-@Entity(tableName = "accounts")
+@Entity(
+    tableName = "accounts",
+    indices = [
+        Index(value = ["isArchived", "sortOrder", "createdAt"])
+    ]
+)
 data class AccountEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
