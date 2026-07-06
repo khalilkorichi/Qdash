@@ -155,23 +155,25 @@ fun AccountsScreen(
             state = pullRefreshState,
             modifier = Modifier.fillMaxSize()
         ) {
-            LazyColumn(
-                state = lazyListState,
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .background(MaterialTheme.colorScheme.background),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                    .background(MaterialTheme.colorScheme.background)
             ) {
-                item {
-                    UnifiedScreenHeader(
-                        title = "الحسابات المالية",
-                        subtitle = "تتبع أرصدتك وقم بإجراء تحويلات بين حساباتك",
-                        showBackButton = true,
-                        onBackClick = onBack
-                    )
-                }
+                UnifiedScreenHeader(
+                    title = "الحسابات المالية",
+                    subtitle = "تتبع أرصدتك وقم بإجراء تحويلات بين حساباتك",
+                    showBackButton = true,
+                    onBackClick = onBack
+                )
+
+                LazyColumn(
+                    state = lazyListState,
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 80.dp)
+                ) {
 
                 item {
                     if (uiState.isLoading) {
@@ -393,4 +395,5 @@ fun AccountsScreen(
         accountColorPalette = accountColorPalette,
         Primary = Primary
     )
+}
 }
