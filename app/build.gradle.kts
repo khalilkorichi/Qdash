@@ -106,6 +106,10 @@ secrets {
   defaultPropertiesFileName = ".env.example"
 }
 
+composeCompiler {
+  featureFlags.add(org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag.StrongSkipping)
+}
+
 // Some unused dependencies are commented out below instead of being removed.
 // This makes it easy to add them back in the future if needed.
 dependencies {
