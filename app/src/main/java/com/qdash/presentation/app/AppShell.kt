@@ -29,6 +29,8 @@ import com.qdash.presentation.settings.SettingsViewModel
 import com.qdash.presentation.update.UpdatesViewModel
 import com.qdash.presentation.update.UpdateUiState
 import com.qdash.presentation.update.UpdateBottomBar
+import com.qdash.presentation.ai.*
+
 
 /**
  * FinTrackAppShell — isolated composable that owns the NavController and

@@ -1,4 +1,4 @@
-package com.qdash.presentation.transactions
+﻿package com.qdash.presentation.transactions
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -80,61 +80,27 @@ private data class CalendarState(
 )
 
 class TransactionsViewModel(
-    private val transactionRepository: TransactionRepository,
+    internal val transactionRepository: TransactionRepository,
     private val accountRepository: AccountRepository,
-    private val categoryRepository: CategoryRepository,
-    private val incomeRepository: IncomeRepository,
+    internal val categoryRepository: CategoryRepository,
+    internal val incomeRepository: IncomeRepository,
     private val getCategorySuggestionUseCase: GetCategorySuggestionUseCase,
-    private val learnCategoryMappingUseCase: LearnCategoryMappingUseCase,
+    internal val learnCategoryMappingUseCase: LearnCategoryMappingUseCase,
     private val budgetGoalRepository: com.qdash.domain.repository.BudgetGoalRepository,
-    private val templateRepository: TransactionTemplateRepository,
-    private val preferencesManager: com.qdash.core.preferences.PreferencesManager,
-    private val bulkEditTransactionsUseCase: BulkEditTransactionsUseCase
+    internal val templateRepository: TransactionTemplateRepository,
+    internal val preferencesManager: com.qdash.core.preferences.PreferencesManager,
+    internal val bulkEditTransactionsUseCase: BulkEditTransactionsUseCase
 ) : ViewModel() {
+
 
     private val filterTransactionsUseCase = FilterTransactionsUseCase()
 
-    fun saveAsTemplate(
-        name: String,
-        amount: Double,
-        type: TransactionType,
-        accountId: Long,
-        targetAccountId: Long?,
-        categoryId: Long?,
-        subcategoryId: Long?,
-        notes: String?,
-        iconEmoji: String,
-        isPinned: Boolean
-    ) {
-        viewModelScope.launch {
-            val template = TransactionTemplate(
-                name = name,
-                amount = amount,
-                transactionType = type,
-                accountId = accountId,
-                targetAccountId = targetAccountId,
-                categoryId = categoryId,
-                subcategoryId = subcategoryId,
-                notes = notes,
-                iconEmoji = iconEmoji,
-                colorHex = String.format("#%06X", (0xFFFFFF and when (type) {
-                    TransactionType.EXPENSE -> 0xFFEF4444.toInt()
-                    TransactionType.INCOME -> 0xFF22C55E.toInt()
-                    TransactionType.TRANSFER -> 0xFF3B82F6.toInt()
-                })),
-                isPinned = isPinned,
-                createdAt = System.currentTimeMillis(),
-                updatedAt = System.currentTimeMillis()
-            )
-            templateRepository.insertTemplate(template)
-        }
-    }
-
-    private val _uiState = MutableStateFlow(TransactionsUiState())
+    internal val _uiState = MutableStateFlow(TransactionsUiState())
     val uiState: StateFlow<TransactionsUiState> = _uiState.asStateFlow()
 
-    private val _bulkEditEvent = MutableSharedFlow<BulkEditEvent>()
+    internal val _bulkEditEvent = MutableSharedFlow<BulkEditEvent>()
     val bulkEditEvent: SharedFlow<BulkEditEvent> = _bulkEditEvent.asSharedFlow()
+
 
     val selectedTotal: StateFlow<Double> = uiState.map { state ->
         state.transactions.filter { it.id in state.selectedTransactionIds }.sumOf { it.amount }
@@ -369,30 +335,8 @@ class TransactionsViewModel(
         _uiState.update { it.copy(currentSuggestion = null, suggestedCategory = null) }
     }
 
-    fun learnMapping(text: String, categoryId: Long) {
-        viewModelScope.launch {
-            learnCategoryMappingUseCase(text, categoryId)
-        }
-    }
 
-    fun createCategoryAndSelect(name: String, typeStr: String, color: String, icon: String, onCreated: (Long) -> Unit) {
-        viewModelScope.launch {
-            try {
-                val catType = if (typeStr == "INCOME") CategoryType.INCOME else CategoryType.EXPENSE
-                val newCat = Category(
-                    name = name,
-                    type = catType,
-                    color = color,
-                    icon = icon,
-                    isSystem = false
-                )
-                val id = categoryRepository.insertCategory(newCat)
-                onCreated(id)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
+
 
     fun onSearchQueryChanged(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
@@ -414,124 +358,6 @@ class TransactionsViewModel(
         _selectedAccountId.value = accountId
     }
 
-    fun addTransaction(
-        amount: Double,
-        type: TransactionType,
-        categoryId: Long?,
-        accountId: Long,
-        toAccountId: Long?,
-        note: String?,
-        date: Long,
-        isRecurring: Boolean,
-        recurringPeriod: String? = null,
-        tags: String? = null,
-        kind: TransactionKind? = null
-    ) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isSaving = true, saveCompleted = false, error = null) }
-            try {
-                val resolvedKind = kind ?: when (type) {
-                    TransactionType.TRANSFER -> TransactionKind.TRANSFER
-                    TransactionType.INCOME -> {
-                        val acc = _uiState.value.accounts.find { it.id == accountId }
-                        if (acc?.type == AccountType.SAVINGS) TransactionKind.SAVINGS_CONTRIBUTION else TransactionKind.INCOME
-                    }
-                    TransactionType.EXPENSE -> {
-                        val acc = _uiState.value.accounts.find { it.id == accountId }
-                        if (acc?.type == AccountType.SAVINGS) TransactionKind.SAVINGS_WITHDRAWAL else TransactionKind.EXPENSE
-                    }
-                }
-                val transaction = Transaction(
-                    amount = amount,
-                    type = type,
-                    categoryId = categoryId,
-                    accountId = accountId,
-                    toAccountId = toAccountId,
-                    note = note,
-                    date = date,
-                    isRecurring = isRecurring,
-                    recurringPeriod = recurringPeriod,
-                    tags = tags,
-                    kind = resolvedKind
-                )
-                transactionRepository.insertTransaction(transaction)
-
-                if (type == TransactionType.INCOME) {
-                    val category = _uiState.value.categories.find { it.id == categoryId }
-                    if (category?.name?.contains("راتب") == true || category?.name?.contains("الراتب") == true) {
-                        val sources = incomeRepository.getAllIncomeSources().firstOrNull() ?: emptyList()
-                        val existingSalary = sources.find { it.type == "SALARY" && it.accountId == accountId }
-                        if (existingSalary == null) {
-                            val cal = java.util.Calendar.getInstance().apply { timeInMillis = date }
-                            incomeRepository.insertIncomeSource(
-                                IncomeSource(
-                                    name = note?.takeIf { it.isNotBlank() } ?: "الراتب الشهري",
-                                    amount = amount,
-                                    type = "SALARY",
-                                    accountId = accountId,
-                                    dayOfMonth = cal.get(java.util.Calendar.DAY_OF_MONTH),
-                                    isActive = true
-                                )
-                            )
-                        }
-                    }
-                }
-                _uiState.update { it.copy(isSaving = false, saveCompleted = true) }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(isSaving = false, error = e.localizedMessage ?: "تعذر حفظ العملية.") }
-            }
-        }
-    }
-
-    fun updateTransaction(
-        id: Long,
-        amount: Double,
-        type: TransactionType,
-        categoryId: Long?,
-        accountId: Long,
-        toAccountId: Long?,
-        note: String?,
-        date: Long,
-        isRecurring: Boolean,
-        recurringPeriod: String? = null,
-        tags: String? = null,
-        kind: TransactionKind? = null
-    ) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isSaving = true, saveCompleted = false, error = null) }
-            try {
-                val resolvedKind = kind ?: when (type) {
-                    TransactionType.TRANSFER -> TransactionKind.TRANSFER
-                    TransactionType.INCOME -> {
-                        val acc = _uiState.value.accounts.find { it.id == accountId }
-                        if (acc?.type == AccountType.SAVINGS) TransactionKind.SAVINGS_CONTRIBUTION else TransactionKind.INCOME
-                    }
-                    TransactionType.EXPENSE -> {
-                        val acc = _uiState.value.accounts.find { it.id == accountId }
-                        if (acc?.type == AccountType.SAVINGS) TransactionKind.SAVINGS_WITHDRAWAL else TransactionKind.EXPENSE
-                    }
-                }
-                val transaction = Transaction(
-                    id = id,
-                    amount = amount,
-                    type = type,
-                    categoryId = categoryId,
-                    accountId = accountId,
-                    toAccountId = toAccountId,
-                    note = note,
-                    date = date,
-                    isRecurring = isRecurring,
-                    recurringPeriod = recurringPeriod,
-                    tags = tags,
-                    kind = resolvedKind
-                )
-                transactionRepository.updateTransaction(transaction)
-                _uiState.update { it.copy(isSaving = false, saveCompleted = true) }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(isSaving = false, error = e.localizedMessage ?: "تعذر حفظ العملية.") }
-            }
-        }
-    }
 
     private var lastDeletedTransaction: Transaction? = null
 
@@ -576,18 +402,6 @@ class TransactionsViewModel(
         _filterBaridiMobOnly.value = newVal
     }
 
-    fun addCategory(name: String, type: CategoryType, icon: String, color: String, parentId: Long? = null) {
-        viewModelScope.launch {
-            val category = Category(
-                name = name,
-                type = type,
-                icon = icon,
-                color = color,
-                parentId = parentId
-            )
-            categoryRepository.insertCategory(category)
-        }
-    }
 
     fun setAdvancedFilters(minAmount: Double?, startDate: Long?, endDate: Long?) {
         _filterMinAmount.value = minAmount
@@ -620,65 +434,6 @@ class TransactionsViewModel(
         }
     }
 
-    fun bulkEdit(newCategoryId: Long?, newAccountId: Long?) {
-        val selectedIds = _uiState.value.selectedTransactionIds.toList()
-        if (selectedIds.isEmpty()) return
-        viewModelScope.launch {
-            _uiState.update { it.copy(isSaving = true) }
-            bulkEditTransactionsUseCase(BulkEditParams(selectedIds, newCategoryId, newAccountId))
-                .onSuccess { count ->
-                    clearTransactionSelection()
-                    _uiState.update { it.copy(isSaving = false) }
-                    _bulkEditEvent.emit(BulkEditEvent.Success(count))
-                }
-                .onFailure { error ->
-                    _uiState.update { it.copy(isSaving = false, error = error.localizedMessage) }
-                    _bulkEditEvent.emit(BulkEditEvent.Error(error.localizedMessage ?: "فشل تحديث العمليات"))
-                }
-        }
-    }
-
-    fun deleteSelectedTransactions() {
-        val ids = _uiState.value.selectedTransactionIds.toList()
-        if (ids.isEmpty()) return
-        viewModelScope.launch {
-            try {
-                transactionRepository.deleteTransactionsBulk(ids)
-                clearTransactionSelection()
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.localizedMessage) }
-            }
-        }
-    }
-
-    fun changeCategoryForSelectedTransactions(newCategoryId: Long) {
-        val ids = _uiState.value.selectedTransactionIds.toList()
-        if (ids.isEmpty()) return
-        viewModelScope.launch {
-            try {
-                transactionRepository.updateTransactionsCategoryBulk(ids, newCategoryId)
-                clearTransactionSelection()
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.localizedMessage) }
-            }
-        }
-    }
-
-    fun mergeCategories(sourceCategoryId: Long, targetCategoryId: Long) {
-        viewModelScope.launch {
-            try {
-                categoryRepository.mergeCategories(sourceCategoryId, targetCategoryId)
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.localizedMessage) }
-            }
-        }
-    }
-
-    fun toggleSmartCategorySort() {
-        val nextVal = !preferencesManager.smartCategorySortEnabled
-        preferencesManager.smartCategorySortEnabled = nextVal
-        _uiState.update { it.copy(smartCategorySortEnabled = nextVal) }
-    }
 }
 
 sealed interface BulkEditEvent {

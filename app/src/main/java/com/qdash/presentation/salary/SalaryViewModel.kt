@@ -215,41 +215,22 @@ class SalaryViewModel(
 
     fun updateDistributionPercentage(type: EnvelopeType, newPercentage: Int) {
         val state = _uiState.value
-        val clamped = newPercentage.coerceIn(0, 100)
-        
-        // Adjust the other two to maintain sum = 100
-        val (needs, wants, savings) = when (type) {
-            EnvelopeType.NEEDS -> {
-                val remaining = 100 - clamped
-                val wantsRatio = if (state.wantsPercentage + state.savingsPercentage > 0) {
-                    state.wantsPercentage.toFloat() / (state.wantsPercentage + state.savingsPercentage)
-                } else 0.5f
-                val newWants = (remaining * wantsRatio).toInt()
-                val newSavings = remaining - newWants
-                Triple(clamped, newWants, newSavings)
-            }
-            EnvelopeType.WANTS -> {
-                val remaining = 100 - clamped
-                val needsRatio = if (state.needsPercentage + state.savingsPercentage > 0) {
-                    state.needsPercentage.toFloat() / (state.needsPercentage + state.savingsPercentage)
-                } else 0.5f
-                val newNeeds = (remaining * needsRatio).toInt()
-                val newSavings = remaining - newNeeds
-                Triple(newNeeds, clamped, newSavings)
-            }
-            EnvelopeType.SAVINGS -> {
-                val remaining = 100 - clamped
-                val needsRatio = if (state.needsPercentage + state.wantsPercentage > 0) {
-                    state.needsPercentage.toFloat() / (state.needsPercentage + state.wantsPercentage)
-                } else 0.5f
-                val newNeeds = (remaining * needsRatio).toInt()
-                val newWants = remaining - newNeeds
-                Triple(newNeeds, newWants, clamped)
-            }
+        val result = SalaryEnvelopeCalculator.calculateAdjustedPercentages(
+            type = type,
+            newPercentage = newPercentage,
+            currentNeeds = state.needsPercentage,
+            currentWants = state.wantsPercentage,
+            currentSavings = state.savingsPercentage
+        )
+        _uiState.update { 
+            it.copy(
+                needsPercentage = result.needs,
+                wantsPercentage = result.wants,
+                savingsPercentage = result.savings
+            ) 
         }
-        
-        _uiState.update { it.copy(needsPercentage = needs, wantsPercentage = wants, savingsPercentage = savings) }
     }
+
 
     fun commitDistributionPercentages() {
         saveDistribution()
@@ -408,17 +389,9 @@ class SalaryViewModel(
     }
 
     fun startAddSalaryDelay() {
-        _uiState.update { 
-            it.copy(
-                showDelayDialog = true,
-                isEditMode = false,
-                editingDelayId = null,
-                originalDelayDays = 0,
-                delayDaysInput = ""
-            ) 
-        }
-        _delayDaysFlow.value = ""
+        setShowDelayDialog(true)
     }
+
 
     fun startEditSalaryDelay(delay: SalaryDelay) {
         _uiState.update { 

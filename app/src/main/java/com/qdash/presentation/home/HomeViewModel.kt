@@ -102,177 +102,20 @@ class HomeViewModel(
 
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
             val totalBal = accounts.sumOf { it.balance }
-            
-            // Precalculate timestamps for current month
-            val currentMonthStartCal = Calendar.getInstance().apply {
-                set(Calendar.DAY_OF_MONTH, 1)
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
-            val currentMonthStart = currentMonthStartCal.timeInMillis
-            val currentMonthEnd = Calendar.getInstance().apply {
-                set(Calendar.DAY_OF_MONTH, getActualMaximum(Calendar.DAY_OF_MONTH))
-                set(Calendar.HOUR_OF_DAY, 23)
-                set(Calendar.MINUTE, 59)
-                set(Calendar.SECOND, 59)
-                set(Calendar.MILLISECOND, 999)
-            }
-            val currentMonthEndVal = currentMonthEnd.timeInMillis
-
-            // Precalculate timestamps for previous month
-            val prevMonthStartCal = Calendar.getInstance().apply {
-                add(Calendar.MONTH, -1)
-                set(Calendar.DAY_OF_MONTH, 1)
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
-            val prevMonthStart = prevMonthStartCal.timeInMillis
-            val prevMonthEnd = Calendar.getInstance().apply {
-                add(Calendar.MONTH, -1)
-                set(Calendar.DAY_OF_MONTH, getActualMaximum(Calendar.DAY_OF_MONTH))
-                set(Calendar.HOUR_OF_DAY, 23)
-                set(Calendar.MINUTE, 59)
-                set(Calendar.SECOND, 59)
-                set(Calendar.MILLISECOND, 999)
-            }
-            val prevMonthEndVal = prevMonthEnd.timeInMillis
-            
-            var monthlyIn = 0.0
-            var monthlyOut = 0.0
-            var prevMonthIn = 0.0
-            var prevMonthOut = 0.0
-            
-            transactions.forEach { tx ->
-                val date = tx.date
-                if (date in currentMonthStart..currentMonthEndVal) {
-                    if (tx.kind == TransactionKind.INCOME || tx.kind == TransactionKind.SALARY) {
-                        monthlyIn += tx.amount
-                    } else if (tx.kind == TransactionKind.EXPENSE || tx.kind == TransactionKind.SAVINGS_WITHDRAWAL) {
-                        monthlyOut += tx.amount
-                    }
-                } else if (date in prevMonthStart..prevMonthEndVal) {
-                    if (tx.kind == TransactionKind.INCOME || tx.kind == TransactionKind.SALARY) {
-                        prevMonthIn += tx.amount
-                    } else if (tx.kind == TransactionKind.EXPENSE || tx.kind == TransactionKind.SAVINGS_WITHDRAWAL) {
-                        prevMonthOut += tx.amount
-                    }
-                }
-            }
-
-            val incomeDiff = monthlyIn - prevMonthIn
-            val incomeChange = if (prevMonthIn > 0.0) (incomeDiff / prevMonthIn) * 100.0 else if (monthlyIn > 0.0) 100.0 else 0.0
-
-            val expenseDiff = monthlyOut - prevMonthOut
-            val expenseChange = if (prevMonthOut > 0.0) (expenseDiff / prevMonthOut) * 100.0 else if (monthlyOut > 0.0) 100.0 else 0.0
-
-            // Budget usage calculation across category limits (optimized)
-            val expenseCategoriesWithLimits = categories.filter { it.type == CategoryType.EXPENSE && it.budgetLimit != null }
-            var totalLimit = 0.0
-            var totalSpentOnLimits = 0.0
-            
-            if (expenseCategoriesWithLimits.isNotEmpty()) {
-                val limitCategoryIds = expenseCategoriesWithLimits.map { it.id }.toSet()
-                totalLimit = expenseCategoriesWithLimits.sumOf { it.budgetLimit ?: 0.0 }
-                
-                transactions.forEach { tx ->
-                    if (tx.type == TransactionType.EXPENSE && tx.categoryId in limitCategoryIds) {
-                        if (tx.date in currentMonthStart..currentMonthEndVal) {
-                            totalSpentOnLimits += tx.amount
-                        }
-                    }
-                }
-            }
-            
-            val budgetRatio = if (totalLimit > 0) (totalSpentOnLimits / totalLimit).toFloat() else 0f
-
-            // Compute Trend Data
-            val trendPoints = mutableListOf<ExpenseTrendPoint>()
-            val expenses = transactions.filter { it.type == TransactionType.EXPENSE }
-            
-            if (period == "WEEK") {
-                val format = SimpleDateFormat("EEE", Locale("ar"))
-                val baseCal = Calendar.getInstance().apply {
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }
-                val todayStart = baseCal.timeInMillis
-                val oneDayMs = 24 * 60 * 60 * 1000L
-                for (i in 6 downTo 0) {
-                    val dayStart = todayStart - i * oneDayMs
-                    val dayEnd = dayStart + oneDayMs - 1
-                    val sum = expenses.filter { it.date in dayStart..dayEnd }.sumOf { it.amount }
-                    trendPoints.add(ExpenseTrendPoint(format.format(java.util.Date(dayStart)), sum))
-                }
-            } else if (period == "MONTH") {
-                val format = SimpleDateFormat("dd", Locale("ar"))
-                val baseCal = Calendar.getInstance()
-                val nowMs = baseCal.timeInMillis
-                val oneDayMs = 24 * 60 * 60 * 1000L
-                for (i in 29 downTo 0 step 5) {
-                    val targetTime = nowMs - i * oneDayMs
-                    val startTime = targetTime - 5 * oneDayMs
-                    val sum = expenses.filter { it.date in startTime..targetTime }.sumOf { it.amount }
-                    trendPoints.add(ExpenseTrendPoint(format.format(java.util.Date(targetTime)), sum))
-                }
-            } else if (period == "YEAR") {
-                val format = SimpleDateFormat("MMM", Locale("ar"))
-                val baseCal = Calendar.getInstance()
-                for (i in 11 downTo 0) {
-                    val c = Calendar.getInstance().apply {
-                        timeInMillis = baseCal.timeInMillis
-                        add(Calendar.MONTH, -i)
-                    }
-                    val monthStartCal = (c.clone() as Calendar).apply {
-                        set(Calendar.DAY_OF_MONTH, 1)
-                        set(Calendar.HOUR_OF_DAY, 0)
-                        set(Calendar.MINUTE, 0)
-                        set(Calendar.SECOND, 0)
-                        set(Calendar.MILLISECOND, 0)
-                    }
-                    val startTs = monthStartCal.timeInMillis
-                    
-                    val monthEndCal = (c.clone() as Calendar).apply {
-                        set(Calendar.DAY_OF_MONTH, getActualMaximum(Calendar.DAY_OF_MONTH))
-                        set(Calendar.HOUR_OF_DAY, 23)
-                        set(Calendar.MINUTE, 59)
-                        set(Calendar.SECOND, 59)
-                        set(Calendar.MILLISECOND, 999)
-                    }
-                    val endTs = monthEndCal.timeInMillis
-                    
-                    val sum = expenses.filter { it.date in startTs..endTs }.sumOf { it.amount }
-                    trendPoints.add(ExpenseTrendPoint(format.format(c.time), sum))
-                }
-            } else { // DAY
-                val format = SimpleDateFormat("HH:mm", Locale("ar"))
-                val baseCal = Calendar.getInstance()
-                val nowMs = baseCal.timeInMillis
-                val fourHoursMs = 4L * 60 * 60 * 1000L
-                for (i in 5 downTo 0) {
-                    val blockEnd = nowMs - i * fourHoursMs
-                    val blockStart = blockEnd - fourHoursMs
-                    val sum = expenses.filter { it.date in blockStart..blockEnd }.sumOf { it.amount }
-                    trendPoints.add(ExpenseTrendPoint(format.format(java.util.Date(blockEnd)), sum))
-                }
-            }
+            val stats = HomeDashboardCalculator.computeMonthlyStats(transactions, categories)
+            val trendPoints = HomeDashboardCalculator.computeTrendPoints(transactions, period)
 
             HomeUiState(
                 totalBalance = totalBal,
-                monthlyIncome = monthlyIn,
-                monthlyExpense = monthlyOut,
-                incomeChangePercent = incomeChange,
-                expenseChangePercent = expenseChange,
+                monthlyIncome = stats.monthlyIncome,
+                monthlyExpense = stats.monthlyExpense,
+                incomeChangePercent = stats.incomeChangePercent,
+                expenseChangePercent = stats.expenseChangePercent,
                 accounts = accounts,
                 recentTransactions = recentTransactions,
                 categories = categories,
                 upcomingSubscriptions = subscriptions.filter { it.isActive }.sortedBy { it.nextBillingDate },
-                budgetUsagePercent = budgetRatio.coerceIn(0f, 1f),
+                budgetUsagePercent = stats.budgetUsagePercent,
                 chartPeriod = period,
                 expenseTrendData = trendPoints,
                 pinnedTemplates = pinnedTemplates,
