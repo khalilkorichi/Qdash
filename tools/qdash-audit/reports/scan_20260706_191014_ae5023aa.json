@@ -1,0 +1,2687 @@
+{
+  "scan_id": "ae5023aa-7cf6-41f6-adb3-814b1c108109",
+  "started_at": "2026-07-06T19:10:14.407799+00:00",
+  "completed_at": "2026-07-06T19:10:15.585593+00:00",
+  "duration_seconds": 1.18,
+  "project_root": "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a",
+  "total_files_scanned": 425,
+  "total_issues": 43,
+  "issues_by_severity": {
+    "CRITICAL": 0,
+    "HIGH": 0,
+    "MEDIUM": 5,
+    "LOW": 38,
+    "INFO": 0
+  },
+  "issues": [
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+      "line_start": 6,
+      "line_end": 6,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `id: Long` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiChatMessage.kt, app/src/main/java/com/qdash/domain/model/BudgetGoal.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiChatMessage.kt",
+        "app/src/main/java/com/qdash/domain/model/BudgetGoal.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt"
+      ],
+      "code_snippet": "    val id: Long = 0,",
+      "id": "1381d7e0-1651-4511-872a-34268fb7073e",
+      "detected_at": "2026-07-06T19:10:15.466728+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+      "line_start": 36,
+      "line_end": 36,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `id: Long` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiChatMessage.kt, app/src/main/java/com/qdash/domain/model/BudgetGoal.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiChatMessage.kt",
+        "app/src/main/java/com/qdash/domain/model/BudgetGoal.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt"
+      ],
+      "code_snippet": "    val id: Long = 0,",
+      "id": "5130f09d-d16f-42cc-a3d7-41ec7e0f28cc",
+      "detected_at": "2026-07-06T19:10:15.466772+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+      "line_start": 41,
+      "line_end": 41,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `color: String,` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt, app/src/main/java/com/qdash/domain/model/BudgetGoal.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt",
+        "app/src/main/java/com/qdash/domain/model/BudgetGoal.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt"
+      ],
+      "code_snippet": "    val color: String,",
+      "id": "71ea3b4b-f168-4e44-be6a-faad22ba2fd6",
+      "detected_at": "2026-07-06T19:10:15.466792+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+      "line_start": 54,
+      "line_end": 54,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `id: Long` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiChatMessage.kt, app/src/main/java/com/qdash/domain/model/BudgetGoal.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiChatMessage.kt",
+        "app/src/main/java/com/qdash/domain/model/BudgetGoal.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt"
+      ],
+      "code_snippet": "    val id: Long = 0,",
+      "id": "9ddc6aab-0aa9-41ab-92c9-10057ad1f23d",
+      "detected_at": "2026-07-06T19:10:15.466810+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+      "line_start": 58,
+      "line_end": 58,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `color: String,` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt, app/src/main/java/com/qdash/domain/model/BudgetGoal.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt",
+        "app/src/main/java/com/qdash/domain/model/BudgetGoal.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt"
+      ],
+      "code_snippet": "    val color: String,",
+      "id": "31ea4ab5-a122-44c9-8761-6505c2237703",
+      "detected_at": "2026-07-06T19:10:15.466824+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+      "line_start": 71,
+      "line_end": 71,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `id: Long` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiChatMessage.kt, app/src/main/java/com/qdash/domain/model/BudgetGoal.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiChatMessage.kt",
+        "app/src/main/java/com/qdash/domain/model/BudgetGoal.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt"
+      ],
+      "code_snippet": "    val id: Long = 0,",
+      "id": "455d979b-44be-4923-957a-0113348a1d15",
+      "detected_at": "2026-07-06T19:10:15.466840+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+      "line_start": 82,
+      "line_end": 82,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `id: Long` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiChatMessage.kt, app/src/main/java/com/qdash/domain/model/BudgetGoal.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiChatMessage.kt",
+        "app/src/main/java/com/qdash/domain/model/BudgetGoal.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt"
+      ],
+      "code_snippet": "    val id: Long = 0,",
+      "id": "2760fe1f-bc12-4510-bec8-2d6297f6e850",
+      "detected_at": "2026-07-06T19:10:15.466859+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+      "line_start": 89,
+      "line_end": 89,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `color: String,` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt, app/src/main/java/com/qdash/domain/model/BudgetGoal.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt",
+        "app/src/main/java/com/qdash/domain/model/BudgetGoal.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt"
+      ],
+      "code_snippet": "    val color: String,",
+      "id": "87b609df-0d92-421d-8474-a61dcf456b68",
+      "detected_at": "2026-07-06T19:10:15.466875+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+      "line_start": 94,
+      "line_end": 94,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `id: Long` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiChatMessage.kt, app/src/main/java/com/qdash/domain/model/BudgetGoal.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiChatMessage.kt",
+        "app/src/main/java/com/qdash/domain/model/BudgetGoal.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt"
+      ],
+      "code_snippet": "    val id: Long = 0,",
+      "id": "ee236dea-426a-46b8-80f3-8f23502de6e6",
+      "detected_at": "2026-07-06T19:10:15.466888+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+      "line_start": 275,
+      "line_end": 275,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `id: Long` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiChatMessage.kt, app/src/main/java/com/qdash/domain/model/BudgetGoal.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiChatMessage.kt",
+        "app/src/main/java/com/qdash/domain/model/BudgetGoal.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt"
+      ],
+      "code_snippet": "    val id: Long = 0,",
+      "id": "1527d8cd-5a63-4c8c-a93d-e825a3f24315",
+      "detected_at": "2026-07-06T19:10:15.466915+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+      "line_start": 345,
+      "line_end": 345,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `id: Long` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiChatMessage.kt, app/src/main/java/com/qdash/domain/model/BudgetGoal.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiChatMessage.kt",
+        "app/src/main/java/com/qdash/domain/model/BudgetGoal.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt"
+      ],
+      "code_snippet": "    val id: Long = 0,",
+      "id": "f6f92309-a21d-4002-aa87-e18025eb1973",
+      "detected_at": "2026-07-06T19:10:15.466961+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+      "line_start": 356,
+      "line_end": 356,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `id: Long` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiChatMessage.kt, app/src/main/java/com/qdash/domain/model/BudgetGoal.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiChatMessage.kt",
+        "app/src/main/java/com/qdash/domain/model/BudgetGoal.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt"
+      ],
+      "code_snippet": "    val id: Long = 0,",
+      "id": "66504b9c-c546-47b3-b677-11dac6d5179a",
+      "detected_at": "2026-07-06T19:10:15.466986+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+      "line_start": 365,
+      "line_end": 365,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `color: String,` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt, app/src/main/java/com/qdash/domain/model/BudgetGoal.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt",
+        "app/src/main/java/com/qdash/domain/model/BudgetGoal.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt"
+      ],
+      "code_snippet": "    val color: String,",
+      "id": "f18087a3-3014-48ea-87aa-41f44ebd386e",
+      "detected_at": "2026-07-06T19:10:15.467049+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/FinancialPlan.kt",
+      "line_start": 28,
+      "line_end": 28,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `createdAt: Long` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/BudgetGoal.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt, app/src/main/java/com/qdash/domain/model/FinancialPlan.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/BudgetGoal.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+        "app/src/main/java/com/qdash/domain/model/FinancialPlan.kt"
+      ],
+      "code_snippet": "    val createdAt: Long = System.currentTimeMillis()",
+      "id": "cbca3441-d222-4d2f-9c0e-c4682eba3b49",
+      "detected_at": "2026-07-06T19:10:15.467133+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt",
+      "line_start": 8,
+      "line_end": 8,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `accountId: Long,` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt, app/src/main/java/com/qdash/domain/model/NewDomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+        "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt"
+      ],
+      "code_snippet": "    val accountId: Long,",
+      "id": "fbc1ecd8-8094-46ac-a5bc-e99a5fb21e87",
+      "detected_at": "2026-07-06T19:10:15.467173+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt",
+      "line_start": 9,
+      "line_end": 9,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `amount: Double,` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt, app/src/main/java/com/qdash/domain/model/NewDomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+        "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt"
+      ],
+      "code_snippet": "    val amount: Double,",
+      "id": "f7355446-d3d9-4a28-8d52-37f6266e2f29",
+      "detected_at": "2026-07-06T19:10:15.467184+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt",
+      "line_start": 11,
+      "line_end": 11,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `note: String?` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt, app/src/main/java/com/qdash/domain/model/NewDomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+        "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt"
+      ],
+      "code_snippet": "    val note: String? = null,",
+      "id": "b9a8dea3-0573-47ae-9c6f-32ba57b96c74",
+      "detected_at": "2026-07-06T19:10:15.467194+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt",
+      "line_start": 33,
+      "line_end": 33,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `title: String,` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/BudgetGoal.kt, app/src/main/java/com/qdash/domain/model/FinancialPlan.kt, app/src/main/java/com/qdash/domain/model/NewDomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/BudgetGoal.kt",
+        "app/src/main/java/com/qdash/domain/model/FinancialPlan.kt",
+        "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt"
+      ],
+      "code_snippet": "    val title: String,",
+      "id": "e1d47098-a4b4-48a7-93d4-6efd6500541f",
+      "detected_at": "2026-07-06T19:10:15.467216+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt",
+      "line_start": 46,
+      "line_end": 46,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `icon: String,` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/BudgetGoal.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt, app/src/main/java/com/qdash/domain/model/NewDomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/BudgetGoal.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+        "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt"
+      ],
+      "code_snippet": "    val icon: String,",
+      "id": "9b969293-e2c7-48f4-bf2f-8b4c4811571b",
+      "detected_at": "2026-07-06T19:10:15.467238+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt",
+      "line_start": 55,
+      "line_end": 55,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `accountId: Long,` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt, app/src/main/java/com/qdash/domain/model/NewDomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+        "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt"
+      ],
+      "code_snippet": "    val accountId: Long,",
+      "id": "666a157f-264c-4abb-9554-8829ec06f4a1",
+      "detected_at": "2026-07-06T19:10:15.467253+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt",
+      "line_start": 56,
+      "line_end": 56,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `amount: Double,` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt, app/src/main/java/com/qdash/domain/model/NewDomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+        "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt"
+      ],
+      "code_snippet": "    val amount: Double,",
+      "id": "35162cf0-9a1f-4398-bb4c-f5c37cfeea08",
+      "detected_at": "2026-07-06T19:10:15.467263+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt",
+      "line_start": 59,
+      "line_end": 59,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `note: String?` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt, app/src/main/java/com/qdash/domain/model/NewDomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+        "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt"
+      ],
+      "code_snippet": "    val note: String? = null,",
+      "id": "8f3becd5-848f-45d3-8cf1-b880fd35cff9",
+      "detected_at": "2026-07-06T19:10:15.467274+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt",
+      "line_start": 80,
+      "line_end": 80,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `amount: Double,` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt, app/src/main/java/com/qdash/domain/model/NewDomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+        "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt"
+      ],
+      "code_snippet": "    val amount: Double,",
+      "id": "ca8648da-a7e9-49e1-b7cc-a70fc81d4e27",
+      "detected_at": "2026-07-06T19:10:15.467293+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt",
+      "line_start": 82,
+      "line_end": 82,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `note: String?` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt, app/src/main/java/com/qdash/domain/model/NewDomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+        "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt"
+      ],
+      "code_snippet": "    val note: String? = null,",
+      "id": "70de0c2b-0b68-4ee6-b50c-c206d476a85e",
+      "detected_at": "2026-07-06T19:10:15.467304+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt",
+      "line_start": 90,
+      "line_end": 90,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `amount: Double,` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt, app/src/main/java/com/qdash/domain/model/NewDomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+        "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt"
+      ],
+      "code_snippet": "    val amount: Double,",
+      "id": "a78b66df-7d92-4b5c-b94e-d6242a1d54e8",
+      "detected_at": "2026-07-06T19:10:15.467316+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt",
+      "line_start": 92,
+      "line_end": 92,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `note: String?` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt, app/src/main/java/com/qdash/domain/model/NewDomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+        "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt"
+      ],
+      "code_snippet": "    val note: String? = null,",
+      "id": "067fab52-eaea-481c-8289-4e2f07b1c1fd",
+      "detected_at": "2026-07-06T19:10:15.467327+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt",
+      "line_start": 119,
+      "line_end": 119,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `title: String,` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/BudgetGoal.kt, app/src/main/java/com/qdash/domain/model/FinancialPlan.kt, app/src/main/java/com/qdash/domain/model/NewDomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/BudgetGoal.kt",
+        "app/src/main/java/com/qdash/domain/model/FinancialPlan.kt",
+        "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt"
+      ],
+      "code_snippet": "    val title: String,",
+      "id": "7afb53bc-d4c2-458e-a775-d0f2422e43fb",
+      "detected_at": "2026-07-06T19:10:15.467354+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt",
+      "line_start": 245,
+      "line_end": 245,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `title: String,` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/BudgetGoal.kt, app/src/main/java/com/qdash/domain/model/FinancialPlan.kt, app/src/main/java/com/qdash/domain/model/NewDomainModels.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/BudgetGoal.kt",
+        "app/src/main/java/com/qdash/domain/model/FinancialPlan.kt",
+        "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt"
+      ],
+      "code_snippet": "    val title: String,",
+      "id": "103de0e2-6a72-4548-a510-caefe01f128b",
+      "detected_at": "2026-07-06T19:10:15.467371+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/TransactionTemplate.kt",
+      "line_start": 7,
+      "line_end": 7,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `name: String,` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/BackupFileInfo.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt, app/src/main/java/com/qdash/domain/model/TransactionTemplate.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/BackupFileInfo.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+        "app/src/main/java/com/qdash/domain/model/TransactionTemplate.kt"
+      ],
+      "code_snippet": "    val name: String,",
+      "id": "25e3c98b-8a29-48b2-9f59-3f8fe4f68f8e",
+      "detected_at": "2026-07-06T19:10:15.467449+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/TransactionTemplate.kt",
+      "line_start": 14,
+      "line_end": 14,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `notes: String?` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/FinancialPlan.kt, app/src/main/java/com/qdash/domain/model/NewDomainModels.kt, app/src/main/java/com/qdash/domain/model/TransactionTemplate.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/FinancialPlan.kt",
+        "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt",
+        "app/src/main/java/com/qdash/domain/model/TransactionTemplate.kt"
+      ],
+      "code_snippet": "    val notes: String? = null,",
+      "id": "ec6d66da-07c7-4ae2-b8f3-e746aff1dbfc",
+      "detected_at": "2026-07-06T19:10:15.467463+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/TransactionTemplate.kt",
+      "line_start": 21,
+      "line_end": 21,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `updatedAt: Long` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/DomainModels.kt, app/src/main/java/com/qdash/domain/model/PostalProfile.kt, app/src/main/java/com/qdash/domain/model/TransactionTemplate.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+        "app/src/main/java/com/qdash/domain/model/PostalProfile.kt",
+        "app/src/main/java/com/qdash/domain/model/TransactionTemplate.kt"
+      ],
+      "code_snippet": "    val updatedAt: Long = System.currentTimeMillis()",
+      "id": "4f62f299-2998-41b7-9aff-12ebc62c12a7",
+      "detected_at": "2026-07-06T19:10:15.467477+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/TransactionTemplate.kt",
+      "line_start": 26,
+      "line_end": 26,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `type: TransactionType,` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt, app/src/main/java/com/qdash/domain/model/DomainModels.kt, app/src/main/java/com/qdash/domain/model/TransactionTemplate.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/AiSmartBoxModels.kt",
+        "app/src/main/java/com/qdash/domain/model/DomainModels.kt",
+        "app/src/main/java/com/qdash/domain/model/TransactionTemplate.kt"
+      ],
+      "code_snippet": "    val type: TransactionType,",
+      "id": "52402bc0-b88f-44c2-80a8-fc38e65aa590",
+      "detected_at": "2026-07-06T19:10:15.467486+00:00"
+    },
+    {
+      "rule_id": "DUP-002",
+      "severity": "LOW",
+      "category": "Duplication",
+      "file_path": "app/src/main/java/com/qdash/domain/model/TransactionTemplate.kt",
+      "line_start": 31,
+      "line_end": 31,
+      "title": "Identical field declared in multiple domain model files",
+      "description": "Field `notes: String?` is declared identically in 3+ domain model files: app/src/main/java/com/qdash/domain/model/FinancialPlan.kt, app/src/main/java/com/qdash/domain/model/NewDomainModels.kt, app/src/main/java/com/qdash/domain/model/TransactionTemplate.kt. Consider extracting this into a shared base class, interface, or value object.",
+      "user_symptom": "لا يوجد تأثير مباشر على المستخدم — تحسين جودة الكود للصيانة المستقبلية",
+      "affected_files": [
+        "app/src/main/java/com/qdash/domain/model/FinancialPlan.kt",
+        "app/src/main/java/com/qdash/domain/model/NewDomainModels.kt",
+        "app/src/main/java/com/qdash/domain/model/TransactionTemplate.kt"
+      ],
+      "code_snippet": "    val notes: String? = null,",
+      "id": "9b4f24fc-8a69-4591-baa0-f9b1452a5167",
+      "detected_at": "2026-07-06T19:10:15.467497+00:00"
+    },
+    {
+      "rule_id": "ARCH-004",
+      "severity": "MEDIUM",
+      "category": "Architecture",
+      "file_path": "app/src/main/java/com/qdash/presentation/export/ExportScreen.kt",
+      "line_start": 1,
+      "line_end": 453,
+      "title": "@Composable screen file too large",
+      "description": "File has 453 lines (threshold: 400). Large Composable screen files hurt readability, increase recomposition scope, and slow down Android Studio preview rendering. Consider splitting into smaller sub-composable functions or separate files.",
+      "user_symptom": "قد يؤدي إلى بطء في تحديث الشاشة وصعوبة في صيانة الكود",
+      "affected_files": [],
+      "code_snippet": "",
+      "id": "97f95196-a945-4439-84bd-5717ba8f73a4",
+      "detected_at": "2026-07-06T19:10:15.515302+00:00"
+    },
+    {
+      "rule_id": "SIZE-002",
+      "severity": "LOW",
+      "category": "Size",
+      "file_path": "app/src/main/java/com/qdash/presentation/export/ExportScreen.kt",
+      "line_start": 1,
+      "line_end": 453,
+      "title": "Composable screen file too large",
+      "description": "Composable screen file has 453 lines (threshold: 400). Large screen files increase recomposition scope, slow down Android Studio previews, and make it harder to find UI bugs. Extract sub-components into separate composable functions or sub-files.",
+      "user_symptom": "قد يؤدي إلى بطء في تحديث الشاشة عند إعادة التركيب (recomposition)",
+      "affected_files": [],
+      "code_snippet": "",
+      "id": "1a9c043c-3339-4b98-a983-00abe4572795",
+      "detected_at": "2026-07-06T19:10:15.515884+00:00"
+    },
+    {
+      "rule_id": "ARCH-004",
+      "severity": "MEDIUM",
+      "category": "Architecture",
+      "file_path": "app/src/main/java/com/qdash/presentation/savings/SavingsScreen.kt",
+      "line_start": 1,
+      "line_end": 703,
+      "title": "@Composable screen file too large",
+      "description": "File has 703 lines (threshold: 400). Large Composable screen files hurt readability, increase recomposition scope, and slow down Android Studio preview rendering. Consider splitting into smaller sub-composable functions or separate files.",
+      "user_symptom": "قد يؤدي إلى بطء في تحديث الشاشة وصعوبة في صيانة الكود",
+      "affected_files": [],
+      "code_snippet": "",
+      "id": "fbb3c24a-9f13-463a-8d61-0b2f649acce4",
+      "detected_at": "2026-07-06T19:10:15.535345+00:00"
+    },
+    {
+      "rule_id": "SIZE-002",
+      "severity": "LOW",
+      "category": "Size",
+      "file_path": "app/src/main/java/com/qdash/presentation/savings/SavingsScreen.kt",
+      "line_start": 1,
+      "line_end": 703,
+      "title": "Composable screen file too large",
+      "description": "Composable screen file has 703 lines (threshold: 400). Large screen files increase recomposition scope, slow down Android Studio previews, and make it harder to find UI bugs. Extract sub-components into separate composable functions or sub-files.",
+      "user_symptom": "قد يؤدي إلى بطء في تحديث الشاشة عند إعادة التركيب (recomposition)",
+      "affected_files": [],
+      "code_snippet": "",
+      "id": "e9ac37e7-f173-46a4-99b5-d63fb2240ecc",
+      "detected_at": "2026-07-06T19:10:15.536166+00:00"
+    },
+    {
+      "rule_id": "ARCH-004",
+      "severity": "MEDIUM",
+      "category": "Architecture",
+      "file_path": "app/src/main/java/com/qdash/presentation/transactions/IncomeHistoryScreen.kt",
+      "line_start": 1,
+      "line_end": 417,
+      "title": "@Composable screen file too large",
+      "description": "File has 417 lines (threshold: 400). Large Composable screen files hurt readability, increase recomposition scope, and slow down Android Studio preview rendering. Consider splitting into smaller sub-composable functions or separate files.",
+      "user_symptom": "قد يؤدي إلى بطء في تحديث الشاشة وصعوبة في صيانة الكود",
+      "affected_files": [],
+      "code_snippet": "",
+      "id": "c45b3e14-dcf8-4330-9491-d272d8bae1ab",
+      "detected_at": "2026-07-06T19:10:15.563220+00:00"
+    },
+    {
+      "rule_id": "SIZE-002",
+      "severity": "LOW",
+      "category": "Size",
+      "file_path": "app/src/main/java/com/qdash/presentation/transactions/IncomeHistoryScreen.kt",
+      "line_start": 1,
+      "line_end": 417,
+      "title": "Composable screen file too large",
+      "description": "Composable screen file has 417 lines (threshold: 400). Large screen files increase recomposition scope, slow down Android Studio previews, and make it harder to find UI bugs. Extract sub-components into separate composable functions or sub-files.",
+      "user_symptom": "قد يؤدي إلى بطء في تحديث الشاشة عند إعادة التركيب (recomposition)",
+      "affected_files": [],
+      "code_snippet": "",
+      "id": "6a38b721-6ea9-4779-bdb9-1a325bfbec6b",
+      "detected_at": "2026-07-06T19:10:15.563636+00:00"
+    },
+    {
+      "rule_id": "ARCH-004",
+      "severity": "MEDIUM",
+      "category": "Architecture",
+      "file_path": "app/src/main/java/com/qdash/presentation/transfer/TransferScreen.kt",
+      "line_start": 1,
+      "line_end": 615,
+      "title": "@Composable screen file too large",
+      "description": "File has 615 lines (threshold: 400). Large Composable screen files hurt readability, increase recomposition scope, and slow down Android Studio preview rendering. Consider splitting into smaller sub-composable functions or separate files.",
+      "user_symptom": "قد يؤدي إلى بطء في تحديث الشاشة وصعوبة في صيانة الكود",
+      "affected_files": [],
+      "code_snippet": "",
+      "id": "f0936250-bf58-4599-9731-52749a011b46",
+      "detected_at": "2026-07-06T19:10:15.573303+00:00"
+    },
+    {
+      "rule_id": "SIZE-002",
+      "severity": "LOW",
+      "category": "Size",
+      "file_path": "app/src/main/java/com/qdash/presentation/transfer/TransferScreen.kt",
+      "line_start": 1,
+      "line_end": 615,
+      "title": "Composable screen file too large",
+      "description": "Composable screen file has 615 lines (threshold: 400). Large screen files increase recomposition scope, slow down Android Studio previews, and make it harder to find UI bugs. Extract sub-components into separate composable functions or sub-files.",
+      "user_symptom": "قد يؤدي إلى بطء في تحديث الشاشة عند إعادة التركيب (recomposition)",
+      "affected_files": [],
+      "code_snippet": "",
+      "id": "e43f7b1a-ebe5-4638-a05c-ba020eac0a31",
+      "detected_at": "2026-07-06T19:10:15.574066+00:00"
+    },
+    {
+      "rule_id": "ARCH-004",
+      "severity": "MEDIUM",
+      "category": "Architecture",
+      "file_path": "app/src/main/java/com/qdash/presentation/update/UpdatesScreen.kt",
+      "line_start": 1,
+      "line_end": 871,
+      "title": "@Composable screen file too large",
+      "description": "File has 871 lines (threshold: 400). Large Composable screen files hurt readability, increase recomposition scope, and slow down Android Studio preview rendering. Consider splitting into smaller sub-composable functions or separate files.",
+      "user_symptom": "قد يؤدي إلى بطء في تحديث الشاشة وصعوبة في صيانة الكود",
+      "affected_files": [],
+      "code_snippet": "",
+      "id": "d274b067-7eb2-4d31-bc71-1bc87927f7e9",
+      "detected_at": "2026-07-06T19:10:15.576832+00:00"
+    },
+    {
+      "rule_id": "SIZE-002",
+      "severity": "LOW",
+      "category": "Size",
+      "file_path": "app/src/main/java/com/qdash/presentation/update/UpdatesScreen.kt",
+      "line_start": 1,
+      "line_end": 871,
+      "title": "Composable screen file too large",
+      "description": "Composable screen file has 871 lines (threshold: 400). Large screen files increase recomposition scope, slow down Android Studio previews, and make it harder to find UI bugs. Extract sub-components into separate composable functions or sub-files.",
+      "user_symptom": "قد يؤدي إلى بطء في تحديث الشاشة عند إعادة التركيب (recomposition)",
+      "affected_files": [],
+      "code_snippet": "",
+      "id": "5463d97d-c9a8-4ed0-8aea-3882b9f55db3",
+      "detected_at": "2026-07-06T19:10:15.577726+00:00"
+    }
+  ],
+  "new_issue_ids": [],
+  "resolved_issue_ids": [],
+  "db_health": {
+    "schema_version": 25,
+    "entity_count": 23,
+    "entities": [
+      {
+        "name": "transactions",
+        "table_name": "transactions",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "amount",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "type",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "categoryId",
+            "type": "INTEGER",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "accountId",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "toAccountId",
+            "type": "INTEGER",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "note",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "date",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "isRecurring",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "recurringPeriod",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "attachmentPath",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "tags",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "suggestedCategoryId",
+            "type": "INTEGER",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "suggestionSource",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "confidenceScore",
+            "type": "REAL",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "userAcceptedSuggestion",
+            "type": "INTEGER",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "kind",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "transferId",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "isDebit",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "accountId",
+          "categoryId",
+          "date"
+        ],
+        "foreign_keys": [
+          "accounts",
+          "categories",
+          "accounts"
+        ],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "accounts",
+        "table_name": "accounts",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "name",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "type",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "balance",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "currency",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "color",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "icon",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "isDefault",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "isArchived",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "createdAt",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "sortOrder",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "isArchived",
+          "sortOrder",
+          "createdAt"
+        ],
+        "foreign_keys": [],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "categories",
+        "table_name": "categories",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "name",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "type",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "icon",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "color",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "budgetLimit",
+            "type": "REAL",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "isSystem",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "parentId",
+            "type": "INTEGER",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "sortOrder",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "parentId"
+        ],
+        "foreign_keys": [
+          "categories"
+        ],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "income_sources",
+        "table_name": "income_sources",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "name",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "amount",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "type",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "accountId",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "dayOfMonth",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "isActive",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "nextExpectedDate",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "accountId"
+        ],
+        "foreign_keys": [
+          "accounts"
+        ],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "saving_goals",
+        "table_name": "saving_goals",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "name",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "targetAmount",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "currentAmount",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "deadline",
+            "type": "INTEGER",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "accountId",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "icon",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "color",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "isCompleted",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "accountId"
+        ],
+        "foreign_keys": [
+          "accounts"
+        ],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "subscriptions",
+        "table_name": "subscriptions",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "name",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "amount",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "currency",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "billingCycle",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "nextBillingDate",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "accountId",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "categoryId",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "icon",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "isActive",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "reminderDaysBefore",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "isAutoShiftableBySalary",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "accountId",
+          "categoryId"
+        ],
+        "foreign_keys": [
+          "accounts",
+          "categories"
+        ],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "budget_goals",
+        "table_name": "budget_goals",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "title",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "linkedCategoryId",
+            "type": "INTEGER",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "budgetType",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "amountLimit",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "spentAmount",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "startDate",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "endDate",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "alertThresholdPercent",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "isActive",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "color",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "icon",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "createdAt",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "linkedCategoryId"
+        ],
+        "foreign_keys": [
+          "categories"
+        ],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "category_rules",
+        "table_name": "category_rules",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "keyword",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "categoryId",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "priority",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "source",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "isActive",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "keyword"
+        ],
+        "foreign_keys": [
+          "categories"
+        ],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "user_category_mappings",
+        "table_name": "user_category_mappings",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "normalizedText",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "categoryId",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "usageCount",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "lastUsedAt",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "normalizedText"
+        ],
+        "foreign_keys": [
+          "categories"
+        ],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "savings_contributions",
+        "table_name": "savings_contributions",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "savingGoalId",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "accountId",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "amount",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "type",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "note",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "date",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "linkedTransactionId",
+            "type": "INTEGER",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "createdAt",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "savingGoalId",
+          "accountId",
+          "date"
+        ],
+        "foreign_keys": [
+          "saving_goals",
+          "accounts"
+        ],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "debts",
+        "table_name": "debts",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "title",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "creditorName",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "totalAmount",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "remainingAmount",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "interestRate",
+            "type": "REAL",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "dueDate",
+            "type": "INTEGER",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "minimumPayment",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "recommendedPayment",
+            "type": "REAL",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "paymentFrequency",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "linkedAccountId",
+            "type": "INTEGER",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "priority",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "notes",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "color",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "icon",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "createdAt",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "isClosed",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "debtType",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "linkedAccountId"
+        ],
+        "foreign_keys": [
+          "accounts"
+        ],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "debt_payments",
+        "table_name": "debt_payments",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "debtId",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "accountId",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "amount",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "paymentDate",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "paymentType",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "note",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "linkedTransactionId",
+            "type": "INTEGER",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "createdAt",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "debtId",
+          "accountId",
+          "paymentDate"
+        ],
+        "foreign_keys": [
+          "debts",
+          "accounts"
+        ],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "transfers",
+        "table_name": "transfers",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "fromAccountId",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "toAccountId",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "amount",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "feeAmount",
+            "type": "REAL",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "note",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "date",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "referenceId",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "createdAt",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "fromAccountId",
+          "toAccountId",
+          "date"
+        ],
+        "foreign_keys": [
+          "accounts",
+          "accounts"
+        ],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "notifications",
+        "table_name": "notifications",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "title",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "message",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "type",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "isRead",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "timestamp",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "deepLinkRoute",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "relatedEntityId",
+            "type": "INTEGER",
+            "not_null": false,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "timestamp",
+          "isRead",
+          "timestamp",
+          "type",
+          "timestamp"
+        ],
+        "foreign_keys": [],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "financial_plans",
+        "table_name": "financial_plans",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "title",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "type",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "targetAmount",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "currentAmount",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "linkedAccountIds",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "linkedCategoryIds",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "startDate",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "endDate",
+            "type": "INTEGER",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "status",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "notes",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "color",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "icon",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "createdAt",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "createdAt",
+          "status",
+          "createdAt",
+          "type",
+          "createdAt"
+        ],
+        "foreign_keys": [],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "daily_financial_aggregates",
+        "table_name": "daily_financial_aggregates",
+        "columns": [
+          {
+            "name": "localDateTimestamp",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "totalExpense",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "totalIncome",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "transactionCount",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "netCashflow",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "activityScore",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "localDateTimestamp"
+        ],
+        "foreign_keys": [],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "transaction_templates",
+        "table_name": "transaction_templates",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "name",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "amount",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "transactionType",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "accountId",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "targetAccountId",
+            "type": "INTEGER",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "categoryId",
+            "type": "INTEGER",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "subcategoryId",
+            "type": "INTEGER",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "notes",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "iconEmoji",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "colorHex",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "isPinned",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "usageCount",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "lastUsedAt",
+            "type": "INTEGER",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "createdAt",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "updatedAt",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "isPinned",
+          "usageCount",
+          "lastUsedAt",
+          "transactionType",
+          "categoryId",
+          "accountId"
+        ],
+        "foreign_keys": [
+          "accounts",
+          "accounts",
+          "categories"
+        ],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "ai_chat_messages",
+        "table_name": "ai_chat_messages",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "sender",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "message",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "timestamp",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "sessionTitle",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "sessionTitle"
+        ],
+        "foreign_keys": [],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "postal_profiles",
+        "table_name": "postal_profiles",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "profileName",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "firstName",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "lastName",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "fullName",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "accountNumber",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "accountKey",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "phone",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "address",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "city",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "defaultRole",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "isFavorite",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "createdAt",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "updatedAt",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "isFavorite",
+          "updatedAt",
+          "defaultRole",
+          "isFavorite",
+          "updatedAt"
+        ],
+        "foreign_keys": [],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "salary_delays",
+        "table_name": "salary_delays",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "salaryId",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "delayDays",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "originalDate",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "newDate",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "severityScore",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "status",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "createdAt",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "salaryId"
+        ],
+        "foreign_keys": [
+          "income_sources"
+        ],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "salary_distributions",
+        "table_name": "salary_distributions",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "salaryId",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "isEnabled",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "needsPercentage",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "wantsPercentage",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "savingsPercentage",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "createdAt",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "updatedAt",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "salaryId"
+        ],
+        "foreign_keys": [
+          "income_sources"
+        ],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "salary_envelopes",
+        "table_name": "salary_envelopes",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "distributionId",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "type",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "label",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "percentage",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "allocatedAmount",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "spentAmount",
+            "type": "REAL",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "linkedCategoryIds",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "linkedAccountId",
+            "type": "INTEGER",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "color",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "icon",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "distributionId"
+        ],
+        "foreign_keys": [
+          "salary_distributions",
+          "accounts"
+        ],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      },
+      {
+        "name": "user_profiles",
+        "table_name": "user_profiles",
+        "columns": [
+          {
+            "name": "id",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": true
+          },
+          {
+            "name": "name",
+            "type": "TEXT",
+            "not_null": true,
+            "primary_key": false
+          },
+          {
+            "name": "email",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "birthDate",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "avatarUrl",
+            "type": "TEXT",
+            "not_null": false,
+            "primary_key": false
+          },
+          {
+            "name": "isGoogleLinked",
+            "type": "INTEGER",
+            "not_null": true,
+            "primary_key": false
+          }
+        ],
+        "indices": [
+          "name"
+        ],
+        "foreign_keys": [],
+        "has_primary_key": true,
+        "is_flagged": false,
+        "flag_reasons": []
+      }
+    ],
+    "migration_versions": [
+      [
+        3,
+        4
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        7,
+        8
+      ],
+      [
+        8,
+        9
+      ],
+      [
+        9,
+        10
+      ],
+      [
+        10,
+        11
+      ],
+      [
+        11,
+        12
+      ],
+      [
+        12,
+        13
+      ],
+      [
+        13,
+        14
+      ],
+      [
+        14,
+        15
+      ],
+      [
+        15,
+        16
+      ],
+      [
+        16,
+        17
+      ],
+      [
+        17,
+        18
+      ],
+      [
+        18,
+        19
+      ],
+      [
+        19,
+        20
+      ],
+      [
+        20,
+        21
+      ],
+      [
+        21,
+        22
+      ],
+      [
+        22,
+        23
+      ],
+      [
+        23,
+        24
+      ],
+      [
+        24,
+        25
+      ]
+    ],
+    "flagged_entities": [],
+    "missing_migrations": [],
+    "has_destructive_migration": false,
+    "schema_files_found": [
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\4.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\5.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\6.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\7.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\8.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\9.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\10.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\11.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\12.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\13.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\14.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\15.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\16.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\17.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\18.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\19.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\20.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\21.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\22.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\23.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\24.json",
+      "C:\\Users\\Khalil\\antigravity\\FinTrack-DZ-2026-05-29-30f3a\\app\\schemas\\com.qdash.data.local.AppDatabase\\25.json"
+    ]
+  },
+  "schema_version": 25
+}

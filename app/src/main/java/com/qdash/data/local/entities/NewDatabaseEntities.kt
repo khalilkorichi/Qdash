@@ -3,6 +3,7 @@ package com.qdash.data.local.entities
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.Index
+import androidx.room.ForeignKey
 
 @Entity(
     tableName = "savings_contributions",
@@ -10,6 +11,20 @@ import androidx.room.Index
         Index(value = ["savingGoalId"]),
         Index(value = ["accountId"]),
         Index(value = ["date"])
+    ],
+    foreignKeys = [
+        ForeignKey(
+            entity = SavingGoalEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["savingGoalId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["accountId"],
+            onDelete = ForeignKey.CASCADE
+        )
     ]
 )
 data class SavingsContributionEntity(
@@ -26,7 +41,15 @@ data class SavingsContributionEntity(
 
 @Entity(
     tableName = "debts",
-    indices = [Index(value = ["linkedAccountId"])]
+    indices = [Index(value = ["linkedAccountId"])],
+    foreignKeys = [
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["linkedAccountId"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ]
 )
 data class DebtEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -55,6 +78,20 @@ data class DebtEntity(
         Index(value = ["debtId"]),
         Index(value = ["accountId"]),
         Index(value = ["paymentDate"])
+    ],
+    foreignKeys = [
+        ForeignKey(
+            entity = DebtEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["debtId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["accountId"],
+            onDelete = ForeignKey.CASCADE
+        )
     ]
 )
 data class DebtPaymentEntity(
@@ -75,6 +112,20 @@ data class DebtPaymentEntity(
         Index(value = ["fromAccountId"]),
         Index(value = ["toAccountId"]),
         Index(value = ["date"])
+    ],
+    foreignKeys = [
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["fromAccountId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["toAccountId"],
+            onDelete = ForeignKey.CASCADE
+        )
     ]
 )
 data class TransferEntity(

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Qdash Audit — لوحة صحة الكود</title>
+  <meta name="description" content="لوحة مراقبة صحة كود Qdash — Architecture, Room DB, Threading, RTL" />
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Favicon inline SVG -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>" />
+</head>
+<body>
+<div id="loading-bar" class="loading-bar"></div>
+
+<div id="app">
+
+  <!-- ── Top bar ─────────────────────────────────────────────────────────── -->
+  <header class="topbar">
+    <a class="topbar-brand" href="#" onclick="return false">
+      <span class="logo-dot"></span>
+      <span>Qdash Audit</span>
+      <span style="color:var(--text-muted);font-weight:400;font-size:0.82rem">v1.0</span>
+    </a>
+    <div class="topbar-actions">
+      <span id="last-scan-label" style="font-size:0.78rem;color:var(--text-muted)"></span>
+      <button id="btn-scan" class="btn-scan" aria-label="تشغيل الفحص">
+        <span class="btn-icon">🔍</span>
+        <span class="ar">فحص الآن</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Tab nav ─────────────────────────────────────────────────────────── -->
+  <nav class="tabnav" role="tablist" aria-label="أقسام اللوحة">
+    <button class="tab active" data-tab="overview" role="tab" aria-selected="true">
+      <span>📊</span>
+      <span class="ar">نظرة عامة</span>
+      <span class="tab-badge" id="badge-overview">—</span>
+    </button>
+    <button class="tab" data-tab="history" role="tab" aria-selected="false">
+      <span>📋</span>
+      <span class="ar">سجل الفحوصات</span>
+      <span class="tab-badge" id="badge-history">—</span>
+    </button>
+    <button class="tab" data-tab="dbhealth" role="tab" aria-selected="false">
+      <span>🗄️</span>
+      <span class="ar">صحة قاعدة البيانات</span>
+    </button>
+  </nav>
+
+  <!-- ── Main content ────────────────────────────────────────────────────── -->
+  <main class="main-content">
+
+    <!-- ── OVERVIEW PANEL ─────────────────────────────────────────────────── -->
+    <section id="overview-panel" class="tab-panel" role="tabpanel">
+
+      <!-- Stat cards -->
+      <div id="stats-container" class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">الحالة</div>
+          <div class="stat-value" style="font-size:1rem;color:var(--text-muted)">جاري التحميل…</div>
+        </div>
+      </div>
+
+      <!-- Issues grouped by severity -->
+      <div class="section-header">
+        <div class="section-title">
+          <span>⚠️</span>
+          <span class="ar">قائمة المشكلات</span>
+        </div>
+        <span id="issues-count" class="section-count"></span>
+      </div>
+      <div id="issues-list"></div>
+
+    </section>
+
+    <!-- ── HISTORY PANEL ──────────────────────────────────────────────────── -->
+    <section id="history-panel" class="tab-panel hidden" role="tabpanel">
+
+      <div class="section-header">
+        <div class="section-title">
+          <span>📋</span>
+          <span class="ar">سجل الفحوصات</span>
+        </div>
+      </div>
+
+      <div id="history-list" class="history-list"></div>
+
+      <!-- Drill-down area -->
+      <div id="history-drill" style="margin-top:2rem"></div>
+
+    </section>
+
+    <!-- ── DB HEALTH PANEL ────────────────────────────────────────────────── -->
+    <section id="dbhealth-panel" class="tab-panel hidden" role="tabpanel">
+
+      <div class="section-header">
+        <div class="section-title">
+          <span>🗄️</span>
+          <span class="ar">صحة قاعدة بيانات Room</span>
+        </div>
+      </div>
+
+      <div id="db-content"></div>
+
+    </section>
+
+  </main>
+</div>
+
+<!-- ── Scan modal ──────────────────────────────────────────────────────────── -->
+<div id="modal-overlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal" dir="rtl">
+    <h2 class="modal-title ar" id="modal-title">🔍 تشغيل الفحص</h2>
+    <div class="modal-body ar">
+      <p>لتشغيل الفحص، افتح terminal في مجلد المشروع ونفّذ الأمر التالي:</p>
+      <div class="modal-command" dir="ltr">python tools/qdash-audit/audit.py</div>
+      <p>لإجبار إعادة فحص جميع الملفات:</p>
+      <div class="modal-command" dir="ltr">python tools/qdash-audit/audit.py --full</div>
+      <p style="margin-top:12px;font-size:0.82rem;color:var(--text-muted)">
+        بعد انتهاء الفحص، اضغط "تحديث" أدناه لتحميل النتائج الجديدة.
+      </p>
+    </div>
+    <div class="modal-actions">
+      <button id="modal-close" class="btn-secondary ar">إغلاق</button>
+      <button onclick="refreshAfterScan()" class="btn-scan ar" style="box-shadow:none">
+        <span>🔄</span> تحديث النتائج
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ──────────────────────────────────────────────────────────────── -->
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="data.js" onerror="window.AUDIT_DATA=null"></script>
+<script src="app.js"></script>
+</body>
+</html>
+

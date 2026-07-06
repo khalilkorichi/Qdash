@@ -3,6 +3,7 @@ package com.qdash.data.local.entities
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import androidx.room.ForeignKey
 
 @Entity(
     tableName = "transaction_templates",
@@ -13,6 +14,26 @@ import androidx.room.PrimaryKey
         Index(value = ["transactionType"]),
         Index(value = ["categoryId"]),
         Index(value = ["accountId"])
+    ],
+    foreignKeys = [
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["accountId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["targetAccountId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = CategoryEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["categoryId"],
+            onDelete = ForeignKey.SET_NULL
+        )
     ]
 )
 data class TransactionTemplateEntity(

@@ -3,10 +3,19 @@ package com.qdash.data.local.entities
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import androidx.room.ForeignKey
 
 @Entity(
     tableName = "salary_distributions",
-    indices = [Index(value = ["salaryId"], unique = true)]
+    indices = [Index(value = ["salaryId"], unique = true)],
+    foreignKeys = [
+        ForeignKey(
+            entity = IncomeSourceEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["salaryId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
 )
 data class SalaryDistributionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -21,7 +30,21 @@ data class SalaryDistributionEntity(
 
 @Entity(
     tableName = "salary_envelopes",
-    indices = [Index(value = ["distributionId"])]
+    indices = [Index(value = ["distributionId"])],
+    foreignKeys = [
+        ForeignKey(
+            entity = SalaryDistributionEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["distributionId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["linkedAccountId"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ]
 )
 data class SalaryEnvelopeEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

@@ -29,6 +29,7 @@ import com.qdash.core.ui.components.*
 import com.qdash.core.utils.FormatterUtils
 import com.qdash.domain.model.TransactionType
 import com.qdash.presentation.navigation.Screen
+import com.qdash.presentation.transactions.components.TransactionActionMenuDialog
 import com.qdash.ui.theme.*
 import com.qdash.ui.designsystem.components.*
 import com.qdash.ui.designsystem.tokens.*
@@ -245,148 +246,18 @@ fun IncomeHistoryScreen(
     // ── Professional Action Menu Dialog ──────────────────────────────────────
     if (showActionMenuForTransaction != null) {
         val tx = showActionMenuForTransaction!!
-        val cat = uiState.categories.firstOrNull { it.id == tx.categoryId }
-        val catColor = try {
-            Color(android.graphics.Color.parseColor(cat?.color ?: "#22C55E"))
-        } catch (e: Exception) {
-            IncomeGreen
-        }
-        val txAmountText = FormatterUtils.formatCurrency(tx.amount)
-        
-        AlertDialog(
-            onDismissRequest = { showActionMenuForTransaction = null },
-            shape = RoundedCornerShape(24.dp),
-            containerColor = MaterialTheme.colorScheme.surface,
-            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
-            modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .padding(16.dp),
-            title = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .background(catColor.copy(alpha = 0.15f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowDownward,
-                            contentDescription = null,
-                            tint = IncomeGreen,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "التحكم بالعملية المالية",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 18.sp
-                        ),
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "${tx.note ?: cat?.name ?: "عملية مالية"} • $txAmountText",
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                        color = TextGray,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+        TransactionActionMenuDialog(
+            transaction = tx,
+            categories = uiState.categories,
+            onDismiss = { showActionMenuForTransaction = null },
+            onEdit = {
+                val route = Screen.AddTransaction.createRoute(tx.type.name, tx.id)
+                navController?.navigate(route)
+                showActionMenuForTransaction = null
             },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    // Option 1: Edit Transaction
-                    Surface(
-                        onClick = {
-                            val route = Screen.AddTransaction.createRoute(tx.type.name, tx.id)
-                            navController?.navigate(route)
-                            showActionMenuForTransaction = null
-                        },
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            Text(
-                                text = "تعديل بيانات العملية",
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.weight(1f),
-                                textAlign = TextAlign.Right
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = null,
-                                tint = Primary,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    }
-
-                    // Option 2: Delete Transaction
-                    Surface(
-                        onClick = {
-                            showDeleteDialog = tx
-                            showActionMenuForTransaction = null
-                        },
-                        shape = RoundedCornerShape(16.dp),
-                        color = ExpenseRed.copy(alpha = 0.08f),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            Text(
-                                text = "حذف العملية نهائياً",
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = ExpenseRed,
-                                modifier = Modifier.weight(1f),
-                                textAlign = TextAlign.Right
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = null,
-                                tint = ExpenseRed,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = { showActionMenuForTransaction = null },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "إلغاء",
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                        color = TextGray
-                    )
-                }
+            onDelete = {
+                showDeleteDialog = tx
+                showActionMenuForTransaction = null
             }
         )
     }
@@ -394,23 +265,12 @@ fun IncomeHistoryScreen(
     // ── Delete Confirmation Dialog ───────────────────────────────────────────
     if (showDeleteDialog != null) {
         val txToDelete = showDeleteDialog!!
-        AppDialog(
-            onDismissRequest = { showDeleteDialog = null },
-            title = "حذف العملية المالية",
-            text = "هل أنت متأكد من رغبتك في حذف هذا الإنفاق؟ سيتم موازنة الرصيد وتحديث الحساب تلقائياً.",
-            confirmButtonText = "نعم، حذف",
+        DeleteTransactionDialog(
+            transaction = txToDelete,
+            onDismiss = { showDeleteDialog = null },
             onConfirm = {
                 viewModel.deleteTransaction(txToDelete)
                 showDeleteDialog = null
-            },
-            dismissButtonText = "إلغاء",
-            isDestructive = true,
-            icon = {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = null,
-                    tint = ColorTokens.Danger
-                )
             }
         )
     }

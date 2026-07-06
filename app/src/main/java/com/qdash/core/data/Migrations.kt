@@ -363,15 +363,199 @@ val MIGRATION_23_24 = object : Migration(23, 24) {
     }
 }
 
-/**
- * All migrations in order, for passing to Room's addMigrations().
- */
+val MIGRATION_24_25 = object : Migration(24, 25) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // 1. Clean up orphaned rows before enforcing foreign keys
+        db.execSQL("DELETE FROM transactions WHERE accountId NOT IN (SELECT id FROM accounts)")
+        db.execSQL("UPDATE transactions SET categoryId = NULL WHERE categoryId IS NOT NULL AND categoryId NOT IN (SELECT id FROM categories)")
+        db.execSQL("UPDATE transactions SET toAccountId = NULL WHERE toAccountId IS NOT NULL AND toAccountId NOT IN (SELECT id FROM accounts)")
+        db.execSQL("UPDATE categories SET parentId = NULL WHERE parentId IS NOT NULL AND parentId NOT IN (SELECT id FROM categories)")
+        db.execSQL("DELETE FROM income_sources WHERE accountId NOT IN (SELECT id FROM accounts)")
+        db.execSQL("DELETE FROM saving_goals WHERE accountId NOT IN (SELECT id FROM accounts)")
+        db.execSQL("DELETE FROM subscriptions WHERE accountId NOT IN (SELECT id FROM accounts) OR categoryId NOT IN (SELECT id FROM categories)")
+        db.execSQL("UPDATE budget_goals SET linkedCategoryId = NULL WHERE linkedCategoryId IS NOT NULL AND linkedCategoryId NOT IN (SELECT id FROM categories)")
+        db.execSQL("DELETE FROM category_rules WHERE categoryId NOT IN (SELECT id FROM categories)")
+        db.execSQL("DELETE FROM user_category_mappings WHERE categoryId NOT IN (SELECT id FROM categories)")
+        db.execSQL("DELETE FROM savings_contributions WHERE savingGoalId NOT IN (SELECT id FROM saving_goals) OR accountId NOT IN (SELECT id FROM accounts)")
+        db.execSQL("UPDATE debts SET linkedAccountId = NULL WHERE linkedAccountId IS NOT NULL AND linkedAccountId NOT IN (SELECT id FROM accounts)")
+        db.execSQL("DELETE FROM debt_payments WHERE debtId NOT IN (SELECT id FROM debts) OR accountId NOT IN (SELECT id FROM accounts)")
+        db.execSQL("DELETE FROM transfers WHERE fromAccountId NOT IN (SELECT id FROM accounts) OR toAccountId NOT IN (SELECT id FROM accounts)")
+        db.execSQL("DELETE FROM salary_delays WHERE salaryId NOT IN (SELECT id FROM income_sources)")
+        db.execSQL("DELETE FROM salary_distributions WHERE salaryId NOT IN (SELECT id FROM income_sources)")
+        db.execSQL("DELETE FROM salary_envelopes WHERE distributionId NOT IN (SELECT id FROM salary_distributions)")
+        db.execSQL("UPDATE salary_envelopes SET linkedAccountId = NULL WHERE linkedAccountId IS NOT NULL AND linkedAccountId NOT IN (SELECT id FROM accounts)")
+        db.execSQL("DELETE FROM transaction_templates WHERE accountId NOT IN (SELECT id FROM accounts)")
+        db.execSQL("UPDATE transaction_templates SET categoryId = NULL WHERE categoryId IS NOT NULL AND categoryId NOT IN (SELECT id FROM categories)")
+        db.execSQL("UPDATE transaction_templates SET targetAccountId = NULL WHERE targetAccountId IS NOT NULL AND targetAccountId NOT IN (SELECT id FROM accounts)")
+
+        // 2. Recreate tables with foreign key constraints
+
+        // Recreate transactions
+        db.execSQL("ALTER TABLE `transactions` RENAME TO `temp_transactions`")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `transactions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `amount` REAL NOT NULL, `type` TEXT NOT NULL, `categoryId` INTEGER, `accountId` INTEGER NOT NULL, `toAccountId` INTEGER, `note` TEXT, `date` INTEGER NOT NULL, `isRecurring` INTEGER NOT NULL, `recurringPeriod` TEXT, `attachmentPath` TEXT, `tags` TEXT, `suggestedCategoryId` INTEGER, `suggestionSource` TEXT, `confidenceScore` REAL, `userAcceptedSuggestion` INTEGER, `kind` TEXT NOT NULL, `transferId` TEXT, `isDebit` INTEGER NOT NULL, FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`categoryId`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`toAccountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )
+        """.trimIndent())
+        db.execSQL("INSERT INTO `transactions` (`id`, `amount`, `type`, `categoryId`, `accountId`, `toAccountId`, `note`, `date`, `isRecurring`, `recurringPeriod`, `attachmentPath`, `tags`, `suggestedCategoryId`, `suggestionSource`, `confidenceScore`, `userAcceptedSuggestion`, `kind`, `transferId`, `isDebit`) SELECT `id`, `amount`, `type`, `categoryId`, `accountId`, `toAccountId`, `note`, `date`, `isRecurring`, `recurringPeriod`, `attachmentPath`, `tags`, `suggestedCategoryId`, `suggestionSource`, `confidenceScore`, `userAcceptedSuggestion`, `kind`, `transferId`, `isDebit` FROM `temp_transactions`")
+        db.execSQL("DROP TABLE `temp_transactions`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_accountId` ON `transactions` (`accountId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_categoryId` ON `transactions` (`categoryId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_date` ON `transactions` (`date`)")
+
+        // Recreate categories
+        db.execSQL("ALTER TABLE `categories` RENAME TO `temp_categories`")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `categories` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `type` TEXT NOT NULL, `icon` TEXT NOT NULL, `color` TEXT NOT NULL, `budgetLimit` REAL, `isSystem` INTEGER NOT NULL, `parentId` INTEGER, `sortOrder` INTEGER NOT NULL, FOREIGN KEY(`parentId`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )
+        """.trimIndent())
+        db.execSQL("INSERT INTO `categories` (`id`, `name`, `type`, `icon`, `color`, `budgetLimit`, `isSystem`, `parentId`, `sortOrder`) SELECT `id`, `name`, `type`, `icon`, `color`, `budgetLimit`, `isSystem`, `parentId`, `sortOrder` FROM `temp_categories`")
+        db.execSQL("DROP TABLE `temp_categories`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_categories_parentId` ON `categories` (`parentId`)")
+
+        // Recreate income_sources
+        db.execSQL("ALTER TABLE `income_sources` RENAME TO `temp_income_sources`")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `income_sources` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `amount` REAL NOT NULL, `type` TEXT NOT NULL, `accountId` INTEGER NOT NULL, `dayOfMonth` INTEGER NOT NULL, `isActive` INTEGER NOT NULL, `nextExpectedDate` INTEGER NOT NULL, FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )
+        """.trimIndent())
+        db.execSQL("INSERT INTO `income_sources` (`id`, `name`, `amount`, `type`, `accountId`, `dayOfMonth`, `isActive`, `nextExpectedDate`) SELECT `id`, `name`, `amount`, `type`, `accountId`, `dayOfMonth`, `isActive`, `nextExpectedDate` FROM `temp_income_sources`")
+        db.execSQL("DROP TABLE `temp_income_sources`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_income_sources_accountId` ON `income_sources` (`accountId`)")
+
+        // Recreate saving_goals
+        db.execSQL("ALTER TABLE `saving_goals` RENAME TO `temp_saving_goals`")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `saving_goals` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `targetAmount` REAL NOT NULL, `currentAmount` REAL NOT NULL, `deadline` INTEGER, `accountId` INTEGER NOT NULL, `icon` TEXT NOT NULL, `color` TEXT NOT NULL, `isCompleted` INTEGER NOT NULL, FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )
+        """.trimIndent())
+        db.execSQL("INSERT INTO `saving_goals` (`id`, `name`, `targetAmount`, `currentAmount`, `deadline`, `accountId`, `icon`, `color`, `isCompleted`) SELECT `id`, `name`, `targetAmount`, `currentAmount`, `deadline`, `accountId`, `icon`, `color`, `isCompleted` FROM `temp_saving_goals`")
+        db.execSQL("DROP TABLE `temp_saving_goals`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_saving_goals_accountId` ON `saving_goals` (`accountId`)")
+
+        // Recreate subscriptions
+        db.execSQL("ALTER TABLE `subscriptions` RENAME TO `temp_subscriptions`")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `subscriptions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `amount` REAL NOT NULL, `currency` TEXT NOT NULL, `billingCycle` TEXT NOT NULL, `nextBillingDate` INTEGER NOT NULL, `accountId` INTEGER NOT NULL, `categoryId` INTEGER NOT NULL, `icon` TEXT, `isActive` INTEGER NOT NULL, `reminderDaysBefore` INTEGER NOT NULL, `isAutoShiftableBySalary` INTEGER NOT NULL, FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`categoryId`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )
+        """.trimIndent())
+        db.execSQL("INSERT INTO `subscriptions` (`id`, `name`, `amount`, `currency`, `billingCycle`, `nextBillingDate`, `accountId`, `categoryId`, `icon`, `isActive`, `reminderDaysBefore`, `isAutoShiftableBySalary`) SELECT `id`, `name`, `amount`, `currency`, `billingCycle`, `nextBillingDate`, `accountId`, `categoryId`, `icon`, `isActive`, `reminderDaysBefore`, `isAutoShiftableBySalary` FROM `temp_subscriptions`")
+        db.execSQL("DROP TABLE `temp_subscriptions`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_subscriptions_accountId` ON `subscriptions` (`accountId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_subscriptions_categoryId` ON `subscriptions` (`categoryId`)")
+
+        // Recreate budget_goals
+        db.execSQL("ALTER TABLE `budget_goals` RENAME TO `temp_budget_goals`")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `budget_goals` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `linkedCategoryId` INTEGER, `budgetType` TEXT NOT NULL, `amountLimit` REAL NOT NULL, `spentAmount` REAL NOT NULL, `startDate` INTEGER NOT NULL, `endDate` INTEGER NOT NULL, `alertThresholdPercent` INTEGER NOT NULL, `isActive` INTEGER NOT NULL, `color` TEXT NOT NULL, `icon` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, FOREIGN KEY(`linkedCategoryId`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )
+        """.trimIndent())
+        db.execSQL("INSERT INTO `budget_goals` (`id`, `title`, `linkedCategoryId`, `budgetType`, `amountLimit`, `spentAmount`, `startDate`, `endDate`, `alertThresholdPercent`, `isActive`, `color`, `icon`, `createdAt`) SELECT `id`, `title`, `linkedCategoryId`, `budgetType`, `amountLimit`, `spentAmount`, `startDate`, `endDate`, `alertThresholdPercent`, `isActive`, `color`, `icon`, `createdAt` FROM `temp_budget_goals`")
+        db.execSQL("DROP TABLE `temp_budget_goals`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_budget_goals_linkedCategoryId` ON `budget_goals` (`linkedCategoryId`)")
+
+        // Recreate category_rules
+        db.execSQL("ALTER TABLE `category_rules` RENAME TO `temp_category_rules`")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `category_rules` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `keyword` TEXT NOT NULL, `categoryId` INTEGER NOT NULL, `priority` INTEGER NOT NULL, `source` TEXT NOT NULL, `isActive` INTEGER NOT NULL, FOREIGN KEY(`categoryId`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )
+        """.trimIndent())
+        db.execSQL("INSERT INTO `category_rules` (`id`, `keyword`, `categoryId`, `priority`, `source`, `isActive`) SELECT `id`, `keyword`, `categoryId`, `priority`, `source`, `isActive` FROM `temp_category_rules`")
+        db.execSQL("DROP TABLE `temp_category_rules`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_category_rules_keyword` ON `category_rules` (`keyword`)")
+
+        // Recreate user_category_mappings
+        db.execSQL("ALTER TABLE `user_category_mappings` RENAME TO `temp_user_category_mappings`")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `user_category_mappings` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `normalizedText` TEXT NOT NULL, `categoryId` INTEGER NOT NULL, `usageCount` INTEGER NOT NULL, `lastUsedAt` INTEGER NOT NULL, FOREIGN KEY(`categoryId`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )
+        """.trimIndent())
+        db.execSQL("INSERT INTO `user_category_mappings` (`id`, `normalizedText`, `categoryId`, `usageCount`, `lastUsedAt`) SELECT `id`, `normalizedText`, `categoryId`, `usageCount`, `lastUsedAt` FROM `temp_user_category_mappings`")
+        db.execSQL("DROP TABLE `temp_user_category_mappings`")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_user_category_mappings_normalizedText` ON `user_category_mappings` (`normalizedText`)")
+
+        // Recreate savings_contributions
+        db.execSQL("ALTER TABLE `savings_contributions` RENAME TO `temp_savings_contributions`")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `savings_contributions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `savingGoalId` INTEGER NOT NULL, `accountId` INTEGER NOT NULL, `amount` REAL NOT NULL, `type` TEXT NOT NULL, `note` TEXT, `date` INTEGER NOT NULL, `linkedTransactionId` INTEGER, `createdAt` INTEGER NOT NULL, FOREIGN KEY(`savingGoalId`) REFERENCES `saving_goals`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )
+        """.trimIndent())
+        db.execSQL("INSERT INTO `savings_contributions` (`id`, `savingGoalId`, `accountId`, `amount`, `type`, `note`, `date`, `linkedTransactionId`, `createdAt`) SELECT `id`, `savingGoalId`, `accountId`, `amount`, `type`, `note`, `date`, `linkedTransactionId`, `createdAt` FROM `temp_savings_contributions`")
+        db.execSQL("DROP TABLE `temp_savings_contributions`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_savings_contributions_savingGoalId` ON `savings_contributions` (`savingGoalId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_savings_contributions_accountId` ON `savings_contributions` (`accountId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_savings_contributions_date` ON `savings_contributions` (`date`)")
+
+        // Recreate debts
+        db.execSQL("ALTER TABLE `debts` RENAME TO `temp_debts`")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `debts` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `creditorName` TEXT NOT NULL, `totalAmount` REAL NOT NULL, `remainingAmount` REAL NOT NULL, `interestRate` REAL, `dueDate` INTEGER, `minimumPayment` REAL NOT NULL, `recommendedPayment` REAL, `paymentFrequency` TEXT NOT NULL, `linkedAccountId` INTEGER, `priority` INTEGER NOT NULL, `notes` TEXT, `color` TEXT NOT NULL, `icon` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `isClosed` INTEGER NOT NULL, `debtType` TEXT NOT NULL, FOREIGN KEY(`linkedAccountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )
+        """.trimIndent())
+        db.execSQL("INSERT INTO `debts` (`id`, `title`, `creditorName`, `totalAmount`, `remainingAmount`, `interestRate`, `dueDate`, `minimumPayment`, `recommendedPayment`, `paymentFrequency`, `linkedAccountId`, `priority`, `notes`, `color`, `icon`, `createdAt`, `isClosed`, `debtType`) SELECT `id`, `title`, `creditorName`, `totalAmount`, `remainingAmount`, `interestRate`, `dueDate`, `minimumPayment`, `recommendedPayment`, `paymentFrequency`, `linkedAccountId`, `priority`, `notes`, `color`, `icon`, `createdAt`, `isClosed`, `debtType` FROM `temp_debts`")
+        db.execSQL("DROP TABLE `temp_debts`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_debts_linkedAccountId` ON `debts` (`linkedAccountId`)")
+
+        // Recreate debt_payments
+        db.execSQL("ALTER TABLE `debt_payments` RENAME TO `temp_debt_payments`")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `debt_payments` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `debtId` INTEGER NOT NULL, `accountId` INTEGER NOT NULL, `amount` REAL NOT NULL, `paymentDate` INTEGER NOT NULL, `paymentType` TEXT NOT NULL, `note` TEXT, `linkedTransactionId` INTEGER, `createdAt` INTEGER NOT NULL, FOREIGN KEY(`debtId`) REFERENCES `debts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )
+        """.trimIndent())
+        db.execSQL("INSERT INTO `debt_payments` (`id`, `debtId`, `accountId`, `amount`, `paymentDate`, `paymentType`, `note`, `linkedTransactionId`, `createdAt`) SELECT `id`, `debtId`, `accountId`, `amount`, `paymentDate`, `paymentType`, `note`, `linkedTransactionId`, `createdAt` FROM `temp_debt_payments`")
+        db.execSQL("DROP TABLE `temp_debt_payments`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_debtId` ON `debt_payments` (`debtId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_accountId` ON `debt_payments` (`accountId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_payments_paymentDate` ON `debt_payments` (`paymentDate`)")
+
+        // Recreate transfers
+        db.execSQL("ALTER TABLE `transfers` RENAME TO `temp_transfers`")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `transfers` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `fromAccountId` INTEGER NOT NULL, `toAccountId` INTEGER NOT NULL, `amount` REAL NOT NULL, `feeAmount` REAL, `note` TEXT, `date` INTEGER NOT NULL, `referenceId` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, FOREIGN KEY(`fromAccountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`toAccountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )
+        """.trimIndent())
+        db.execSQL("INSERT INTO `transfers` (`id`, `fromAccountId`, `toAccountId`, `amount`, `feeAmount`, `note`, `date`, `referenceId`, `createdAt`) SELECT `id`, `fromAccountId`, `toAccountId`, `amount`, `feeAmount`, `note`, `date`, `referenceId`, `createdAt` FROM `temp_transfers`")
+        db.execSQL("DROP TABLE `temp_transfers`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transfers_fromAccountId` ON `transfers` (`fromAccountId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transfers_toAccountId` ON `transfers` (`toAccountId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transfers_date` ON `transfers` (`date`)")
+
+        // Recreate transaction_templates
+        db.execSQL("ALTER TABLE `transaction_templates` RENAME TO `temp_transaction_templates`")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `transaction_templates` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `amount` REAL NOT NULL, `transactionType` TEXT NOT NULL, `accountId` INTEGER NOT NULL, `targetAccountId` INTEGER, `categoryId` INTEGER, `subcategoryId` INTEGER, `notes` TEXT, `iconEmoji` TEXT, `colorHex` TEXT, `isPinned` INTEGER NOT NULL, `usageCount` INTEGER NOT NULL, `lastUsedAt` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`targetAccountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`categoryId`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )
+        """.trimIndent())
+        db.execSQL("INSERT INTO `transaction_templates` (`id`, `name`, `amount`, `transactionType`, `accountId`, `targetAccountId`, `categoryId`, `subcategoryId`, `notes`, `iconEmoji`, `colorHex`, `isPinned`, `usageCount`, `lastUsedAt`, `createdAt`, `updatedAt`) SELECT `id`, `name`, `amount`, `transactionType`, `accountId`, `targetAccountId`, `categoryId`, `subcategoryId`, `notes`, `iconEmoji`, `colorHex`, `isPinned`, `usageCount`, `lastUsedAt`, `createdAt`, `updatedAt` FROM `temp_transaction_templates`")
+        db.execSQL("DROP TABLE `temp_transaction_templates`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transaction_templates_isPinned` ON `transaction_templates` (`isPinned`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transaction_templates_usageCount` ON `transaction_templates` (`usageCount`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transaction_templates_lastUsedAt` ON `transaction_templates` (`lastUsedAt`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transaction_templates_transactionType` ON `transaction_templates` (`transactionType`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transaction_templates_categoryId` ON `transaction_templates` (`categoryId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transaction_templates_accountId` ON `transaction_templates` (`accountId`)")
+
+        // Recreate salary_delays
+        db.execSQL("ALTER TABLE `salary_delays` RENAME TO `temp_salary_delays`")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `salary_delays` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `salaryId` INTEGER NOT NULL, `delayDays` INTEGER NOT NULL, `originalDate` INTEGER NOT NULL, `newDate` INTEGER NOT NULL, `severityScore` INTEGER NOT NULL, `status` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, FOREIGN KEY(`salaryId`) REFERENCES `income_sources`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )
+        """.trimIndent())
+        db.execSQL("INSERT INTO `salary_delays` (`id`, `salaryId`, `delayDays`, `originalDate`, `newDate`, `severityScore`, `status`, `createdAt`) SELECT `id`, `salaryId`, `delayDays`, `originalDate`, `newDate`, `severityScore`, `status`, `createdAt` FROM `temp_salary_delays`")
+        db.execSQL("DROP TABLE `temp_salary_delays`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_salary_delays_salaryId` ON `salary_delays` (`salaryId`)")
+
+        // Recreate salary_distributions
+        db.execSQL("ALTER TABLE `salary_distributions` RENAME TO `temp_salary_distributions`")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `salary_distributions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `salaryId` INTEGER NOT NULL, `isEnabled` INTEGER NOT NULL, `needsPercentage` INTEGER NOT NULL, `wantsPercentage` INTEGER NOT NULL, `savingsPercentage` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, FOREIGN KEY(`salaryId`) REFERENCES `income_sources`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )
+        """.trimIndent())
+        db.execSQL("INSERT INTO `salary_distributions` (`id`, `salaryId`, `isEnabled`, `needsPercentage`, `wantsPercentage`, `savingsPercentage`, `createdAt`, `updatedAt`) SELECT `id`, `salaryId`, `isEnabled`, `needsPercentage`, `wantsPercentage`, `savingsPercentage`, `createdAt`, `updatedAt` FROM `temp_salary_distributions`")
+        db.execSQL("DROP TABLE `temp_salary_distributions`")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_salary_distributions_salaryId` ON `salary_distributions` (`salaryId`)")
+
+        // Recreate salary_envelopes
+        db.execSQL("ALTER TABLE `salary_envelopes` RENAME TO `temp_salary_envelopes`")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `salary_envelopes` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `distributionId` INTEGER NOT NULL, `type` TEXT NOT NULL, `label` TEXT NOT NULL, `percentage` INTEGER NOT NULL, `allocatedAmount` REAL NOT NULL, `spentAmount` REAL NOT NULL, `linkedCategoryIds` TEXT NOT NULL, `linkedAccountId` INTEGER, `color` TEXT NOT NULL, `icon` TEXT NOT NULL, FOREIGN KEY(`distributionId`) REFERENCES `salary_distributions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`linkedAccountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )
+        """.trimIndent())
+        db.execSQL("INSERT INTO `salary_envelopes` (`id`, `distributionId`, `type`, `label`, `percentage`, `allocatedAmount`, `spentAmount`, `linkedCategoryIds`, `linkedAccountId`, `color`, `icon`) SELECT `id`, `distributionId`, `type`, `label`, `percentage`, `allocatedAmount`, `spentAmount`, `linkedCategoryIds`, `linkedAccountId`, `color`, `icon` FROM `temp_salary_envelopes`")
+        db.execSQL("DROP TABLE `temp_salary_envelopes`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_salary_envelopes_distributionId` ON `salary_envelopes` (`distributionId`)")
+    }
+}
+
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
     MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
     MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
-    MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24
+    MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25
 )
 
 

@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.qdash.domain.model.CategoryType
 import com.qdash.domain.model.TransactionType
 import com.qdash.ui.theme.Primary
 import com.qdash.ui.theme.TextGray
@@ -290,6 +291,97 @@ fun SaveTemplateDialog(
                 showEmojiPicker = false
             },
             onDismissRequest = { showEmojiPicker = false }
+        )
+    }
+}
+
+@Composable
+fun AddTransactionDialogsContainer(
+    showAddCategoryDialog: Boolean,
+    onDismissAddCategory: () -> Unit,
+    showSavingsConfirmDialog: Boolean,
+    onDismissSavingsConfirm: () -> Unit,
+    showSaveTemplateDialog: Boolean,
+    onDismissSaveTemplate: () -> Unit,
+    type: TransactionType,
+    typeAccentColor: Color,
+    isAddingSubcategory: Boolean,
+    selectedCategoryId: Long?,
+    selectedAccountId: Long?,
+    toAccountId: Long?,
+    subcategoryId: Long?,
+    rawAmount: String,
+    note: String,
+    transactionDate: Long,
+    isRecurring: Boolean,
+    recurringPeriod: String,
+    selectedTags: List<String>,
+    transactionId: Long?,
+    uiState: TransactionsUiState,
+    viewModel: TransactionsViewModel,
+    onConfirmSavingsAction: (com.qdash.domain.model.TransactionKind) -> Unit
+) {
+    if (showAddCategoryDialog) {
+        AddCategoryDialog(
+            onDismiss = onDismissAddCategory,
+            type = type,
+            typeAccentColor = typeAccentColor,
+            isAddingSubcategory = isAddingSubcategory,
+            selectedCategoryId = selectedCategoryId,
+            onConfirm = { name, icon, color, parentId ->
+                val catType = if (type == TransactionType.INCOME) CategoryType.INCOME else CategoryType.EXPENSE
+                viewModel.addCategory(
+                    name = name,
+                    type = catType,
+                    icon = icon,
+                    color = color,
+                    parentId = parentId
+                )
+                onDismissAddCategory()
+            }
+        )
+    }
+
+    if (showSavingsConfirmDialog) {
+        SavingsConfirmDialog(
+            onDismiss = onDismissSavingsConfirm,
+            onConfirm = { isContribution ->
+                val kind = if (isContribution) {
+                    com.qdash.domain.model.TransactionKind.SAVINGS_CONTRIBUTION
+                } else {
+                    com.qdash.domain.model.TransactionKind.INCOME
+                }
+                onConfirmSavingsAction(kind)
+                onDismissSavingsConfirm()
+            }
+        )
+    }
+
+    if (showSaveTemplateDialog) {
+        SaveTemplateDialog(
+            onDismiss = onDismissSaveTemplate,
+            typeAccentColor = typeAccentColor,
+            onConfirm = { name, emoji, isPinned ->
+                val parsedAmountVal = com.qdash.core.utils.CalculatorParser.evaluate(rawAmount)
+                if (parsedAmountVal > 0) {
+                    viewModel.saveAsTemplate(
+                        name = name,
+                        amount = parsedAmountVal,
+                        type = type,
+                        accountId = selectedAccountId 
+                            ?: uiState.accounts.find { it.isDefault }?.id 
+                            ?: uiState.accounts.firstOrNull()?.id 
+                            ?: 1L,
+                        targetAccountId = if (type == TransactionType.TRANSFER) toAccountId else null,
+                        categoryId = if (type == TransactionType.TRANSFER) null else (subcategoryId ?: selectedCategoryId),
+                        subcategoryId = if (type == TransactionType.TRANSFER) null else subcategoryId,
+                        notes = note.ifBlank { null },
+                        iconEmoji = emoji,
+                        isPinned = isPinned
+                    )
+                    onDismissSaveTemplate()
+                }
+            }
         )
     }
 }

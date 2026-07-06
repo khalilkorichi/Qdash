@@ -3,6 +3,7 @@ package com.qdash.data.local.entities
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.Index
+import androidx.room.ForeignKey
 
 @Entity(
     tableName = "transactions",
@@ -10,6 +11,26 @@ import androidx.room.Index
         Index(value = ["accountId"]),
         Index(value = ["categoryId"]),
         Index(value = ["date"])
+    ],
+    foreignKeys = [
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["accountId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = CategoryEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["categoryId"],
+            onDelete = ForeignKey.SET_NULL
+        ),
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["toAccountId"],
+            onDelete = ForeignKey.CASCADE
+        )
     ]
 )
 data class TransactionEntity(
@@ -56,7 +77,15 @@ data class AccountEntity(
 
 @Entity(
     tableName = "categories",
-    indices = [Index(value = ["parentId"])]
+    indices = [Index(value = ["parentId"])],
+    foreignKeys = [
+        ForeignKey(
+            entity = CategoryEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["parentId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
 )
 data class CategoryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -72,7 +101,15 @@ data class CategoryEntity(
 
 @Entity(
     tableName = "income_sources",
-    indices = [Index(value = ["accountId"])]
+    indices = [Index(value = ["accountId"])],
+    foreignKeys = [
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["accountId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
 )
 data class IncomeSourceEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -87,7 +124,15 @@ data class IncomeSourceEntity(
 
 @Entity(
     tableName = "saving_goals",
-    indices = [Index(value = ["accountId"])]
+    indices = [Index(value = ["accountId"])],
+    foreignKeys = [
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["accountId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
 )
 data class SavingGoalEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -106,6 +151,20 @@ data class SavingGoalEntity(
     indices = [
         Index(value = ["accountId"]),
         Index(value = ["categoryId"])
+    ],
+    foreignKeys = [
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["accountId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = CategoryEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["categoryId"],
+            onDelete = ForeignKey.CASCADE
+        )
     ]
 )
 data class SubscriptionEntity(

@@ -3,10 +3,19 @@ package com.qdash.data.local.entities
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.Index
+import androidx.room.ForeignKey
 
 @Entity(
     tableName = "salary_delays",
-    indices = [Index(value = ["salaryId"])]
+    indices = [Index(value = ["salaryId"])],
+    foreignKeys = [
+        ForeignKey(
+            entity = IncomeSourceEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["salaryId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
 )
 data class SalaryDelayEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

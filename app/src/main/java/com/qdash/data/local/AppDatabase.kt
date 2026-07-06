@@ -31,7 +31,7 @@ import com.qdash.data.local.entities.*
         SalaryEnvelopeEntity::class,
         UserProfileEntity::class
     ],
-    version = 24,
+    version = 25,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {

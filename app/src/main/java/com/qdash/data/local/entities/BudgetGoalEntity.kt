@@ -3,10 +3,19 @@ package com.qdash.data.local.entities
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import androidx.room.ForeignKey
 
 @Entity(
     tableName = "budget_goals",
-    indices = [Index(value = ["linkedCategoryId"])]
+    indices = [Index(value = ["linkedCategoryId"])],
+    foreignKeys = [
+        ForeignKey(
+            entity = CategoryEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["linkedCategoryId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
 )
 data class BudgetGoalEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
