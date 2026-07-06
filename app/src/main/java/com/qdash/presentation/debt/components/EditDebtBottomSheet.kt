@@ -56,7 +56,8 @@ fun EditDebtBottomSheet(
         notes: String?,
         color: String,
         interestRate: Double?,
-        dueDate: Long?
+        dueDate: Long?,
+        debtType: DebtType
     ) -> Unit,
     onDismissRequest: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -347,7 +348,8 @@ fun EditDebtBottomSheet(
                                     notes.ifBlank { null },
                                     selectedColor,
                                     if (debt.debtType == DebtType.REGULAR) null else interest,
-                                    dueDate
+                                    dueDate,
+                                    debt.debtType
                                 )
                             }
                         },

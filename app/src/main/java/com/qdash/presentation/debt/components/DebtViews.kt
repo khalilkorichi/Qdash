@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -19,6 +20,7 @@ import com.qdash.core.utils.FormatterUtils
 import com.qdash.domain.model.Account
 import com.qdash.domain.model.Debt
 import com.qdash.domain.model.DebtPayment
+import com.qdash.domain.model.DebtType
 import com.qdash.ui.designsystem.components.*
 import com.qdash.ui.designsystem.tokens.ShapeTokens
 import com.qdash.ui.theme.ExpenseRed
@@ -36,7 +38,8 @@ fun DebtDetailsContent(
     onEditClick: (Debt) -> Unit,
     onDeleteClick: (Debt) -> Unit,
     onForgiveClick: (Debt) -> Unit,
-    onCloseDebt: (Long) -> Unit
+    onCloseDebt: (Long) -> Unit,
+    onCancelPaymentClick: (DebtPayment) -> Unit = {}
 ) {
     val progress = if (debt.totalAmount > 0) ((debt.totalAmount - debt.remainingAmount) / debt.totalAmount).toFloat() else 1f
 
@@ -110,9 +113,13 @@ fun DebtDetailsContent(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
                             Box(
-                                modifier = Modifier.size(40.dp).background(IncomeGreen.copy(alpha = 0.12f), CircleShape),
+                                modifier = Modifier.size(40.dp).clip(CircleShape).background(IncomeGreen.copy(alpha = 0.12f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = IncomeGreen, modifier = Modifier.size(18.dp))
@@ -125,12 +132,31 @@ fun DebtDetailsContent(
                                 Text(dateStr, style = MaterialTheme.typography.labelSmall, color = TextGray)
                             }
                         }
-                        Text(
-                            text = "- ${payment.amount.toInt()} د.ج",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = IncomeGreen
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "- ${payment.amount.toInt()} د.ج",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = IncomeGreen
+                            )
+                            // زر إلغاء الدفعة — يظهر للديون العادية المغلقة أو لأي دفعة قابلة للتراجع
+                            if (debt.debtType == DebtType.REGULAR || debt.isClosed) {
+                                IconButton(
+                                    onClick = { onCancelPaymentClick(payment) },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Undo,
+                                        contentDescription = "إلغاء الدفعة",
+                                        tint = ExpenseRed,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }

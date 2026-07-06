@@ -87,7 +87,8 @@ fun DebtsScreen(
                         onEditClick = { d -> showEditDebtBottomSheet = d },
                         onDeleteClick = { d -> showDeleteConfirmDialog = d },
                         onForgiveClick = { d -> showForgiveConfirmDialog = d },
-                        onCloseDebt = { id -> viewModel.closeDebt(id) }
+                        onCloseDebt = { id -> viewModel.closeDebt(id) },
+                        onCancelPaymentClick = { payment -> showCancelPaymentConfirmDialog = payment }
                     )
                 } else {
                     DebtsMainContent(
@@ -144,13 +145,14 @@ fun DebtsScreen(
                         debt = targetDebt,
                         accounts = uiState.accounts,
                         onDismissRequest = { showEditDebtBottomSheet = null },
-                        onConfirm = { title, creditorName, totalAmount, minimumPayment, paymentFrequency, linkedAccountId, priority, notes, color, interestRate, dueDate ->
+                        onConfirm = { title, creditorName, totalAmount, minimumPayment, paymentFrequency, linkedAccountId, priority, notes, color, interestRate, dueDate, debtType ->
                             viewModel.updateDebtDetails(
                                 debtId = targetDebt.id, title = title, creditorName = creditorName,
                                 totalAmount = totalAmount, minimumPayment = minimumPayment,
                                 paymentFrequency = paymentFrequency, linkedAccountId = linkedAccountId,
                                 priority = priority, notes = notes, color = color,
                                 interestRate = interestRate, dueDate = dueDate,
+                                debtType = debtType,
                                 onSuccess = {
                                     showEditDebtBottomSheet = null
                                     Toast.makeText(context, "تم تحديث الدين بنجاح", Toast.LENGTH_SHORT).show()
