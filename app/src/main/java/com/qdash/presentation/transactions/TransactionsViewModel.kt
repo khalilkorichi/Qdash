@@ -12,6 +12,8 @@ import kotlinx.coroutines.launch
 import androidx.room.withTransaction
 import com.qdash.domain.usecase.transaction.BulkEditTransactionsUseCase
 import com.qdash.domain.usecase.transaction.BulkEditParams
+import com.qdash.domain.usecase.transaction.FilterTransactionsUseCase
+import com.qdash.domain.usecase.transaction.TransactionFilterParams
 
 data class TransactionsUiState(
     val transactions: List<Transaction> = emptyList(),
@@ -89,6 +91,8 @@ class TransactionsViewModel(
     private val preferencesManager: com.qdash.core.preferences.PreferencesManager,
     private val bulkEditTransactionsUseCase: BulkEditTransactionsUseCase
 ) : ViewModel() {
+
+    private val filterTransactionsUseCase = FilterTransactionsUseCase()
 
     fun saveAsTemplate(
         name: String,
@@ -264,23 +268,22 @@ class TransactionsViewModel(
                     val filters = filtersPair.first
                     val selectedDate = filtersPair.second
 
-                    val filtered = txs.filter { tx ->
-                        val matchesQuery = filters.query.isBlank() || tx.note?.contains(filters.query, ignoreCase = true) == true
-                        val matchesType = filters.type == null || tx.type == filters.type
-                        val matchesCat = filters.categoryId == null || tx.categoryId == filters.categoryId
-                        val matchesAcc = filters.accountId == null || tx.accountId == filters.accountId
-                        val matchesCalendarDate = selectedDate?.let { sel -> tx.date >= sel && tx.date < sel + 86400000L } ?: true
-                        val matchesLarge = !filters.filterLargeOnly || tx.amount >= 10000.0
-                        val matchesBaridi = !filters.filterBaridiMobOnly || run {
-                            val acc = accs.find { it.id == tx.accountId }
-                            acc?.type == AccountType.BARIDIMOB
-                        }
-                        val matchesMinAmount = filters.filterMinAmount == null || tx.amount >= filters.filterMinAmount
-                        val matchesStartDate = filters.filterStartDate == null || tx.date >= filters.filterStartDate
-                        val matchesEndDate = filters.filterEndDate == null || tx.date <= filters.filterEndDate
-
-                        matchesQuery && matchesType && matchesCat && matchesAcc && matchesCalendarDate && matchesLarge && matchesBaridi && matchesMinAmount && matchesStartDate && matchesEndDate
-                    }
+                    val filtered = filterTransactionsUseCase(
+                        transactions = txs,
+                        accounts = accs,
+                        params = TransactionFilterParams(
+                            query = filters.query,
+                            type = filters.type,
+                            categoryId = filters.categoryId,
+                            accountId = filters.accountId,
+                            filterLargeOnly = filters.filterLargeOnly,
+                            filterBaridiMobOnly = filters.filterBaridiMobOnly,
+                            filterMinAmount = filters.filterMinAmount,
+                            filterStartDate = filters.filterStartDate,
+                            filterEndDate = filters.filterEndDate,
+                            selectedCalendarDate = selectedDate
+                        )
+                    )
                     
                     _uiState.value.copy(
                         transactions = txs,

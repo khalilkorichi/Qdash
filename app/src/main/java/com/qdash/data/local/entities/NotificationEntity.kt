@@ -20,5 +20,9 @@ data class NotificationEntity(
     val isRead: Boolean = false,
     val timestamp: Long = System.currentTimeMillis(),
     val deepLinkRoute: String? = null, // e.g. "budget_goals", "savings", "debts"
+    // NOTE: relatedEntityId is intentionally NOT a @ForeignKey — it is a polymorphic reference
+    // that can point to budget goals, savings goals, debts, or subscriptions.
+    // Room cannot enforce multi-table FK constraints; referential integrity is managed in code.
+    // qdash-audit: suppress DB-005
     val relatedEntityId: Long? = null  // ID of related entity (budget, savings goal, etc.)
 )

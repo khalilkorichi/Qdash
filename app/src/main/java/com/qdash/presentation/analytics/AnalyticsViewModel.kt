@@ -1,4 +1,4 @@
-package com.qdash.presentation.analytics
+﻿package com.qdash.presentation.analytics
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -235,315 +235,67 @@ class AnalyticsViewModel(
                     incomeRepository.getAllIncomeSources(),
                     savingRepository.getAllSavingGoals()
                 ) { transactions, categories, accounts, incomeSources, savingGoals ->
-                    // 1. Identify Salary Cycle setup
+                    val state = _uiState.value
+
                     val salarySource = incomeSources.firstOrNull { it.type == "SALARY" && it.isActive }
                     val hasSalary = salarySource != null
                     val salaryDay = salarySource?.dayOfMonth ?: 1
                     val salaryAmt = salarySource?.amount ?: 0.0
 
-                    // Compute start/end date for selected period (custom salary month if MONTH is selected)
-                    val periodTransactions = when (_uiState.value.selectedPeriod) {
-                        "YEAR" -> transactions.filter {
-                            val txCal = Calendar.getInstance().apply { timeInMillis = it.date }
-                            txCal.get(Calendar.YEAR) == _uiState.value.selectedYear
-                        }
-                        "WEEK" -> {
-                            val targetCal = Calendar.getInstance().apply {
-                                add(Calendar.WEEK_OF_YEAR, -_uiState.value.selectedWeekOffset)
-                                set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
-                                set(Calendar.HOUR_OF_DAY, 0)
-                                set(Calendar.MINUTE, 0)
-                                set(Calendar.SECOND, 0)
-                                set(Calendar.MILLISECOND, 0)
-                            }
-                            val startOfWeek = targetCal.timeInMillis
-                            val endOfWeek = startOfWeek + (7L * 24 * 60 * 60 * 1000)
-                            transactions.filter { it.date in startOfWeek until endOfWeek }
-                        }
-                        "DAY" -> {
-                            val targetCal = Calendar.getInstance().apply {
-                                add(Calendar.DAY_OF_YEAR, -_uiState.value.selectedDayOffset)
-                                set(Calendar.HOUR_OF_DAY, 0)
-                                set(Calendar.MINUTE, 0)
-                                set(Calendar.SECOND, 0)
-                                set(Calendar.MILLISECOND, 0)
-                            }
-                            val startOfDay = targetCal.timeInMillis
-                            val endOfDay = startOfDay + (24L * 60 * 60 * 1000)
-                            transactions.filter { it.date in startOfDay until endOfDay }
-                        }
-                        "MONTH" -> {
-                            if (hasSalary) {
-                                val range = getSalaryCycleRangeForAnchor(salaryDay, _uiState.value.selectedMonth, _uiState.value.selectedYear)
-                                transactions.filter { it.date in range.first.timeInMillis..range.second.timeInMillis }
-                            } else {
-                                transactions.filter {
-                                    val txCal = Calendar.getInstance().apply { timeInMillis = it.date }
-                                    txCal.get(Calendar.MONTH) == _uiState.value.selectedMonth &&
-                                             txCal.get(Calendar.YEAR) == _uiState.value.selectedYear
-                                }
-                            }
-                        }
-                        else -> { // ALL / No filter
-                            transactions
-                        }
-                    }
-
-                    // Expenses
+                    val periodTransactions = AnalyticsCalculator.filterByPeriod(transactions, state, hasSalary, salaryDay)
                     val expensesOnly = periodTransactions.filter { it.type == TransactionType.EXPENSE }
                     val totalExpensesSum = expensesOnly.sumOf { it.amount }
 
-                    // Category shares
-                    val shares = expensesOnly.groupBy { it.categoryId }.map { (catId, txList) ->
-                        val cat = categories.firstOrNull { it.id == catId }
-                        val sum = txList.sumOf { it.amount }
-                        CategoryShare(
-                            categoryId = catId ?: 0L,
-                            categoryName = cat?.name ?: "أخرى",
-                            amount = sum,
-                            percentage = if (totalExpensesSum > 0) (sum / totalExpensesSum).toFloat() else 0f,
-                            color = cat?.color ?: "#6C63FF"
-                        )
-                    }.sortedByDescending { it.amount }
+                    val shares = AnalyticsCalculator.buildCategoryShares(expensesOnly, categories, totalExpensesSum)
+                    val realTrend = AnalyticsCalculator.buildCashFlowTrend(transactions)
 
-                    // Income vs Expense trend calculations (historical)
-                    val realTrend = mutableListOf<CashFlowTrend>()
-                    val arabicMonths = arrayOf(
-                        "جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان",
-                        "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
-                    )
-
-                    // Compute trend for the last 5 months — always using full calendar months
-                    // to avoid partial-month bias when the current day != 1
-                    val todayCal = Calendar.getInstance().apply {
-                        set(Calendar.DAY_OF_MONTH, 1)
-                        set(Calendar.HOUR_OF_DAY, 0)
-                        set(Calendar.MINUTE, 0)
-                        set(Calendar.SECOND, 0)
-                        set(Calendar.MILLISECOND, 0)
-                    }
-
-                    for (monthOffset in 4 downTo 0) {
-                        val targetCal = (todayCal.clone() as Calendar).apply {
-                            add(Calendar.MONTH, -monthOffset)
-                        }
-                        val yr = targetCal.get(Calendar.YEAR)
-                        val mth = targetCal.get(Calendar.MONTH)
-                        val monthLabel = "${arabicMonths[mth]} ${yr % 100}"
-
-                        // Use full calendar month: from 00:00:00 of day 1 to 23:59:59.999 of last day
-                        val monthStart = targetCal.timeInMillis
-                        val monthEnd = (targetCal.clone() as Calendar).apply {
-                            set(Calendar.DAY_OF_MONTH, getActualMaximum(Calendar.DAY_OF_MONTH))
-                            set(Calendar.HOUR_OF_DAY, 23)
-                            set(Calendar.MINUTE, 59)
-                            set(Calendar.SECOND, 59)
-                            set(Calendar.MILLISECOND, 999)
-                        }.timeInMillis
-                        val monthTxs = transactions.filter { it.date in monthStart..monthEnd }
-
-                        val incomeSum = monthTxs.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
-                        val expenseSum = monthTxs.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
-                        realTrend.add(CashFlowTrend(monthLabel, incomeSum, expenseSum))
-                    }
-
-                    // Largest Expense
                     val maxExpense = expensesOnly.maxByOrNull { it.amount }
                     val maxExpenseAmount = maxExpense?.amount ?: 0.0
                     val maxExpenseCategory = categories.firstOrNull { it.id == maxExpense?.categoryId }?.name ?: "لايوجد"
 
-                    // Savings rate
                     val incomeSum = periodTransactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
                     val rate = if (incomeSum > 0) ((incomeSum - totalExpensesSum) / incomeSum).toFloat() else 0f
 
-                    // Global budget limits
                     val limitTotal = categories.filter { it.type == CategoryType.EXPENSE && it.budgetLimit != null }.sumOf { it.budgetLimit ?: 0.0 }
                     val consumption = if (limitTotal > 0) (totalExpensesSum / limitTotal).toFloat() else 0f
 
-                    // Spend Projection & Salary Cycle
-                    var cycleStartLabel = ""
-                    var cycleEndLabel = ""
-                    var daysRemaining = 0
-                    var totalDays = 30
-                    var cyclePercentageElapsed = 0f
-                    var projectedSpend = 0.0
-                    var isProjectedToExceed = false
-                    var refBudget = 0.0
+                    val projection = AnalyticsCalculator.computeSpendProjection(state, totalExpensesSum, hasSalary, salaryDay, salaryAmt, limitTotal)
+                    val wkStats = AnalyticsCalculator.computeWeekendWeekdayStats(expensesOnly, transactions, state, hasSalary, salaryDay)
+                    val efStats = AnalyticsCalculator.computeEmergencyFundStats(accounts, savingGoals, transactions)
 
-                    if (_uiState.value.selectedPeriod == "MONTH") {
-                        val range = if (hasSalary) {
-                            getSalaryCycleRangeForAnchor(salaryDay, _uiState.value.selectedMonth, _uiState.value.selectedYear)
-                        } else {
-                            val start = Calendar.getInstance().apply {
-                                set(Calendar.YEAR, _uiState.value.selectedYear)
-                                set(Calendar.MONTH, _uiState.value.selectedMonth)
-                                set(Calendar.DAY_OF_MONTH, 1)
-                                set(Calendar.HOUR_OF_DAY, 0)
-                                set(Calendar.MINUTE, 0)
-                                set(Calendar.SECOND, 0)
-                                set(Calendar.MILLISECOND, 0)
-                            }
-                            val end = start.clone() as Calendar
-                            end.set(Calendar.DAY_OF_MONTH, end.getActualMaximum(Calendar.DAY_OF_MONTH))
-                            end.set(Calendar.HOUR_OF_DAY, 23)
-                            end.set(Calendar.MINUTE, 59)
-                            end.set(Calendar.SECOND, 59)
-                            Pair(start, end)
-                        }
-
-                        val startMillis = range.first.timeInMillis
-                        val endMillis = range.second.timeInMillis
-
-                        val dayFormat = java.text.SimpleDateFormat("d MMM", java.util.Locale("ar"))
-                        cycleStartLabel = dayFormat.format(range.first.time)
-                        cycleEndLabel = dayFormat.format(range.second.time)
-
-                        val todayMillis = System.currentTimeMillis()
-                        totalDays = ((endMillis - startMillis) / (24 * 60 * 60 * 1000)).toInt().coerceAtLeast(1)
-
-                        if (todayMillis in startMillis..endMillis) {
-                            val elapsedMillis = todayMillis - startMillis
-                            cyclePercentageElapsed = (elapsedMillis.toFloat() / (endMillis - startMillis).toFloat()).coerceIn(0f, 1f)
-                            daysRemaining = ((endMillis - todayMillis) / (24 * 60 * 60 * 1000)).toInt().coerceAtLeast(0)
-
-                            val elapsedDays = (elapsedMillis / (24 * 60 * 60 * 1000)).coerceAtLeast(1)
-                            projectedSpend = (totalExpensesSum / elapsedDays) * totalDays
-                        } else if (todayMillis > endMillis) {
-                            cyclePercentageElapsed = 1f
-                            daysRemaining = 0
-                            projectedSpend = totalExpensesSum
-                        } else {
-                            cyclePercentageElapsed = 0f
-                            daysRemaining = totalDays
-                            projectedSpend = 0.0
-                        }
-
-                        refBudget = if (limitTotal > 0) limitTotal else if (hasSalary) salaryAmt else 0.0
-                        isProjectedToExceed = refBudget > 0.0 && projectedSpend > refBudget
-                    }
-
-                    // Weekend vs Weekday Spending
-                    var weekendSum = 0.0
-                    var weekdaySum = 0.0
-                    var weekendAvg = 0.0
-                    var weekdayAvg = 0.0
-                    var weekendPct = 0f
-                    var weekdayPct = 0f
-                    var hasWkData = false
-
-                    if (_uiState.value.selectedPeriod != "DAY" && expensesOnly.isNotEmpty()) {
-                        val cal = Calendar.getInstance()
-                        expensesOnly.forEach { tx ->
-                            cal.timeInMillis = tx.date
-                            val dow = cal.get(Calendar.DAY_OF_WEEK)
-                            if (dow == Calendar.FRIDAY || dow == Calendar.SATURDAY) {
-                                weekendSum += tx.amount
-                            } else {
-                                weekdaySum += tx.amount
-                            }
-                        }
-
-                        val bounds = when (_uiState.value.selectedPeriod) {
-                            "YEAR" -> {
-                                val s = Calendar.getInstance().apply { set(Calendar.YEAR, _uiState.value.selectedYear); set(Calendar.DAY_OF_YEAR, 1) }
-                                val e = Calendar.getInstance().apply { set(Calendar.YEAR, _uiState.value.selectedYear); set(Calendar.DAY_OF_YEAR, getActualMaximum(Calendar.DAY_OF_YEAR)) }
-                                Pair(s.timeInMillis, e.timeInMillis)
-                            }
-                            "WEEK" -> {
-                                val s = Calendar.getInstance().apply { add(Calendar.WEEK_OF_YEAR, -_uiState.value.selectedWeekOffset); set(Calendar.DAY_OF_WEEK, firstDayOfWeek) }
-                                val e = s.clone() as Calendar; e.add(Calendar.DAY_OF_YEAR, 6)
-                                Pair(s.timeInMillis, e.timeInMillis)
-                            }
-                            "MONTH" -> {
-                                val range = if (hasSalary) {
-                                    getSalaryCycleRangeForAnchor(salaryDay, _uiState.value.selectedMonth, _uiState.value.selectedYear)
-                                } else {
-                                    val s = Calendar.getInstance().apply { set(Calendar.YEAR, _uiState.value.selectedYear); set(Calendar.MONTH, _uiState.value.selectedMonth); set(Calendar.DAY_OF_MONTH, 1) }
-                                    val e = s.clone() as Calendar; e.set(Calendar.DAY_OF_MONTH, e.getActualMaximum(Calendar.DAY_OF_MONTH))
-                                    Pair(s, e)
-                                }
-                                Pair(range.first.timeInMillis, range.second.timeInMillis)
-                            }
-                            else -> {
-                                val minTx = transactions.minOfOrNull { it.date } ?: System.currentTimeMillis()
-                                val maxTx = transactions.maxOfOrNull { it.date } ?: System.currentTimeMillis()
-                                Pair(minTx, maxTx)
-                            }
-                        }
-
-                        val weekendWeekdayCounts = countWeekendDaysInRange(bounds.first, bounds.second)
-                        val weekendCount = weekendWeekdayCounts.first
-                        val weekdayCount = weekendWeekdayCounts.second
-
-                        weekendAvg = weekendSum / weekendCount
-                        weekdayAvg = weekdaySum / weekdayCount
-                        val totalSpend = weekendSum + weekdaySum
-                        if (totalSpend > 0) {
-                            weekendPct = (weekendSum / totalSpend).toFloat()
-                            weekdayPct = (weekdaySum / totalSpend).toFloat()
-                        }
-                        hasWkData = true
-                    }
-
-                    // Emergency Fund Runway
-                    val savingsAccsBalance = accounts.filter { it.type == AccountType.SAVINGS }.sumOf { it.balance }
-                    val savingsGoalsSum = savingGoals.sumOf { it.currentAmount }
-                    val totalSavings = savingsAccsBalance + savingsGoalsSum
-
-                    val threeMonthsAgoMillis = Calendar.getInstance().apply { add(Calendar.MONTH, -3); set(Calendar.DAY_OF_MONTH, 1) }.timeInMillis
-                    val historicalExpenses = transactions.filter { it.type == TransactionType.EXPENSE && it.date >= threeMonthsAgoMillis }
-                    val earliestTx = transactions.filter { it.type == TransactionType.EXPENSE }.minOfOrNull { it.date } ?: System.currentTimeMillis()
-                    val spanMillis = System.currentTimeMillis() - earliestTx
-                    val spanMonths = (spanMillis.toDouble() / (30.0 * 24 * 60 * 60 * 1000)).coerceIn(1.0, 3.0)
-                    val totalHistExpenses = historicalExpenses.sumOf { it.amount }
-                    val avgMonthlyExpense = totalHistExpenses / spanMonths
-
-                    val runway = if (avgMonthlyExpense > 0) (totalSavings / avgMonthlyExpense).toFloat() else 0f
-                    val runwayStatus = when {
-                        runway < 1.0f -> "CRITICAL"
-                        runway < 3.0f -> "ACCEPTABLE"
-                        runway < 6.0f -> "SAFE"
-                        else -> "EXCELLENT"
-                    }
-
-                    _uiState.value.copy(
-                        selectedPeriod = _uiState.value.selectedPeriod,
+                    state.copy(
                         spendingsByCategory = shares,
                         trendData = realTrend,
                         largestExpense = maxExpenseAmount,
                         largestExpenseName = maxExpenseCategory,
                         savingsRate = rate,
                         budgetConsumptionPercent = consumption.coerceIn(0f, 1f),
-                        selectedDayOffset = _uiState.value.selectedDayOffset,
-                        selectedWeekOffset = _uiState.value.selectedWeekOffset,
-                        selectedMonth = _uiState.value.selectedMonth,
-                        selectedYear = _uiState.value.selectedYear,
                         isLoading = false,
 
                         hasSalarySource = hasSalary,
                         salaryDayOfMonth = salaryDay,
                         salaryAmount = salaryAmt,
-                        salaryCycleStartLabel = cycleStartLabel,
-                        salaryCycleEndLabel = cycleEndLabel,
-                        daysRemainingInCycle = daysRemaining,
-                        totalDaysInCycle = totalDays,
-                        salaryCyclePercentageElapsed = cyclePercentageElapsed,
-                        projectedEndMonthSpending = projectedSpend,
-                        isProjectedToExceedBudget = isProjectedToExceed,
-                        referenceBudget = refBudget,
+                        salaryCycleStartLabel = projection.cycleStartLabel,
+                        salaryCycleEndLabel = projection.cycleEndLabel,
+                        daysRemainingInCycle = projection.daysRemaining,
+                        totalDaysInCycle = projection.totalDays,
+                        salaryCyclePercentageElapsed = projection.cyclePercentageElapsed,
+                        projectedEndMonthSpending = projection.projectedSpend,
+                        isProjectedToExceedBudget = projection.isProjectedToExceed,
+                        referenceBudget = projection.refBudget,
 
-                        weekendExpensesSum = weekendSum,
-                        weekdayExpensesSum = weekdaySum,
-                        weekendDailyAverage = weekendAvg,
-                        weekdayDailyAverage = weekdayAvg,
-                        weekendPercentage = weekendPct,
-                        weekdayPercentage = weekdayPct,
-                        hasWeekendData = hasWkData,
+                        weekendExpensesSum = wkStats.weekendSum,
+                        weekdayExpensesSum = wkStats.weekdaySum,
+                        weekendDailyAverage = wkStats.weekendAvg,
+                        weekdayDailyAverage = wkStats.weekdayAvg,
+                        weekendPercentage = wkStats.weekendPct,
+                        weekdayPercentage = wkStats.weekdayPct,
+                        hasWeekendData = wkStats.hasData,
 
-                        totalSavingsAmount = totalSavings,
-                        averageMonthlyExpense = avgMonthlyExpense,
-                        emergencyFundRunwayMonths = runway,
-                        emergencyFundStatus = runwayStatus,
+                        totalSavingsAmount = efStats.totalSavings,
+                        averageMonthlyExpense = efStats.avgMonthlyExpense,
+                        emergencyFundRunwayMonths = efStats.runway,
+                        emergencyFundStatus = efStats.runwayStatus,
                         isDatabaseEmpty = transactions.isEmpty(),
                         transactions = transactions,
                         categories = categories
@@ -557,48 +309,6 @@ class AnalyticsViewModel(
                 _uiState.update { it.copy(isLoading = false, error = e.localizedMessage) }
             }
         }
-    }
-
-    private fun getSalaryCycleRangeForAnchor(salaryDay: Int, anchorMonth: Int, anchorYear: Int): Pair<Calendar, Calendar> {
-        val startCal = Calendar.getInstance().apply {
-            set(Calendar.YEAR, anchorYear)
-            set(Calendar.MONTH, anchorMonth)
-            add(Calendar.MONTH, -1) // starts in previous month
-            val maxDay = getActualMaximum(Calendar.DAY_OF_MONTH)
-            set(Calendar.DAY_OF_MONTH, salaryDay.coerceAtMost(maxDay))
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        val endCal = startCal.clone() as Calendar
-        endCal.add(Calendar.MONTH, 1)
-        val nextMonthMax = endCal.getActualMaximum(Calendar.DAY_OF_MONTH)
-        endCal.set(Calendar.DAY_OF_MONTH, salaryDay.coerceAtMost(nextMonthMax))
-        endCal.add(Calendar.MILLISECOND, -1)
-        return Pair(startCal, endCal)
-    }
-
-    private fun countWeekendDaysInRange(startMillis: Long, endMillis: Long): Pair<Int, Int> {
-        var weekendCount = 0
-        var weekdayCount = 0
-        val cal = Calendar.getInstance()
-        cal.timeInMillis = startMillis
-        val maxEnd = endMillis.coerceAtMost(startMillis + 366L * 24 * 60 * 60 * 1000)
-        while (cal.timeInMillis <= maxEnd) {
-            val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
-            if (dayOfWeek == Calendar.FRIDAY || dayOfWeek == Calendar.SATURDAY) {
-                weekendCount++
-            } else {
-                weekdayCount++
-            }
-            cal.add(Calendar.DAY_OF_YEAR, 1)
-        }
-        return Pair(weekendCount.coerceAtLeast(1), weekdayCount.coerceAtLeast(1))
-    }
-
-    private fun sumOfExpenses(txs: List<Transaction>): Double {
-        return txs.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
     }
 
     fun exportPdfReport() {
