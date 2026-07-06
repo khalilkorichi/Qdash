@@ -4,14 +4,15 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
-import com.qdash.domain.model.*
-import com.qdash.domain.repository.*
-import com.qdash.data.local.entities.UserProfileEntity
+import com.qdash.domain.model.UserProfile
+import com.qdash.domain.repository.AuthRepository
+import com.qdash.domain.repository.DriveSyncRepository
+import com.qdash.domain.usecase.settings.ExportSettingsUseCase
+import com.qdash.domain.usecase.settings.ResetAppDataUseCase
+import com.qdash.domain.usecase.settings.RestoreBackupUseCase
 import com.qdash.core.utils.FormatterUtils
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import org.json.JSONObject
-import java.io.File
 
 data class SettingsUiState(
     val lastBackupDate: String = "غير متوفر",
@@ -30,20 +31,16 @@ data class SettingsUiState(
 )
 
 class SettingsViewModel(
-    private val transactionRepository: TransactionRepository,
-    private val accountRepository: AccountRepository,
-    private val categoryRepository: CategoryRepository,
-    private val incomeRepository: IncomeRepository,
-    private val savingRepository: SavingRepository,
-    private val subscriptionRepository: SubscriptionRepository,
-    private val backupRepository: com.qdash.domain.repository.BackupRepository,
+    private val exportSettingsUseCase: ExportSettingsUseCase,
+    private val resetAppDataUseCase: ResetAppDataUseCase,
+    private val restoreBackupUseCase: RestoreBackupUseCase,
     private val preferencesManager: com.qdash.core.preferences.PreferencesManager,
     private val authRepository: AuthRepository,
     private val driveSyncRepository: DriveSyncRepository,
     private val context: Context
 ) : ViewModel() {
 
-    val userProfile: StateFlow<UserProfileEntity?> = authRepository.getUserProfile()
+    val userProfile: StateFlow<UserProfile?> = authRepository.getUserProfile()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val _uiState = MutableStateFlow(
@@ -63,7 +60,6 @@ class SettingsViewModel(
 
     private fun loadBackupPreferences() {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            // Read stats or local caches
             val date = preferencesManager.lastBackupDate
             val autoBackup = preferencesManager.autoBackupEnabled
             val email = preferencesManager.connectedEmail
@@ -209,83 +205,67 @@ class SettingsViewModel(
         }
     }
 
-    // JSON Backup System: delegates database serialization to BackupRepository
     fun runBackup(onSuccess: (String) -> Unit, onFailure: (String) -> Unit) {
         _uiState.update { it.copy(isSyncing = true, backupRestoreStatus = "جاري تحضير النسخة الاحتياطية...") }
-        
         viewModelScope.launch {
-            try {
-                val backupObj = backupRepository.exportAllDataAsJson()
-
-                // Save JSON to local backup file as a cached secure state (encrypted using AES-256)
-                val backupFile = File(context.filesDir, "kdach_backup_drive.json")
-                val encryptedData = com.qdash.core.utils.CryptoUtils.encrypt(backupObj.toString())
-                backupFile.writeText(encryptedData)
-
-                // Update settings metadata
-                val dateString = FormatterUtils.formatDate(System.currentTimeMillis())
-                preferencesManager.lastBackupDate = dateString
-
-                _uiState.update {
-                    it.copy(
-                        lastBackupDate = dateString,
-                        isSyncing = false,
-                        backupRestoreStatus = "تم النسخ الاحتياطي بنجاح كملف JSON آمن!"
-                    )
+            exportSettingsUseCase.backupLocalJson().fold(
+                onSuccess = { dateString ->
+                    _uiState.update {
+                        it.copy(
+                            lastBackupDate = dateString,
+                            isSyncing = false,
+                            backupRestoreStatus = "تم النسخ الاحتياطي بنجاح كملف JSON آمن!"
+                        )
+                    }
+                    onSuccess(dateString)
+                },
+                onFailure = { e ->
+                    _uiState.update { it.copy(isSyncing = false, backupRestoreStatus = "فشل النسخ الاحتياطي: ${e.localizedMessage}") }
+                    onFailure(e.localizedMessage ?: "خطأ غير معروف")
                 }
-                onSuccess(dateString)
-            } catch (e: Exception) {
-                _uiState.update { it.copy(isSyncing = false, backupRestoreStatus = "فشل النسخ الاحتياطي: ${e.localizedMessage}") }
-                onFailure(e.localizedMessage ?: "خطأ غير معروف")
-            }
+            )
         }
     }
 
-    // JSON Restore System: conflict-safe restore with confirmation
     fun runRestore(onSuccess: () -> Unit, onFailure: (String) -> Unit) {
         _uiState.update { it.copy(isSyncing = true, backupRestoreStatus = "جاري قراءة ملف الاستعادة...") }
-
         viewModelScope.launch {
-            try {
-                val backupFile = File(context.filesDir, "kdach_backup_drive.json")
-                if (!backupFile.exists()) {
-                    _uiState.update { it.copy(isSyncing = false, backupRestoreStatus = "لا توجد نسخة احتياطية محفوظة للاتصال!") }
-                    onFailure("ملف النسخة الاحتياطية غير موجود.")
-                    return@launch
-                }
-
-                val encryptedBackupStr = backupFile.readText()
-                val backupStr = try {
-                    com.qdash.core.utils.CryptoUtils.decrypt(encryptedBackupStr)
-                } catch (e: Exception) {
-                    // Fallback in case the file was not encrypted (old plain JSON backup compatibility)
-                    if (encryptedBackupStr.trim().startsWith("{")) {
-                        encryptedBackupStr
-                    } else {
-                        throw e
+            restoreBackupUseCase.restoreLocalJson().fold(
+                onSuccess = {
+                    _uiState.update {
+                        it.copy(
+                            isSyncing = false,
+                            backupRestoreStatus = "تم استعادة البيانات بالكامل بنجاح!"
+                        )
                     }
+                    onSuccess()
+                },
+                onFailure = { e ->
+                    _uiState.update { it.copy(isSyncing = false, backupRestoreStatus = "فشلت الاستعادة: ${e.localizedMessage}") }
+                    onFailure(e.localizedMessage ?: "خطأ غير معروف")
                 }
-                val backupObj = JSONObject(backupStr)
+            )
+        }
+    }
 
-                // Schema validation: check that the JSON contains required tables before deleting anything
-                if (!backupObj.has("accounts") || !backupObj.has("transactions") || !backupObj.has("categories")) {
-                    throw IllegalArgumentException("ملف النسخة الاحتياطية غير صالح أو لا يحتوي على الجداول الأساسية للتطبيق!")
+    fun resetAllData(onComplete: () -> Unit) {
+        _uiState.update { it.copy(isSyncing = true, backupRestoreStatus = "جاري تهيئة قاعدة البيانات...") }
+        viewModelScope.launch {
+            resetAppDataUseCase().fold(
+                onSuccess = {
+                    _uiState.update {
+                        it.copy(
+                            isSyncing = false,
+                            backupRestoreStatus = "تم مسح جميع البيانات وتهيئة التطبيق بنجاح!",
+                            lastBackupDate = null.toString()
+                        )
+                    }
+                    onComplete()
+                },
+                onFailure = { e ->
+                    _uiState.update { it.copy(isSyncing = false, backupRestoreStatus = "فشل تهيئة التطبيق: ${e.localizedMessage}") }
                 }
-
-                // Restore database using repository
-                backupRepository.restoreFromJson(backupObj)
-
-                _uiState.update {
-                    it.copy(
-                        isSyncing = false,
-                        backupRestoreStatus = "تم استعادة البيانات بالكامل بنجاح!"
-                    )
-                }
-                onSuccess()
-            } catch (e: Exception) {
-                _uiState.update { it.copy(isSyncing = false, backupRestoreStatus = "فشلت الاستعادة: ${e.localizedMessage}") }
-                onFailure(e.localizedMessage ?: "خطأ غير معروف")
-            }
+            )
         }
     }
 

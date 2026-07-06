@@ -11,7 +11,7 @@ import com.qdash.data.backup.BackupManager
  */
 interface AppContainer {
     val database: AppDatabase
-    val updateRepository: com.qdash.data.update.UpdateRepository
+    val updateRepository: UpdateRepository
     val transactionRepository: TransactionRepository
     val accountRepository: AccountRepository
     val categoryRepository: CategoryRepository
@@ -118,4 +118,15 @@ interface AppContainer {
 
     val authRepository: AuthRepository
     val driveSyncRepository: DriveSyncRepository
+
+    // Remediations (ARCH-001 / ARCH-003)
+    val getAccountsUseCase: com.qdash.domain.usecase.accounts.GetAccountsUseCase
+    val manageAccountUseCase: com.qdash.domain.usecase.accounts.ManageAccountUseCase
+    val exportSettingsUseCase: com.qdash.domain.usecase.settings.ExportSettingsUseCase
+    val resetAppDataUseCase: com.qdash.domain.usecase.settings.ResetAppDataUseCase
+    val restoreBackupUseCase: com.qdash.domain.usecase.settings.RestoreBackupUseCase
+    val getTransactionsUseCase: com.qdash.domain.usecase.transaction.GetTransactionsUseCase
+    val filterTransactionsUseCase: com.qdash.domain.usecase.transaction.FilterTransactionsUseCase
+    val checkForUpdateUseCase: com.qdash.domain.usecase.update.CheckForUpdateUseCase
+    val downloadUpdateUseCase: com.qdash.domain.usecase.update.DownloadUpdateUseCase
 }

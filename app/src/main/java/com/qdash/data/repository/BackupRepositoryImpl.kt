@@ -12,9 +12,16 @@ import com.qdash.core.data.DatabaseSeeder
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.*
+import android.content.Context
+import android.net.Uri
+import com.qdash.core.preferences.PreferencesManager
+import com.qdash.data.backup.BackupManager
 
 class BackupRepositoryImpl(
-    private val database: AppDatabase
+    private val context: Context? = null,
+    private val database: AppDatabase,
+    private val preferencesManager: PreferencesManager? = null,
+    private val backupManager: BackupManager? = null
 ) : BackupRepository {
 
     // --- Legacy V1 Methods for backward compatibility ---
@@ -1574,6 +1581,138 @@ class BackupRepositoryImpl(
                     icon = stringVal("icon")
                 )
             )
+        }
+    }
+
+    override fun isFolderUriValid(uriString: String?): Boolean {
+        return backupManager?.isFolderUriValid(uriString) ?: false
+    }
+
+    override suspend fun exportBackupToFolder(
+        folderUri: Uri,
+        pwd: CharArray?,
+        includeAttachments: Boolean,
+        maxKeepBackups: Int,
+        onProgress: (suspend (stage: String, percent: Int) -> Unit)?
+    ): Result<com.qdash.domain.model.BackupFileInfo> {
+        return backupManager!!.exportBackupToFolder(folderUri, pwd, includeAttachments, maxKeepBackups, onProgress)
+            .map { fileDetails ->
+                com.qdash.domain.model.BackupFileInfo(
+                    name = fileDetails.name,
+                    sizeBytes = fileDetails.sizeBytes,
+                    path = fileDetails.path
+                )
+            }
+    }
+
+    override suspend fun exportBackupV2(
+        outputUri: Uri,
+        pwd: CharArray?,
+        includeAttachments: Boolean,
+        onProgress: (suspend (stage: String, percent: Int) -> Unit)?
+    ): Result<Unit> {
+        return backupManager!!.exportBackupV2(outputUri, pwd, includeAttachments, onProgress)
+    }
+
+    override suspend fun getRestorePreview(
+        inputUri: Uri,
+        pwd: CharArray?
+    ): Result<com.qdash.domain.model.RestorePreview> {
+        return backupManager!!.getRestorePreview(inputUri, pwd)
+    }
+
+    override suspend fun performRestoreV2(
+        preview: com.qdash.domain.model.RestorePreview,
+        selectedTables: List<String>?,
+        onProgress: (suspend (stage: String, percent: Int) -> Unit)?
+    ): Result<Unit> {
+        return backupManager!!.performRestoreV2(preview, selectedTables, onProgress)
+    }
+
+    override suspend fun exportBackup(uri: Uri): Result<Unit> {
+        return backupManager!!.exportBackup(uri)
+    }
+
+    override suspend fun backupLocalJsonData(): Result<String> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        try {
+            val json = exportAllDataAsJson()
+            val encrypted = com.qdash.core.utils.CryptoUtils.encrypt(json.toString())
+            val file = File(context!!.filesDir, "kdach_backup_drive.json")
+            file.writeText(encrypted)
+            
+            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
+            val dateString = sdf.format(java.util.Date())
+            preferencesManager!!.lastBackupDate = dateString
+            Result.success(dateString)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun restoreLocalJsonData(): Result<Unit> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        try {
+            val file = File(context!!.filesDir, "kdach_backup_drive.json")
+            if (!file.exists()) {
+                return@withContext Result.failure(FileNotFoundException("ملف النسخة الاحتياطية غير موجود!"))
+            }
+            val encrypted = file.readText()
+            val decrypted = try {
+                com.qdash.core.utils.CryptoUtils.decrypt(encrypted)
+            } catch (e: Exception) {
+                encrypted
+            }
+            
+            val json = JSONObject(decrypted)
+            if (!json.has("accounts") || !json.has("transactions") || !json.has("categories")) {
+                return@withContext Result.failure(IllegalArgumentException("الملف لا يحتوي على بيانات صالحة لتطبيق قداشّ."))
+            }
+            
+            restoreFromJson(json)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun hasLocalJsonBackup(): Boolean = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        File(context!!.filesDir, "kdach_backup_drive.json").exists()
+    }
+
+    override suspend fun resetAllData(): Result<Unit> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        try {
+            database.clearAllTables()
+            preferencesManager!!.clearAll()
+            DatabaseSeeder.prepopulateSystemDefaults(database)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override fun updateBackupSchedule(interval: String) {
+        try {
+            val workManager = androidx.work.WorkManager.getInstance(context!!)
+            workManager.cancelUniqueWork("scheduled_backup")
+            
+            val repeatIntervalDays = when (interval) {
+                "DAILY" -> 1L
+                "WEEKLY" -> 7L
+                "MONTHLY" -> 30L
+                else -> 0L
+            }
+            
+            if (repeatIntervalDays > 0L) {
+                val backupWorkRequest = androidx.work.PeriodicWorkRequestBuilder<com.qdash.data.backup.ScheduledBackupWorker>(
+                    repeatIntervalDays, java.util.concurrent.TimeUnit.DAYS
+                ).build()
+                workManager.enqueueUniquePeriodicWork(
+                    "scheduled_backup",
+                    androidx.work.ExistingPeriodicWorkPolicy.UPDATE,
+                    backupWorkRequest
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }

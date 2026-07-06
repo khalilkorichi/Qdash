@@ -9,13 +9,15 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qdash.BuildConfig
-import com.qdash.data.backup.BackupManager
-import com.qdash.data.update.DownloadState
-import com.qdash.data.update.UpdateInfo
-import com.qdash.data.update.UpdateRepository
-import com.qdash.data.update.CheckingStep
+import com.qdash.domain.model.CheckingStep
+import com.qdash.domain.model.DownloadState
+import com.qdash.domain.model.UpdateInfo
+import com.qdash.domain.repository.BackupRepository
+import com.qdash.domain.usecase.update.CheckForUpdateUseCase
+import com.qdash.domain.usecase.update.DownloadUpdateUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -55,8 +57,9 @@ enum class CheckingStepType {
 }
 
 class UpdatesViewModel(
-    private val repository: UpdateRepository,
-    private val backupManager: BackupManager,
+    private val checkForUpdateUseCase: CheckForUpdateUseCase,
+    private val downloadUpdateUseCase: DownloadUpdateUseCase,
+    private val backupRepository: BackupRepository,
     private val notificationRepository: com.qdash.domain.repository.NotificationRepository,
     private val preferencesManager: com.qdash.core.preferences.PreferencesManager,
     private val context: Context
@@ -74,7 +77,6 @@ class UpdatesViewModel(
     private var wasInstallationTriggered = false
     private var lastTriggeredApkFile: File? = null
     private var lastUpdateInfo: UpdateInfo? = null
-    private var downloadJob: kotlinx.coroutines.Job? = null
     private var currentProgress = 0
 
     init {
@@ -84,7 +86,7 @@ class UpdatesViewModel(
 
     private fun observeDownloadState() {
         viewModelScope.launch {
-            repository.downloadState.collect { downloadState ->
+            downloadUpdateUseCase.downloadState.collect { downloadState ->
                 when (downloadState) {
                     is DownloadState.Idle -> {
                         val lastInfo = lastUpdateInfo
@@ -132,7 +134,7 @@ class UpdatesViewModel(
 
     fun loadDownloadedApks() {
         viewModelScope.launch {
-            _downloadedApks.value = repository.getDownloadedApks()
+            _downloadedApks.value = downloadUpdateUseCase.getDownloadedApks()
         }
     }
 
@@ -157,7 +159,7 @@ class UpdatesViewModel(
                 initCheckingSteps()
                 _uiState.value = UpdateUiState.Checking
             }
-            val result = repository.checkForUpdates { step ->
+            val result = checkForUpdateUseCase { step ->
                 if (!isBackground) {
                     when (step) {
                         is CheckingStep.ReadingLocalVersion -> {
@@ -265,12 +267,12 @@ class UpdatesViewModel(
             _uiState.value = UpdateUiState.DownloadFailed(info, "مساحة التخزين غير كافية لتحميل هذا التحديث. يرجى توفير مساحة إضافية.")
             return
         }
-        repository.startDownload(info)
+        downloadUpdateUseCase.startDownload(info)
     }
 
     fun deleteDownloadedApk(file: File) {
         viewModelScope.launch {
-            val success = repository.deleteDownloadedApk(file)
+            val success = downloadUpdateUseCase.deleteDownloadedApk(file)
             if (success) {
                 loadDownloadedApks()
             }
@@ -293,22 +295,22 @@ class UpdatesViewModel(
     }
 
     fun pauseDownload(info: UpdateInfo) {
-        repository.pauseDownload(info)
+        downloadUpdateUseCase.pauseDownload(info)
     }
 
     fun resumeDownload(info: UpdateInfo) {
-        repository.startDownload(info)
+        downloadUpdateUseCase.startDownload(info)
     }
 
     fun cancelDownload(info: UpdateInfo) {
-        repository.cancelDownload(info)
+        downloadUpdateUseCase.cancelDownload(info)
     }
 
     fun triggerSafetyBackupAndInstall(context: Context, info: UpdateInfo, file: File) {
         viewModelScope.launch {
             _uiState.value = UpdateUiState.BackupInProgress(info, file)
-            // Perform automatic silent backup to Downloads folder before update
-            repository.backupDataBeforeUpdate(backupManager)
+            // Perform automatic silent backup before update
+            downloadUpdateUseCase.backupDataBeforeUpdate()
                 .onSuccess { uri ->
                     _uiState.value = UpdateUiState.BackupSuccess(info, file, uri)
                     installUpdate(context, info, file)
@@ -353,13 +355,11 @@ class UpdatesViewModel(
     }
 
     fun onResumeCheck() {
-        // If the installation was triggered and we are resuming the app, it means the install failed or was cancelled
         if (wasInstallationTriggered) {
             wasInstallationTriggered = false
             val file = lastTriggeredApkFile
             val info = lastUpdateInfo
             if (file != null && info != null) {
-                // Set state to FallbackRecovery so the user can access uninstall instructions
                 _uiState.value = UpdateUiState.FallbackRecovery(info, file, FallbackStep.BACKUP)
             }
         }
@@ -369,7 +369,7 @@ class UpdatesViewModel(
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is UpdateUiState.FallbackRecovery) {
-                backupManager.exportBackup(uri)
+                backupRepository.exportBackup(uri)
                     .onSuccess {
                         _uiState.value = currentState.copy(step = FallbackStep.COPY_APK)
                     }
@@ -382,7 +382,7 @@ class UpdatesViewModel(
             val currentState = _uiState.value
             if (currentState is UpdateUiState.FallbackRecovery) {
                 val filename = "Qdash-Install-This.apk"
-                val resultUri = repository.copyApkToDownloads(file, filename)
+                val resultUri = downloadUpdateUseCase.copyApkToDownloads(file, filename)
                 if (resultUri != null) {
                     _uiState.value = currentState.copy(step = FallbackStep.UNINSTALL)
                 }

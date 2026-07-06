@@ -14,6 +14,10 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.qdash.BuildConfig
 import com.qdash.data.backup.BackupManager
+import com.qdash.domain.model.CheckingStep
+import com.qdash.domain.model.DownloadState
+import com.qdash.domain.model.UpdateInfo
+import com.qdash.domain.repository.UpdateRepository
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.CoroutineScope
@@ -38,7 +42,8 @@ import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
 class UpdateRepositoryImpl(
-    private val context: Context
+    private val context: Context,
+    private val backupManager: BackupManager
 ) : UpdateRepository {
 
     private val _downloadState = MutableStateFlow<DownloadState>(DownloadState.Idle)
@@ -402,7 +407,7 @@ class UpdateRepositoryImpl(
         }
     }
 
-    override suspend fun backupDataBeforeUpdate(backupManager: BackupManager): Result<Uri> = withContext(Dispatchers.IO) {
+    override suspend fun backupDataBeforeUpdate(): Result<Uri> = withContext(Dispatchers.IO) {
         try {
             val filename = "Qdash_AutoBackup_${System.currentTimeMillis()}.zip"
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

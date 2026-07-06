@@ -5,7 +5,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.Scope
-import com.qdash.data.local.entities.UserProfileEntity
+import com.qdash.domain.model.UserProfile
 import coil.compose.AsyncImage
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -625,7 +625,7 @@ fun SettingsScreen(
 @Composable
 private fun GeneralTab(
     uiState: SettingsUiState,
-    userProfile: UserProfileEntity?,
+    userProfile: UserProfile?,
     onToggleDark: (Boolean) -> Unit,
     onToggleHideDecimals: (Boolean) -> Unit,
     onToggleAmountWords: (Boolean) -> Unit,
@@ -1539,7 +1539,7 @@ private fun SettingsItemSkeleton(modifier: Modifier = Modifier) {
 
 @Composable
 private fun UserProfileCard(
-    userProfile: UserProfileEntity?,
+    userProfile: UserProfile?,
     lastSyncTimestamp: Long,
     onClick: () -> Unit
 ) {

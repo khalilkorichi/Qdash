@@ -4,10 +4,10 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
- * All Room database migrations for kdach_database.
- * Extracted from AppContainer.kt — exact same SQL, never modify migration content.
+ * Room database migrations for kdach_database.
  *
- * Migration chain: 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13
+ * NOTE: Versions 1–3 are legacy/local debug states and are not supported upgrade sources.
+ * The oldest supported upgrade source version is version 4.
  */
 
 val MIGRATION_3_4 = object : Migration(3, 4) {
@@ -331,12 +331,13 @@ val MIGRATION_21_22 = object : Migration(21, 22) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("""
             CREATE TABLE IF NOT EXISTS `user_profiles` (
-                `id` INTEGER PRIMARY KEY NOT NULL, 
+                `id` INTEGER NOT NULL, 
                 `name` TEXT NOT NULL, 
                 `email` TEXT, 
                 `birthDate` TEXT, 
                 `avatarUrl` TEXT, 
-                `isGoogleLinked` INTEGER NOT NULL DEFAULT 0
+                `isGoogleLinked` INTEGER NOT NULL, 
+                PRIMARY KEY(`id`)
             )
         """.trimIndent())
     }

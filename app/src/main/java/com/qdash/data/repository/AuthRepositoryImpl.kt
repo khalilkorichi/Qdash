@@ -11,11 +11,13 @@ import com.google.android.gms.tasks.Tasks
 import com.qdash.core.preferences.PreferencesManager
 import com.qdash.data.local.dao.UserProfileDao
 import com.qdash.data.local.entities.UserProfileEntity
+import com.qdash.domain.model.UserProfile
 import com.qdash.domain.repository.AuthRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 class AuthRepositoryImpl(
@@ -23,11 +25,11 @@ class AuthRepositoryImpl(
     private val preferencesManager: PreferencesManager
 ) : AuthRepository {
 
-    override fun getUserProfile(): Flow<UserProfileEntity?> {
-        return userProfileDao.getUserProfileFlow()
+    override fun getUserProfile(): Flow<UserProfile?> {
+        return userProfileDao.getUserProfileFlow().map { it?.toDomain() }
     }
 
-    override suspend fun signIn(account: GoogleSignInAccount): Result<UserProfileEntity> = withContext(Dispatchers.IO) {
+    override suspend fun signIn(account: GoogleSignInAccount): Result<UserProfile> = withContext(Dispatchers.IO) {
         try {
             val entity = UserProfileEntity(
                 id = 1,
@@ -40,13 +42,13 @@ class AuthRepositoryImpl(
             userProfileDao.insertUserProfile(entity)
             preferencesManager.isGoogleLinked = true
             preferencesManager.connectedEmail = account.email
-            Result.success(entity)
+            Result.success(entity.toDomain())
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    override suspend fun silentSignIn(context: Context): Flow<Result<UserProfileEntity>> = flow {
+    override suspend fun silentSignIn(context: Context): Flow<Result<UserProfile>> = flow {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
             .requestProfile()
@@ -68,9 +70,8 @@ class AuthRepositoryImpl(
             userProfileDao.insertUserProfile(entity)
             preferencesManager.isGoogleLinked = true
             preferencesManager.connectedEmail = account.email
-            emit(Result.success(entity))
+            emit(Result.success(entity.toDomain()))
         } catch (e: Exception) {
-            // Unpack ApiException if any
             val cause = e.cause
             if (cause is ApiException) {
                 if (cause.statusCode == CommonStatusCodes.SIGN_IN_REQUIRED) {
@@ -127,4 +128,13 @@ class AuthRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    private fun UserProfileEntity.toDomain() = UserProfile(
+        id = id,
+        name = name,
+        email = email,
+        birthDate = birthDate,
+        avatarUrl = avatarUrl,
+        isGoogleLinked = isGoogleLinked
+    )
 }

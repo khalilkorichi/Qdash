@@ -28,7 +28,7 @@ class BackupManager(
     private val legacyBackupFormatVersion = 1
     private val currentSchemaVersion = 2 // Unified JSON_V2 schema version
 
-    private val backupRepository = BackupRepositoryImpl(database)
+    private val backupRepository = BackupRepositoryImpl(database = database)
 
     data class FileDetails(val name: String, val sizeBytes: Long, val path: String)
 

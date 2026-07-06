@@ -262,4 +262,11 @@ class PreferencesManager(context: Context) {
     var guestBirthdate: String?
         get() = mainPrefs.getString("guest_birthdate", null)
         set(value) = mainPrefs.edit().putString("guest_birthdate", value).apply()
+
+    fun clearAll() {
+        mainPrefs.edit().clear().apply()
+        dashboardPrefs.edit().clear().apply()
+        searchPrefs.edit().clear().apply()
+        cachedTheme.set(ThemeMode.SYSTEM)
+    }
 }

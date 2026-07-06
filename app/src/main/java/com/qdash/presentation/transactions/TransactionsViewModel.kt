@@ -6,7 +6,7 @@ import com.qdash.domain.model.*
 import com.qdash.domain.repository.*
 import com.qdash.domain.usecase.categorization.GetCategorySuggestionUseCase
 import com.qdash.domain.usecase.categorization.LearnCategoryMappingUseCase
-import com.qdash.data.local.entities.DailyFinancialAggregateEntity
+
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import androidx.room.withTransaction
@@ -48,10 +48,10 @@ data class TransactionsUiState(
     val selectedTransactionIds: Set<Long> = emptySet(),
  
     // Budget goals
-    val budgetGoals: List<com.qdash.data.local.entities.BudgetGoalEntity> = emptyList(),
-
+    val budgetGoals: List<BudgetGoal> = emptyList(),
+ 
     // Activity Calendar state
-    val dailyAggregates: List<DailyFinancialAggregateEntity> = emptyList(),
+    val dailyAggregates: List<DailyFinancialAggregate> = emptyList(),
     val selectedCalendarDate: Long? = null,
     val selectedMetricMode: String = "COUNT", // "COUNT", "EXPENSE", "INCOME", "SCORE"
     val visibleMonth: Int = java.util.Calendar.getInstance().get(java.util.Calendar.MONTH),
@@ -251,9 +251,7 @@ class TransactionsViewModel(
                     transactionRepository.getDailyFinancialAggregatesForRange(range.first, range.second)
                 }
 
-                val budgetsFlow = budgetGoalRepository.getActiveBudgetGoals().map { list ->
-                    list.map { it.toEntity() }
-                }
+                val budgetsFlow = budgetGoalRepository.getActiveBudgetGoals()
 
                 combine(
                     coreDataFlow,

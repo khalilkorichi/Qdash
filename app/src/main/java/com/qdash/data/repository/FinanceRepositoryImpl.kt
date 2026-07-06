@@ -359,8 +359,10 @@ class TransactionRepositoryImpl(
         return transactionDao.isTransactionAlreadyInserted(type.name, note, startDate, endDate)
     }
 
-    override fun getDailyFinancialAggregatesForRange(startDate: Long, endDate: Long): Flow<List<DailyFinancialAggregateEntity>> {
-        return database.dailyFinancialAggregateDao().getAggregatesForRange(startDate, endDate)
+    override fun getDailyFinancialAggregatesForRange(startDate: Long, endDate: Long): Flow<List<DailyFinancialAggregate>> {
+        return database.dailyFinancialAggregateDao().getAggregatesForRange(startDate, endDate).map { list ->
+            list.map { it.toDomain() }
+        }
     }
 
     override suspend fun deleteTransactionsBulk(ids: List<Long>) = database.withTransaction {
@@ -994,4 +996,13 @@ class SalaryDistributionRepositoryImpl(
         salaryDistributionDao.updateLinkedCategories(envelopeId, categoryIds.joinToString(","))
     }
 }
+
+fun DailyFinancialAggregateEntity.toDomain() = DailyFinancialAggregate(
+    localDateTimestamp = localDateTimestamp,
+    totalExpense = totalExpense,
+    totalIncome = totalIncome,
+    transactionCount = transactionCount,
+    netCashflow = netCashflow,
+    activityScore = activityScore
+)
 

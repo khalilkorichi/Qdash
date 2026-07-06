@@ -124,17 +124,13 @@ class AppStartupTest {
         assertNotNull(analyticsViewModel)
 
         val settingsViewModel = SettingsViewModel(
-            container.transactionRepository,
-            container.accountRepository,
-            container.categoryRepository,
-            container.incomeRepository,
-            container.savingRepository,
-            container.subscriptionRepository,
-            container.backupRepository,
-            container.preferencesManager,
-            container.authRepository,
-            container.driveSyncRepository,
-            context
+            exportSettingsUseCase = container.exportSettingsUseCase,
+            resetAppDataUseCase = container.resetAppDataUseCase,
+            restoreBackupUseCase = container.restoreBackupUseCase,
+            preferencesManager = container.preferencesManager,
+            authRepository = container.authRepository,
+            driveSyncRepository = container.driveSyncRepository,
+            context = context
         )
         assertNotNull(settingsViewModel)
 

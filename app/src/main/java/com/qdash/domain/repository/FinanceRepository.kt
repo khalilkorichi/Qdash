@@ -16,7 +16,7 @@ interface TransactionRepository {
     suspend fun deleteTransaction(transaction: Transaction)
     suspend fun deleteTransactionById(id: Long)
     suspend fun isTransactionAlreadyInserted(type: TransactionType, note: String, startDate: Long, endDate: Long): Boolean
-    fun getDailyFinancialAggregatesForRange(startDate: Long, endDate: Long): Flow<List<com.qdash.data.local.entities.DailyFinancialAggregateEntity>>
+    fun getDailyFinancialAggregatesForRange(startDate: Long, endDate: Long): Flow<List<DailyFinancialAggregate>>
     suspend fun deleteTransactionsBulk(ids: List<Long>)
     suspend fun updateTransactionsCategoryBulk(ids: List<Long>, newCategoryId: Long)
     suspend fun bulkEditTransactions(params: BulkEditParams): Result<Int>

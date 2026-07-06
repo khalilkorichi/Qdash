@@ -63,7 +63,7 @@ class AiRepositoryTest {
         override suspend fun deleteTransaction(transaction: Transaction) {}
         override suspend fun deleteTransactionById(id: Long) {}
         override suspend fun isTransactionAlreadyInserted(type: TransactionType, note: String, startDate: Long, endDate: Long): Boolean = false
-        override fun getDailyFinancialAggregatesForRange(startDate: Long, endDate: Long): Flow<List<com.qdash.data.local.entities.DailyFinancialAggregateEntity>> = throw UnsupportedOperationException()
+        override fun getDailyFinancialAggregatesForRange(startDate: Long, endDate: Long): Flow<List<com.qdash.domain.model.DailyFinancialAggregate>> = throw UnsupportedOperationException()
         override suspend fun deleteTransactionsBulk(ids: List<Long>) {}
         override suspend fun updateTransactionsCategoryBulk(ids: List<Long>, newCategoryId: Long) {}
         override suspend fun bulkEditTransactions(params: com.qdash.domain.usecase.transaction.BulkEditParams): Result<Int> = Result.success(0)

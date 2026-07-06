@@ -3,7 +3,7 @@ package com.qdash.presentation.settings
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.qdash.data.local.entities.UserProfileEntity
+import com.qdash.domain.model.UserProfile
 import com.qdash.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +15,7 @@ class AccountManagementViewModel(
     private val context: Context
 ) : ViewModel() {
 
-    val userProfile: StateFlow<UserProfileEntity?> = authRepository.getUserProfile()
+    val userProfile: StateFlow<UserProfile?> = authRepository.getUserProfile()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     fun unlinkAccount(onSuccess: () -> Unit) {

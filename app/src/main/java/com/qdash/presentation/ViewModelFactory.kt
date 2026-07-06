@@ -23,7 +23,7 @@ import com.qdash.presentation.backup.BackupViewModel
 import com.qdash.presentation.templates.TemplatesViewModel
 import com.qdash.presentation.ai.AiChatViewModel
 import com.qdash.presentation.simulator.DocumentSimulatorViewModel
-import com.qdash.data.backup.BackupManager
+import com.qdash.domain.repository.BackupRepository
 
 class ViewModelFactory(
     private val container: AppContainer,
@@ -135,17 +135,13 @@ class ViewModelFactory(
             }
             modelClass.isAssignableFrom(SettingsViewModel::class.java) -> {
                 SettingsViewModel(
-                    container.transactionRepository,
-                    container.accountRepository,
-                    container.categoryRepository,
-                    container.incomeRepository,
-                    container.savingRepository,
-                    container.subscriptionRepository,
-                    container.backupRepository,
-                    container.preferencesManager,
-                    container.authRepository,
-                    container.driveSyncRepository,
-                    context
+                    exportSettingsUseCase = container.exportSettingsUseCase,
+                    resetAppDataUseCase = container.resetAppDataUseCase,
+                    restoreBackupUseCase = container.restoreBackupUseCase,
+                    preferencesManager = container.preferencesManager,
+                    authRepository = container.authRepository,
+                    driveSyncRepository = container.driveSyncRepository,
+                    context = context
                 ) as T
             }
             modelClass.isAssignableFrom(com.qdash.presentation.budgetgoals.BudgetGoalsViewModel::class.java) -> {
@@ -193,23 +189,24 @@ class ViewModelFactory(
             }
             modelClass.isAssignableFrom(BackupViewModel::class.java) -> {
                 BackupViewModel(
-                    container.backupManager,
-                    container.transactionRepository,
-                    container.categoryRepository,
-                    container.accountRepository,
-                    container.preferencesManager,
-                    container.authRepository,
-                    container.driveSyncRepository,
-                    context
+                    backupRepository = container.backupRepository,
+                    transactionRepository = container.transactionRepository,
+                    categoryRepository = container.categoryRepository,
+                    accountRepository = container.accountRepository,
+                    preferencesManager = container.preferencesManager,
+                    authRepository = container.authRepository,
+                    driveSyncRepository = container.driveSyncRepository,
+                    context = context
                 ) as T
             }
             modelClass.isAssignableFrom(com.qdash.presentation.update.UpdatesViewModel::class.java) -> {
                 com.qdash.presentation.update.UpdatesViewModel(
-                    container.updateRepository,
-                    container.backupManager,
-                    container.notificationRepository,
-                    container.preferencesManager,
-                    context
+                    checkForUpdateUseCase = container.checkForUpdateUseCase,
+                    downloadUpdateUseCase = container.downloadUpdateUseCase,
+                    backupRepository = container.backupRepository,
+                    notificationRepository = container.notificationRepository,
+                    preferencesManager = container.preferencesManager,
+                    context = context
                 ) as T
             }
             modelClass.isAssignableFrom(SalaryViewModel::class.java) -> {

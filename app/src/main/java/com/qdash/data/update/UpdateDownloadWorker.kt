@@ -19,6 +19,8 @@ import com.qdash.BuildConfig
 import com.qdash.MainActivity
 import com.qdash.R
 import com.qdash.core.utils.FormatterUtils
+import com.qdash.domain.model.UpdateInfo
+import com.qdash.domain.model.DownloadState
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File

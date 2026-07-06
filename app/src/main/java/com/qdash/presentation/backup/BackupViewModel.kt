@@ -7,16 +7,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.qdash.core.utils.FormatterUtils
-import androidx.work.*
 import com.qdash.core.preferences.PreferencesManager
-import com.qdash.data.backup.BackupManager
-import com.qdash.data.backup.ScheduledBackupWorker
 import com.qdash.core.utils.ExportUtility
-import com.qdash.data.local.entities.UserProfileEntity
 import com.qdash.domain.model.BackupProgress
 import com.qdash.domain.model.RestorePreview
+import com.qdash.domain.model.UserProfile
 import com.qdash.domain.repository.AccountRepository
 import com.qdash.domain.repository.AuthRepository
+import com.qdash.domain.repository.BackupRepository
 import com.qdash.domain.repository.CategoryRepository
 import com.qdash.domain.repository.DriveSyncRepository
 import com.qdash.domain.repository.TransactionRepository
@@ -28,7 +26,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.util.concurrent.TimeUnit
 
 data class BackupUiState(
     val isLoading: Boolean = false,
@@ -41,7 +38,7 @@ data class BackupUiState(
 )
 
 class BackupViewModel(
-    private val backupManager: BackupManager,
+    private val backupRepository: BackupRepository,
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository,
     private val accountRepository: AccountRepository,
@@ -54,7 +51,7 @@ class BackupViewModel(
     private val _uiState = MutableStateFlow(BackupUiState())
     val uiState = _uiState.asStateFlow()
 
-    val userProfile: StateFlow<UserProfileEntity?> = authRepository.getUserProfile()
+    val userProfile: StateFlow<UserProfile?> = authRepository.getUserProfile()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val lastSyncTimestamp: Long get() = preferencesManager.lastSyncTimestamp
@@ -89,56 +86,31 @@ class BackupViewModel(
         }
     }
 
-    // Schedule background WorkManager tasks
+    // Schedule background WorkManager tasks via repository
     fun updateScheduleInterval(interval: String) {
         preferencesManager.backupScheduleInterval = interval
         _backupScheduleInterval.value = interval
-
-        val workManager = WorkManager.getInstance(context)
-        if (interval == "none") {
-            workManager.cancelUniqueWork("scheduled_backup")
-        } else {
-            val repeatIntervalDays = when (interval) {
-                "daily" -> 1L
-                "weekly" -> 7L
-                "monthly" -> 30L
-                else -> 1L
-            }
-
-            val constraints = Constraints.Builder()
-                .setRequiresBatteryNotLow(true)
-                .build()
-
-            val backupWorkRequest = PeriodicWorkRequestBuilder<ScheduledBackupWorker>(repeatIntervalDays, TimeUnit.DAYS)
-                .setConstraints(constraints)
-                .build()
-
-            workManager.enqueueUniquePeriodicWork(
-                "scheduled_backup",
-                ExistingPeriodicWorkPolicy.UPDATE,
-                backupWorkRequest
-            )
-        }
+        backupRepository.updateBackupSchedule(interval)
     }
 
     // Run direct backup into SAF folder
-    fun runImmediateFolderBackup(password: CharArray?) {
+    fun runImmediateFolderBackup(pwd: CharArray?) {
         val uriStr = _backupFolderUri.value
         if (uriStr.isNullOrEmpty()) {
             _backupProgress.value = BackupProgress.Failure("الرجاء اختيار مجلد الحفظ أولاً.")
             return
         }
 
-        if (!backupManager.isFolderUriValid(uriStr)) {
+        if (!backupRepository.isFolderUriValid(uriStr)) {
             _backupProgress.value = BackupProgress.Failure("مجلد النسخ المختار لم يعد صالحاً أو تم سحب الصلاحيات. يرجى إعادة تحديده.")
             return
         }
 
         viewModelScope.launch {
             _backupProgress.value = BackupProgress.Running("بدء النسخ الاحتياطي...", 0)
-            backupManager.exportBackupToFolder(
+            backupRepository.exportBackupToFolder(
                 folderUri = Uri.parse(uriStr),
-                password = password,
+                pwd = pwd,
                 includeAttachments = true,
                 maxKeepBackups = preferencesManager.keepMaxBackupsCount,
                 onProgress = { stage, percent ->
@@ -166,10 +138,10 @@ class BackupViewModel(
     }
 
     // Export safe full JSON-based GZIP ZIP backup to SAF document
-    fun exportBackupV2(uri: Uri, password: CharArray?, includeAttachments: Boolean) {
+    fun exportBackupV2(uri: Uri, pwd: CharArray?, includeAttachments: Boolean) {
         viewModelScope.launch {
             _uiState.value = BackupUiState(isLoading = true)
-            backupManager.exportBackupV2(uri, password, includeAttachments) { stage, percent ->
+            backupRepository.exportBackupV2(uri, pwd, includeAttachments) { stage, percent ->
                 // Optionally log or report
             }.onSuccess {
                 _uiState.value = BackupUiState(successMessage = "تم تصدير النسخة الاحتياطية الموحدة بنجاح!")
@@ -180,12 +152,12 @@ class BackupViewModel(
     }
 
     // Phase 1: Load Backup file, check manifest and decryption
-    fun prepareRestore(uri: Uri, password: CharArray? = null) {
+    fun prepareRestore(uri: Uri, pwd: CharArray? = null) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, passwordError = null, pendingRestoreUri = uri)
-            backupManager.getRestorePreview(uri, password)
+            backupRepository.getRestorePreview(uri, pwd)
                 .onSuccess { preview ->
-                    if (preview.manifest.isEncrypted && (password == null || password.isEmpty())) {
+                    if (preview.manifest.isEncrypted && (pwd == null || pwd.isEmpty())) {
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             restorePreview = preview,
@@ -200,7 +172,7 @@ class BackupViewModel(
                     }
                 }
                 .onFailure { error ->
-                    if (password != null && password.isNotEmpty()) {
+                    if (pwd != null && pwd.isNotEmpty()) {
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             passwordError = error.localizedMessage ?: "كلمة المرور غير صحيحة."
@@ -220,7 +192,7 @@ class BackupViewModel(
         val preview = _uiState.value.restorePreview ?: return
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            backupManager.performRestoreV2(preview, selectedTables) { stage, percent ->
+            backupRepository.performRestoreV2(preview, selectedTables) { stage, percent ->
                 // Optionally update
             }.onSuccess {
                 _uiState.value = BackupUiState(

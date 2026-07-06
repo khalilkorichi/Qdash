@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.qdash.FinTrackApp
+import com.qdash.domain.model.UpdateInfo
 
 class NotificationActionReceiver : BroadcastReceiver() {
     companion object {

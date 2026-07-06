@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.qdash.core.ui.components.FinTrackTopBar
-import com.qdash.data.update.UpdateInfo
+import com.qdash.domain.model.UpdateInfo
 import com.qdash.ui.theme.*
 import java.io.File
 
