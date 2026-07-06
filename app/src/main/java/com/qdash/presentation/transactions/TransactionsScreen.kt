@@ -946,14 +946,11 @@ fun TransactionsScreen(
         )
     }
 
-    // â”€â”€ Delete Confirmation Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    if (showDeleteDialog != null) {
-        val txToDelete = showDeleteDialog!!
-        AppDialog(
-            onDismissRequest = { showDeleteDialog = null },
-            title = "حذف العملية المالية",
-            text = "هل أنت متأكد من رغبتك في حذف هذا الإنفاق؟ سيتم موازنة الرصيد وتحديث الحساب تلقائياً.",
-            confirmButtonText = "نعم، حذف",
+    // —— Delete Confirmation Dialog ────────────────────────────────────────
+    showDeleteDialog?.let { txToDelete ->
+        DeleteTransactionDialog(
+            transaction = txToDelete,
+            onDismiss = { showDeleteDialog = null },
             onConfirm = {
                 viewModel.deleteTransaction(txToDelete)
                 showDeleteDialog = null
@@ -967,122 +964,30 @@ fun TransactionsScreen(
                         viewModel.restoreLastDeletedTransaction()
                     }
                 }
-            },
-            dismissButtonText = "إلغاء",
-            isDestructive = true,
-            icon = {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = null,
-                    tint = ColorTokens.Danger
-                )
             }
         )
     }
 
-    // â”€â”€ Bulk Delete Confirmation Dialog â”€â”€
+    // —— Bulk Delete Confirmation Dialog ——
     if (showBulkDeleteDialog) {
-        AppDialog(
-            onDismissRequest = { showBulkDeleteDialog = false },
-            title = "حذف العمليات المحددة",
-            text = "هل أنت متأكد من رغبتك في حذف ${uiState.selectedTransactionIds.size} عملية مجمعة نهائياً؟ لا يمكن التراجع عن هذا الإجراء وسيتم تحديث الحسابات تلقائياً.",
-            confirmButtonText = "نعم، حذف الكل",
+        BulkDeleteDialog(
+            selectedCount = uiState.selectedTransactionIds.size,
+            onDismiss = { showBulkDeleteDialog = false },
             onConfirm = {
                 viewModel.deleteSelectedTransactions()
                 showBulkDeleteDialog = false
-            },
-            dismissButtonText = "إلغاء",
-            isDestructive = true,
-            icon = {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = null,
-                    tint = ColorTokens.Danger
-                )
             }
         )
     }
 
-    // â”€â”€ Bulk Category Selection Dialog â”€â”€
+    // —— Bulk Category Selection Dialog ——
     if (showBulkCategoryDialog) {
-        AlertDialog(
-            onDismissRequest = { showBulkCategoryDialog = false },
-            shape = RoundedCornerShape(24.dp),
-            containerColor = MaterialTheme.colorScheme.surface,
-            title = {
-                Text(
-                    text = "تغيير فئة العمليات المحددة",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Right,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "اختر الفئة الجديدة لنقل العمليات المحددة إليها:",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextGray,
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 240.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(uiState.categories) { category ->
-                            val catColor = try {
-                                Color(android.graphics.Color.parseColor(category.color))
-                            } catch (e: Exception) {
-                                MaterialTheme.colorScheme.primary
-                            }
-                            Surface(
-                                onClick = {
-                                    viewModel.changeCategoryForSelectedTransactions(category.id)
-                                    showBulkCategoryDialog = false
-                                },
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.End
-                                ) {
-                                    Text(
-                                        text = category.name,
-                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.weight(1f),
-                                        textAlign = TextAlign.Right
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Box(
-                                        modifier = Modifier
-                                            .size(16.dp)
-                                            .clip(CircleShape)
-                                            .background(catColor)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showBulkCategoryDialog = false }) {
-                    Text("إلغاء", color = TextGray)
-                }
+        BulkCategoryDialog(
+            categories = uiState.categories,
+            onDismiss = { showBulkCategoryDialog = false },
+            onConfirm = { newCatId ->
+                viewModel.changeCategoryForSelectedTransactions(newCatId)
+                showBulkCategoryDialog = false
             }
         )
     }

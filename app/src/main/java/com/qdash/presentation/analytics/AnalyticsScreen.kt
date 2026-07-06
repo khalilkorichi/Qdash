@@ -521,90 +521,31 @@ fun AnalyticsScreen(
             }
         }
 
-        if (activeExplanationInfo != null) {
-            AlertDialog(
-                onDismissRequest = { activeExplanationInfo = null },
-                confirmButton = {
-                    TextButton(onClick = { activeExplanationInfo = null }) {
-                        Text("حسناً", fontWeight = FontWeight.Bold)
-                    }
-                },
-                title = { 
-                    Text(
-                        text = activeExplanationInfo?.first ?: "", 
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    ) 
-                },
-                text = {
-                    Text(
-                        text = activeExplanationInfo?.second ?: "",
-                        style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp)
-                    )
-                }
+        val context = LocalContext.current
+        activeExplanationInfo?.let { (title, msg) ->
+            ExplanationInfoDialog(
+                title = title,
+                message = msg,
+                onDismiss = { activeExplanationInfo = null }
             )
         }
 
-        // â”€â”€ Export Report Dialog Overlays â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        if (uiState.exportingProgressText != null) {
-            AlertDialog(
-                onDismissRequest = {},
-                confirmButton = {},
-                title = { Text("جاري تصدير التقرير", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) },
-                text = {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
-                    ) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = uiState.exportingProgressText ?: "",
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
+        uiState.exportingProgressText?.let { progress ->
+            ExportProgressDialog(progressText = progress)
+        }
+
+        uiState.exportResult?.fileUri?.let { uri ->
+            ExportResultDialog(
+                fileUri = uri,
+                context = context,
+                onDismiss = { viewModel.clearExportState() }
             )
         }
 
-        if (uiState.exportResult != null) {
-            val context = LocalContext.current
-            val fileUri = uiState.exportResult?.fileUri
-            AlertDialog(
-                onDismissRequest = { viewModel.clearExportState() },
-                confirmButton = {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        TextButton(onClick = {
-                            fileUri?.let { com.qdash.core.utils.FileUtils.openPdfFile(context, it) }
-                        }) {
-                            Text("فتح التقرير")
-                        }
-                        TextButton(onClick = { viewModel.clearExportState() }) {
-                            Text("حسناً")
-                        }
-                    }
-                },
-                title = { Text("تم التصدير بنجاح", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) },
-                text = {
-                    Text("تم حفظ التقرير المالي الشامل بصيغة PDF بنجاح في المسار:\n\n$fileUri")
-                }
-            )
-        }
-
-        if (uiState.exportError != null) {
-            AlertDialog(
-                onDismissRequest = { viewModel.clearExportState() },
-                confirmButton = {
-                    TextButton(onClick = { viewModel.clearExportState() }) {
-                        Text("حسناً")
-                    }
-                },
-                title = { Text("فشل تصدير التقرير", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) },
-                text = {
-                    Text("حدث خطأ أثناء تصدير التقرير:\n\n${uiState.exportError}")
-                }
+        uiState.exportError?.let { err ->
+            ExportErrorDialog(
+                errorMessage = err,
+                onDismiss = { viewModel.clearExportState() }
             )
         }
 

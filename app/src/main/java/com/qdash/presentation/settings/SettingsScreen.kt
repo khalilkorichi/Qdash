@@ -276,55 +276,15 @@ fun SettingsScreen(
     // ─── Confirm Restore Dialog ───────────────────────────────────────────────
     if (showConfirmRestoreDialog) {
         val context2 = LocalContext.current
-        AlertDialog(
-            onDismissRequest = { showConfirmRestoreDialog = false },
-            title = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    Text(
-                        "تأكيد استعادة البيانات",
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Right,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
-                }
-            },
-            text = {
-                Text(
-                    "تحذير: ستعمل الاستعادة على دمج بيانات النسخة الاحتياطية مع البيانات الحالية. هل أنت متأكد من المتابعة؟",
-                    textAlign = TextAlign.Right,
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+        ConfirmRestoreDialog(
+            onDismiss = { showConfirmRestoreDialog = false },
+            onConfirm = {
+                viewModel.runRestore(
+                    onSuccess = { Toast.makeText(context2, "تمت استعادة بياناتك بنجاح!", Toast.LENGTH_LONG).show() },
+                    onFailure = { err -> Toast.makeText(context2, "فشل الاستعادة: $err", Toast.LENGTH_LONG).show() }
                 )
-            },
-            confirmButton = {
-                AppButton(
-                    onClick = {
-                        viewModel.runRestore(
-                            onSuccess = { Toast.makeText(context2, "تمت استعادة بياناتك بنجاح!", Toast.LENGTH_LONG).show() },
-                            onFailure = { err -> Toast.makeText(context2, "فشل الاستعادة: $err", Toast.LENGTH_LONG).show() }
-                        )
-                        showConfirmRestoreDialog = false
-                    },
-                    variant = ButtonVariant.SOLID,
-                    intent = ButtonIntent.PRIMARY
-                ) { Text("نعم، تأكيد", fontWeight = FontWeight.Bold) }
-            },
-            dismissButton = {
-                AppButton(
-                    onClick = { showConfirmRestoreDialog = false },
-                    variant = ButtonVariant.LIGHT,
-                    intent = ButtonIntent.PRIMARY
-                ) {
-                    Text("إلغاء", fontWeight = FontWeight.Bold)
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.surface
+                showConfirmRestoreDialog = false
+            }
         )
     }
 
@@ -569,54 +529,15 @@ fun SettingsScreen(
     }
 
     if (showBirthdateDialog) {
-        AlertDialog(
-            onDismissRequest = { showBirthdateDialog = false },
-            title = {
-                Text(
-                    "تاريخ الميلاد",
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Right,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        "أدخل تاريخ ميلادك لحفظه محلياً على جهازك.",
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    AppInput(
-                        value = birthdateInput,
-                        onValueChange = { birthdateInput = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = "مثال: 1995-05-15"
-                    )
-                }
-            },
-            confirmButton = {
-                AppButton(
-                    onClick = {
-                        viewModel.saveBirthDate(birthdateInput)
-                        showBirthdateDialog = false
-                        Toast.makeText(context, "تم حفظ تاريخ الميلاد بنجاح!", Toast.LENGTH_SHORT).show()
-                    },
-                    variant = ButtonVariant.SOLID,
-                    intent = ButtonIntent.PRIMARY
-                ) { Text("حفظ", fontWeight = FontWeight.Bold) }
-            },
-            dismissButton = {
-                AppButton(
-                    onClick = { showBirthdateDialog = false },
-                    variant = ButtonVariant.LIGHT,
-                    intent = ButtonIntent.PRIMARY
-                ) {
-                    Text("إلغاء", fontWeight = FontWeight.Bold)
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.surface
+        BirthdateDialog(
+            initialBirthdate = birthdateInput,
+            onDismiss = { showBirthdateDialog = false },
+            onConfirm = { date ->
+                birthdateInput = date
+                viewModel.saveBirthDate(date)
+                showBirthdateDialog = false
+                Toast.makeText(context, "تم حفظ تاريخ الميلاد بنجاح!", Toast.LENGTH_SHORT).show()
+            }
         )
     }
 }
@@ -813,67 +734,7 @@ private fun GeneralTab(
             )
 
             if (showAboutDialog) {
-                AlertDialog(
-                    onDismissRequest = { showAboutDialog = false },
-                    confirmButton = {
-                        TextButton(onClick = { showAboutDialog = false }) {
-                            Text("إغلاق", color = MaterialTheme.colorScheme.primary)
-                        }
-                    },
-                    title = {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(72.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Image(
-                                    painter = painterResource(id = com.qdash.R.drawable.ic_app_logo),
-                                    contentDescription = "Qdash Logo",
-                                    modifier = Modifier.size(60.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "قداشّ",
-                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "الإصدار v${com.qdash.BuildConfig.VERSION_NAME}",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = TextGray
-                            )
-                        }
-                    },
-                    text = {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "تطبيق مالي شخصي لإدارة الميزانية والمصاريف اليومية، مصمم خصيصاً للمستخدمين الجزائريين.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(horizontal = 8.dp)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "صنع بكل ❤️ في الجزائر",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    },
-                    shape = RoundedCornerShape(20.dp),
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                AboutDialog(onDismiss = { showAboutDialog = false })
             }
 
             SettingsNavItem(

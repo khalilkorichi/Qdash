@@ -1366,230 +1366,69 @@ fun AddTransactionScreen(
 
         // —— Add Category/Subcategory Dialog ——
         if (showAddCategoryDialog) {
-            AlertDialog(
-                onDismissRequest = { showAddCategoryDialog = false },
-                title = {
-                    Text(
-                        text = if (isAddingSubcategory) "إنشاء فئة فرعية جديدة" else "إنشاء فئة رئيسية جديدة",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            AddCategoryDialog(
+                onDismiss = { showAddCategoryDialog = false },
+                type = type,
+                typeAccentColor = typeAccentColor,
+                isAddingSubcategory = isAddingSubcategory,
+                selectedCategoryId = selectedCategoryId,
+                onConfirm = { name, icon, color, parentId ->
+                    val catType = if (type == TransactionType.INCOME) CategoryType.INCOME else CategoryType.EXPENSE
+                    viewModel.addCategory(
+                        name = name,
+                        type = catType,
+                        icon = icon,
+                        color = color,
+                        parentId = parentId
                     )
-                },
-                text = {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        OutlinedTextField(
-                            value = newCategoryName,
-                            onValueChange = { newCategoryName = it },
-                            label = { Text(if (isAddingSubcategory) "اسم الفئة الفرعية" else "اسم الفئة الرئيسية") },
-                            placeholder = { Text("مثال: تسوق، هدايا، نقل...") },
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = typeAccentColor,
-                                cursorColor = typeAccentColor
-                            )
-                        )
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            OutlinedTextField(
-                                value = newCategoryIcon,
-                                onValueChange = { newCategoryIcon = it },
-                                label = { Text("أيقونة/رمز") },
-                                placeholder = { Text("📁") },
-                                singleLine = true,
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.width(90.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = typeAccentColor,
-                                    cursorColor = typeAccentColor
-                                )
-                            )
-                            Text(
-                                text = "يمكنك كتابة رمز تعبيري (Emoji)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextGray,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-
-                        Column {
-                            Text(
-                                text = "اختر لون الفئة:",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                curatedColors.forEach { hexColor ->
-                                    val color = Color(android.graphics.Color.parseColor(hexColor))
-                                    val isSelected = newCategoryColor == hexColor
-                                    Box(
-                                        modifier = Modifier
-                                            .size(32.dp)
-                                            .clip(CircleShape)
-                                            .background(color)
-                                            .border(
-                                                width = if (isSelected) 2.5.dp else 0.dp,
-                                                color = if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent,
-                                                shape = CircleShape
-                                            )
-                                            .clickable { newCategoryColor = hexColor }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                },
-                confirmButton = {
-                    AppButton(
-                        onClick = {
-                            if (newCategoryName.isNotBlank()) {
-                                val catType = if (type == TransactionType.INCOME) CategoryType.INCOME else CategoryType.EXPENSE
-                                val parentId = if (isAddingSubcategory) selectedCategoryId else null
-                                viewModel.addCategory(
-                                    name = newCategoryName.trim(),
-                                    type = catType,
-                                    icon = newCategoryIcon.trim(),
-                                    color = newCategoryColor,
-                                    parentId = parentId
-                                )
-                                showAddCategoryDialog = false
-                            }
-                        },
-                        enabled = newCategoryName.isNotBlank(),
-                        variant = ButtonVariant.SOLID,
-                        intent = typeIntent
-                    ) {
-                        Text("إنشاء الفئة", color = Color.White, fontWeight = FontWeight.Bold)
-                    }
-                },
-                dismissButton = {
-                    AppButton(
-                        onClick = { showAddCategoryDialog = false },
-                        variant = ButtonVariant.LIGHT,
-                        intent = ButtonIntent.PRIMARY
-                    ) {
-                        Text("إلغاء", fontWeight = FontWeight.Bold)
-                    }
+                    showAddCategoryDialog = false
                 }
             )
         }
 
         // —— Savings Confirmation Dialog ——
         if (showSavingsConfirmDialog) {
-            AlertDialog(
-                onDismissRequest = { showSavingsConfirmDialog = false },
-                title = {
-                    Text(
-                        text = "إيداع في حساب ادخار",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                },
-                text = {
-                    Text(
-                        text = "أنت تضيف دخلاً إلى حساب ادخار. هل تريد تسجيله كمساهمة ادخار (يحافظ على الدخل الشهري دون تغيير) أم كدخل عادي لهذا الحساب (سيؤدي لزيادة الدخل الشهري)؟",
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Right,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                },
-                confirmButton = {
-                    AppButton(
-                        onClick = {
-                            showSavingsConfirmDialog = false
-                            val categoryId = effectiveCategoryId ?: return@AppButton
-                            val accountId = effectiveAccountId ?: return@AppButton
-                            val parsedAmount = com.qdash.core.utils.CalculatorParser.evaluate(rawAmount)
-                            if (transactionId != null) {
-                                viewModel.updateTransaction(
-                                    id = transactionId,
-                                    amount = parsedAmount,
-                                    type = type,
-                                    categoryId = categoryId,
-                                    accountId = accountId,
-                                    toAccountId = null,
-                                    note = note.ifBlank { null },
-                                    date = transactionDate,
-                                    isRecurring = isRecurring,
-                                    recurringPeriod = if (isRecurring) recurringPeriod else null,
-                                    tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
-                                    kind = com.qdash.domain.model.TransactionKind.SAVINGS_CONTRIBUTION
-                                )
-                            } else {
-                                viewModel.addTransaction(
-                                    amount = parsedAmount,
-                                    type = type,
-                                    categoryId = categoryId,
-                                    accountId = accountId,
-                                    toAccountId = null,
-                                    note = note.ifBlank { null },
-                                    date = transactionDate,
-                                    isRecurring = isRecurring,
-                                    recurringPeriod = if (isRecurring) recurringPeriod else null,
-                                    tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
-                                    kind = com.qdash.domain.model.TransactionKind.SAVINGS_CONTRIBUTION
-                                )
-                            }
-                        },
-                        variant = ButtonVariant.SOLID,
-                        intent = ButtonIntent.SUCCESS
-                    ) {
-                        Text("مساهمة ادخار (موصى به)", color = Color.White, fontWeight = FontWeight.Bold)
+            SavingsConfirmDialog(
+                onDismiss = { showSavingsConfirmDialog = false },
+                onConfirm = { isContribution ->
+                    showSavingsConfirmDialog = false
+                    val categoryId = effectiveCategoryId ?: return@SavingsConfirmDialog
+                    val accountId = effectiveAccountId ?: return@SavingsConfirmDialog
+                    val parsedAmount = com.qdash.core.utils.CalculatorParser.evaluate(rawAmount)
+                    val kind = if (isContribution) {
+                        com.qdash.domain.model.TransactionKind.SAVINGS_CONTRIBUTION
+                    } else {
+                        com.qdash.domain.model.TransactionKind.INCOME
                     }
-                },
-                dismissButton = {
-                    AppButton(
-                        onClick = {
-                            showSavingsConfirmDialog = false
-                            val categoryId = effectiveCategoryId ?: return@AppButton
-                            val accountId = effectiveAccountId ?: return@AppButton
-                            val parsedAmount = com.qdash.core.utils.CalculatorParser.evaluate(rawAmount)
-                            if (transactionId != null) {
-                                viewModel.updateTransaction(
-                                    id = transactionId,
-                                    amount = parsedAmount,
-                                    type = type,
-                                    categoryId = categoryId,
-                                    accountId = accountId,
-                                    toAccountId = null,
-                                    note = note.ifBlank { null },
-                                    date = transactionDate,
-                                    isRecurring = isRecurring,
-                                    recurringPeriod = if (isRecurring) recurringPeriod else null,
-                                    tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
-                                    kind = com.qdash.domain.model.TransactionKind.INCOME
-                                )
-                            } else {
-                                viewModel.addTransaction(
-                                    amount = parsedAmount,
-                                    type = type,
-                                    categoryId = categoryId,
-                                    accountId = accountId,
-                                    toAccountId = null,
-                                    note = note.ifBlank { null },
-                                    date = transactionDate,
-                                    isRecurring = isRecurring,
-                                    recurringPeriod = if (isRecurring) recurringPeriod else null,
-                                    tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
-                                    kind = com.qdash.domain.model.TransactionKind.INCOME
-                                )
-                            }
-                        },
-                        variant = ButtonVariant.LIGHT,
-                        intent = ButtonIntent.PRIMARY
-                    ) {
-                        Text("دخل عادي", fontWeight = FontWeight.Bold)
+                    if (transactionId != null) {
+                        viewModel.updateTransaction(
+                            id = transactionId,
+                            amount = parsedAmount,
+                            type = type,
+                            categoryId = categoryId,
+                            accountId = accountId,
+                            toAccountId = null,
+                            note = note.ifBlank { null },
+                            date = transactionDate,
+                            isRecurring = isRecurring,
+                            recurringPeriod = if (isRecurring) recurringPeriod else null,
+                            tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
+                            kind = kind
+                        )
+                    } else {
+                        viewModel.addTransaction(
+                            amount = parsedAmount,
+                            type = type,
+                            categoryId = categoryId,
+                            accountId = accountId,
+                            toAccountId = null,
+                            note = note.ifBlank { null },
+                            date = transactionDate,
+                            isRecurring = isRecurring,
+                            recurringPeriod = if (isRecurring) recurringPeriod else null,
+                            tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
+                            kind = kind
+                        )
                     }
                 }
             )
@@ -1597,355 +1436,34 @@ fun AddTransactionScreen(
 
         // —— Template Dialogs & Overlays ——
         if (showSaveTemplateDialog) {
-            AlertDialog(
-                onDismissRequest = { showSaveTemplateDialog = false },
-                title = {
-                    Text(
-                        text = "حفظ كقالب معاملة",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                text = {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Text(
-                            text = "سيتم حفظ هذه المعاملة كقالب لتتمكن من إعادة استخدامها بضغطة زر واحدة.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextGray
+            SaveTemplateDialog(
+                onDismiss = { showSaveTemplateDialog = false },
+                typeAccentColor = typeAccentColor,
+                onConfirm = { name, emoji, isPinned ->
+                    val parsedAmount = com.qdash.core.utils.CalculatorParser.evaluate(rawAmount)
+                    if (parsedAmount > 0) {
+                        viewModel.saveAsTemplate(
+                            name = name,
+                            amount = parsedAmount,
+                            type = type,
+                            accountId = selectedAccountId 
+                                ?: uiState.accounts.find { it.isDefault }?.id 
+                                ?: uiState.accounts.firstOrNull()?.id 
+                                ?: 1L,
+                            targetAccountId = if (type == TransactionType.TRANSFER) toAccountId else null,
+                            categoryId = if (type == TransactionType.TRANSFER) null else (subcategoryId ?: selectedCategoryId),
+                            subcategoryId = if (type == TransactionType.TRANSFER) null else subcategoryId,
+                            notes = note.ifBlank { null },
+                            iconEmoji = emoji,
+                            isPinned = isPinned
                         )
-                        
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(50.dp)
-                                    .clip(CircleShape)
-                                    .background(typeAccentColor.copy(alpha = 0.1f))
-                                    .clickable { showEmojiPicker = true },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(text = templateEmoji, fontSize = 24.sp)
-                            }
-                            
-                            AppInput(
-                                value = templateName,
-                                onValueChange = { templateName = it },
-                                label = "اسم القالب",
-                                placeholder = "مثال: قهوة، فاتورة الإنترنت…",
-                                singleLine = true,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.PushPin, contentDescription = null, tint = Primary, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("تثبيت القالب في الرئيسية", style = MaterialTheme.typography.bodyMedium)
-                            }
-                            Switch(
-                                checked = templatePinned,
-                                onCheckedChange = { templatePinned = it },
-                                colors = SwitchDefaults.colors(checkedTrackColor = Primary)
-                            )
-                        }
-                    }
-                },
-                confirmButton = {
-                    AppButton(
-                        onClick = {
-                            val parsedAmount = com.qdash.core.utils.CalculatorParser.evaluate(rawAmount)
-                            if (templateName.isNotBlank() && parsedAmount > 0) {
-                                viewModel.saveAsTemplate(
-                                    name = templateName,
-                                    amount = parsedAmount,
-                                    type = type,
-                                    accountId = selectedAccountId 
-                                        ?: uiState.accounts.find { it.isDefault }?.id 
-                                        ?: uiState.accounts.firstOrNull()?.id 
-                                        ?: 1L,
-                                    targetAccountId = if (type == TransactionType.TRANSFER) toAccountId else null,
-                                    categoryId = if (type == TransactionType.TRANSFER) null else (subcategoryId ?: selectedCategoryId),
-                                    subcategoryId = if (type == TransactionType.TRANSFER) null else subcategoryId,
-                                    notes = note.ifBlank { null },
-                                    iconEmoji = templateEmoji,
-                                    isPinned = templatePinned
-                                )
-                                showSaveTemplateDialog = false
-                                templateName = ""
-                            }
-                        },
-                        enabled = templateName.isNotBlank(),
-                        variant = ButtonVariant.SOLID,
-                        intent = typeIntent
-                    ) {
-                        Text("حفظ", color = Color.White, fontWeight = FontWeight.Bold)
-                    }
-                },
-                dismissButton = {
-                    AppButton(
-                        onClick = { showSaveTemplateDialog = false },
-                        variant = ButtonVariant.LIGHT,
-                        intent = ButtonIntent.PRIMARY
-                    ) {
-                        Text("إلغاء", fontWeight = FontWeight.Bold)
+                        showSaveTemplateDialog = false
                     }
                 }
             )
         }
-
-        if (showEmojiPicker) {
-            com.qdash.presentation.templates.components.EmojiIconPicker(
-                selectedEmoji = templateEmoji,
-                onEmojiSelected = {
-                    templateEmoji = it
-                    showEmojiPicker = false
-                },
-                onDismissRequest = { showEmojiPicker = false }
-            )
-        }
     }
 }
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-//  Numpad key handler (pure function, easy to test)
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-private fun sanitizeAmountTextFieldValue(value: TextFieldValue): TextFieldValue {
-    fun normalize(input: String): String {
-        val operators = setOf('+', '-', '×', '÷')
-        val output = StringBuilder()
-        var hasDecimalInToken = false
-        var decimalPlaces = 0
-
-        fun appendOperator(operator: Char) {
-            while (output.endsWith(" ")) output.deleteCharAt(output.lastIndex)
-            val last = output.lastOrNull()
-            if (output.isEmpty()) {
-                output.append('0')
-            } else if (last != null && operators.contains(last)) {
-                output.deleteCharAt(output.lastIndex)
-                while (output.endsWith(" ")) output.deleteCharAt(output.lastIndex)
-            }
-            output.append(' ').append(operator).append(' ')
-            hasDecimalInToken = false
-            decimalPlaces = 0
-        }
-
-        input.forEach { char ->
-            when (char) {
-                in '0'..'9' -> {
-                    if (!hasDecimalInToken || decimalPlaces < 2) {
-                        output.append(char)
-                        if (hasDecimalInToken) decimalPlaces++
-                    }
-                }
-                '٠' -> output.append('0')
-                '١' -> output.append('1')
-                '٢' -> output.append('2')
-                '٣' -> output.append('3')
-                '٤' -> output.append('4')
-                '٥' -> output.append('5')
-                '٦' -> output.append('6')
-                '٧' -> output.append('7')
-                '٨' -> output.append('8')
-                '٩' -> output.append('9')
-                '.', '٫' -> {
-                    if (!hasDecimalInToken) {
-                        val tokenStart = output.isEmpty() || output.endsWith(" ")
-                        if (tokenStart) output.append('0')
-                        output.append('.')
-                        hasDecimalInToken = true
-                        decimalPlaces = 0
-                    }
-                }
-                '+', '-' -> appendOperator(char)
-                '×', '*' -> appendOperator('×')
-                '÷', '/' -> appendOperator('÷')
-                ',', '٬', ' ', '\u00A0', '\u202F' -> Unit
-            }
-        }
-
-        val normalized = output.toString()
-        if (normalized.isBlank()) return "0"
-
-        return normalized.split(' ').joinToString(" ") { token ->
-            when {
-                token.length == 1 && operators.contains(token.first()) -> token
-                token.contains('.') -> {
-                    val parts = token.split('.', limit = 2)
-                    val integerPart = parts[0].trimStart('0').ifEmpty { "0" }
-                    val decimalPart = parts.getOrNull(1).orEmpty().take(2)
-                    "$integerPart.$decimalPart"
-                }
-                token.isNotEmpty() -> token.trimStart('0').ifEmpty { "0" }
-                else -> token
-            }
-        }
-    }
-
-    val sanitizedText = normalize(value.text)
-    val selectionStart = normalize(value.text.take(value.selection.min)).length.coerceIn(0, sanitizedText.length)
-    val selectionEnd = normalize(value.text.take(value.selection.max)).length.coerceIn(0, sanitizedText.length)
-    return TextFieldValue(sanitizedText, selection = TextRange(selectionStart, selectionEnd))
-}
-
-private fun handleNumpadKey(value: TextFieldValue, key: String): TextFieldValue {
-    val operators = setOf("+", "-", "×", "÷")
-    val text = value.text
-    val selection = value.selection
-    val start = selection.min
-    val end = selection.max
-
-    fun insertAtCursor(insertText: String): TextFieldValue {
-        val newText = text.substring(0, start) + insertText + text.substring(end)
-        val newCursor = start + insertText.length
-        return TextFieldValue(newText, selection = TextRange(newCursor))
-    }
-
-    fun isValidDecimalPlaces(t: String): Boolean {
-        val tokens = t.split(" ")
-        for (token in tokens) {
-            val dotIndex = token.indexOf('.')
-            if (dotIndex != -1) {
-                if (token.length - 1 - dotIndex > 2) {
-                    return false
-                }
-            }
-        }
-        return true
-    }
-
-    fun getTokenAtIndex(t: String, index: Int): String {
-        var cumulativeLength = 0
-        val tokens = t.split(" ")
-        for (token in tokens) {
-            val tokenLength = token.length
-            if (index >= cumulativeLength && index <= cumulativeLength + tokenLength) {
-                return token
-            }
-            cumulativeLength += tokenLength + 1
-        }
-        return tokens.lastOrNull() ?: ""
-    }
-
-    return when (key) {
-        "⌫" -> {
-            if (!selection.collapsed) {
-                val newText = text.substring(0, start) + text.substring(end)
-                val finalVal = if (newText.isEmpty()) "0" else newText
-                val newCursor = if (newText.isEmpty()) 1 else start
-                TextFieldValue(finalVal, selection = TextRange(newCursor))
-            } else {
-                if (start == 0) value
-                else {
-                    val beforeCursor = text.substring(0, start)
-                    if (beforeCursor.endsWith(" ") && beforeCursor.length >= 3) {
-                        val opChar = beforeCursor[beforeCursor.length - 2].toString()
-                        val spaceBefore = beforeCursor[beforeCursor.length - 3]
-                        if (operators.contains(opChar) && spaceBefore == ' ') {
-                            val newText = text.substring(0, start - 3) + text.substring(start)
-                            val finalVal = if (newText.isEmpty()) "0" else newText
-                            val newCursor = if (newText.isEmpty()) 1 else (start - 3)
-                            return TextFieldValue(finalVal, selection = TextRange(newCursor))
-                        }
-                    }
-                    val newText = text.substring(0, start - 1) + text.substring(start)
-                    val finalVal = if (newText.isEmpty()) "0" else newText
-                    val newCursor = if (newText.isEmpty()) 1 else (start - 1)
-                    TextFieldValue(finalVal, selection = TextRange(newCursor))
-                }
-            }
-        }
-        "C" -> TextFieldValue("0", selection = TextRange(1))
-        "00" -> {
-            if (text == "0" || text.isEmpty()) {
-                TextFieldValue("0", selection = TextRange(1))
-            } else {
-                val beforeCursor = text.substring(0, start)
-                val trimmedBefore = beforeCursor.trimEnd()
-                val isAfterOperator = trimmedBefore.isNotEmpty() && operators.contains(trimmedBefore.last().toString())
-                val textToInsert = if (isAfterOperator) "0" else "00"
-                
-                val result = insertAtCursor(textToInsert)
-                if (isValidDecimalPlaces(result.text)) result else value
-            }
-        }
-        "+", "-", "×", "÷" -> {
-            if (text.isEmpty()) {
-                TextFieldValue("0", selection = TextRange(1))
-            } else {
-                val beforeCursor = text.substring(0, start)
-                val trimmedBefore = beforeCursor.trimEnd()
-                if (trimmedBefore.isNotEmpty() && operators.contains(trimmedBefore.last().toString())) {
-                    val opIndex = trimmedBefore.length - 1
-                    val textBeforeOp = text.substring(0, opIndex)
-                    val textAfterOp = text.substring(opIndex + 1)
-                    val cleanAfterOp = if (textAfterOp.startsWith(" ")) textAfterOp.substring(1) else textAfterOp
-                    val newText = textBeforeOp + "$key " + cleanAfterOp
-                    val newCursor = textBeforeOp.length + "$key ".length
-                    TextFieldValue(newText, selection = TextRange(newCursor))
-                } else {
-                    val afterCursor = text.substring(end)
-                    val cleanBefore = beforeCursor.trimEnd()
-                    val cleanAfter = afterCursor.trimStart()
-                    val prefix = if (cleanBefore.isEmpty()) "0" else cleanBefore
-                    val newText = prefix + " $key " + cleanAfter
-                    val newCursor = prefix.length + " $key ".length
-                    TextFieldValue(newText, selection = TextRange(newCursor))
-                }
-            }
-        }
-        "." -> {
-            val currentToken = getTokenAtIndex(text, start)
-            if (currentToken.contains(".") || operators.contains(currentToken)) {
-                value
-            } else if (currentToken.isEmpty()) {
-                insertAtCursor("0.")
-            } else {
-                insertAtCursor(".")
-            }
-        }
-        "=" -> {
-            val eval = com.qdash.core.utils.CalculatorParser.evaluate(text)
-            val evalResult = if (eval % 1 == 0.0) {
-                eval.toInt().toString()
-            } else {
-                "%.2f".format(eval).replace(",", ".")
-            }
-            TextFieldValue(evalResult, selection = TextRange(evalResult.length))
-        }
-        else -> { // Digit keys "0" - "9"
-            if (text == "0") {
-                TextFieldValue(key, selection = TextRange(1))
-            } else {
-                val currentToken = getTokenAtIndex(text, start)
-                if (currentToken == "0") {
-                    val zeroIndex = if (start > 0 && text[start - 1] == '0') start - 1 else start
-                    val newText = text.substring(0, zeroIndex) + key + text.substring(zeroIndex + 1)
-                    val newCursor = zeroIndex + 1
-                    val result = TextFieldValue(newText, selection = TextRange(newCursor))
-                    if (isValidDecimalPlaces(result.text)) result else value
-                } else {
-                    val result = insertAtCursor(key)
-                    if (isValidDecimalPlaces(result.text)) result else value
-                }
-            }
-        }
-    }
-}
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-//  Sub-composables
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 private fun getStartOfDay(millis: Long): Long {
     val cal = java.util.Calendar.getInstance()
@@ -1956,4 +1474,3 @@ private fun getStartOfDay(millis: Long): Long {
     cal.set(java.util.Calendar.MILLISECOND, 0)
     return cal.timeInMillis
 }
-
