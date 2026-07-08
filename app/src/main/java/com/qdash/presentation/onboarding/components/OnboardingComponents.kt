@@ -7,6 +7,10 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.Scope
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,7 +37,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.domain.model.AccountType
+import com.qdash.presentation.onboarding.CustomWalletDraft
 import com.qdash.presentation.onboarding.OnboardingUiState
+import com.qdash.presentation.onboarding.WalletOption
 import com.qdash.ui.theme.Primary
 import com.qdash.ui.theme.TextGray
 
@@ -345,53 +351,58 @@ fun NotificationFeatureItem(
     }
 }
 
+// ─── Wallet Setup Screen (Hybrid Onboarding) ───────────────────────────────
+
 @Composable
 fun InitialWalletSetupScreen(
     uiState: OnboardingUiState,
+    onWalletToggled: (AccountType) -> Unit,
     onBalanceChanged: (AccountType, String) -> Unit,
+    onShowAddCustomWallet: () -> Unit,
+    onCustomWalletNameChanged: (String) -> Unit,
+    onCustomWalletBalanceChanged: (String) -> Unit,
+    onCustomWalletColorChanged: (String) -> Unit,
+    onConfirmCustomWallet: () -> Unit,
+    onDismissCustomWallet: () -> Unit,
+    onRemoveCustomWallet: (Int) -> Unit,
     onNext: () -> Unit,
     onSkip: () -> Unit
 ) {
+    val customColors = listOf("#6C63FF", "#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#EC4899", "#8B5CF6", "#06B6D4")
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        // Glowing Wallet Icon
+        // Header icon
         Box(
             modifier = Modifier
-                .size(90.dp)
+                .size(80.dp)
                 .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(Primary.copy(alpha = 0.2f), Color.Transparent)
-                    ),
+                    brush = Brush.radialGradient(colors = listOf(Primary.copy(alpha = 0.18f), Color.Transparent)),
                     shape = CircleShape
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.AccountBalanceWallet,
-                contentDescription = null,
-                tint = Primary,
-                modifier = Modifier.size(48.dp)
-            )
+            Icon(Icons.Default.AccountBalanceWallet, null, tint = Primary, modifier = Modifier.size(42.dp))
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "إعداد المحفظة والأرصدة",
+            text = "لنجهّز محافظك",
             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         Text(
-            text = "أدخل الأرصدة المتوفرة لديك حالياً لبدء التتبع بدقة. يمكنك إدخال المبالغ أو تركها فارغة.",
+            text = "اختر ما تستخدمه فعلاً — يمكنك تعديل هذا لاحقاً",
             style = MaterialTheme.typography.bodyMedium,
             color = TextGray,
             textAlign = TextAlign.Center,
@@ -400,51 +411,76 @@ fun InitialWalletSetupScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Wallet input cards
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // BaridiMob Card
-            WalletSetupCard(
-                title = "بريدي موب (BaridiMob)",
-                icon = Icons.Default.PhonelinkRing,
-                color = Color(0xFF8A2387),
-                value = uiState.baridiMobBalance,
-                onValueChange = { onBalanceChanged(AccountType.BARIDIMOB, it) }
-            )
+        // Predefined wallet selectable cards
+        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            uiState.walletOptions.forEach { option ->
+                SelectableWalletCard(
+                    option = option,
+                    onToggle = { onWalletToggled(option.type) },
+                    onBalanceChanged = { onBalanceChanged(option.type, it) },
+                    balanceError = if (option.isSelected) uiState.balanceError else null
+                )
+            }
 
-            // Cash Card
-            WalletSetupCard(
-                title = "نقدي / كاش (Cash)",
-                icon = Icons.Default.Payments,
-                color = Color(0xFF11998E),
-                value = uiState.cashBalance,
-                onValueChange = { onBalanceChanged(AccountType.CASH, it) }
-            )
+            // Custom wallets already added
+            uiState.customWallets.forEachIndexed { index, draft ->
+                AddedCustomWalletCard(
+                    draft = draft,
+                    onRemove = { onRemoveCustomWallet(index) }
+                )
+            }
 
-            // Savings Card
-            WalletSetupCard(
-                title = "حساب التوفير (Savings)",
-                icon = Icons.Default.Savings,
-                color = Color(0xFF4FACFE),
-                value = uiState.savingsBalance,
-                onValueChange = { onBalanceChanged(AccountType.SAVINGS, it) }
-            )
+            // Inline custom wallet form
+            AnimatedVisibility(
+                visible = uiState.showAddCustomWallet,
+                enter = expandVertically(animationSpec = tween(280)),
+                exit = shrinkVertically(animationSpec = tween(200))
+            ) {
+                CustomWalletForm(
+                    draft = uiState.customWalletDraft,
+                    colorOptions = customColors,
+                    balanceError = uiState.balanceError,
+                    onNameChanged = onCustomWalletNameChanged,
+                    onBalanceChanged = onCustomWalletBalanceChanged,
+                    onColorChanged = onCustomWalletColorChanged,
+                    onConfirm = onConfirmCustomWallet,
+                    onDismiss = onDismissCustomWallet
+                )
+            }
+
+            // Add custom wallet button (hidden while form is open)
+            if (!uiState.showAddCustomWallet) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
+                        .clickable(onClick = onShowAddCustomWallet)
+                        .padding(vertical = 14.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.AddCircleOutline, null, tint = Primary, modifier = Modifier.size(20.dp))
+                        Text(
+                            text = "إضافة محفظة مخصصة",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            color = Primary
+                        )
+                    }
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
-        // Actions
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        // CTA buttons
+        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(
                 onClick = onNext,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
+                modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Primary)
             ) {
@@ -452,7 +488,8 @@ fun InitialWalletSetupScreen(
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                 } else {
                     Text(
-                        text = "تأكيد وإنشاء المحفظة",
+                        text = if (uiState.walletOptions.any { it.isSelected } || uiState.customWallets.isNotEmpty())
+                            "ابدأ" else "تخطي",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = Color.White
                     )
@@ -465,14 +502,297 @@ fun InitialWalletSetupScreen(
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Text(
-                    text = "تخطي هذه الخطوة للآن",
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                    text = "تخطي — سأضيف محافظي لاحقاً",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                     color = TextGray
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
+
+// ─── Selectable Wallet Card with Expand/Collapse balance field ──────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SelectableWalletCard(
+    option: WalletOption,
+    onToggle: () -> Unit,
+    onBalanceChanged: (String) -> Unit,
+    balanceError: String?
+) {
+    val accentColor = remember(option.color) {
+        try { Color(android.graphics.Color.parseColor(option.color)) } catch (e: Exception) { Primary }
+    }
+
+    val walletIcon = when (option.type) {
+        AccountType.BARIDIMOB -> Icons.Default.PhonelinkRing
+        AccountType.CASH -> Icons.Default.Payments
+        AccountType.SAVINGS -> Icons.Default.Savings
+        else -> Icons.Default.AccountBalanceWallet
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = if (option.isSelected) 2.dp else 1.dp,
+                color = if (option.isSelected) accentColor else MaterialTheme.colorScheme.outlineVariant,
+                shape = RoundedCornerShape(16.dp)
+            ),
+        colors = CardDefaults.cardColors(
+            containerColor = if (option.isSelected)
+                accentColor.copy(alpha = 0.06f)
+            else
+                MaterialTheme.colorScheme.surface
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Header row — tap to toggle
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onToggle)
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(accentColor.copy(alpha = 0.14f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(walletIcon, null, tint = accentColor, modifier = Modifier.size(22.dp))
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = option.name,
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = if (option.isSelected) "محددة — اضغط لإلغاء التحديد" else "اضغط لتحديدها",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (option.isSelected) accentColor else TextGray
+                    )
+                }
+
+                // Checkbox visual
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(
+                            if (option.isSelected) accentColor else Color.Transparent,
+                            CircleShape
+                        )
+                        .border(
+                            2.dp,
+                            if (option.isSelected) accentColor else MaterialTheme.colorScheme.outlineVariant,
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (option.isSelected) {
+                        Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                    }
+                }
+            }
+
+            // Expand balance field when selected
+            AnimatedVisibility(
+                visible = option.isSelected,
+                enter = expandVertically(animationSpec = tween(260)),
+                exit = shrinkVertically(animationSpec = tween(200))
+            ) {
+                Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
+                    HorizontalDivider(color = accentColor.copy(alpha = 0.15f))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "الرصيد الافتتاحي (اختياري)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextGray
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    TextField(
+                        value = option.balance,
+                        onValueChange = onBalanceChanged,
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("0 دج", color = TextGray) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        visualTransformation = com.qdash.core.utils.ThousandsSeparatorTransformation(),
+                        isError = balanceError != null,
+                        supportingText = if (balanceError != null) {
+                            { Text(balanceError, color = MaterialTheme.colorScheme.error) }
+                        } else null,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = accentColor,
+                            unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+                        )
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ─── Added custom wallet chip ───────────────────────────────────────────────
+
+@Composable
+private fun AddedCustomWalletCard(draft: CustomWalletDraft, onRemove: () -> Unit) {
+    val accentColor = remember(draft.color) {
+        try { Color(android.graphics.Color.parseColor(draft.color)) } catch (e: Exception) { Primary }
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(accentColor.copy(alpha = 0.08f))
+            .border(1.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Box(
+            modifier = Modifier.size(32.dp).background(accentColor.copy(alpha = 0.15f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Default.AccountBalanceWallet, null, tint = accentColor, modifier = Modifier.size(16.dp))
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(draft.name, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+            val bal = draft.balance.toDoubleOrNull()
+            if (bal != null && bal > 0) {
+                Text("${bal.toInt()} دج", style = MaterialTheme.typography.labelSmall, color = TextGray)
+            }
+        }
+        IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
+            Icon(Icons.Default.Close, null, tint = TextGray, modifier = Modifier.size(16.dp))
+        }
+    }
+}
+
+// ─── Inline custom wallet form ──────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CustomWalletForm(
+    draft: CustomWalletDraft,
+    colorOptions: List<String>,
+    balanceError: String?,
+    onNameChanged: (String) -> Unit,
+    onBalanceChanged: (String) -> Unit,
+    onColorChanged: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, Primary.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "محفظة مخصصة جديدة",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                color = Primary
+            )
+
+            TextField(
+                value = draft.name,
+                onValueChange = onNameChanged,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("اسم المحفظة (مثال: CCP، بنك BNA)", color = TextGray) },
+                singleLine = true,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Primary,
+                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+                )
+            )
+
+            TextField(
+                value = draft.balance,
+                onValueChange = onBalanceChanged,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("الرصيد الافتتاحي (اختياري)", color = TextGray) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                visualTransformation = com.qdash.core.utils.ThousandsSeparatorTransformation(),
+                isError = balanceError != null,
+                supportingText = if (balanceError != null) {
+                    { Text(balanceError, color = MaterialTheme.colorScheme.error) }
+                } else null,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Primary,
+                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+                )
+            )
+
+            // Color picker
+            Text("اللون:", style = MaterialTheme.typography.labelSmall, color = TextGray)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                colorOptions.forEach { hex ->
+                    val c = remember(hex) {
+                        try { Color(android.graphics.Color.parseColor(hex)) } catch (e: Exception) { Primary }
+                    }
+                    val isSelected = draft.color.uppercase() == hex.uppercase()
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(c)
+                            .border(if (isSelected) 2.dp else 0.dp, MaterialTheme.colorScheme.onBackground, CircleShape)
+                            .clickable { onColorChanged(hex) }
+                    )
+                }
+            }
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f).height(44.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("إلغاء", fontWeight = FontWeight.Bold)
+                }
+                Button(
+                    onClick = onConfirm,
+                    modifier = Modifier.weight(1.5f).height(44.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                    enabled = draft.name.isNotBlank()
+                ) {
+                    Text("إضافة", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+// ─── Legacy WalletSetupCard (kept for any remaining references) ─────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -491,35 +811,19 @@ fun WalletSetupCard(
         shape = RoundedCornerShape(16.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(color.copy(alpha = 0.12f), CircleShape),
+                modifier = Modifier.size(48.dp).background(color.copy(alpha = 0.12f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(24.dp)
-                )
+                Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
             }
-
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-
+                Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                 Spacer(modifier = Modifier.height(6.dp))
-
                 TextField(
                     value = value,
                     onValueChange = onValueChange,

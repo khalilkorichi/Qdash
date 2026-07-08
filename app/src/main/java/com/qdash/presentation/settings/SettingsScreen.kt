@@ -72,6 +72,7 @@ fun SettingsScreen(
     val Primary = MaterialTheme.colorScheme.primary
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val activity = context as? android.app.Activity
     val scope = rememberCoroutineScope()
 
     val userProfile by viewModel.userProfile.collectAsState()
@@ -250,7 +251,12 @@ fun SettingsScreen(
                     showTopBar = false
                 )
                 3 -> CategoriesTab(onNavigateToCategories = onNavigateToCategories)
-                4 -> AdvancedTab()
+                4 -> AdvancedTab(
+                    onResetOnboarding = {
+                        viewModel.resetOnboardingForDebug()
+                        activity?.recreate()
+                    }
+                )
             }
         }
     }

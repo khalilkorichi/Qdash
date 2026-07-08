@@ -63,7 +63,8 @@ class ViewModelFactory(
                     container.incomeRepository,
                     container.transactionTemplateRepository,
                     container.preferencesManager,
-                    container.aiRepository
+                    container.aiRepository,
+                    container.amanaRepository
                 ) as T
             }
             modelClass.isAssignableFrom(TransactionsViewModel::class.java) -> {
@@ -245,6 +246,11 @@ class ViewModelFactory(
                 com.qdash.presentation.settings.AccountManagementViewModel(
                     container.authRepository,
                     context
+                ) as T
+            }
+            modelClass.isAssignableFrom(com.qdash.presentation.accounts.AddEditAccountViewModel::class.java) -> {
+                com.qdash.presentation.accounts.AddEditAccountViewModel(
+                    container.accountRepository
                 ) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

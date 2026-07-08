@@ -557,6 +557,10 @@ class AccountRepositoryImpl(
         return accountDao.getAllAccounts().map { list -> list.map { it.toDomain() } }
     }
 
+    override fun getActiveAccounts(): Flow<List<Account>> {
+        return accountDao.getActiveAccounts().map { list -> list.map { it.toDomain() } }
+    }
+
     override fun getArchivedAccounts(): Flow<List<Account>> {
         return accountDao.getArchivedAccounts().map { list -> list.map { it.toDomain() } }
     }
@@ -592,10 +596,19 @@ class AccountRepositoryImpl(
         require(updatedRows == 1) { "تعذر تعيين الحساب الافتراضي." }
     }
 
+    override suspend fun deactivateAccount(id: Long) {
+        accountDao.deactivateAccount(id)
+    }
+
+    override suspend fun activateAccount(id: Long) {
+        accountDao.activateAccount(id)
+    }
+
     override suspend fun getTransactionCountForAccount(id: Long): Int {
         return transactionDao.getTransactionCountForAccount(id)
     }
 }
+
 
 class CategoryRepositoryImpl(
     private val database: com.qdash.data.local.AppDatabase,

@@ -40,8 +40,10 @@ data class Account(
     val currency: String = "DZD",
     val color: String,
     val icon: String,
+    val iconPath: String? = null, // Path to gallery image (overrides icon if set)
     val isDefault: Boolean = false,
     val isArchived: Boolean = false,
+    val isActive: Boolean = true, // false = excluded from net worth
     val createdAt: Long = System.currentTimeMillis(),
     val sortOrder: Int = 0
 )
@@ -132,8 +134,10 @@ fun AccountEntity.toDomain() = Account(
     currency = currency,
     color = color,
     icon = icon,
+    iconPath = iconPath,
     isDefault = isDefault,
     isArchived = isArchived,
+    isActive = isActive,
     createdAt = createdAt,
     sortOrder = sortOrder
 )
@@ -215,8 +219,10 @@ fun Account.toEntity() = AccountEntity(
     currency = currency,
     color = color,
     icon = icon,
+    iconPath = iconPath,
     isDefault = isDefault,
     isArchived = isArchived,
+    isActive = isActive,
     createdAt = createdAt,
     sortOrder = sortOrder
 )

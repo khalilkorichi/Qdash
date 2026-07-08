@@ -78,6 +78,9 @@ interface AccountDao {
     @Query("SELECT * FROM accounts WHERE isArchived = 0 ORDER BY sortOrder ASC, createdAt DESC")
     fun getAllAccounts(): Flow<List<AccountEntity>>
 
+    @Query("SELECT * FROM accounts WHERE isArchived = 0 AND isActive = 1 ORDER BY sortOrder ASC, createdAt DESC")
+    fun getActiveAccounts(): Flow<List<AccountEntity>>
+
     @Query("SELECT * FROM accounts ORDER BY sortOrder ASC, createdAt DESC")
     fun getAllAccountsIncludingArchived(): Flow<List<AccountEntity>>
 
@@ -102,6 +105,12 @@ interface AccountDao {
     @Query("UPDATE accounts SET isArchived = 0 WHERE id = :id")
     suspend fun unarchiveAccount(id: Long)
 
+    @Query("UPDATE accounts SET isActive = 0 WHERE id = :id")
+    suspend fun deactivateAccount(id: Long)
+
+    @Query("UPDATE accounts SET isActive = 1 WHERE id = :id")
+    suspend fun activateAccount(id: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAccount(account: AccountEntity): Long
 
@@ -114,6 +123,7 @@ interface AccountDao {
     @Query("UPDATE accounts SET balance = balance + :delta WHERE id = :accountId")
     suspend fun adjustBalance(accountId: Long, delta: Double)
 }
+
 
 @Dao
 interface CategoryDao {

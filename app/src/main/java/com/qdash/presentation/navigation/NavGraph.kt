@@ -280,7 +280,13 @@ internal fun FinTrackNavGraph(
             val accountsViewModel: AccountsViewModel = viewModel(factory = factory)
             AccountsScreen(
                 viewModel = accountsViewModel,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onNavigateToAddAccount = {
+                    navController.navigate(Screen.AddEditAccount.createRoute())
+                },
+                onNavigateToAccountDetails = { accountId ->
+                    navController.navigate(Screen.AccountDetails.createRoute(accountId))
+                }
             )
         }
 
@@ -317,6 +323,61 @@ internal fun FinTrackNavGraph(
                 onBack = { navController.popBackStack() }
             )
         }
+
+        composable(
+            route = Screen.AddEditAccount.route,
+            arguments = listOf(
+                androidx.navigation.navArgument("accountId") {
+                    type = androidx.navigation.NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val accountIdStr = backStackEntry.arguments?.getString("accountId")
+            val accountId = accountIdStr?.toLongOrNull()
+            val addEditViewModel: com.qdash.presentation.accounts.AddEditAccountViewModel =
+                viewModel(factory = factory)
+            com.qdash.presentation.accounts.AddEditAccountScreen(
+                viewModel = addEditViewModel,
+                accountId = accountId,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.AccountDetails.route,
+            arguments = listOf(
+                androidx.navigation.navArgument("accountId") {
+                    type = androidx.navigation.NavType.LongType
+                }
+            )
+        ) { backStackEntry ->
+            val accountId = backStackEntry.arguments?.getLong("accountId") ?: return@composable
+            val detailsViewModel: com.qdash.presentation.accounts.AccountDetailsViewModel =
+                viewModel(
+                    key = "account_details_$accountId",
+                    factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+                        @Suppress("UNCHECKED_CAST")
+                        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                            return com.qdash.presentation.accounts.AccountDetailsViewModel(
+                                accountId = accountId,
+                                accountRepository = container.accountRepository,
+                                transactionRepository = container.transactionRepository,
+                                amanaRepository = container.amanaRepository
+                            ) as T
+                        }
+                    }
+                )
+            com.qdash.presentation.accounts.AccountDetailsScreen(
+                viewModel = detailsViewModel,
+                onBack = { navController.popBackStack() },
+                onEditAccount = { id ->
+                    navController.navigate(Screen.AddEditAccount.createRoute(id))
+                }
+            )
+        }
+
 
         composable(Screen.Savings.route) {
             val savingsViewModel: SavingsViewModel = viewModel(factory = factory)

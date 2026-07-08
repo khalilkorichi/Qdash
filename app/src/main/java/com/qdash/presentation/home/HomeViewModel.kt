@@ -22,6 +22,7 @@ data class ExpenseTrendPoint(val label: String, val amount: Double)
 @Immutable
 data class HomeUiState(
     val totalBalance: Double = 0.0,
+    val totalAmana: Double = 0.0, // Sum of all amana amounts — deducted from net worth
     val monthlyIncome: Double = 0.0,
     val monthlyExpense: Double = 0.0,
     val incomeChangePercent: Double = 0.0,
@@ -53,7 +54,8 @@ class HomeViewModel(
     private val incomeRepository: IncomeRepository,
     private val templateRepository: TransactionTemplateRepository,
     private val preferencesManager: PreferencesManager,
-    private val aiRepository: com.qdash.domain.repository.AiRepository
+    private val aiRepository: com.qdash.domain.repository.AiRepository,
+    private val amanaRepository: com.qdash.domain.repository.AmanaRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -90,7 +92,8 @@ class HomeViewModel(
         subscriptionRepository.getAllSubscriptions(),
         templateRepository.getPinnedTemplates(),
         _chartPeriod,
-        dashboardConfigChangedTrigger
+        dashboardConfigChangedTrigger,
+        amanaRepository.getTotalAmanaAmount()
     ) { array ->
         val accounts = array[0] as List<Account>
         val transactions = array[1] as List<Transaction>
@@ -99,14 +102,20 @@ class HomeViewModel(
         val subscriptions = array[4] as List<Subscription>
         val pinnedTemplates = array[5] as List<TransactionTemplate>
         val period = array[6] as String
+        // array[7] is dashboardConfigChangedTrigger (Unit)
+        val totalAmana = array[8] as Double
 
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
-            val totalBal = accounts.sumOf { it.balance }
+            // Only active (non-archived, isActive=true) accounts contribute to net worth
+            val activeAccounts = accounts.filter { it.isActive }
+            // Personal Net Worth = Active Accounts Total - Total Amanas
+            val totalBal = activeAccounts.sumOf { it.balance } - totalAmana
             val stats = HomeDashboardCalculator.computeMonthlyStats(transactions, categories)
             val trendPoints = HomeDashboardCalculator.computeTrendPoints(transactions, period)
 
             HomeUiState(
                 totalBalance = totalBal,
+                totalAmana = totalAmana,
                 monthlyIncome = stats.monthlyIncome,
                 monthlyExpense = stats.monthlyExpense,
                 incomeChangePercent = stats.incomeChangePercent,

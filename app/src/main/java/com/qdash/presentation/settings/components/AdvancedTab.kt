@@ -11,12 +11,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.qdash.BuildConfig
 import com.qdash.ui.theme.ExpenseRed
 import com.qdash.ui.theme.SavingsAmber
 import com.qdash.ui.theme.TextGray
 
 @Composable
-fun AdvancedTab() {
+fun AdvancedTab(
+    onResetOnboarding: (() -> Unit)? = null
+) {
     val Primary = MaterialTheme.colorScheme.primary
     Column(
         modifier = Modifier
@@ -65,6 +68,19 @@ fun AdvancedTab() {
             }
         )
 
+        // ── Developer Options (debug builds only) ─────────────────────────────
+        if (BuildConfig.DEBUG && onResetOnboarding != null) {
+            SettingsSectionTitle("Developer Options 🛠️")
+
+            SettingsNavItem(
+                icon = Icons.Default.Replay,
+                iconTint = Color(0xFF6C63FF),
+                title = "إعادة تشغيل Onboarding",
+                subtitle = "إعادة تعيين علامات الإعداد الأول — البيانات لا تُحذف",
+                onClick = onResetOnboarding
+            )
+        }
+
         SettingsSectionTitle("معلومات التطبيق")
 
         SettingsItem(
@@ -73,7 +89,12 @@ fun AdvancedTab() {
             title = "الإصدار الحالي",
             subtitle = "قداشّ — نسخة الإنتاج",
             trailing = {
-                Text("v1.0.0", style = MaterialTheme.typography.labelMedium, color = Primary, fontWeight = FontWeight.Bold)
+                Text(
+                    "v${BuildConfig.VERSION_NAME}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Primary,
+                    fontWeight = FontWeight.Bold
+                )
             }
         )
 

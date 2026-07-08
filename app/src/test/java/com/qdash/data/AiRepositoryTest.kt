@@ -26,12 +26,15 @@ class AiRepositoryTest {
             )
         )
         override fun getArchivedAccounts(): Flow<List<Account>> = throw UnsupportedOperationException()
+        override fun getActiveAccounts(): Flow<List<Account>> = getAllAccounts()
         override suspend fun getAccountById(id: Long): Account? = null
         override suspend fun insertAccount(account: Account): Long = 0
         override suspend fun updateAccount(account: Account) {}
         override suspend fun deleteAccount(account: Account) {}
         override suspend fun archiveAccount(id: Long) {}
         override suspend fun unarchiveAccount(id: Long) {}
+        override suspend fun deactivateAccount(id: Long) {}
+        override suspend fun activateAccount(id: Long) {}
         override suspend fun setDefaultAccount(id: Long) {}
         override suspend fun getTransactionCountForAccount(id: Long): Int = 0
     }

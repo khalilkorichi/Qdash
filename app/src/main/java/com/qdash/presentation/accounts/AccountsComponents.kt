@@ -107,6 +107,7 @@ fun AccountItemCard(
     onSetDefault: () -> Unit,
     onDelete: () -> Unit,
     onEmpty: () -> Unit,
+    onCardClick: () -> Unit,
     modifier: Modifier = Modifier,
     dragHandleModifier: Modifier = Modifier
 ) {
@@ -135,7 +136,7 @@ fun AccountItemCard(
                 color = accentColor.copy(alpha = 0.18f),
                 shape = RoundedCornerShape(16.dp)
             )
-            .clickable { isExpanded = !isExpanded }
+            .clickable { onCardClick() }
             .testTag("account_card_${account.id}"),
         variant = CardVariant.SOLID,
         shape = ShapeTokens.Lg,
@@ -175,21 +176,31 @@ fun AccountItemCard(
                         .padding(start = 14.dp)
                         .size(44.dp)
                         .background(
-                            if (account.type == AccountType.BARIDIMOB) Color.Transparent
+                            if (account.type == AccountType.BARIDIMOB && account.iconPath == null) Color.Transparent
                             else accentColor.copy(alpha = 0.15f),
                             RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (account.type == AccountType.BARIDIMOB) {
+                    if (account.iconPath != null) {
+                        coil.compose.AsyncImage(
+                            model = account.iconPath,
+                            contentDescription = "صورة الحساب",
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(12.dp)),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    } else if (account.type == AccountType.BARIDIMOB) {
                         androidx.compose.foundation.Image(
                             painter = androidx.compose.ui.res.painterResource(id = com.qdash.R.drawable.ic_baridimob),
                             contentDescription = "بريدي موب",
                             modifier = Modifier.size(36.dp)
                         )
                     } else {
+                        val iconVector = getIconByName(account.icon) ?: accountTypeIcon(account.type)
                         Icon(
-                            imageVector = accountTypeIcon(account.type),
+                            imageVector = iconVector,
                             contentDescription = null,
                             tint = accentColor,
                             modifier = Modifier.size(22.dp)
@@ -295,6 +306,21 @@ fun AccountItemCard(
                         onDismissRequest = { showMenu = false },
                         modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                     ) {
+                        DropdownMenuItem(
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Icon(Icons.Default.Info, contentDescription = null, tint = Primary, modifier = Modifier.size(18.dp))
+                                    Text("تفاصيل الحساب", color = MaterialTheme.colorScheme.onSurface)
+                                }
+                            },
+                            onClick = {
+                                showMenu = false
+                                onCardClick()
+                            }
+                        )
                         DropdownMenuItem(
                             text = {
                                 Row(
@@ -1217,33 +1243,75 @@ fun NetWealthCard(
 }
 
 @Composable
-fun EmptyAccountsState(modifier: Modifier = Modifier) {
+fun EmptyAccountsState(
+    modifier: Modifier = Modifier,
+    onAddAccountClick: (() -> Unit)? = null
+) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 48.dp),
+            .padding(vertical = 40.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(
-            Icons.Default.AccountBalanceWallet,
-            contentDescription = null,
-            tint = TextGray,
-            modifier = Modifier.size(64.dp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
+        // Glowing wallet illustration
+        Box(
+            modifier = Modifier
+                .size(96.dp)
+                .background(
+                    brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            Color.Transparent
+                        )
+                    ),
+                    shape = androidx.compose.foundation.shape.CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.AccountBalanceWallet,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                modifier = Modifier.size(52.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
         Text(
-            "لا توجد حسابات بعد",
-            style = MaterialTheme.typography.titleMedium,
-            color = TextGray,
+            text = "لا توجد محافظ بعد",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center
         )
+
         Spacer(modifier = Modifier.height(8.dp))
+
         Text(
-            "اضغط على \"حساب جديد\" لإضافة حسابك الأول",
+            text = "أنشئ محفظتك الأولى لتبدأ تتبع أموالك بذكاء",
             style = MaterialTheme.typography.bodyMedium,
-            color = TextGray.copy(alpha = 0.7f),
-            textAlign = TextAlign.Center
+            color = TextGray,
+            textAlign = TextAlign.Center,
+            lineHeight = 20.sp
         )
+
+        if (onAddAccountClick != null) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = onAddAccountClick,
+                modifier = Modifier.height(48.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(Icons.Default.AddCircleOutline, null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "أنشئ محفظتك الأولى",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = Color.White
+                )
+            }
+        }
     }
 }
 

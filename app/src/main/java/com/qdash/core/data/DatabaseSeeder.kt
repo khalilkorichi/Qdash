@@ -95,17 +95,8 @@ object DatabaseSeeder {
                 }
             }
 
-            val existingAccounts = accountDao.getAllAccounts().first()
-            if (existingAccounts.isEmpty()) {
-                val defaultAccounts = listOf(
-                    AccountEntity(name = "بريدي موب", type = "BARIDIMOB", balance = 45000.0, color = "#8A2387", icon = "phonelink_ring", isDefault = true),
-                    AccountEntity(name = "نقدي / كاش", type = "CASH", balance = 5000.0, color = "#11998e", icon = "payments", isDefault = false),
-                    AccountEntity(name = "حساب التوفير", type = "SAVINGS", balance = 15000.0, color = "#4facfe", icon = "savings", isDefault = false)
-                )
-                for (account in defaultAccounts) {
-                    accountDao.insertAccount(account)
-                }
-            }
+            // Accounts are seeded by the user during onboarding or manually created afterwards.
+            // No default accounts are pre-seeded to prevent duplicates and respect Onboarding Skip choices.
 
             // Database Mock Seeding removed as requested by the user for a clean starting experience
         } catch (e: Exception) {

@@ -25,6 +25,7 @@ interface TransactionRepository {
 
 interface AccountRepository {
     fun getAllAccounts(): Flow<List<Account>>
+    fun getActiveAccounts(): Flow<List<Account>>
     fun getArchivedAccounts(): Flow<List<Account>>
     suspend fun getAccountById(id: Long): Account?
     suspend fun insertAccount(account: Account): Long
@@ -33,6 +34,8 @@ interface AccountRepository {
     suspend fun archiveAccount(id: Long)
     suspend fun unarchiveAccount(id: Long)
     suspend fun setDefaultAccount(id: Long)
+    suspend fun deactivateAccount(id: Long)
+    suspend fun activateAccount(id: Long)
     suspend fun getTransactionCountForAccount(id: Long): Int
 }
 

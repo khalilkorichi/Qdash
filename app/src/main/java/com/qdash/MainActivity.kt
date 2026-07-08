@@ -9,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.qdash.presentation.ViewModelFactory
 import com.qdash.presentation.app.FinTrackApp
@@ -83,6 +84,21 @@ class MainActivity : ComponentActivity() {
         // Initialize formatting prefs once at startup
         com.qdash.core.utils.FormatterUtils.hideDecimals = prefs.hideDecimalsEnabled
         com.qdash.core.utils.FormatterUtils.useWesternNumerals = prefs.useWesternNumerals
+
+        // Migration: existing users who already have accounts should never see wallet onboarding.
+        // Mark walletSetupCompleted silently on first boot after this update.
+        if (!prefs.isFirstLaunch && !prefs.walletSetupCompleted) {
+            lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                    val accounts = container.accountRepository.getAllAccounts().first()
+                    if (accounts.isNotEmpty()) {
+                        prefs.walletSetupCompleted = true
+                    }
+                } catch (e: Exception) {
+                    // Non-critical migration — ignore failures
+                }
+            }
+        }
 
         // Silent Google Sign-In to refresh session if linked
         if (prefs.isGoogleLinked) {

@@ -55,6 +55,8 @@ import kotlin.math.roundToInt
 fun AccountsScreen(
     viewModel: AccountsViewModel,
     onBack: () -> Unit,
+    onNavigateToAddAccount: (Long?) -> Unit = {},
+    onNavigateToAccountDetails: (Long) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val Primary = MaterialTheme.colorScheme.primary
@@ -147,8 +149,20 @@ fun AccountsScreen(
                     actionColor = MaterialTheme.colorScheme.primary
                 )
             }
+        },
+        floatingActionButton = {
+            if (!uiState.isLoading) {
+                FloatingActionButton(
+                    onClick = { onNavigateToAddAccount(null) },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "إضافة حساب")
+                }
+            }
         }
     ) { innerPadding ->
+
         PullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = { viewModel.refresh() },
@@ -194,7 +208,7 @@ fun AccountsScreen(
 
                 item {
                     AccountActionsRow(
-                        onAddAccountClick = { showAddAccountDialog = true },
+                        onAddAccountClick = { onNavigateToAddAccount(null) },
                         onTransferClick = { showTransferDialog = true },
                         isLoading = uiState.isLoading,
                         accountsCount = uiState.accounts.size
@@ -334,13 +348,13 @@ fun AccountsScreen(
                                 showBalance = uiState.accountBalancesVisibility[account.id] ?: true,
                                 onToggleBalance = { viewModel.toggleAccountBalanceVisibility(account.id) },
                                 onEdit = {
-                                    viewModel.setEditingAccount(account)
-                                    showEditSheet = true
+                                    onNavigateToAddAccount(account.id)
                                 },
                                 onArchive = { viewModel.archiveAccount(account.id) },
                                 onSetDefault = { viewModel.setDefaultAccount(account.id) },
                                 onDelete = { accountToDelete = account },
                                 onEmpty = { accountToEmpty = account },
+                                onCardClick = { onNavigateToAccountDetails(account.id) },
                                 modifier = Modifier
                                     .animateItem()
                                     .scale(dragScale)
@@ -353,7 +367,9 @@ fun AccountsScreen(
 
                     if (uiState.accounts.isEmpty()) {
                         item {
-                            EmptyAccountsState()
+                            EmptyAccountsState(
+                                onAddAccountClick = { onNavigateToAddAccount(null) }
+                            )
                         }
                     }
                 }

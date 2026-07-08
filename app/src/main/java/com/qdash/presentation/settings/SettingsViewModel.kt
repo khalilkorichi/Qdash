@@ -287,4 +287,14 @@ class SettingsViewModel(
         val defaultVisibility = defaultOrder.associateWith { true }
         saveDashboardCustomization(defaultOrder, defaultVisibility)
     }
+
+    /**
+     * DEBUG ONLY — resets onboarding flags so the Onboarding flow replays on next launch.
+     * Does NOT delete any user data (accounts, transactions, etc.).
+     */
+    fun resetOnboardingForDebug() {
+        preferencesManager.isFirstLaunch = true
+        preferencesManager.walletSetupCompleted = false
+        preferencesManager.walletSetupSkipped = false
+    }
 }

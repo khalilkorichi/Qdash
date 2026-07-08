@@ -42,6 +42,19 @@ class DebtUseCaseTest {
             .allowMainThreadQueries()
             .build()
 
+        // Insert category entity to satisfy foreign key constraints
+        runBlocking {
+            db.categoryDao().insertCategory(
+                com.qdash.data.local.entities.CategoryEntity(
+                    id = DebtConstants.DEBT_EXPENSE_CATEGORY_ID,
+                    name = "Debt Expense",
+                    type = "EXPENSE",
+                    icon = "",
+                    color = ""
+                )
+            )
+        }
+
         transactionRepo = TransactionRepositoryImpl(
             database = db,
             transactionDao = db.transactionDao(),

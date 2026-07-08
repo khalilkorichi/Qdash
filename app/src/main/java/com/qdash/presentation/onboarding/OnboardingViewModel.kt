@@ -1,7 +1,6 @@
 package com.qdash.presentation.onboarding
 
 import android.content.Context
-import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qdash.domain.model.Account
@@ -16,12 +15,41 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
+// Represents a wallet option the user can select/deselect in the setup screen
+data class WalletOption(
+    val type: AccountType,
+    val name: String,
+    val color: String,
+    val icon: String,
+    val isSelected: Boolean,
+    val balance: String = ""
+)
+
+// Custom wallet added inline by the user (no predefined type)
+data class CustomWalletDraft(
+    val name: String = "",
+    val balance: String = "",
+    val color: String = "#6C63FF",
+    val icon: String = "account_balance_wallet"
+)
+
 data class OnboardingUiState(
     val currentStep: Int = 1,
     val selectedLanguage: String = "ar",
+    // Legacy fields kept for backward compat with step 3 old flow (now replaced)
     val baridiMobBalance: String = "",
     val cashBalance: String = "",
     val savingsBalance: String = "",
+    // New wallet setup state
+    val walletOptions: List<WalletOption> = listOf(
+        WalletOption(AccountType.BARIDIMOB, "بريدي موب", "#8A2387", "phonelink_ring", isSelected = true),
+        WalletOption(AccountType.CASH, "نقدي / كاش", "#11998e", "payments", isSelected = true),
+        WalletOption(AccountType.SAVINGS, "حساب التوفير", "#4facfe", "savings", isSelected = false)
+    ),
+    val customWallets: List<CustomWalletDraft> = emptyList(),
+    val showAddCustomWallet: Boolean = false,
+    val customWalletDraft: CustomWalletDraft = CustomWalletDraft(),
+    val balanceError: String? = null,
     val isSaving: Boolean = false,
     val savingMessage: String = "جاري تهيئة محفظتك المالية..."
 )
@@ -60,13 +88,88 @@ class OnboardingViewModel(
     }
 
     fun onBalanceChanged(accountType: AccountType, value: String) {
-        // Filter out non-numeric characters except one dot
-        val sanitized = value.filter { it.isDigit() || it == '.' }
-        _uiState.value = when (accountType) {
-            AccountType.BARIDIMOB -> _uiState.value.copy(baridiMobBalance = sanitized)
-            AccountType.CASH -> _uiState.value.copy(cashBalance = sanitized)
-            AccountType.SAVINGS -> _uiState.value.copy(savingsBalance = sanitized)
-            else -> _uiState.value
+        val sanitized = sanitizeBalance(value)
+        val updated = _uiState.value.walletOptions.map {
+            if (it.type == accountType) it.copy(balance = sanitized) else it
+        }
+        _uiState.value = _uiState.value.copy(walletOptions = updated, balanceError = null)
+    }
+
+    fun onWalletToggled(type: AccountType) {
+        val updated = _uiState.value.walletOptions.map {
+            if (it.type == type) it.copy(isSelected = !it.isSelected) else it
+        }
+        _uiState.value = _uiState.value.copy(walletOptions = updated)
+    }
+
+    fun onShowAddCustomWallet() {
+        _uiState.value = _uiState.value.copy(
+            showAddCustomWallet = true,
+            customWalletDraft = CustomWalletDraft()
+        )
+    }
+
+    fun onCustomWalletNameChanged(name: String) {
+        _uiState.value = _uiState.value.copy(
+            customWalletDraft = _uiState.value.customWalletDraft.copy(name = name)
+        )
+    }
+
+    fun onCustomWalletBalanceChanged(balance: String) {
+        val sanitized = sanitizeBalance(balance)
+        _uiState.value = _uiState.value.copy(
+            customWalletDraft = _uiState.value.customWalletDraft.copy(balance = sanitized),
+            balanceError = null
+        )
+    }
+
+    fun onCustomWalletColorChanged(color: String) {
+        _uiState.value = _uiState.value.copy(
+            customWalletDraft = _uiState.value.customWalletDraft.copy(color = color)
+        )
+    }
+
+    fun onConfirmCustomWallet() {
+        val draft = _uiState.value.customWalletDraft
+        if (draft.name.isBlank()) return
+        val balance = draft.balance.toDoubleOrNull() ?: 0.0
+        if (balance < 0) {
+            _uiState.value = _uiState.value.copy(balanceError = "لا يمكن إدخال قيمة سالبة")
+            return
+        }
+        _uiState.value = _uiState.value.copy(
+            customWallets = _uiState.value.customWallets + draft,
+            showAddCustomWallet = false,
+            customWalletDraft = CustomWalletDraft()
+        )
+    }
+
+    fun onDismissCustomWallet() {
+        _uiState.value = _uiState.value.copy(
+            showAddCustomWallet = false,
+            customWalletDraft = CustomWalletDraft()
+        )
+    }
+
+    fun onRemoveCustomWallet(index: Int) {
+        val updated = _uiState.value.customWallets.toMutableList().also { it.removeAt(index) }
+        _uiState.value = _uiState.value.copy(customWallets = updated)
+    }
+
+    /** Validates balance input: no negatives, no non-numeric chars except one dot */
+    private fun sanitizeBalance(value: String): String {
+        val filtered = value.filter { it.isDigit() || it == '.' }
+        // Allow only one decimal point
+        val parts = filtered.split(".")
+        return if (parts.size > 2) parts[0] + "." + parts.drop(1).joinToString("") else filtered
+    }
+
+    fun validateBalance(value: String): String? {
+        val d = value.toDoubleOrNull()
+        return when {
+            value.isNotBlank() && d == null -> "أدخل رقماً صحيحاً"
+            d != null && d < 0 -> "لا يمكن إدخال قيمة سالبة"
+            else -> null
         }
     }
 
@@ -79,49 +182,49 @@ class OnboardingViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSaving = true)
 
-            // Get existing seeded default accounts
-            val existing = accountRepository.getAllAccounts().first()
+            if (!skip) {
+                val state = _uiState.value
+                var isFirstAccount = true
 
-            val baridiBalance = if (skip) 0.0 else (_uiState.value.baridiMobBalance.toDoubleOrNull() ?: 0.0)
-            val cBalance = if (skip) 0.0 else (_uiState.value.cashBalance.toDoubleOrNull() ?: 0.0)
-            val sBalance = if (skip) 0.0 else (_uiState.value.savingsBalance.toDoubleOrNull() ?: 0.0)
+                // Insert only selected predefined wallets
+                state.walletOptions.filter { it.isSelected }.forEachIndexed { _, option ->
+                    val balance = option.balance.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.0
+                    accountRepository.insertAccount(
+                        Account(
+                            name = option.name,
+                            type = option.type,
+                            balance = balance,
+                            color = option.color,
+                            icon = option.icon,
+                            isDefault = isFirstAccount
+                        )
+                    )
+                    isFirstAccount = false
+                }
 
-            // Update or insert BaridiMob
-            val baridiMobAcc = existing.find { it.type == AccountType.BARIDIMOB }
-            if (baridiMobAcc != null) {
-                accountRepository.updateAccount(baridiMobAcc.copy(balance = baridiBalance))
-            } else {
-                accountRepository.insertAccount(
-                    Account(name = "بريدي موب", type = AccountType.BARIDIMOB, balance = baridiBalance, color = "#8A2387", icon = "phonelink_ring", isDefault = true)
-                )
+                // Insert custom wallets
+                state.customWallets.forEach { draft ->
+                    val balance = draft.balance.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.0
+                    accountRepository.insertAccount(
+                        Account(
+                            name = draft.name,
+                            type = AccountType.OTHER,
+                            balance = balance,
+                            color = draft.color,
+                            icon = draft.icon,
+                            isDefault = isFirstAccount
+                        )
+                    )
+                    isFirstAccount = false
+                }
             }
 
-            // Update or insert Cash
-            val cashAcc = existing.find { it.type == AccountType.CASH }
-            if (cashAcc != null) {
-                accountRepository.updateAccount(cashAcc.copy(balance = cBalance))
-            } else {
-                accountRepository.insertAccount(
-                    Account(name = "نقدي / كاش", type = AccountType.CASH, balance = cBalance, color = "#11998e", icon = "payments", isDefault = false)
-                )
-            }
-
-            // Update or insert Savings
-            val savingsAcc = existing.find { it.type == AccountType.SAVINGS }
-            if (savingsAcc != null) {
-                accountRepository.updateAccount(savingsAcc.copy(balance = sBalance))
-            } else {
-                accountRepository.insertAccount(
-                    Account(name = "حساب التوفير", type = AccountType.SAVINGS, balance = sBalance, color = "#4facfe", icon = "savings", isDefault = false)
-                )
-            }
-
-            // Save state flags in shared preferences
-            preferencesManager.walletSetupCompleted = !skip
+            // Mark setup as done regardless of skip — prevents showing screen again
+            preferencesManager.walletSetupCompleted = true
             preferencesManager.walletSetupSkipped = skip
 
             _uiState.value = _uiState.value.copy(isSaving = false)
-            nextStep()
+            onFinished()
         }
     }
 

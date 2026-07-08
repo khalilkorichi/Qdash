@@ -80,7 +80,16 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
     }
     
     object AccountManagement : Screen("account_management", "إدارة الحساب")
-    
+
+    object AddEditAccount : Screen("add_edit_account?accountId={accountId}", "إضافة/تعديل حساب") {
+        fun createRoute(accountId: Long? = null) =
+            if (accountId != null) "add_edit_account?accountId=$accountId" else "add_edit_account"
+    }
+
+    object AccountDetails : Screen("account_details/{accountId}", "تفاصيل الحساب") {
+        fun createRoute(accountId: Long) = "account_details/$accountId"
+    }
+
     object Splash : Screen("splash", "الشاشة الترحيبية")
 }
 

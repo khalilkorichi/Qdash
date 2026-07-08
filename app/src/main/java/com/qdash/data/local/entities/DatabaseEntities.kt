@@ -58,7 +58,8 @@ data class TransactionEntity(
 @Entity(
     tableName = "accounts",
     indices = [
-        Index(value = ["isArchived", "sortOrder", "createdAt"])
+        Index(value = ["isArchived", "sortOrder", "createdAt"]),
+        Index(value = ["isActive"])
     ]
 )
 data class AccountEntity(
@@ -68,9 +69,11 @@ data class AccountEntity(
     val balance: Double,
     val currency: String = "DZD",
     val color: String, // Hex string
-    val icon: String, // Icon name
+    val icon: String, // Icon name (Material icon key)
+    val iconPath: String? = null, // Path to gallery image in internal storage (overrides icon)
     val isDefault: Boolean = false,
     val isArchived: Boolean = false,
+    val isActive: Boolean = true, // false = disabled: hidden from net worth but still visible in list
     val createdAt: Long = System.currentTimeMillis(),
     val sortOrder: Int = 0
 )

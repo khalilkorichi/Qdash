@@ -30,6 +30,13 @@ class TransactionMappingAndBalancesTest {
         db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
             .build()
+        
+        // Insert category entities to satisfy foreign key constraints
+        runBlocking {
+            db.categoryDao().insertCategory(CategoryEntity(id = 1L, name = "Cat 1", type = "EXPENSE", icon = "", color = ""))
+            db.categoryDao().insertCategory(CategoryEntity(id = 12L, name = "Cat 12", type = "EXPENSE", icon = "", color = ""))
+        }
+
         repository = TransactionRepositoryImpl(
             database = db,
             transactionDao = db.transactionDao(),

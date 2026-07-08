@@ -40,6 +40,7 @@ interface AppContainer {
     val financialPlanRepository: FinancialPlanRepository
     val aiRepository: AiRepository
     val postalProfileRepository: PostalProfileRepository
+    val amanaRepository: AmanaRepository
 
 
     // Savings Use Cases

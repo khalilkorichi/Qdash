@@ -143,7 +143,15 @@ fun OnboardingScreen(
                     3 -> {
                         InitialWalletSetupScreen(
                             uiState = uiState,
+                            onWalletToggled = { type -> viewModel.onWalletToggled(type) },
                             onBalanceChanged = { type, value -> viewModel.onBalanceChanged(type, value) },
+                            onShowAddCustomWallet = { viewModel.onShowAddCustomWallet() },
+                            onCustomWalletNameChanged = { viewModel.onCustomWalletNameChanged(it) },
+                            onCustomWalletBalanceChanged = { viewModel.onCustomWalletBalanceChanged(it) },
+                            onCustomWalletColorChanged = { viewModel.onCustomWalletColorChanged(it) },
+                            onConfirmCustomWallet = { viewModel.onConfirmCustomWallet() },
+                            onDismissCustomWallet = { viewModel.onDismissCustomWallet() },
+                            onRemoveCustomWallet = { viewModel.onRemoveCustomWallet(it) },
                             onNext = {
                                 keyboardController?.hide()
                                 viewModel.completeWalletSetup(skip = false, onFinished = onFinished)

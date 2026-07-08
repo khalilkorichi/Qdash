@@ -31,12 +31,15 @@ class UseCaseTest {
     private val fakeAccountRepository = object : AccountRepository {
         override fun getAllAccounts() = flowOf(listOf(dummyAccount, dummyBaridiAccount))
         override fun getArchivedAccounts() = flowOf(emptyList<Account>())
+        override fun getActiveAccounts() = getAllAccounts()
         override suspend fun getAccountById(id: Long) = if (id == 1L) dummyAccount else null
         override suspend fun insertAccount(account: Account) = 1L
         override suspend fun updateAccount(account: Account) {}
         override suspend fun deleteAccount(account: Account) {}
         override suspend fun archiveAccount(id: Long) {}
         override suspend fun unarchiveAccount(id: Long) {}
+        override suspend fun deactivateAccount(id: Long) {}
+        override suspend fun activateAccount(id: Long) {}
         override suspend fun setDefaultAccount(id: Long) {}
         override suspend fun getTransactionCountForAccount(id: Long) = 0
     }

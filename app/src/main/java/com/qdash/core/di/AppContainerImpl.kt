@@ -67,6 +67,10 @@ class AppContainerImpl(private val context: Context) : AppContainer {
         AccountRepositoryImpl(database, database.accountDao(), database.transactionDao())
     }
 
+    override val amanaRepository: AmanaRepository by lazy {
+        AmanaRepositoryImpl(database.amanaDao())
+    }
+
     override val categoryRepository: CategoryRepository by lazy {
         CategoryRepositoryImpl(database, database.categoryDao(), database.transactionDao(), database.budgetGoalDao())
     }
