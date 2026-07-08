@@ -48,9 +48,11 @@ object FormatterUtils {
     private val decimalFormatWithDecimals = DecimalFormat("#,##0.00")
     private val decimalFormatWithoutDecimals = DecimalFormat("#,##0")
     
-    fun formatCurrency(amount: Double): String {
+    fun formatCurrency(amount: Double, prefix: String = ""): String {
         val format = if (hideDecimals) decimalFormatWithoutDecimals else decimalFormatWithDecimals
-        return convertNumerals("${format.format(amount)} دج")
+        val formattedNumber = format.format(amount)
+        val result = if (prefix.isNotEmpty()) "\u200E$prefix$formattedNumber دج" else "$formattedNumber دج"
+        return convertNumerals(result)
     }
 
     fun formatColloquialAlgerian(amount: Double): String? {

@@ -46,6 +46,10 @@
       <span>🗄️</span>
       <span class="ar">صحة قاعدة البيانات</span>
     </button>
+    <button class="tab" data-tab="appupdate" role="tab" aria-selected="false">
+      <span>🚀</span>
+      <span class="ar">تحديث التطبيق</span>
+    </button>
   </nav>
 
   <!-- ── Main content ────────────────────────────────────────────────────── -->
@@ -102,6 +106,106 @@
       </div>
 
       <div id="db-content"></div>
+
+    </section>
+
+    <!-- ── APP UPDATE PANEL ────────────────────────────────────────────────── -->
+    <section id="appupdate-panel" class="tab-panel hidden" role="tabpanel">
+
+      <div class="section-header">
+        <div class="section-title">
+          <span>🚀</span>
+          <span class="ar">تحديث وإصدار نسخة التطبيق</span>
+        </div>
+        <span id="server-status-badge" class="badge badge-INFO">جاري التحقق من الخادم…</span>
+      </div>
+
+      <!-- Offline Warning Banner -->
+      <div id="update-offline-warning" class="empty-state hidden" style="border: 1px dashed var(--critical); border-radius: var(--radius-lg); background: rgba(239, 68, 68, 0.03); padding: 32px;">
+        <div class="empty-icon" style="color: var(--critical)">⚠️</div>
+        <div class="empty-title" style="color: var(--text-primary)">خادم التحديث غير نشط</div>
+        <div class="empty-sub" style="max-width: 600px; margin: 0 auto; line-height: 1.8;">
+          لتشغيل عملية التحديث التلقائي وبناء التطبيق ورفعه إلى GitHub، يجب تشغيل خادم الأداة أولاً من خلال terminal باستخدام الأمر التالي:
+          <div class="modal-command" dir="ltr" style="margin: 16px auto; max-width: 450px;">python tools/qdash-audit/audit.py --serve</div>
+          ثم قم بزيارة اللوحة التفاعلية على العنوان التالي:
+          <a href="http://localhost:8080/index.html" style="color: var(--accent); font-weight: 600; text-decoration: none;">http://localhost:8080/index.html</a>
+        </div>
+      </div>
+
+      <!-- Online Active Interface -->
+      <div id="update-online-content" class="hidden">
+        
+        <!-- Version Info Cards -->
+        <div class="version-cards">
+          <div class="version-card">
+            <div class="stat-label">كود الإصدار (versionCode)</div>
+            <div class="stat-value" id="current-vcode" style="color: var(--accent)">—</div>
+            <div class="stat-sub">سيتم رفعه تلقائياً بـ +1</div>
+          </div>
+          <div class="version-card">
+            <div class="stat-label">اسم الإصدار (versionName)</div>
+            <div class="stat-value" id="current-vname">—</div>
+            <div class="stat-sub">النسخة الجديدة: <span id="next-vname" style="color: var(--success); font-weight: 600;">—</span></div>
+          </div>
+          <div class="version-card">
+            <div class="stat-label">معرف التحديث (UPDATE_IDENTITY)</div>
+            <div class="stat-value" id="current-videntity">—</div>
+            <div class="stat-sub">للتحقق من CDN وتنبيه التطبيق</div>
+          </div>
+        </div>
+
+        <!-- Release Form -->
+        <div id="update-form-container" class="update-form">
+          <h3 class="ar" style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">📝 تفاصيل وملاحظات الإصدار الجديد</h3>
+          <div class="form-group">
+            <label class="form-label ar" for="release-notes-input">ملاحظات الإصدار (Release Notes - ستظهر للمستخدمين عند توفر التحديث):</label>
+            <textarea id="release-notes-input" class="form-input ar" placeholder="اكتب التغييرات الجديدة هنا (مثال: إصلاحات وإضافة ميزات جديدة...)"></textarea>
+          </div>
+          <button id="btn-start-update" class="btn-scan" style="width: 100%; justify-content: center; height: 46px; font-size: 1rem; border-radius: var(--radius-md);">
+            <span>🚀</span> بدء عملية التحديث التلقائي والبناء والرفع
+          </button>
+        </div>
+
+        <!-- Running Update Progress Console -->
+        <div id="update-progress-container" class="update-form hidden">
+          <div class="step-indicator">
+            <div class="ar" style="font-weight: 600; font-size: 0.95rem;">
+              حالة التشغيل: <span id="update-step-title" style="color: var(--accent);">جاري البدء…</span>
+            </div>
+            <div class="mono" id="update-progress-percent">0%</div>
+          </div>
+
+          <div class="progress-bar-container">
+            <div id="update-progress-bar" class="progress-bar-fill"></div>
+          </div>
+
+          <!-- Step Checkpoints -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; font-size: 0.75rem; text-align: center;">
+            <div class="step-num-item" id="step-dot-1"><span class="step-num">1</span><br><span class="ar">فحص Git</span></div>
+            <div class="step-num-item" id="step-dot-2"><span class="step-num">2</span><br><span class="ar">ترقيم الإصدار</span></div>
+            <div class="step-num-item" id="step-dot-3"><span class="step-num">3</span><br><span class="ar">بناء Gradle</span></div>
+            <div class="step-num-item" id="step-dot-4"><span class="step-num">4</span><br><span class="ar">تعبئة APK</span></div>
+            <div class="step-num-item" id="step-dot-5"><span class="step-num">5</span><br><span class="ar">ملف JSON</span></div>
+            <div class="step-num-item" id="step-dot-6"><span class="step-num">6</span><br><span class="ar">الرفع لـ GitHub</span></div>
+            <div class="step-num-item" id="step-dot-7"><span class="step-num">7</span><br><span class="ar">التحقق من CDN</span></div>
+          </div>
+
+          <!-- Terminal Screen -->
+          <div class="ar" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+            <span>💻 مخرجات البناء والرفع (Terminal logs):</span>
+            <button id="btn-clear-terminal" class="btn-secondary" style="padding: 2px 10px; font-size: 0.75rem; border-radius: 4px;">مسح الشاشة</button>
+          </div>
+          <div id="update-terminal" class="terminal-console"></div>
+
+          <!-- Final Success/Error Dialog -->
+          <div id="update-result-card" class="empty-state hidden" style="padding: 20px; margin-top: 20px; border-radius: var(--radius-md);">
+            <div class="empty-icon" id="update-result-icon">🎉</div>
+            <div class="empty-title" id="update-result-title">اكتمل التحديث</div>
+            <div class="empty-sub" id="update-result-sub">التحديث الجديد أصبح متاحاً الآن لجميع المستخدمين.</div>
+          </div>
+        </div>
+
+      </div>
 
     </section>
 

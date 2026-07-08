@@ -46,14 +46,31 @@ fun TransactionItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isSelected: Boolean = false,
-    onLongClick: (() -> Unit)? = null
+    onLongClick: (() -> Unit)? = null,
+    currentViewedAccountId: Long? = null,
+    toAccountName: String? = null
 ) {
     val isExpense = transaction.type == TransactionType.EXPENSE
     val isTransfer = transaction.type == TransactionType.TRANSFER
+    val isIncomingTransfer = isTransfer && transaction.toAccountId == currentViewedAccountId
+    val isOutgoingTransfer = isTransfer && transaction.accountId == currentViewedAccountId
+
+    val amountPrefix = when {
+        isExpense || isOutgoingTransfer -> "-"
+        isIncomingTransfer -> "+"
+        else -> ""
+    }
+
     val accentColor = when {
-        isExpense -> ExpenseRed
-        isTransfer -> TransferBlue
-        else -> IncomeGreen
+        isExpense || isOutgoingTransfer -> ExpenseRed
+        isIncomingTransfer -> IncomeGreen
+        else -> TransferBlue
+    }
+
+    val textColor = when {
+        isExpense || isOutgoingTransfer -> ExpenseRed
+        isIncomingTransfer -> IncomeGreen
+        else -> TransferBlue
     }
 
     val catColor = category?.color?.let { Color(android.graphics.Color.parseColor(it)) } ?: accentColor
@@ -72,8 +89,7 @@ fun TransactionItem(
         "work" -> Icons.Default.Work
         else -> Icons.Default.Receipt
     }
-    val amountText = (if (isExpense) "-" else "+") + FormatterUtils.formatCurrency(transaction.amount)
-    val textColor = if (isExpense) ExpenseRed else IncomeGreen
+    val amountText = FormatterUtils.formatCurrency(transaction.amount, amountPrefix)
 
     val primaryColor = MaterialTheme.colorScheme.primary
     val cardModifier = if (onLongClick != null) {
@@ -158,7 +174,11 @@ fun TransactionItem(
                         )
                         Spacer(modifier = Modifier.width(5.dp))
                         val subtitleText = buildString {
-                            append(accountName)
+                            if (isTransfer && toAccountName != null && currentViewedAccountId == null) {
+                                append("$accountName ← $toAccountName")
+                            } else {
+                                append(accountName)
+                            }
                             category?.name?.let {
                                 append(" • ")
                                 append(it)

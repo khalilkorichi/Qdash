@@ -306,7 +306,8 @@ fun TransactionsScreen(
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         viewModel.toggleTransactionSelection(tx.id)
                     },
-                    onLoadMore = { visibleRecentCount += 5 }
+                    onLoadMore = { visibleRecentCount += 5 },
+                    selectedAccountId = uiState.selectedAccountId
                 )
             }
 

@@ -464,7 +464,7 @@ fun AccountItemCard(
                                     }
 
                                     Text(
-                                        text = "$amountPrefix${FormatterUtils.formatCurrency(tx.amount)}",
+                                        text = FormatterUtils.formatCurrency(tx.amount, amountPrefix),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Black,
                                         color = amountColor

@@ -79,6 +79,7 @@ fun LazyListScope.homeRecentTransactionsSection(
         itemsIndexed(displayedTxs, key = { _, tx -> tx.id }) { index, tx ->
             val cat = categories.firstOrNull { it.id == tx.categoryId }
             val accName = accounts.firstOrNull { it.id == tx.accountId }?.name ?: "غير معروف"
+            val toAccName = accounts.firstOrNull { it.id == tx.toAccountId }?.name
             val isLast = index == displayedTxs.lastIndex
 
             if (isLast) {
@@ -90,7 +91,8 @@ fun LazyListScope.homeRecentTransactionsSection(
                         onClick = onViewAllTransactionsClick,
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
-                            .padding(bottom = 8.dp)
+                            .padding(bottom = 8.dp),
+                        toAccountName = toAccName
                     )
                     Box(
                         modifier = Modifier
@@ -119,7 +121,8 @@ fun LazyListScope.homeRecentTransactionsSection(
                     onClick = onViewAllTransactionsClick,
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
-                        .padding(bottom = 8.dp)
+                        .padding(bottom = 8.dp),
+                    toAccountName = toAccName
                 )
             }
         }

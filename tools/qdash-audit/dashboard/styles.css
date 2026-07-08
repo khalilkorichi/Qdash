@@ -580,6 +580,127 @@ body {
 .mt-1 { margin-top: 8px; }
 .mt-2 { margin-top: 16px; }
 
+/* ── App Update Styles ──────────────────────────────────────────────────────── */
+.version-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 2rem;
+}
+.version-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+}
+.update-form {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 2rem;
+}
+.form-group {
+  margin-bottom: 16px;
+}
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.form-input {
+  width: 100%;
+  min-height: 100px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+.form-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+.terminal-console {
+  background: #05070b;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.8rem;
+  color: #38bdf8; /* light blue */
+  padding: 16px;
+  height: 350px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+.terminal-line-gradle {
+  color: #a8d8f0;
+}
+.terminal-line-error {
+  color: var(--critical);
+}
+.terminal-line-success {
+  color: var(--success);
+}
+.terminal-line-step {
+  color: #fb7185; /* rose */
+  font-weight: 600;
+  border-bottom: 1px dashed rgba(255,255,255,0.1);
+  padding-bottom: 4px;
+  margin-top: 12px;
+}
+.progress-bar-container {
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  transition: width 0.4s ease;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+.step-indicator {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.step-item.active {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.step-item.active .step-num {
+  background: var(--accent);
+  color: #fff;
+}
+.step-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
 /* ── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .main-content { padding: 1rem; }

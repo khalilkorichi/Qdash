@@ -41,7 +41,8 @@ fun LazyListScope.recentTransactionsSection(
     onDelete: (Transaction) -> Unit,
     onRowClick: (Transaction) -> Unit,
     onRowLongClick: (Transaction) -> Unit,
-    onLoadMore: () -> Unit
+    onLoadMore: () -> Unit,
+    selectedAccountId: Long? = null
 ) {
     if (isLoading) {
         items(4, key = { "recent_skeleton_$it" }) {
@@ -68,6 +69,7 @@ fun LazyListScope.recentTransactionsSection(
             items(recentTxs, key = { "recent_${it.id}" }) { tx ->
                 val cat = categories.firstOrNull { it.id == tx.categoryId }
                 val accName = accounts.firstOrNull { it.id == tx.accountId }?.name ?: "غير معروف"
+                val toAccName = accounts.firstOrNull { it.id == tx.toAccountId }?.name
                 val isSelected = selectedTransactionIds.contains(tx.id)
                 val isSelectionActive = selectedTransactionIds.isNotEmpty()
 
@@ -85,7 +87,9 @@ fun LazyListScope.recentTransactionsSection(
                         onClick = { onRowClick(tx) },
                         isSelected = isSelected,
                         isSelectionActive = isSelectionActive,
-                        onLongClick = { onRowLongClick(tx) }
+                        onLongClick = { onRowLongClick(tx) },
+                        currentViewedAccountId = selectedAccountId,
+                        toAccountName = toAccName
                     )
                 }
             }

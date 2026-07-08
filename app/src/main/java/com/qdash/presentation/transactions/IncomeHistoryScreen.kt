@@ -229,11 +229,13 @@ fun IncomeHistoryScreen(
                             val cat = uiState.categories.firstOrNull { it.id == tx.categoryId }
                             val accName = uiState.accounts
                                 .firstOrNull { it.id == tx.accountId }?.name ?: "غير معروف"
+                            val toAccName = uiState.accounts.firstOrNull { it.id == tx.toAccountId }?.name
                             TransactionItem(
                                 transaction = tx,
                                 category = cat,
                                 accountName = accName,
-                                onClick = { showActionMenuForTransaction = tx }
+                                onClick = { showActionMenuForTransaction = tx },
+                                toAccountName = toAccName
                             )
                         }
                     }

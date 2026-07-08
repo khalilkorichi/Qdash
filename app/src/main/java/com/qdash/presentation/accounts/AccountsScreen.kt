@@ -1,42 +1,27 @@
 package com.qdash.presentation.accounts
 
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qdash.core.ui.asStable
 import com.qdash.core.ui.components.UnifiedScreenHeader
-import com.qdash.core.utils.FormatterUtils
 import com.qdash.domain.model.Account
 import com.qdash.ui.designsystem.components.*
 import com.qdash.ui.designsystem.tokens.*
@@ -48,7 +33,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import kotlin.math.roundToInt
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -238,25 +223,6 @@ fun AccountsScreen(
                         val isDragging = index == draggedIndex
                         val offsetY = if (isDragging) dragOffsetY else 0f
 
-                        val dragScale by animateFloatAsState(
-                            targetValue = if (isDragging) 1.03f else 1.0f,
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioLowBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            ),
-                            label = "dragScale"
-                        )
-                        val dragElevation by animateDpAsState(
-                            targetValue = if (isDragging) 8.dp else 0.dp,
-                            animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                            label = "dragElevation"
-                        )
-                        val dragAlpha by animateFloatAsState(
-                            targetValue = if (draggedIndex != null && !isDragging) 0.65f else 1.0f,
-                            animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                            label = "dragAlpha"
-                        )
-
                         val haptic = LocalHapticFeedback.current
                         val currentIndex by rememberUpdatedState(index)
 
@@ -281,12 +247,8 @@ fun AccountsScreen(
                                                 .firstOrNull { item ->
                                                     val itemIndex = activeAccounts.indexOfFirst { it.id == item.key }
                                                     if (itemIndex != -1) {
-                                                        val itemStart = item.offset
-                                                        val itemEnd = item.offset + item.size
-                                                        draggedCenter > itemStart && draggedCenter < itemEnd
-                                                    } else {
-                                                        false
-                                                    }
+                                                        draggedCenter > item.offset && draggedCenter < item.offset + item.size
+                                                    } else false
                                                 }
 
                                             if (targetItem != null) {
@@ -296,12 +258,9 @@ fun AccountsScreen(
                                                     val temp = newList[currentDragged]
                                                     newList[currentDragged] = newList[targetIndex]
                                                     newList[targetIndex] = temp
-
-                                                    val deltaY = targetItem.offset - draggedItemInfo.offset
-
                                                     activeAccounts = newList
                                                     draggedIndex = targetIndex
-                                                    dragOffsetY -= deltaY
+                                                    dragOffsetY -= (targetItem.offset - draggedItemInfo.offset)
                                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                 }
                                             }
@@ -320,46 +279,22 @@ fun AccountsScreen(
                             )
                         }
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .zIndex(if (isDragging) 15f else 1f)
-                        ) {
-                            if (isDragging) {
-                                Box(
-                                    modifier = Modifier
-                                        .matchParentSize()
-                                        .background(
-                                            color = MaterialTheme.colorScheme.background,
-                                            shape = RoundedCornerShape(16.dp)
-                                        )
-                                        .border(
-                                            width = 1.dp,
-                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.15f),
-                                            shape = RoundedCornerShape(16.dp)
-                                        )
-                                )
-                            }
-
-                            AccountItemCard(
-                                account = account,
-                                transactions = accountTxs.asStable(),
-                                categories = uiState.categories.asStable(),
-                                showBalance = uiState.accountBalancesVisibility[account.id] ?: true,
-                                onToggleBalance = { viewModel.toggleAccountBalanceVisibility(account.id) },
-                                onEdit = {
-                                    onNavigateToAddAccount(account.id)
-                                },
-                                onCardClick = { onNavigateToAccountDetails(account.id) },
-                                modifier = Modifier
-                                    .animateItem()
-                                    .scale(dragScale)
-                                    .graphicsLayer { alpha = dragAlpha }
-                                    .offset { IntOffset(0, offsetY.roundToInt()) },
-                                dragHandleModifier = dragHandleModifier
-                            )
-                        }
+                        DraggableAccountItem(
+                            account = account,
+                            transactions = accountTxs.asStable(),
+                            categories = uiState.categories.asStable(),
+                            showBalance = uiState.accountBalancesVisibility[account.id] ?: true,
+                            onToggleBalance = { viewModel.toggleAccountBalanceVisibility(account.id) },
+                            onEdit = { onNavigateToAddAccount(account.id) },
+                            onCardClick = { onNavigateToAccountDetails(account.id) },
+                            isDragging = isDragging,
+                            isSomethingDragging = draggedIndex != null,
+                            dragOffsetY = offsetY,
+                            dragHandleModifier = dragHandleModifier,
+                            modifier = Modifier.animateItem()
+                        )
                     }
+
 
                     if (uiState.accounts.isEmpty()) {
                         item {

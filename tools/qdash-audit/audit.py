@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 audit.py — Qdash Code & Database Health Audit Tool
 Entry point / CLI controller.
@@ -8,6 +8,7 @@ Usage:
     python audit.py --full               # force re-scan all files
     python audit.py --report-only        # regenerate index.json only
     python audit.py --project-root <path>
+    python audit.py --serve              # run local HTTP API server on port 8080
 
 Outputs:
     - reports/scan_<timestamp>.json      (full report, never overwritten)
@@ -20,6 +21,9 @@ import argparse
 import json
 import os
 import sys
+import http.server
+import socketserver
+import urllib.parse
 from pathlib import Path
 
 # ─── Path setup ─────────────────────────────────────────────────────────────
@@ -112,6 +116,10 @@ def parse_args() -> argparse.Namespace:
         "--history", action="store_true",
         help="Print scan history summary and exit"
     )
+    p.add_argument(
+        "--serve", action="store_true",
+        help="Run local HTTP API server on port 8080"
+    )
     return p.parse_args()
 
 
@@ -187,7 +195,7 @@ def _print_history(history) -> None:
               f"{new:>5s} {res:>9s} {s.duration_seconds:>8.1f}s")
 
 
-
+# ─── Dashboard data writer ────────────────────────────────────────────────────
 def _write_dashboard_data(audit_root: str, report) -> None:
     """Write dashboard/data.js with embedded scan data for offline file:// access."""
     history = GetScanHistoryUseCase(audit_root).run()
@@ -207,6 +215,133 @@ def _write_dashboard_data(audit_root: str, report) -> None:
     )
     print("  [+] Dashboard data written to dashboard/data.js")
 
+
+# ─── HTTP API Server ─────────────────────────────────────────────────────────
+class QdashAuditHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self):
+        # Enable CORS for file:// access
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        super().end_headers()
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.end_headers()
+
+    def do_GET(self):
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = parsed_url.path
+
+        if path == '/api/status':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.end_headers()
+            
+            from release_manager import ReleaseManager
+            rm = ReleaseManager()
+            versions = rm.read_version_info(str(_PROJECT_ROOT))
+            status = rm.get_status()
+            
+            response = {
+                "server_status": "online",
+                "release_status": status,
+                "version_info": versions
+            }
+            self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
+            return
+
+        elif path == '/api/release/status':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.end_headers()
+            
+            from release_manager import ReleaseManager
+            status = ReleaseManager().get_status()
+            self.wfile.write(json.dumps(status, ensure_ascii=False).encode('utf-8'))
+            return
+
+        # Serve static dashboard files
+        audit_dir = Path(_AUDIT_ROOT)
+        if path == '/' or path == '/index.html':
+            path_to_serve = audit_dir / 'dashboard' / 'index.html'
+        elif path in ['/app.js', '/styles.css', '/data.js']:
+            path_to_serve = audit_dir / 'dashboard' / path.lstrip('/')
+        elif path.startswith('/reports/'):
+            path_to_serve = audit_dir / path.lstrip('/')
+        else:
+            super().do_GET()
+            return
+
+        if path_to_serve.exists():
+            self.send_response(200)
+            if path_to_serve.suffix == '.html':
+                self.send_header('Content-type', 'text/html; charset=utf-8')
+            elif path_to_serve.suffix == '.css':
+                self.send_header('Content-type', 'text/css; charset=utf-8')
+            elif path_to_serve.suffix == '.js':
+                self.send_header('Content-type', 'application/javascript; charset=utf-8')
+            elif path_to_serve.suffix == '.json':
+                self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(path_to_serve.read_bytes())
+        else:
+            self.send_error(404, "File not found")
+
+    def do_POST(self):
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = parsed_url.path
+
+        if path == '/api/release':
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length).decode('utf-8')
+            
+            try:
+                params = json.loads(post_data)
+            except Exception:
+                params = {}
+                
+            release_notes = params.get("releaseNotes", "تحديث عام وإصلاحات برمجية.")
+            
+            from release_manager import ReleaseManager
+            rm = ReleaseManager()
+            started = rm.start_release(str(_PROJECT_ROOT), release_notes)
+            
+            self.send_response(200 if started else 400)
+            self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.end_headers()
+            
+            response = {
+                "success": started,
+                "message": "بدأت عملية التحديث بنجاح." if started else "عملية التحديث قيد التشغيل بالفعل."
+            }
+            self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
+            return
+            
+        super().do_POST()
+
+
+def run_server(project_root: str, audit_root: str):
+    PORT = 8080
+    
+    class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+        daemon_threads = True
+
+    server_address = ('', PORT)
+    handler = QdashAuditHTTPRequestHandler
+    ThreadingHTTPServer.allow_reuse_address = True
+    
+    try:
+        httpd = ThreadingHTTPServer(server_address, handler)
+        print(f"\n{BOLD}{GREEN}  [✓] الخادم المحلي نشط ويعمل على الرابط التالي:{RESET}")
+        print(f"      {CYAN}http://localhost:{PORT}/index.html{RESET}\n")
+        print("  اضغط Ctrl+C لإيقاف الخادم.")
+        httpd.serve_forever()
+    except Exception as e:
+        print(f"\n  {RED}خطأ أثناء بدء الخادم:{RESET} {e}")
+        sys.exit(1)
+
+
 # ─── Main ─────────────────────────────────────────────────────────────────────
 def main() -> int:
     _enable_ansi_on_windows()
@@ -214,6 +349,12 @@ def main() -> int:
 
     project_root = str(Path(args.project_root).resolve())
     audit_root   = str(Path(args.audit_root).resolve())
+
+    # ── Server Mode ──────────────────────────────────────────────────────────
+    if args.serve:
+        _print_header(project_root)
+        run_server(project_root, audit_root)
+        return 0
 
     _print_header(project_root)
 
@@ -258,7 +399,8 @@ def main() -> int:
     print(f"\n  {BOLD}Report saved:{RESET} {reports_path}")
     print(f"  {BOLD}Dashboard:   {RESET} {dashboard_path}")
     print(f"\n  {GREEN}Open dashboard in browser (works offline):{RESET}")
-    print(f"  {CYAN}{dashboard_path}{RESET}\n")
+    print(f"  {CYAN}{dashboard_path}{RESET}")
+    print(f"  {GRAY}أو لتفعيل عملية التحديث التلقائي، شغّل الخادم:{RESET} {CYAN}python audit.py --serve{RESET}\n")
 
     # Exit 0 = ran successfully (having issues is normal, not an error)
     return 0
@@ -266,4 +408,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

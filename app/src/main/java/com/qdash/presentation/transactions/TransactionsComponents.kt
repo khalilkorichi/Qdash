@@ -620,7 +620,9 @@ fun SwipeableTransactionRow(
     onClick: () -> Unit,
     isSelected: Boolean = false,
     isSelectionActive: Boolean = false,
-    onLongClick: () -> Unit = {}
+    onLongClick: () -> Unit = {},
+    currentViewedAccountId: Long? = null,
+    toAccountName: String? = null
 ) {
     var offsetX by remember { mutableStateOf(0f) }
     val density = LocalDensity.current
@@ -722,7 +724,9 @@ fun SwipeableTransactionRow(
                     }
                 },
                 isSelected = isSelected,
-                onLongClick = onLongClick
+                onLongClick = onLongClick,
+                currentViewedAccountId = currentViewedAccountId,
+                toAccountName = toAccountName
             )
         }
     }

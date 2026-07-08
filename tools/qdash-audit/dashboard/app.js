@@ -115,6 +115,7 @@ function renderCurrentTab() {
     case 'overview': renderOverview(); break;
     case 'history':  renderHistory();  break;
     case 'dbhealth': renderDbHealth(); break;
+    case 'appupdate': renderAppUpdate(); break;
   }
 }
 
@@ -518,3 +519,206 @@ function escHtml(str) {
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+
+
+// ─── App Update tab implementation ───────────────────────────────────────────
+let updateInterval = null;
+let lastLogLength = 0;
+
+async function renderAppUpdate() {
+  const isServerHost = window.location.origin.startsWith('http');
+  const apiBase = isServerHost ? '' : 'http://localhost:8080';
+  const badge = $('server-status-badge');
+  const offlineWarning = $('update-offline-warning');
+  const onlineContent = $('update-online-content');
+
+  showLoading(true);
+  try {
+    // Ping API status
+    const resp = await fetch(`${apiBase}/api/status?t=${Date.now()}`);
+    if (!resp.ok) throw new Error('API offline');
+    const data = await resp.json();
+
+    // Server is online!
+    badge.textContent = 'نشط متصل بالمنصة (Online)';
+    badge.className = 'badge badge-success';
+    offlineWarning.classList.add('hidden');
+    onlineContent.classList.remove('hidden');
+
+    // Populate version details
+    const v = data.version_info || {};
+    const code = v.gradle_version_code || '—';
+    $('current-vcode').textContent = code;
+    $('current-vname').textContent = v.gradle_version_name || '—';
+    $('current-videntity').textContent = v.gradle_update_identity || '—';
+    $('next-vname').textContent = `1.0.0.${Number(code) + 1}`;
+
+    // Pre-fill release notes textarea if empty
+    const textarea = $('release-notes-input');
+    if (textarea && !textarea.value && state.currentReport && state.currentReport.db_health) {
+      // Find previous release notes from update.json parsed data if any
+      const notes = state.currentReport.releaseNotes || '';
+      textarea.value = notes;
+    }
+
+    // Set up button event
+    const startBtn = $('btn-start-update');
+    startBtn.onclick = () => triggerUpdate(apiBase);
+
+    const clearBtn = $('btn-clear-terminal');
+    clearBtn.onclick = () => {
+      $('update-terminal').innerHTML = '';
+      lastLogLength = 0;
+    };
+
+    // Check if there is already a release running
+    const status = data.release_status || {};
+    if (status.status === 'running') {
+      showUpdateProgressMode();
+      startPollingUpdateStatus(apiBase);
+    }
+
+  } catch(e) {
+    // Server is offline
+    badge.textContent = 'غير نشط (Offline)';
+    badge.className = 'badge badge-CRITICAL';
+    onlineContent.classList.add('hidden');
+    offlineWarning.classList.remove('hidden');
+  } finally {
+    showLoading(false);
+  }
+}
+
+function showUpdateProgressMode() {
+  $('update-form-container').classList.add('hidden');
+  $('update-progress-container').classList.remove('hidden');
+}
+
+async function triggerUpdate(apiBase) {
+  const notes = $('release-notes-input').value.trim();
+  if (!notes) {
+    showToast('⚠️ يرجى كتابة ملاحظات التحديث أولاً!');
+    return;
+  }
+
+  showLoading(true);
+  try {
+    const resp = await fetch(`${apiBase}/api/release`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ releaseNotes: notes })
+    });
+    const result = await resp.json();
+    if (result.success) {
+      showToast('🚀 بدأت عملية التحديث والبناء...');
+      showUpdateProgressMode();
+      // Reset terminal
+      $('update-terminal').innerHTML = '';
+      lastLogLength = 0;
+      startPollingUpdateStatus(apiBase);
+    } else {
+      showToast('❌ ' + result.message);
+    }
+  } catch(e) {
+    showToast('❌ خطأ أثناء الاتصال بالخادم.');
+  } finally {
+    showLoading(false);
+  }
+}
+
+function startPollingUpdateStatus(apiBase) {
+  if (updateInterval) clearInterval(updateInterval);
+  updateInterval = setInterval(() => pollUpdateStatus(apiBase), 1000);
+}
+
+async function pollUpdateStatus(apiBase) {
+  try {
+    const resp = await fetch(`${apiBase}/api/release/status?t=${Date.now()}`);
+    if (!resp.ok) return;
+    const status = await resp.json();
+
+    // Update progress bar & step title
+    $('update-step-title').textContent = status.step_title || 'جاري المعالجة…';
+    $('update-progress-percent').textContent = `${status.progress_percent || 0}%`;
+    $('update-progress-bar').style.width = `${status.progress_percent || 0}%`;
+
+    // Highlight active step checkpoint dots
+    const currentStep = status.current_step || 0;
+    for (let i = 1; i <= 7; i++) {
+      const dot = $(`step-dot-${i}`);
+      if (dot) {
+        if (i === currentStep) {
+          dot.classList.add('active');
+        } else if (i < currentStep) {
+          dot.className = 'step-num-item'; // completed
+          dot.querySelector('.step-num').style.background = 'var(--success)';
+        } else {
+          dot.classList.remove('active');
+          dot.querySelector('.step-num').style.background = '';
+        }
+      }
+    }
+
+    // Write new log lines to terminal
+    const logs = status.logs || [];
+    if (logs.length > lastLogLength) {
+      const terminal = $('update-terminal');
+      const fragment = document.createDocumentFragment();
+
+      for (let i = lastLogLength; i < logs.length; i++) {
+        const line = logs[i];
+        const div = document.createElement('div');
+
+        if (line.includes('--- Step')) {
+          div.className = 'terminal-line-step';
+        } else if (line.includes('❌') || line.includes('ERROR:')) {
+          div.className = 'terminal-line-error';
+        } else if (line.includes('✅') || line.includes('SUCCESS:')) {
+          div.className = 'terminal-line-success';
+        } else if (line.startsWith('[') && line.includes('] Gradle:')) {
+          div.className = 'terminal-line-gradle';
+        }
+
+        div.textContent = line;
+        fragment.appendChild(div);
+      }
+
+      terminal.appendChild(fragment);
+      terminal.scrollTop = terminal.scrollHeight; // auto-scroll to bottom
+      lastLogLength = logs.length;
+    }
+
+    // Process finished?
+    if (status.status === 'completed' || status.status === 'failed') {
+      clearInterval(updateInterval);
+      updateInterval = null;
+
+      const resultCard = $('update-result-card');
+      const resIcon = $('update-result-icon');
+      const resTitle = $('update-result-title');
+      const resSub = $('update-result-sub');
+
+      resultCard.classList.remove('hidden');
+
+      if (status.status === 'completed') {
+        resultCard.style.border = '1px solid var(--success)';
+        resultCard.style.background = 'var(--success-bg)';
+        resIcon.textContent = '🎉';
+        resTitle.textContent = 'اكتمل بناء ورفع التحديث بنجاح!';
+        const v = status.version_info || {};
+        resSub.textContent = `التحديث الجديد (نسخة v${v.versionName || ''}) أصبح متاحاً الآن على CDN لجميع المستخدمين.`;
+        showToast('✅ اكتمل التحديث بنجاح!');
+      } else {
+        resultCard.style.border = '1px solid var(--critical)';
+        resultCard.style.background = 'var(--critical-bg)';
+        resIcon.textContent = '❌';
+        resTitle.textContent = 'فشلت عملية البناء والرفع!';
+        resSub.textContent = status.error_message || 'حدث خطأ غير معروف أثناء التحديث.';
+        showToast('❌ فشل التحديث!');
+      }
+    }
+
+  } catch(e) {
+    console.error('Error polling status:', e);
+  }
+}
