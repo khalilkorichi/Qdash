@@ -40,9 +40,16 @@ import com.qdash.core.utils.FileUtils
 import com.qdash.domain.model.AccountType
 import com.qdash.ui.designsystem.components.AppButton
 import com.qdash.ui.designsystem.components.AppInput
+import com.qdash.ui.designsystem.components.AppDialog
+import com.qdash.ui.designsystem.tokens.ColorTokens
 import com.qdash.ui.theme.Primary
 import com.qdash.ui.theme.TextGray
+import com.qdash.ui.theme.ExpenseRed
+import com.qdash.ui.theme.TransferBlue
+import com.qdash.ui.theme.SavingsAmber
+import com.qdash.domain.model.Account
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 // Map of icon key → ImageVector for account icon picker
 private val ACCOUNT_ICONS: List<Pair<String, ImageVector>> = listOf(
@@ -76,11 +83,26 @@ fun AddEditAccountScreen(
     viewModel: AddEditAccountViewModel,
     accountId: Long?,
     onBack: () -> Unit,
+    onNavigateToAccountDetails: (Long) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showEmptyDialog by remember { mutableStateOf(false) }
+    var countdownSeconds by remember { mutableIntStateOf(5) }
+
+    LaunchedEffect(showEmptyDialog) {
+        if (showEmptyDialog) {
+            countdownSeconds = 5
+            while (countdownSeconds > 0) {
+                delay(1000)
+                countdownSeconds--
+            }
+        }
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
 
@@ -224,6 +246,45 @@ fun AddEditAccountScreen(
                     )
                 }
 
+                if (isEditing) {
+                    SectionLabel("إدارة الحساب")
+                    ActionsCard {
+                        ActionRow(
+                            title = "تفاصيل الحساب",
+                            subtitle = "عرض المعاملات والأمانات المرتبطة بهذا الحساب",
+                            icon = Icons.Default.Info,
+                            color = MaterialTheme.colorScheme.primary,
+                            onClick = { accountId?.let { onNavigateToAccountDetails(it) } }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                        ActionRow(
+                            title = if (uiState.isArchived) "إلغاء الأرشفة" else "أرشفة الحساب",
+                            subtitle = if (uiState.isArchived) "إعادة تنشيط الحساب وعرضه في القوائم" else "إخفاء الحساب ونقله للأرشيف دون حذفه",
+                            icon = if (uiState.isArchived) Icons.Default.Unarchive else Icons.Default.Archive,
+                            color = TransferBlue,
+                            onClick = {
+                                if (uiState.isArchived) viewModel.unarchiveAccount() else viewModel.archiveAccount()
+                            }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                        ActionRow(
+                            title = "تفريغ رصيد الحساب",
+                            subtitle = "تصفير الرصيد المالي للحساب وتعيينه إلى 0 دج",
+                            icon = Icons.Default.RestartAlt,
+                            color = ExpenseRed,
+                            onClick = { showEmptyDialog = true }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                        ActionRow(
+                            title = "حذف الحساب نهائياً",
+                            subtitle = "إزالة الحساب بالكامل من التطبيق",
+                            icon = Icons.Default.Delete,
+                            color = ExpenseRed,
+                            onClick = { showDeleteDialog = true }
+                        )
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
@@ -238,6 +299,49 @@ fun AddEditAccountScreen(
                 }
             }
         }
+    }
+
+    // Dialogs
+    if (showDeleteDialog) {
+        AppDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = "حذف الحساب",
+            text = "هل أنت متأكد من حذف الحساب \"${uiState.name}\"؟ سيتم حذف الحساب نهائياً إذا لم تكن هناك معاملات مرتبطة به.",
+            confirmButtonText = "نعم، احذف",
+            onConfirm = {
+                viewModel.deleteAccount()
+                showDeleteDialog = false
+            },
+            dismissButtonText = "إلغاء",
+            isDestructive = true,
+            icon = {
+                Icon(Icons.Default.Warning, contentDescription = null, tint = ColorTokens.Danger, modifier = Modifier.size(20.dp))
+            }
+        )
+    }
+
+    if (showEmptyDialog) {
+        val tempAccount = Account(
+            id = uiState.accountId ?: 0L,
+            name = uiState.name,
+            type = uiState.type,
+            balance = uiState.balance,
+            color = uiState.color,
+            icon = uiState.icon,
+            iconPath = uiState.iconPath,
+            isDefault = uiState.isDefault,
+            isActive = uiState.isActive,
+            isArchived = uiState.isArchived
+        )
+        EmptyAccountConfirmDialog(
+            acc = tempAccount,
+            countdownSeconds = countdownSeconds,
+            onDismiss = { showEmptyDialog = false },
+            onConfirm = {
+                viewModel.emptyAccount()
+                showEmptyDialog = false
+            }
+        )
     }
 }
 
@@ -440,5 +544,68 @@ private fun IconPicker(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ActionsCard(content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth(),
+        content = content
+    )
+}
+
+@Composable
+private fun ActionRow(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    color: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 12.dp, horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .background(color.copy(alpha = 0.12f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                color = if (color == ExpenseRed) ExpenseRed else MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = TextGray
+            )
+        }
+        Icon(
+            imageVector = Icons.Default.ChevronLeft,
+            contentDescription = null,
+            tint = TextGray.copy(alpha = 0.4f),
+            modifier = Modifier.size(18.dp)
+        )
     }
 }

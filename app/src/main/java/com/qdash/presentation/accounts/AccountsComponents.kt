@@ -103,15 +103,10 @@ fun AccountItemCard(
     showBalance: Boolean,
     onToggleBalance: () -> Unit,
     onEdit: () -> Unit,
-    onArchive: () -> Unit,
-    onSetDefault: () -> Unit,
-    onDelete: () -> Unit,
-    onEmpty: () -> Unit,
     onCardClick: () -> Unit,
     modifier: Modifier = Modifier,
     dragHandleModifier: Modifier = Modifier
 ) {
-    var showMenu by remember { mutableStateOf(false) }
     var isExpanded by remember { mutableStateOf(false) }
     var selectedTxFilter by remember { mutableStateOf("ALL") } // "ALL", "INCOME", "EXPENSE"
     val Primary = MaterialTheme.colorScheme.primary
@@ -282,124 +277,17 @@ fun AccountItemCard(
                         .size(24.dp)
                 )
 
-                // More menu
-                Box(
-                    modifier = Modifier.clickable(
-                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                        indication = null,
-                        onClick = { /* Stop propagation */ }
-                    )
+                // Edit button
+                IconButton(
+                    onClick = onEdit,
+                    modifier = Modifier.testTag("account_edit_btn_${account.id}")
                 ) {
-                    IconButton(
-                        onClick = { showMenu = true },
-                        modifier = Modifier.testTag("account_more_${account.id}")
-                    ) {
-                        Icon(
-                            Icons.Default.MoreVert,
-                            contentDescription = "خيارات",
-                            tint = TextGray
-                        )
-                    }
-
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false },
-                        modifier = Modifier.background(MaterialTheme.colorScheme.surface)
-                    ) {
-                        DropdownMenuItem(
-                            text = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Icon(Icons.Default.Info, contentDescription = null, tint = Primary, modifier = Modifier.size(18.dp))
-                                    Text("تفاصيل الحساب", color = MaterialTheme.colorScheme.onSurface)
-                                }
-                            },
-                            onClick = {
-                                showMenu = false
-                                onCardClick()
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Icon(Icons.Default.Edit, contentDescription = null, tint = Primary, modifier = Modifier.size(18.dp))
-                                    Text("تعديل", color = MaterialTheme.colorScheme.onSurface)
-                                }
-                            },
-                            onClick = {
-                                showMenu = false
-                                onEdit()
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Icon(Icons.Default.Inventory2, contentDescription = null, tint = TransferBlue, modifier = Modifier.size(18.dp))
-                                    Text("أرشفة", color = MaterialTheme.colorScheme.onSurface)
-                                }
-                            },
-                            onClick = {
-                                showMenu = false
-                                onArchive()
-                            }
-                        )
-                        if (!account.isDefault) {
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                    ) {
-                                        Icon(Icons.Default.Star, contentDescription = null, tint = SavingsAmber, modifier = Modifier.size(18.dp))
-                                        Text("تعيين كافتراضي", color = MaterialTheme.colorScheme.onSurface)
-                                    }
-                                },
-                                onClick = {
-                                    showMenu = false
-                                    onSetDefault()
-                                }
-                            )
-                        }
-                        DropdownMenuItem(
-                            text = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Icon(Icons.Default.RestartAlt, contentDescription = null, tint = ExpenseRed, modifier = Modifier.size(18.dp))
-                                    Text("تفريغ الحساب", color = ExpenseRed)
-                                }
-                            },
-                            onClick = {
-                                showMenu = false
-                                onEmpty()
-                            }
-                        )
-                        HorizontalDivider()
-                        DropdownMenuItem(
-                            text = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Icon(Icons.Default.Delete, contentDescription = null, tint = ExpenseRed, modifier = Modifier.size(18.dp))
-                                    Text("حذف", color = ExpenseRed)
-                                }
-                            },
-                            onClick = {
-                                showMenu = false
-                                onDelete()
-                            }
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "تعديل الحساب",
+                        tint = TextGray,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 

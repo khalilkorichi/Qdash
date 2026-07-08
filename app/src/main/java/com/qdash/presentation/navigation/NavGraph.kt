@@ -341,7 +341,13 @@ internal fun FinTrackNavGraph(
             com.qdash.presentation.accounts.AddEditAccountScreen(
                 viewModel = addEditViewModel,
                 accountId = accountId,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onNavigateToAccountDetails = { id ->
+                    navController.navigate(Screen.AccountDetails.createRoute(id)) {
+                        // Pop up to the details page, or avoid stacking duplicate edit-details-edit screens
+                        popUpTo(Screen.Accounts.route) { inclusive = false }
+                    }
+                }
             )
         }
 

@@ -20,6 +20,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qdash.core.ui.components.UnifiedScreenHeader
 import com.qdash.core.utils.FormatterUtils
@@ -398,62 +402,71 @@ private fun AddAmanaBottomSheet(
     var notes by remember { mutableStateOf("") }
 
     AppBottomSheet(onDismissRequest = onDismiss) {
-        Text(
-            text = "إضافة أمانة",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            textAlign = TextAlign.Center
-        )
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 8.dp, bottom = 24.dp)
+                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "إضافة أمانة",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 20.sp
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
 
-        AppInput(
-            value = name,
-            onValueChange = { name = it },
-            label = "اسم الأمانة",
-            placeholder = "مثال: أمانة والدي",
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(Modifier.height(12.dp))
+                AppInput(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = "اسم الأمانة",
+                    placeholder = "مثال: أمانة والدي",
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-        AppInput(
-            value = ownerName,
-            onValueChange = { ownerName = it },
-            label = "اسم صاحب الأمانة",
-            placeholder = "مثال: الوالد، محمد...",
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(Modifier.height(12.dp))
+                AppInput(
+                    value = ownerName,
+                    onValueChange = { ownerName = it },
+                    label = "اسم صاحب الأمانة",
+                    placeholder = "مثال: الوالد، محمد...",
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-        AppInput(
-            value = amountText,
-            onValueChange = { amountText = it },
-            label = "المبلغ (د.ج)",
-            placeholder = "0.00",
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(Modifier.height(12.dp))
+                AppInput(
+                    value = amountText,
+                    onValueChange = { amountText = it },
+                    label = "المبلغ (د.ج)",
+                    placeholder = "0.00",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-        AppInput(
-            value = notes,
-            onValueChange = { notes = it },
-            label = "ملاحظات (اختياري)",
-            placeholder = "أي تفاصيل إضافية...",
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(Modifier.height(20.dp))
+                AppInput(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = "ملاحظات (اختياري)",
+                    placeholder = "أي تفاصيل إضافية...",
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-        AppButton(
-            onClick = {
-                val amount = amountText.toDoubleOrNull() ?: 0.0
-                onConfirm(name, ownerName, amount, notes.ifBlank { null })
-            },
-            isLoading = isSaving,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("إضافة الأمانة")
+                AppButton(
+                    onClick = {
+                        val amount = amountText.toDoubleOrNull() ?: 0.0
+                        onConfirm(name, ownerName, amount, notes.ifBlank { null })
+                    },
+                    isLoading = isSaving,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("إضافة الأمانة")
+                }
+            }
         }
-        Spacer(Modifier.height(8.dp))
     }
 }

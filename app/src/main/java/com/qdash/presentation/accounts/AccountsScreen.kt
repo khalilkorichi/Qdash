@@ -350,10 +350,6 @@ fun AccountsScreen(
                                 onEdit = {
                                     onNavigateToAddAccount(account.id)
                                 },
-                                onArchive = { viewModel.archiveAccount(account.id) },
-                                onSetDefault = { viewModel.setDefaultAccount(account.id) },
-                                onDelete = { accountToDelete = account },
-                                onEmpty = { accountToEmpty = account },
                                 onCardClick = { onNavigateToAccountDetails(account.id) },
                                 modifier = Modifier
                                     .animateItem()

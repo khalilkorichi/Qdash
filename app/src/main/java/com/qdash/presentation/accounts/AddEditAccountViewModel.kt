@@ -21,6 +21,7 @@ data class AddEditAccountUiState(
     val iconPath: String? = null, // local gallery image path
     val isDefault: Boolean = false,
     val isActive: Boolean = true,
+    val isArchived: Boolean = false,
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
     val error: String? = null,
@@ -50,6 +51,7 @@ class AddEditAccountViewModel(
                         iconPath = account.iconPath,
                         isDefault = account.isDefault,
                         isActive = account.isActive,
+                        isArchived = account.isArchived,
                         isLoading = false
                     )
                 }
@@ -115,6 +117,67 @@ class AddEditAccountViewModel(
                 _uiState.update { it.copy(isSaving = false, isSaved = true) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isSaving = false, error = e.localizedMessage ?: "حدث خطأ") }
+            }
+        }
+    }
+
+    fun archiveAccount() {
+        val accountId = _uiState.value.accountId ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true) }
+            try {
+                accountRepository.archiveAccount(accountId)
+                _uiState.update { it.copy(isSaving = false, isSaved = true) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isSaving = false, error = e.localizedMessage ?: "حدث خطأ أثناء أرشفة الحساب") }
+            }
+        }
+    }
+
+    fun unarchiveAccount() {
+        val accountId = _uiState.value.accountId ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true) }
+            try {
+                accountRepository.unarchiveAccount(accountId)
+                _uiState.update { it.copy(isSaving = false, isSaved = true) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isSaving = false, error = e.localizedMessage ?: "حدث خطأ أثناء إلغاء أرشفة الحساب") }
+            }
+        }
+    }
+
+    fun deleteAccount() {
+        val accountId = _uiState.value.accountId ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true) }
+            try {
+                val account = accountRepository.getAccountById(accountId)
+                if (account != null) {
+                    accountRepository.deleteAccount(account)
+                }
+                _uiState.update { it.copy(isSaving = false, isSaved = true) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isSaving = false, error = e.localizedMessage ?: "حدث خطأ أثناء حذف الحساب") }
+            }
+        }
+    }
+
+    fun emptyAccount() {
+        val accountId = _uiState.value.accountId ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true) }
+            try {
+                val account = accountRepository.getAccountById(accountId)
+                if (account != null) {
+                    val updated = account.copy(balance = 0.0)
+                    accountRepository.updateAccount(updated)
+                    _uiState.update { it.copy(balance = 0.0, isSaving = false) }
+                } else {
+                    _uiState.update { it.copy(isSaving = false) }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isSaving = false, error = e.localizedMessage ?: "حدث خطأ أثناء تفريغ الحساب") }
             }
         }
     }
