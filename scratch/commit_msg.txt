@@ -1,10 +1,8 @@
-feat(release): Release v1.0.0.60 - Salary Distribution and Notification Redesign
+perf(db): Add index structures to large Room entities and bump version
 
-- Integrate Salary Distribution feature (50/30/20 envelopes mapping)
-- Redesign update download notification with custom theme-adaptive layouts
-- Support auto-detecting and adapting to device dark/light modes
-- Add 'Install Now' action button on successful update download
-- Bump app version to 1.0.0.60 (versionCode 60, updateIdentity 161)
-- Rebuild debug APK and update update.json for in-app updates system
+Add index declarations to AccountEntity, NotificationEntity, PostalProfileEntity, FinancialPlanEntity, and UserProfileEntity.
+This improves query performance by matching DAO filtering/sorting predicates and prevents full table scans.
+Bump database version to 24 and implement MIGRATION_22_23 and MIGRATION_23_24.
+Export the Room schema files and rebuild the debug APK to update the live update metadata.
 
-Co-Authored-By: Antigravity <noreply@google.com>
+Co-Authored-By: Claude <noreply@anthropic.com>

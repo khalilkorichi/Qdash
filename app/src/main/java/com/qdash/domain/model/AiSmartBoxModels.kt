@@ -1,15 +1,17 @@
 package com.qdash.domain.model
 
+import com.qdash.domain.model.common.*
+
 data class AccountDistributionItem(
-    val accountId: Long,
+    override val /* contract */ accountId: Long,
     val accountName: String,
     val typeLabel: String,
     val currentBalance: Double,
     val currency: String,
-    val color: String,
+    override val /* contract */ color: String,
     val suggestedPercentage: Double,
     val suggestedBalance: Double
-)
+) : AccountLinked, ColorTagged
 
 data class WalletDistributionSuggestion(
     val totalBalance: Double,
@@ -22,14 +24,14 @@ data class RecentActivitySummary(
 )
 
 data class LowBalanceAccountAlert(
-    val accountId: Long,
+    override val /* contract */ accountId: Long,
     val accountName: String,
     val typeLabel: String,
     val currentBalance: Double,
     val limit: Double,
     val currency: String,
-    val color: String
-)
+    override val /* contract */ color: String
+) : AccountLinked, ColorTagged
 
 data class LowBalanceAlertState(
     val limit: Double,
@@ -37,15 +39,15 @@ data class LowBalanceAlertState(
 )
 
 data class TransferDraftState(
-    val amount: Double,
+    override val /* contract */ amount: Double,
     val fromAccountId: Long,
     val toAccountId: Long,
-    val note: String? = null,
+    override val /* contract */ note: String? = null,
     val fromAccountName: String = "غير محدد",
     val toAccountName: String = "غير محدد",
     val isConfirmed: Boolean = false,
     val isCancelled: Boolean = false
-)
+) : AmountHolder, Notable
 
 data class SelectedAccountDetailsState(
     val account: Account,
@@ -54,8 +56,8 @@ data class SelectedAccountDetailsState(
 )
 
 data class QuickImpactPreviewState(
-    val amount: Double,
-    val type: TransactionType,
+    override val /* contract */ amount: Double,
+    override val /* contract */ type: TransactionType,
     // Budget
     val budgetLimit: Double? = null,
     val budgetSpentBefore: Double = 0.0,
@@ -70,4 +72,4 @@ data class QuickImpactPreviewState(
     val debtTotal: Double = 0.0,
     val debtRemainingBefore: Double = 0.0,
     val debtRemainingAfter: Double = 0.0
-)
+) : AmountHolder, TypeHolder<TransactionType>

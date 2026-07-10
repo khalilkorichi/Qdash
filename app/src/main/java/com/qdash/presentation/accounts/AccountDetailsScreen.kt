@@ -1,5 +1,6 @@
 package com.qdash.presentation.accounts
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -9,10 +10,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qdash.core.ui.components.UnifiedScreenHeader
+import com.qdash.domain.model.Transaction
+import com.qdash.presentation.transactions.DeleteTransactionDialog
 import com.qdash.ui.theme.Primary
 
 
@@ -22,12 +27,14 @@ fun AccountDetailsScreen(
     viewModel: AccountDetailsViewModel,
     onBack: () -> Unit,
     onEditAccount: (Long) -> Unit,
+    onEditTransaction: (String, Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableIntStateOf(0) }
     var showAddAmanaSheet by remember { mutableStateOf(false) }
+    var transactionToDelete by remember { mutableStateOf<Transaction?>(null) }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
@@ -36,92 +43,129 @@ fun AccountDetailsScreen(
         }
     }
 
-    Scaffold(
-        modifier = modifier,
-        snackbarHost = {
-            SnackbarHost(snackbarHostState) { data ->
-                Snackbar(
-                    snackbarData = data,
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        },
-        floatingActionButton = {
-            if (selectedTab == 1) { // Amana tab
-                ExtendedFloatingActionButton(
-                    onClick = { showAddAmanaSheet = true },
-                    containerColor = Primary,
-                    contentColor = Color.White,
-                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                    text = { Text("إضافة أمانة") }
-                )
-            } else if (uiState.account != null) {
-                FloatingActionButton(
-                    onClick = { onEditAccount(uiState.account!!.id) },
-                    containerColor = Primary,
-                    contentColor = Color.White
-                ) {
-                    Icon(Icons.Default.Edit, contentDescription = "تعديل الحساب")
-                }
-            }
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            UnifiedScreenHeader(
-                title = uiState.account?.name ?: "تفاصيل الحساب",
-                subtitle = "تفاصيل الرصيد والمعاملات والأمانات",
-                showBackButton = true,
-                onBackClick = onBack
-            )
-
-            if (uiState.isLoading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Primary)
-                }
-                return@Scaffold
-            }
-
-            val account = uiState.account ?: return@Scaffold
-
-            AccountBalanceCard(
-                balance = account.balance,
-                isActive = account.isActive,
-                totalAmana = uiState.totalAmanaForAccount,
-                realBalance = uiState.realBalance
-            )
-
-            // --- Tabs ---
-            val tabs = listOf("المعاملات", "الأمانات")
-            PrimaryTabRow(selectedTabIndex = selectedTab) {
-                tabs.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        text = {
-                            Text(
-                                text = title,
-                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
-                            )
-                        }
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        Scaffold(
+            modifier = modifier,
+            snackbarHost = {
+                SnackbarHost(snackbarHostState) { data ->
+                    Snackbar(
+                        snackbarData = data,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+            },
+            floatingActionButton = {
+                val account = uiState.account
+                if (account != null) {
+                    val activeTab = if (account.isAmanaEnabled) selectedTab else 0
+                    if (account.isAmanaEnabled && activeTab == 1) { // Amana tab
+                        ExtendedFloatingActionButton(
+                            onClick = { showAddAmanaSheet = true },
+                            containerColor = Primary,
+                            contentColor = Color.White,
+                            icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                            text = { Text("إضافة أمانة") }
+                        )
+                    } else {
+                        FloatingActionButton(
+                            onClick = { onEditAccount(account.id) },
+                            containerColor = Primary,
+                            contentColor = Color.White
+                        ) {
+                            Icon(Icons.Default.Edit, contentDescription = "تعديل الحساب")
+                        }
+                    }
+                }
             }
-
-            // --- Tab content ---
-            when (selectedTab) {
-                0 -> TransactionsTab(transactions = uiState.transactions, currentAccountId = uiState.account?.id)
-                1 -> AmanasTab(
-                    amanas = uiState.amanas,
-                    onDeleteAmana = { viewModel.deleteAmana(it) }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
+                UnifiedScreenHeader(
+                    title = uiState.account?.name ?: "تفاصيل الحساب",
+                    subtitle = "تفاصيل الرصيد والمعاملات والأمانات",
+                    showBackButton = true,
+                    onBackClick = onBack
                 )
+
+                if (uiState.isLoading) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = Primary)
+                    }
+                    return@Scaffold
+                }
+
+                val account = uiState.account ?: return@Scaffold
+                val activeTab = if (account.isAmanaEnabled) selectedTab else 0
+
+                AccountBalanceCard(
+                    balance = account.balance,
+                    isActive = account.isActive,
+                    totalAmana = if (account.isAmanaEnabled) uiState.totalAmanaForAccount else 0.0,
+                    realBalance = if (account.isAmanaEnabled) uiState.realBalance else account.balance,
+                    isAmanaEnabled = account.isAmanaEnabled
+                )
+
+                if (account.isAmanaEnabled) {
+                    // --- Custom Premium Tabs ---
+                    val tabs = listOf("المعاملات", "الأمانات")
+                    AccountDetailsTabSelector(
+                        tabs = tabs,
+                        selectedTab = selectedTab,
+                        onTabSelected = { selectedTab = it }
+                    )
+                }
+
+                // --- Tab content with transition animation ---
+                AnimatedContent(
+                    targetState = activeTab,
+                    transitionSpec = {
+                        if (targetState > initialState) {
+                            (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
+                                slideOutHorizontally { width -> -width } + fadeOut()
+                            )
+                        } else {
+                            (slideInHorizontally { width -> -width } + fadeIn()).togetherWith(
+                                slideOutHorizontally { width -> width } + fadeOut()
+                            )
+                        }
+                    },
+                    label = "TabContentAnimation",
+                    modifier = Modifier.weight(1f)
+                ) { targetTab ->
+                    when (targetTab) {
+                        0 -> TransactionsTab(
+                            transactions = uiState.transactions,
+                            categories = uiState.categories,
+                            accounts = uiState.accounts,
+                            currentAccountId = uiState.account?.id,
+                            onEditTransaction = { tx -> onEditTransaction(tx.type.name, tx.id) },
+                            onDeleteTransaction = { tx -> transactionToDelete = tx }
+                        )
+                        1 -> AmanasTab(
+                            amanas = uiState.amanas,
+                            onDeleteAmana = { viewModel.deleteAmana(it) }
+                        )
+                    }
+                }
             }
         }
+    }
+
+    // --- Delete Transaction Confirmation Dialog ---
+    transactionToDelete?.let { tx ->
+        DeleteTransactionDialog(
+            transaction = tx,
+            onDismiss = { transactionToDelete = null },
+            onConfirm = {
+                viewModel.deleteTransaction(tx)
+                transactionToDelete = null
+            }
+        )
     }
 
     // --- Add Amana Bottom Sheet ---
@@ -136,4 +180,3 @@ fun AccountDetailsScreen(
         )
     }
 }
-

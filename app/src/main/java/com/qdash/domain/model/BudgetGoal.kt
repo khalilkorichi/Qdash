@@ -1,10 +1,11 @@
 package com.qdash.domain.model
 
 import com.qdash.data.local.entities.BudgetGoalEntity
+import com.qdash.domain.model.common.*
 
 data class BudgetGoal(
-    val id: Long = 0,
-    val title: String,
+    override val /* contract */ id: Long = 0,
+    override val /* contract */ title: String,
     val linkedCategoryId: Long?,
     val budgetType: BudgetType,
     val amountLimit: Double,
@@ -13,10 +14,10 @@ data class BudgetGoal(
     val endDate: Long,
     val alertThresholdPercent: Int = 80,
     val isActive: Boolean = true,
-    val color: String,
-    val icon: String,
-    val createdAt: Long = System.currentTimeMillis()
-) {
+    override val /* contract */ color: String,
+    override val /* contract */ icon: String,
+    override val /* contract */ createdAt: Long = System.currentTimeMillis()
+) : Identifiable, Titled, ColorTagged, IconTagged, Timestamped {
     val remainingAmount: Double
         get() = amountLimit - spentAmount
 

@@ -22,6 +22,7 @@ data class AddEditAccountUiState(
     val isDefault: Boolean = false,
     val isActive: Boolean = true,
     val isArchived: Boolean = false,
+    val isAmanaEnabled: Boolean = false,
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
     val error: String? = null,
@@ -52,6 +53,7 @@ class AddEditAccountViewModel(
                         isDefault = account.isDefault,
                         isActive = account.isActive,
                         isArchived = account.isArchived,
+                        isAmanaEnabled = account.isAmanaEnabled,
                         isLoading = false
                     )
                 }
@@ -69,6 +71,17 @@ class AddEditAccountViewModel(
     fun onIconPathChange(path: String?) = _uiState.update { it.copy(iconPath = path) }
     fun onIsDefaultChange(value: Boolean) = _uiState.update { it.copy(isDefault = value) }
     fun onIsActiveChange(value: Boolean) = _uiState.update { it.copy(isActive = value) }
+    fun onIsAmanaEnabledChange(value: Boolean) = _uiState.update { it.copy(isAmanaEnabled = value) }
+    fun onPresetSelect(name: String, type: AccountType, color: String, icon: String, isAmana: Boolean) = _uiState.update {
+        it.copy(
+            name = name,
+            type = type,
+            color = color,
+            icon = icon,
+            iconPath = null,
+            isAmanaEnabled = isAmana
+        )
+    }
     fun clearError() = _uiState.update { it.copy(error = null) }
 
     fun saveAccount() {
@@ -91,7 +104,8 @@ class AddEditAccountViewModel(
                         icon = state.icon,
                         iconPath = state.iconPath,
                         isDefault = state.isDefault,
-                        isActive = state.isActive
+                        isActive = state.isActive,
+                        isAmanaEnabled = state.isAmanaEnabled
                     )
                     val newId = accountRepository.insertAccount(newAccount)
                     if (state.isDefault) {
@@ -107,7 +121,8 @@ class AddEditAccountViewModel(
                         icon = state.icon,
                         iconPath = state.iconPath,
                         isDefault = state.isDefault,
-                        isActive = state.isActive
+                        isActive = state.isActive,
+                        isAmanaEnabled = state.isAmanaEnabled
                     )
                     accountRepository.updateAccount(updated)
                     if (state.isDefault) {

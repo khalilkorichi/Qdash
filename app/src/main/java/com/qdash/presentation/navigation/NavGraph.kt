@@ -281,8 +281,8 @@ internal fun FinTrackNavGraph(
             AccountsScreen(
                 viewModel = accountsViewModel,
                 onBack = { navController.popBackStack() },
-                onNavigateToAddAccount = {
-                    navController.navigate(Screen.AddEditAccount.createRoute())
+                onNavigateToAddAccount = { accountId ->
+                    navController.navigate(Screen.AddEditAccount.createRoute(accountId))
                 },
                 onNavigateToAccountDetails = { accountId ->
                     navController.navigate(Screen.AccountDetails.createRoute(accountId))
@@ -370,7 +370,8 @@ internal fun FinTrackNavGraph(
                                 accountId = accountId,
                                 accountRepository = container.accountRepository,
                                 transactionRepository = container.transactionRepository,
-                                amanaRepository = container.amanaRepository
+                                amanaRepository = container.amanaRepository,
+                                categoryRepository = container.categoryRepository
                             ) as T
                         }
                     }
@@ -380,6 +381,9 @@ internal fun FinTrackNavGraph(
                 onBack = { navController.popBackStack() },
                 onEditAccount = { id ->
                     navController.navigate(Screen.AddEditAccount.createRoute(id))
+                },
+                onEditTransaction = { type, transactionId ->
+                    navController.navigate(Screen.AddTransaction.createRoute(type, transactionId))
                 }
             )
         }

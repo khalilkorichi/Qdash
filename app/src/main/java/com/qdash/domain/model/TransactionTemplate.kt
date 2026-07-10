@@ -1,36 +1,37 @@
 package com.qdash.domain.model
 
 import com.qdash.data.local.entities.TransactionTemplateEntity
+import com.qdash.domain.model.common.*
 
 data class TransactionTemplate(
-    val id: Long = 0,
-    val name: String,
-    val amount: Double,
+    override val /* contract */ id: Long = 0,
+    override val /* contract */ name: String,
+    override val /* contract */ amount: Double,
     val transactionType: TransactionType,
-    val accountId: Long,
+    override val /* contract */ accountId: Long,
     val targetAccountId: Long? = null,
     val categoryId: Long? = null,
     val subcategoryId: Long? = null,
-    val notes: String? = null,
+    override val /* contract */ notes: String? = null,
     val iconEmoji: String? = null,
     val colorHex: String? = null,
     val isPinned: Boolean = false,
     val usageCount: Int = 0,
     val lastUsedAt: Long? = null,
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
-)
+    override val /* contract */ createdAt: Long = System.currentTimeMillis(),
+    override val /* contract */ updatedAt: Long = System.currentTimeMillis()
+) : Identifiable, Nameable, AccountLinkedAmount, NotesHolder, Timestamped, Updatable
 
 data class TransactionDraft(
-    val amount: Double,
-    val type: TransactionType,
+    override val /* contract */ amount: Double,
+    override val /* contract */ type: TransactionType,
     val categoryId: Long?,
     val subcategoryId: Long?,
-    val accountId: Long,
+    override val /* contract */ accountId: Long,
     val targetAccountId: Long? = null,
-    val notes: String? = null,
+    override val /* contract */ notes: String? = null,
     val templateId: Long? = null
-)
+) : AccountLinkedAmount, TypeHolder<TransactionType>, NotesHolder
 
 // Mappers
 fun TransactionTemplateEntity.toDomain() = TransactionTemplate(

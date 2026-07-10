@@ -134,17 +134,6 @@ fun AccountsScreen(
                     actionColor = MaterialTheme.colorScheme.primary
                 )
             }
-        },
-        floatingActionButton = {
-            if (!uiState.isLoading) {
-                FloatingActionButton(
-                    onClick = { onNavigateToAddAccount(null) },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "إضافة حساب")
-                }
-            }
         }
     ) { innerPadding ->
 
@@ -286,6 +275,7 @@ fun AccountsScreen(
                             showBalance = uiState.accountBalancesVisibility[account.id] ?: true,
                             onToggleBalance = { viewModel.toggleAccountBalanceVisibility(account.id) },
                             onEdit = { onNavigateToAddAccount(account.id) },
+                            onDelete = { accountToDelete = account },
                             onCardClick = { onNavigateToAccountDetails(account.id) },
                             isDragging = isDragging,
                             isSomethingDragging = draggedIndex != null,

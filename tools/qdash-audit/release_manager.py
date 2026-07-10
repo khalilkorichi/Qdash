@@ -197,17 +197,17 @@ class ReleaseManager:
             # Modify gradle
             gradle_content = re.sub(
                 r'(versionCode\s*=\s*)(\d+)',
-                f'\\1{new_code}',
+                f'\\g<1>{new_code}',
                 gradle_content
             )
             gradle_content = re.sub(
                 r'(versionName\s*=\s*)"([^"]+)"',
-                f'\\1"{new_name}"',
+                f'\\g<1>"{new_name}"',
                 gradle_content
             )
             gradle_content = re.sub(
                 r'(buildConfigField\("Long",\s*"UPDATE_IDENTITY",\s*")(\d+)(L"\))',
-                f'\\1{new_identity}\\3',
+                f'\\g<1>{new_identity}\\g<3>',
                 gradle_content
             )
             gradle_file.write_text(gradle_content, encoding="utf-8")

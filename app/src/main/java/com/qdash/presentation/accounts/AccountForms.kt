@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.qdash.domain.model.AccountType
 import com.qdash.ui.theme.ExpenseRed
@@ -50,7 +51,21 @@ internal val ACCOUNT_ICONS: List<Pair<String, ImageVector>> = listOf(
     "store"                  to Icons.Default.Store,
     "shopping_bag"           to Icons.Default.ShoppingBag,
     "star"                   to Icons.Default.Star,
-    "favorite"               to Icons.Default.Favorite
+    "favorite"               to Icons.Default.Favorite,
+    "card_giftcard"          to Icons.Default.CardGiftcard,
+    "trending_up"            to Icons.Default.TrendingUp,
+    "flight"                 to Icons.Default.Flight,
+    "directions_car"         to Icons.Default.DirectionsCar,
+    "restaurant"             to Icons.Default.Restaurant,
+    "school"                 to Icons.Default.School,
+    "local_hospital"         to Icons.Default.LocalHospital,
+    "computer"               to Icons.Default.Computer,
+    "spa"                    to Icons.Default.Spa,
+    "games"                  to Icons.Default.Games,
+    "receipt"                to Icons.Default.Receipt,
+    "lock"                   to Icons.Default.Lock,
+    "redeem"                 to Icons.Default.Redeem,
+    "shield"                 to Icons.Default.Shield
 )
 
 internal val ACCOUNT_COLORS = listOf(
@@ -331,7 +346,7 @@ internal fun IconPicker(
         Text(text = "أو اختر أيقونة", style = MaterialTheme.typography.labelSmall, color = TextGray)
         LazyVerticalGrid(
             columns = GridCells.Fixed(6),
-            modifier = Modifier.heightIn(max = 200.dp),
+            modifier = Modifier.heightIn(max = 240.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -359,6 +374,64 @@ internal fun IconPicker(
                         tint = if (isSelected) Primary
                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun IconPickerDialog(
+    show: Boolean,
+    selectedIcon: String,
+    selectedIconPath: String?,
+    onIconSelected: (String) -> Unit,
+    onPickFromGallery: () -> Unit,
+    onDismissRequest: () -> Unit
+) {
+    if (show) {
+        Dialog(onDismissRequest = onDismissRequest) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.background,
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "تعديل أيقونة الحساب",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        IconButton(onClick = onDismissRequest) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "إغلاق",
+                                tint = TextGray
+                            )
+                        }
+                    }
+
+                    IconPicker(
+                        selectedIcon = selectedIcon,
+                        selectedIconPath = selectedIconPath,
+                        onIconSelected = onIconSelected,
+                        onPickFromGallery = onPickFromGallery
                     )
                 }
             }

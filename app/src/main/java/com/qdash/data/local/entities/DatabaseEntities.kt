@@ -74,6 +74,7 @@ data class AccountEntity(
     val isDefault: Boolean = false,
     val isArchived: Boolean = false,
     val isActive: Boolean = true, // false = disabled: hidden from net worth but still visible in list
+    val isAmanaEnabled: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
     val sortOrder: Int = 0
 )

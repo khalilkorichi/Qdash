@@ -29,6 +29,14 @@ import com.qdash.presentation.settings.SettingsViewModel
 import com.qdash.presentation.update.UpdatesViewModel
 import com.qdash.presentation.update.UpdateUiState
 import com.qdash.presentation.update.UpdateBottomBar
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import com.qdash.presentation.ai.components.FloatingAiBubble
+import com.qdash.presentation.ai.components.MiniChatOverlay
 import com.qdash.presentation.ai.*
 
 
@@ -81,10 +89,42 @@ internal fun FinTrackAppShell(
         mainBottomNavScreens.any { it.route == currentRoute }
     }
 
+    var scrollDeltaAccumulator by remember { mutableFloatStateOf(0f) }
+    var isBottomControlsVisible by remember { mutableStateOf(true) }
+
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+                if (delta < 0) { // Scrolling down
+                    scrollDeltaAccumulator += delta
+                    if (scrollDeltaAccumulator < -100f) { // Significant scroll down to hide
+                        isBottomControlsVisible = false
+                    }
+                } else if (delta > 0) { // Scrolling up
+                    if (delta > 10f) { // Small threshold to avoid noise
+                        isBottomControlsVisible = true
+                        scrollDeltaAccumulator = 0f
+                    }
+                }
+                return Offset.Zero
+            }
+        }
+    }
+
+    LaunchedEffect(currentRoute) {
+        isBottomControlsVisible = true
+        scrollDeltaAccumulator = 0f
+    }
+
     CompositionLocalProvider(
         LocalNavController provides navController
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .nestedScroll(nestedScrollConnection)
+        ) {
             Scaffold(
                 contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 modifier = Modifier.fillMaxSize()
@@ -130,15 +170,21 @@ internal fun FinTrackAppShell(
             FinTrackBottomNavBar(
                 navController = navController,
                 currentRoute = currentRoute,
-                isVisible = isBottomScreen,
+                isVisible = isBottomScreen && isBottomControlsVisible,
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
 
             // ── Global FAB Overlay ────────────────────────────────────────────
             AnimatedVisibility(
-                visible = isBottomScreen,
-                enter = fadeIn(animationSpec = tween(200)),
-                exit = fadeOut(animationSpec = tween(200))
+                visible = isBottomScreen && isBottomControlsVisible,
+                enter = fadeIn(animationSpec = tween(200)) + slideInVertically(
+                    initialOffsetY = { it },
+                    animationSpec = tween(200)
+                ),
+                exit = fadeOut(animationSpec = tween(200)) + slideOutVertically(
+                    targetOffsetY = { it },
+                    animationSpec = tween(200)
+                )
             ) {
                 AddActionFabContainer(
                     onAddExpense = {
@@ -160,7 +206,11 @@ internal fun FinTrackAppShell(
             val aiChatState by aiChatViewModel.uiState.collectAsState()
 
             val aiBubbleBottomPadding by animateDpAsState(
-                targetValue = if (isBottomScreen && isUpdateBarVisible) 172.dp else 96.dp,
+                targetValue = if (isBottomScreen && isBottomControlsVisible) {
+                    if (isUpdateBarVisible) 172.dp else 96.dp
+                } else {
+                    16.dp
+                },
                 animationSpec = tween(300),
                 label = "ai_bubble_bottom_padding"
             )

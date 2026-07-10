@@ -2089,5 +2089,855 @@
     "report_file": "scan_20260706_191814_df92b898.json",
     "new_issues": 0,
     "resolved_issues": 0
+  },
+  {
+    "scan_id": "50a3b098-46c3-4d81-89a8-89dc4e367c0d",
+    "started_at": "2026-07-06T19:32:33.874547+00:00",
+    "duration_seconds": 1.16,
+    "total_files_scanned": 428,
+    "total_issues": 33,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 33,
+      "INFO": 0
+    },
+    "report_file": "scan_20260706_193233_50a3b098.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "7afc294b-8169-4348-a0d8-f975f41489b4",
+    "started_at": "2026-07-07T00:25:04.741423+00:00",
+    "duration_seconds": 1.55,
+    "total_files_scanned": 429,
+    "total_issues": 35,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 34,
+      "INFO": 0
+    },
+    "report_file": "scan_20260707_002504_7afc294b.json",
+    "new_issues": 2,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "636a5f90-9c26-4da1-b743-2df3bab6facf",
+    "started_at": "2026-07-07T23:51:10.786871+00:00",
+    "duration_seconds": 1.36,
+    "total_files_scanned": 439,
+    "total_issues": 39,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 3,
+      "LOW": 36,
+      "INFO": 0
+    },
+    "report_file": "scan_20260707_235110_636a5f90.json",
+    "new_issues": 25,
+    "resolved_issues": 21
+  },
+  {
+    "scan_id": "c8c3e050-204f-4430-a4e4-2b75f870863d",
+    "started_at": "2026-07-08T00:15:43.767807+00:00",
+    "duration_seconds": 1.38,
+    "total_files_scanned": 439,
+    "total_issues": 39,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 3,
+      "LOW": 36,
+      "INFO": 0
+    },
+    "report_file": "scan_20260708_001543_c8c3e050.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "a73b4be0-1809-480c-919f-33fad994bcf2",
+    "started_at": "2026-07-08T00:25:36.121949+00:00",
+    "duration_seconds": 1.84,
+    "total_files_scanned": 439,
+    "total_issues": 39,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 3,
+      "LOW": 36,
+      "INFO": 0
+    },
+    "report_file": "scan_20260708_002536_a73b4be0.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "43d3313e-0319-4107-bc0d-91cd54199ea0",
+    "started_at": "2026-07-08T10:15:15.960220+00:00",
+    "duration_seconds": 1.89,
+    "total_files_scanned": 439,
+    "total_issues": 39,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 3,
+      "LOW": 36,
+      "INFO": 0
+    },
+    "report_file": "scan_20260708_101515_43d3313e.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "8ded305f-5541-4c25-94d5-9a2799c9253d",
+    "started_at": "2026-07-08T10:20:59.358273+00:00",
+    "duration_seconds": 1.66,
+    "total_files_scanned": 439,
+    "total_issues": 39,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 3,
+      "LOW": 36,
+      "INFO": 0
+    },
+    "report_file": "scan_20260708_102059_8ded305f.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "1a19e94f-5d86-436a-83b5-d9c6b7b3ec78",
+    "started_at": "2026-07-08T10:21:57.796254+00:00",
+    "duration_seconds": 1.39,
+    "total_files_scanned": 439,
+    "total_issues": 39,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 3,
+      "LOW": 36,
+      "INFO": 0
+    },
+    "report_file": "scan_20260708_102157_1a19e94f.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "e638a80b-2595-4d09-9f30-90095bc28c19",
+    "started_at": "2026-07-08T10:46:00.241216+00:00",
+    "duration_seconds": 1.34,
+    "total_files_scanned": 444,
+    "total_issues": 33,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 33,
+      "INFO": 0
+    },
+    "report_file": "scan_20260708_104600_e638a80b.json",
+    "new_issues": 0,
+    "resolved_issues": 6
+  },
+  {
+    "scan_id": "891b5ea8-fcea-47e5-babd-fa43eb28d1b3",
+    "started_at": "2026-07-08T10:50:33.600136+00:00",
+    "duration_seconds": 2.51,
+    "total_files_scanned": 842,
+    "total_issues": 33,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 33,
+      "INFO": 0
+    },
+    "report_file": "scan_20260708_105033_891b5ea8.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "e9721d9e-3caa-453b-ad78-54a8ab7b823f",
+    "started_at": "2026-07-10T00:12:35.287393+00:00",
+    "duration_seconds": 2.52,
+    "total_files_scanned": 1470,
+    "total_issues": 35,
+    "issues_by_severity": {
+      "CRITICAL": 2,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 33,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_001235_e9721d9e.json",
+    "new_issues": 2,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "e4846cbe-470a-4b6d-bec5-de902073e87e",
+    "started_at": "2026-07-10T00:34:12.294897+00:00",
+    "duration_seconds": 4.69,
+    "total_files_scanned": 1473,
+    "total_issues": 36,
+    "issues_by_severity": {
+      "CRITICAL": 3,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 33,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_003412_e4846cbe.json",
+    "new_issues": 1,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "d851fcb4-2ab3-41f9-b216-0fd0cf7c22c5",
+    "started_at": "2026-07-10T00:36:21.816304+00:00",
+    "duration_seconds": 2.3,
+    "total_files_scanned": 1473,
+    "total_issues": 36,
+    "issues_by_severity": {
+      "CRITICAL": 3,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 33,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_003621_d851fcb4.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "64a4fd4f-df25-47bb-94bb-bbf72006664d",
+    "started_at": "2026-07-10T00:36:26.929863+00:00",
+    "duration_seconds": 2.19,
+    "total_files_scanned": 1473,
+    "total_issues": 36,
+    "issues_by_severity": {
+      "CRITICAL": 3,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 33,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_003626_64a4fd4f.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "41e2c62a-9fe7-4176-9860-76bcbf86597f",
+    "started_at": "2026-07-10T00:36:41.000427+00:00",
+    "duration_seconds": 2.25,
+    "total_files_scanned": 1474,
+    "total_issues": 36,
+    "issues_by_severity": {
+      "CRITICAL": 3,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 33,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_003641_41e2c62a.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "e9930dd7-b2e1-4f88-8732-d83ca93544a4",
+    "started_at": "2026-07-10T00:37:46.187844+00:00",
+    "duration_seconds": 2.08,
+    "total_files_scanned": 1474,
+    "total_issues": 36,
+    "issues_by_severity": {
+      "CRITICAL": 3,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 33,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_003746_e9930dd7.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "953084ee-c1af-4cd9-969d-54a6d5089447",
+    "started_at": "2026-07-10T00:39:23.201893+00:00",
+    "duration_seconds": 1.27,
+    "total_files_scanned": 442,
+    "total_issues": 33,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 33,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_003923_953084ee.json",
+    "new_issues": 0,
+    "resolved_issues": 3
+  },
+  {
+    "scan_id": "e85b3a65-bd60-4013-b3a1-2c093e11562f",
+    "started_at": "2026-07-10T00:40:46.741348+00:00",
+    "duration_seconds": 1.25,
+    "total_files_scanned": 442,
+    "total_issues": 33,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 33,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_004046_e85b3a65.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "e064953f-33c0-474c-bf3d-a0870b9168ce",
+    "started_at": "2026-07-10T01:03:49.624501+00:00",
+    "duration_seconds": 1.45,
+    "total_files_scanned": 444,
+    "total_issues": 33,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 33,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_010349_e064953f.json",
+    "new_issues": 15,
+    "resolved_issues": 15
+  },
+  {
+    "scan_id": "e3cbd325-eece-4462-a5e6-8b01e5f28a6a",
+    "started_at": "2026-07-10T01:12:37.589493+00:00",
+    "duration_seconds": 1.38,
+    "total_files_scanned": 444,
+    "total_issues": 33,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 33,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_011237_e3cbd325.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "1c1986d3-5eba-4047-9977-1f2ebb0644f9",
+    "started_at": "2026-07-10T01:14:46.603060+00:00",
+    "duration_seconds": 1.28,
+    "total_files_scanned": 444,
+    "total_issues": 35,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 34,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_011446_1c1986d3.json",
+    "new_issues": 2,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "757f2405-3182-4110-b679-fe21534cc953",
+    "started_at": "2026-07-10T01:18:48.127685+00:00",
+    "duration_seconds": 1.27,
+    "total_files_scanned": 444,
+    "total_issues": 35,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 34,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_011848_757f2405.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "02204ae5-4116-49d1-b221-5bbf7e308cdc",
+    "started_at": "2026-07-10T01:21:43.081972+00:00",
+    "duration_seconds": 1.31,
+    "total_files_scanned": 444,
+    "total_issues": 35,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 34,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_012143_02204ae5.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "ead46034-b763-449a-8188-c6784e29c81a",
+    "started_at": "2026-07-10T01:26:19.767507+00:00",
+    "duration_seconds": 1.31,
+    "total_files_scanned": 444,
+    "total_issues": 35,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 34,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_012619_ead46034.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "11df197c-7b6e-4db6-b782-885f3151d2d6",
+    "started_at": "2026-07-10T01:31:08.620720+00:00",
+    "duration_seconds": 1.27,
+    "total_files_scanned": 444,
+    "total_issues": 35,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 34,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_013108_11df197c.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "40c70d3b-26de-44a3-9f40-62c5bd4f6403",
+    "started_at": "2026-07-10T01:41:02.691256+00:00",
+    "duration_seconds": 1.94,
+    "total_files_scanned": 453,
+    "total_issues": 37,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 36,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_014102_40c70d3b.json",
+    "new_issues": 32,
+    "resolved_issues": 30
+  },
+  {
+    "scan_id": "466dec8c-b2e5-4893-bf98-7dfa5d531707",
+    "started_at": "2026-07-10T01:46:26.278328+00:00",
+    "duration_seconds": 1.44,
+    "total_files_scanned": 454,
+    "total_issues": 38,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 37,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_014626_466dec8c.json",
+    "new_issues": 1,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "86cacc73-a6cc-4365-9fb4-12080e09fb22",
+    "started_at": "2026-07-10T01:47:23.964825+00:00",
+    "duration_seconds": 1.38,
+    "total_files_scanned": 452,
+    "total_issues": 37,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 36,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_014723_86cacc73.json",
+    "new_issues": 0,
+    "resolved_issues": 1
+  },
+  {
+    "scan_id": "d9c5911d-7b41-4c87-89d5-bf1124bcb7b4",
+    "started_at": "2026-07-10T01:47:36.805942+00:00",
+    "duration_seconds": 1.33,
+    "total_files_scanned": 452,
+    "total_issues": 37,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 36,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_014736_d9c5911d.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "b7c0becf-fe03-4779-9aef-a2497ed0aecd",
+    "started_at": "2026-07-10T01:48:28.520763+00:00",
+    "duration_seconds": 1.3,
+    "total_files_scanned": 452,
+    "total_issues": 37,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 36,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_014828_b7c0becf.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "69ee8860-13c7-4c8f-8b25-4043f2fb3056",
+    "started_at": "2026-07-10T01:49:28.626953+00:00",
+    "duration_seconds": 1.53,
+    "total_files_scanned": 452,
+    "total_issues": 37,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 36,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_014928_69ee8860.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "0861d8be-54c7-47dc-88d1-a132afa7e3cd",
+    "started_at": "2026-07-10T01:54:34.868792+00:00",
+    "duration_seconds": 1.3,
+    "total_files_scanned": 452,
+    "total_issues": 37,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 36,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_015434_0861d8be.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "1e7e5361-208c-4b50-9443-3291dda0cd96",
+    "started_at": "2026-07-10T01:55:30.492977+00:00",
+    "duration_seconds": 1.36,
+    "total_files_scanned": 452,
+    "total_issues": 37,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 36,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_015530_1e7e5361.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "e5a77c20-b004-4a11-b952-782e063c54a9",
+    "started_at": "2026-07-10T01:56:09.585966+00:00",
+    "duration_seconds": 1.27,
+    "total_files_scanned": 452,
+    "total_issues": 45,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 44,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_015609_e5a77c20.json",
+    "new_issues": 9,
+    "resolved_issues": 1
+  },
+  {
+    "scan_id": "bddebb83-683a-43d9-aad0-bc66cf14139d",
+    "started_at": "2026-07-10T01:56:20.890256+00:00",
+    "duration_seconds": 1.36,
+    "total_files_scanned": 452,
+    "total_issues": 45,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 44,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_015620_bddebb83.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "c42ea8d8-fff5-44c5-9dfe-edf280e67f66",
+    "started_at": "2026-07-10T01:56:53.746175+00:00",
+    "duration_seconds": 1.7,
+    "total_files_scanned": 452,
+    "total_issues": 29,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 28,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_015653_c42ea8d8.json",
+    "new_issues": 11,
+    "resolved_issues": 27
+  },
+  {
+    "scan_id": "a5099da4-b50e-4eb2-9b7d-c2ea739e54c3",
+    "started_at": "2026-07-10T01:57:06.363826+00:00",
+    "duration_seconds": 1.72,
+    "total_files_scanned": 452,
+    "total_issues": 29,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 28,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_015706_a5099da4.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "1270d8ba-6676-4a74-a49f-fe16feb91d40",
+    "started_at": "2026-07-10T01:58:28.133418+00:00",
+    "duration_seconds": 1.33,
+    "total_files_scanned": 452,
+    "total_issues": 27,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 26,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_015828_1270d8ba.json",
+    "new_issues": 0,
+    "resolved_issues": 2
+  },
+  {
+    "scan_id": "3841cc16-2e70-4655-bf79-8abd5ef91be2",
+    "started_at": "2026-07-10T01:59:01.597944+00:00",
+    "duration_seconds": 1.34,
+    "total_files_scanned": 452,
+    "total_issues": 27,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 26,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_015901_3841cc16.json",
+    "new_issues": 10,
+    "resolved_issues": 10
+  },
+  {
+    "scan_id": "c1875a20-7c71-4b74-a238-fca204085fd4",
+    "started_at": "2026-07-10T01:59:10.712646+00:00",
+    "duration_seconds": 1.44,
+    "total_files_scanned": 452,
+    "total_issues": 27,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 26,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_015910_c1875a20.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "60117f76-baa1-4abf-afd0-08b215b0baab",
+    "started_at": "2026-07-10T01:59:14.792045+00:00",
+    "duration_seconds": 1.31,
+    "total_files_scanned": 452,
+    "total_issues": 27,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 26,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_015914_60117f76.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "83b5498a-9c3a-4896-8804-622df755b59d",
+    "started_at": "2026-07-10T01:59:19.601759+00:00",
+    "duration_seconds": 1.33,
+    "total_files_scanned": 452,
+    "total_issues": 12,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 11,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_015919_83b5498a.json",
+    "new_issues": 6,
+    "resolved_issues": 21
+  },
+  {
+    "scan_id": "33ff1359-fdf7-496b-9b45-e9746e3eb40f",
+    "started_at": "2026-07-10T02:00:29.969750+00:00",
+    "duration_seconds": 1.88,
+    "total_files_scanned": 452,
+    "total_issues": 2,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 1,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_020029_33ff1359.json",
+    "new_issues": 0,
+    "resolved_issues": 10
+  },
+  {
+    "scan_id": "f5cbdd45-8629-4da8-822a-dc1db3f81308",
+    "started_at": "2026-07-10T02:02:16.144808+00:00",
+    "duration_seconds": 1.31,
+    "total_files_scanned": 452,
+    "total_issues": 2,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 1,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_020216_f5cbdd45.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "e8efe2ea-f790-4fc6-a8b5-3f667266d8e8",
+    "started_at": "2026-07-10T02:10:30.111929+00:00",
+    "duration_seconds": 1.78,
+    "total_files_scanned": 452,
+    "total_issues": 2,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 1,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_021030_e8efe2ea.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "04faa7fe-e35a-450e-a0d8-190025c57bfc",
+    "started_at": "2026-07-10T02:28:35.226336+00:00",
+    "duration_seconds": 1.28,
+    "total_files_scanned": 452,
+    "total_issues": 2,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 1,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_022835_04faa7fe.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "c9deb8bb-c4e0-48da-b5c4-efe3ee59cff6",
+    "started_at": "2026-07-10T03:00:01.517691+00:00",
+    "duration_seconds": 2.06,
+    "total_files_scanned": 452,
+    "total_issues": 2,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 1,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_030001_c9deb8bb.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "cd57541f-b781-4f83-baad-c61253c81b99",
+    "started_at": "2026-07-10T03:05:57.142857+00:00",
+    "duration_seconds": 1.28,
+    "total_files_scanned": 452,
+    "total_issues": 2,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 1,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_030557_cd57541f.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "a8a7554a-f105-416a-8950-35db3f175063",
+    "started_at": "2026-07-10T03:10:13.734657+00:00",
+    "duration_seconds": 1.27,
+    "total_files_scanned": 452,
+    "total_issues": 2,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 1,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_031013_a8a7554a.json",
+    "new_issues": 0,
+    "resolved_issues": 0
+  },
+  {
+    "scan_id": "66838204-e24c-4483-a651-eafac2f6e553",
+    "started_at": "2026-07-10T03:16:57.983042+00:00",
+    "duration_seconds": 1.47,
+    "total_files_scanned": 452,
+    "total_issues": 2,
+    "issues_by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 1,
+      "INFO": 0
+    },
+    "report_file": "scan_20260710_031657_66838204.json",
+    "new_issues": 0,
+    "resolved_issues": 0
   }
 ]

@@ -1,15 +1,16 @@
 package com.qdash.domain.model
 
 import com.qdash.data.local.entities.*
+import com.qdash.domain.model.common.*
 
 data class Transaction(
-    val id: Long = 0,
-    val amount: Double,
+    override val /* contract */ id: Long = 0,
+    override val /* contract */ amount: Double,
     val type: TransactionType,
     val categoryId: Long?,
-    val accountId: Long,
+    override val /* contract */ accountId: Long,
     val toAccountId: Long? = null,
-    val note: String? = null,
+    override val /* contract */ note: String? = null,
     val date: Long,
     val isRecurring: Boolean = false,
     val recurringPeriod: String? = null,
@@ -22,7 +23,7 @@ data class Transaction(
     },
     val transferId: String? = null,
     val isDebit: Boolean = true
-)
+) : Identifiable, AccountLinkedAmount, Notable
 
 enum class TransactionType {
     EXPENSE, INCOME, TRANSFER
@@ -33,36 +34,37 @@ enum class TransactionKind {
 }
 
 data class Account(
-    val id: Long = 0,
-    val name: String,
+    override val /* contract */ id: Long = 0,
+    override val /* contract */ name: String,
     val type: AccountType,
     val balance: Double,
     val currency: String = "DZD",
-    val color: String,
-    val icon: String,
+    override val /* contract */ color: String,
+    override val /* contract */ icon: String,
     val iconPath: String? = null, // Path to gallery image (overrides icon if set)
     val isDefault: Boolean = false,
     val isArchived: Boolean = false,
     val isActive: Boolean = true, // false = excluded from net worth
-    val createdAt: Long = System.currentTimeMillis(),
+    val isAmanaEnabled: Boolean = false,
+    override val /* contract */ createdAt: Long = System.currentTimeMillis(),
     val sortOrder: Int = 0
-)
+) : Identifiable, Nameable, ColorTagged, IconTagged, Timestamped
 
 enum class AccountType {
     BANK, CCP, BARIDIMOB, CASH, SAVINGS, WALLET, OTHER
 }
 
 data class Category(
-    val id: Long = 0,
-    val name: String,
+    override val /* contract */ id: Long = 0,
+    override val /* contract */ name: String,
     val type: CategoryType,
-    val icon: String,
-    val color: String,
+    override val /* contract */ icon: String,
+    override val /* contract */ color: String,
     val budgetLimit: Double? = null,
     val isSystem: Boolean = false,
     val parentId: Long? = null,
     val sortOrder: Int = 0
-)
+) : Identifiable, Nameable, ColorTagged, IconTagged
 
 enum class CategoryType {
     EXPENSE, INCOME
@@ -70,42 +72,42 @@ enum class CategoryType {
 
 
 data class IncomeSource(
-    val id: Long = 0,
-    val name: String,
-    val amount: Double,
+    override val /* contract */ id: Long = 0,
+    override val /* contract */ name: String,
+    override val /* contract */ amount: Double,
     val type: String, // "SALARY", "FREELANCE", "GIFT", "RENTAL", "OTHER"
-    val accountId: Long,
+    override val /* contract */ accountId: Long,
     val dayOfMonth: Int,
     val isActive: Boolean = true,
     val nextExpectedDate: Long = System.currentTimeMillis()
-)
+) : Identifiable, Nameable, AccountLinkedAmount
 
 data class SavingGoal(
-    val id: Long = 0,
-    val name: String,
+    override val /* contract */ id: Long = 0,
+    override val /* contract */ name: String,
     val targetAmount: Double,
     val currentAmount: Double = 0.0,
     val deadline: Long? = null,
-    val accountId: Long,
-    val icon: String,
-    val color: String,
+    override val /* contract */ accountId: Long,
+    override val /* contract */ icon: String,
+    override val /* contract */ color: String,
     val isCompleted: Boolean = false
-)
+) : Identifiable, Nameable, AccountLinked, IconTagged, ColorTagged
 
 data class Subscription(
-    val id: Long = 0,
-    val name: String,
-    val amount: Double,
+    override val /* contract */ id: Long = 0,
+    override val /* contract */ name: String,
+    override val /* contract */ amount: Double,
     val currency: String = "DZD",
     val billingCycle: String, // "MONTHLY", "YEARLY", "WEEKLY"
     val nextBillingDate: Long,
-    val accountId: Long,
+    override val /* contract */ accountId: Long,
     val categoryId: Long,
     val icon: String? = null,
     val isActive: Boolean = true,
     val reminderDaysBefore: Int = 3,
     val isAutoShiftableBySalary: Boolean = false
-)
+) : Identifiable, Nameable, AccountLinkedAmount
 
 // Mappers from Entity to Domain
 fun TransactionEntity.toDomain() = Transaction(
@@ -138,6 +140,7 @@ fun AccountEntity.toDomain() = Account(
     isDefault = isDefault,
     isArchived = isArchived,
     isActive = isActive,
+    isAmanaEnabled = isAmanaEnabled,
     createdAt = createdAt,
     sortOrder = sortOrder
 )
@@ -223,6 +226,7 @@ fun Account.toEntity() = AccountEntity(
     isDefault = isDefault,
     isArchived = isArchived,
     isActive = isActive,
+    isAmanaEnabled = isAmanaEnabled,
     createdAt = createdAt,
     sortOrder = sortOrder
 )
@@ -278,15 +282,15 @@ fun Subscription.toEntity() = SubscriptionEntity(
 )
 
 data class SalaryDelay(
-    val id: Long = 0,
+    override val /* contract */ id: Long = 0,
     val salaryId: Long,
     val delayDays: Int,
     val originalDate: Long,
     val newDate: Long,
     val severityScore: Int,
     val status: String = "CONFIRMED",
-    val createdAt: Long = System.currentTimeMillis()
-)
+    override val /* contract */ createdAt: Long = System.currentTimeMillis()
+) : Identifiable, Timestamped
 
 fun SalaryDelayEntity.toDomain() = SalaryDelay(
     id = id,
@@ -315,13 +319,13 @@ enum class DelaySeverity {
 }
 
 data class AffectedObligation(
-    val id: Long,
-    val name: String,
-    val amount: Double,
+    override val /* contract */ id: Long,
+    override val /* contract */ name: String,
+    override val /* contract */ amount: Double,
     val originalDueDate: Long,
-    val type: String, // "SUBSCRIPTION", "DEBT"
+    override val /* contract */ type: String, // "SUBSCRIPTION", "DEBT"
     val isAutoShiftable: Boolean
-)
+) : Identifiable, Nameable, AmountHolder, TypeHolder<String>
 
 data class SalaryDelayImpact(
     val newDate: Long,
@@ -348,18 +352,18 @@ enum class EnvelopeType {
 }
 
 data class SalaryDistribution(
-    val id: Long = 0,
+    override val /* contract */ id: Long = 0,
     val salaryId: Long,
     val isEnabled: Boolean = false,
     val needsPercentage: Int = 50,
     val wantsPercentage: Int = 30,
     val savingsPercentage: Int = 20,
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
-)
+    override val /* contract */ createdAt: Long = System.currentTimeMillis(),
+    override val /* contract */ updatedAt: Long = System.currentTimeMillis()
+) : Identifiable, Timestamped, Updatable
 
 data class SalaryEnvelope(
-    val id: Long = 0,
+    override val /* contract */ id: Long = 0,
     val distributionId: Long,
     val type: EnvelopeType,
     val label: String,
@@ -368,9 +372,9 @@ data class SalaryEnvelope(
     val spentAmount: Double = 0.0,
     val linkedCategoryIds: List<Long> = emptyList(),
     val linkedAccountId: Long? = null,
-    val color: String,
-    val icon: String
-) {
+    override val /* contract */ color: String,
+    override val /* contract */ icon: String
+) : Identifiable, ColorTagged, IconTagged {
     val remainingAmount: Double get() = allocatedAmount - spentAmount
     val usagePercentage: Double get() = if (allocatedAmount > 0) (spentAmount / allocatedAmount * 100) else 0.0
 }

@@ -16,3 +16,6 @@
 local.properties
 .env
 debug.keystore
+graphify-out/
+app/graphify-out/
+

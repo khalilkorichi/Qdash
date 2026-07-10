@@ -1,6 +1,11 @@
 package com.qdash.presentation.accounts
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,7 +20,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -25,14 +33,18 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.core.utils.FormatterUtils
+import com.qdash.domain.model.Account
 import com.qdash.domain.model.Amana
+import com.qdash.domain.model.Category
 import com.qdash.domain.model.Transaction
-import com.qdash.domain.model.TransactionKind
-import com.qdash.domain.model.TransactionType
+import com.qdash.presentation.transactions.SwipeableTransactionRow
 import com.qdash.ui.designsystem.components.AppBottomSheet
 import com.qdash.ui.designsystem.components.AppButton
+import com.qdash.ui.designsystem.components.AppCard
 import com.qdash.ui.designsystem.components.AppEmptyState
 import com.qdash.ui.designsystem.components.AppInput
+import com.qdash.ui.designsystem.components.CardVariant
+import com.qdash.ui.designsystem.tokens.ShapeTokens
 import com.qdash.ui.theme.ExpenseRed
 import com.qdash.ui.theme.IncomeGreen
 import com.qdash.ui.theme.Primary
@@ -52,6 +64,7 @@ internal fun AccountBalanceCard(
     isActive: Boolean,
     totalAmana: Double,
     realBalance: Double,
+    isAmanaEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -104,7 +117,7 @@ internal fun AccountBalanceCard(
                 }
             }
 
-            if (totalAmana > 0) {
+            if (isAmanaEnabled) {
                 HorizontalDivider(
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                 )
@@ -143,11 +156,72 @@ internal fun AccountBalanceCard(
 }
 
 // ---------------------------------------------------------------------------
+// Premium Custom Tab Selector
+// ---------------------------------------------------------------------------
+
+@Composable
+internal fun AccountDetailsTabSelector(
+    tabs: List<String>,
+    selectedTab: Int,
+    onTabSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 8.dp)
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        tabs.forEachIndexed { index, title ->
+            val isSelected = selectedTab == index
+            val backgroundColor by animateColorAsState(
+                targetValue = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
+                label = "tab_bg"
+            )
+            val contentColor by animateColorAsState(
+                targetValue = if (isSelected) Primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                label = "tab_fg"
+            )
+            
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(backgroundColor)
+                    .clickable { onTabSelected(index) }
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                    ),
+                    color = contentColor
+                )
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Transactions tab
 // ---------------------------------------------------------------------------
 
 @Composable
-internal fun TransactionsTab(transactions: List<Transaction>, currentAccountId: Long?) {
+internal fun TransactionsTab(
+    transactions: List<Transaction>,
+    categories: List<Category>,
+    accounts: List<Account>,
+    currentAccountId: Long?,
+    onEditTransaction: (Transaction) -> Unit,
+    onDeleteTransaction: (Transaction) -> Unit
+) {
     if (transactions.isEmpty()) {
         Box(
             modifier = Modifier
@@ -168,55 +242,25 @@ internal fun TransactionsTab(transactions: List<Transaction>, currentAccountId: 
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(transactions, key = { it.id }) { tx ->
-                TransactionListItem(transaction = tx, currentAccountId = currentAccountId)
+                val cat = categories.firstOrNull { it.id == tx.categoryId }
+                val accName = accounts.firstOrNull { it.id == tx.accountId }?.name ?: "غير معروف"
+                val toAccName = accounts.firstOrNull { it.id == tx.toAccountId }?.name
+                
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    SwipeableTransactionRow(
+                        transaction = tx,
+                        category = cat,
+                        accountName = accName,
+                        onEdit = { onEditTransaction(tx) },
+                        onDelete = { onDeleteTransaction(tx) },
+                        onClick = { onEditTransaction(tx) },
+                        currentViewedAccountId = currentAccountId,
+                        toAccountName = toAccName
+                    )
+                }
             }
-        }
-    }
-}
-
-@Composable
-internal fun TransactionListItem(transaction: Transaction, currentAccountId: Long?) {
-    val isTransfer = transaction.type == TransactionType.TRANSFER
-    val isOutgoingTransfer = isTransfer && transaction.accountId == currentAccountId
-
-    val isExpense = transaction.type == TransactionType.EXPENSE ||
-            transaction.kind == TransactionKind.SAVINGS_WITHDRAWAL ||
-            isOutgoingTransfer
-
-    val amountColor = if (isExpense) ExpenseRed else IncomeGreen
-    val amountPrefix = if (isExpense) "-" else "+"
-
-    Card(
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = transaction.note ?: "معاملة",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = FormatterUtils.formatShortDate(transaction.date),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextGray
-                )
-            }
-            Text(
-                text = FormatterUtils.formatCurrency(transaction.amount, amountPrefix),
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                color = amountColor
-            )
         }
     }
 }
@@ -244,108 +288,229 @@ internal fun AmanasTab(
             )
         }
     } else {
+        var amanaToDelete by remember { mutableStateOf<Amana?>(null) }
+
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(amanas, key = { it.id }) { amana ->
-                AmanaListItem(amana = amana, onDelete = { onDeleteAmana(amana) })
+                SwipeableAmanaRow(
+                    amana = amana,
+                    onDelete = { amanaToDelete = amana }
+                )
             }
+        }
+
+        if (amanaToDelete != null) {
+            AlertDialog(
+                onDismissRequest = { amanaToDelete = null },
+                title = { Text("حذف الأمانة") },
+                text = {
+                    Text(
+                        "هل أنت متأكد من حذف أمانة \"${amanaToDelete!!.name}\" " +
+                                "(${FormatterUtils.formatCurrency(amanaToDelete!!.amount)})؟"
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        onDeleteAmana(amanaToDelete!!)
+                        amanaToDelete = null
+                    }) {
+                        Text("حذف", color = ExpenseRed)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { amanaToDelete = null }) { Text("إلغاء") }
+                }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun SwipeableAmanaRow(
+    amana: Amana,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var offsetX by remember { mutableStateOf(0f) }
+    val density = LocalDensity.current
+    val minSwipeDistance = with(density) { 80.dp.toPx() }
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    var hapticTriggered by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+    ) {
+        // Background Actions Layer
+        Row(
+            modifier = Modifier.matchParentSize(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Delete action (Left in RTL - Red)
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(80.dp)
+                    .background(ExpenseRed)
+                    .clickable {
+                        onDelete()
+                        offsetX = 0f
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Delete, contentDescription = "حذف", tint = Color.White)
+            }
+        }
+
+        // Foreground Content Layer
+        val animOffset by animateFloatAsState(targetValue = offsetX, label = "offset_anim")
+        Box(
+            modifier = Modifier
+                .offset(x = with(density) { animOffset.toDp() })
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.background)
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            offsetX = when {
+                                offsetX > minSwipeDistance * 0.5f -> minSwipeDistance
+                                offsetX < -minSwipeDistance * 0.5f -> -minSwipeDistance
+                                else -> 0f
+                            }
+                        },
+                        onDragCancel = { offsetX = 0f },
+                        onHorizontalDrag = { _, dragAmount ->
+                            offsetX = (offsetX - dragAmount).coerceIn(-minSwipeDistance, minSwipeDistance)
+                            
+                            val threshold = minSwipeDistance * 0.5f
+                            val crossed = kotlin.math.abs(offsetX) >= threshold
+                            if (crossed && !hapticTriggered) {
+                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                hapticTriggered = true
+                            } else if (!crossed) {
+                                hapticTriggered = false
+                            }
+                        }
+                    )
+                }
+        ) {
+            AmanaListItem(
+                amana = amana,
+                onDelete = {
+                    if (offsetX != 0f) {
+                        offsetX = 0f
+                    }
+                }
+            )
         }
     }
 }
 
 @Composable
-internal fun AmanaListItem(amana: Amana, onDelete: () -> Unit) {
-    var showDeleteConfirm by remember { mutableStateOf(false) }
-
-    Card(
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        ),
-        border = androidx.compose.foundation.BorderStroke(1.dp, ExpenseRed.copy(alpha = 0.15f))
+internal fun AmanaListItem(amana: Amana, onDelete: () -> Unit, modifier: Modifier = Modifier) {
+    AppCard(
+        modifier = modifier.fillMaxWidth(),
+        variant = CardVariant.INTERACTIVE,
+        shape = ShapeTokens.Xl,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(ExpenseRed.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
             ) {
-                Icon(
-                    Icons.Default.Lock,
-                    contentDescription = null,
-                    tint = ExpenseRed,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = amana.name,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-                )
-                Text(
-                    text = "بصاحب: ${amana.ownerName}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextGray
-                )
-                if (!amana.notes.isNullOrBlank()) {
+                // Shield / Lock Badge with Premium Gradient
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(ShapeTokens.Md)
+                        .background(
+                            brush = Brush.linearGradient(
+                                listOf(ExpenseRed.copy(alpha = 0.25f), ExpenseRed.copy(alpha = 0.1f))
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = ExpenseRed,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = amana.notes,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextGray,
+                        text = amana.name,
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+                        color = MaterialTheme.colorScheme.onBackground,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(ExpenseRed)
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = "بصاحب: ${amana.ownerName}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextGray,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    if (!amana.notes.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = amana.notes,
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
+                            color = TextGray,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
-            Column(horizontalAlignment = Alignment.End) {
+
+            // Amana Amount shown inside a premium badge
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = ExpenseRed.copy(alpha = 0.08f),
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
                 Text(
                     text = FormatterUtils.formatCurrency(amana.amount),
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    color = ExpenseRed
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 14.sp
+                    ),
+                    color = ExpenseRed,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                 )
-                IconButton(onClick = { showDeleteConfirm = true }, modifier = Modifier.size(28.dp)) {
-                    Icon(
-                        Icons.Default.DeleteOutline,
-                        contentDescription = "حذف",
-                        tint = TextGray,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
             }
         }
-    }
-
-    if (showDeleteConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("حذف الأمانة") },
-            text = {
-                Text(
-                    "هل أنت متأكد من حذف أمانة \"${amana.name}\" " +
-                            "(${FormatterUtils.formatCurrency(amana.amount)})؟"
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { showDeleteConfirm = false; onDelete() }) {
-                    Text("حذف", color = ExpenseRed)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("إلغاء") }
-            }
-        )
     }
 }
 

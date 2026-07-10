@@ -1,9 +1,10 @@
 package com.qdash.domain.model
 
 import com.qdash.data.local.entities.PostalProfileEntity
+import com.qdash.domain.model.common.*
 
 data class PostalProfile(
-    val id: Long = 0,
+    override val /* contract */ id: Long = 0,
     val profileName: String,
     val firstName: String,
     val lastName: String,
@@ -15,9 +16,9 @@ data class PostalProfile(
     val city: String? = null,
     val defaultRole: PostalProfileRole = PostalProfileRole.SELF,
     val isFavorite: Boolean = false,
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
-)
+    override val /* contract */ createdAt: Long = System.currentTimeMillis(),
+    override val /* contract */ updatedAt: Long = System.currentTimeMillis()
+) : Identifiable, Timestamped, Updatable
 
 enum class PostalProfileRole {
     SENDER, BENEFICIARY, SELF

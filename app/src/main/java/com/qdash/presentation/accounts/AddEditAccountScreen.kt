@@ -5,6 +5,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -22,9 +23,12 @@ import com.qdash.core.ui.components.UnifiedScreenHeader
 import com.qdash.core.utils.FileUtils
 import com.qdash.domain.model.Account
 import com.qdash.ui.designsystem.components.AppButton
+import com.qdash.ui.designsystem.components.ButtonVariant
+import com.qdash.ui.designsystem.components.ButtonIntent
 import com.qdash.ui.designsystem.components.AppInput
 import com.qdash.ui.designsystem.components.AppDialog
 import com.qdash.ui.designsystem.tokens.ColorTokens
+import com.qdash.ui.designsystem.tokens.SpacingTokens
 import com.qdash.ui.theme.ExpenseRed
 import com.qdash.ui.theme.Primary
 import com.qdash.ui.theme.TransferBlue
@@ -48,6 +52,7 @@ fun AddEditAccountScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showEmptyDialog by remember { mutableStateOf(false) }
     var countdownSeconds by remember { mutableIntStateOf(5) }
+    var showIconPicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(showEmptyDialog) {
         if (showEmptyDialog) {
@@ -121,126 +126,206 @@ fun AddEditAccountScreen(
                 onBackClick = onBack
             )
 
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .weight(1f)
-                    .verticalScroll(scrollState)
                     .padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(SpacingTokens.Lg),
+                contentPadding = PaddingValues(top = SpacingTokens.Lg, bottom = SpacingTokens.Lg)
             ) {
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // --- Account name ---
-                AppInput(
-                    value = uiState.name,
-                    onValueChange = viewModel::onNameChange,
-                    label = "اسم الحساب",
-                    placeholder = "مثال: محفظتي، CCP، راتب...",
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // --- Initial balance (only on creation) ---
-                if (!isEditing) {
-                    var balanceText by remember { mutableStateOf("") }
-                    AppInput(
-                        value = balanceText,
-                        onValueChange = { text ->
-                            balanceText = text
-                            val parsed = text.toDoubleOrNull() ?: 0.0
-                            viewModel.onBalanceChange(parsed)
-                        },
-                        label = "الرصيد الأولي (اختياري)",
-                        placeholder = "0.00",
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                // --- Account type ---
-                SectionLabel("نوع الحساب")
-                AccountTypeSelector(
-                    selectedType = uiState.type,
-                    onTypeSelected = viewModel::onTypeChange
-                )
-
-                // --- Color picker ---
-                SectionLabel("اللون")
-                ColorPicker(
-                    selectedColor = uiState.color,
-                    onColorSelected = viewModel::onColorChange
-                )
-
-                // --- Icon picker ---
-                SectionLabel("الأيقونة")
-                IconPicker(
-                    selectedIcon = uiState.icon,
-                    selectedIconPath = uiState.iconPath,
-                    onIconSelected = viewModel::onIconChange,
-                    onPickFromGallery = {
-                        imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    }
-                )
-
-                // --- Toggles ---
-                SectionLabel("الإعدادات")
-                SettingsCard {
-                    ToggleRow(
-                        title = "الحساب الافتراضي",
-                        subtitle = "سيُستخدم كحساب افتراضي عند إنشاء المعاملات",
-                        checked = uiState.isDefault,
-                        onCheckedChange = viewModel::onIsDefaultChange,
-                        icon = Icons.Default.Star
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-                    ToggleRow(
-                        title = "الحساب مفعّل",
-                        subtitle = "الحسابات المعطّلة لا تُحتسب في صافي الثروة الشخصية",
-                        checked = uiState.isActive,
-                        onCheckedChange = viewModel::onIsActiveChange,
-                        icon = Icons.Default.ToggleOn
-                    )
-                }
-
                 if (isEditing) {
-                    SectionLabel("إدارة الحساب")
-                    ActionsCard {
-                        ActionRow(
-                            title = "تفاصيل الحساب",
-                            subtitle = "عرض المعاملات والأمانات المرتبطة بهذا الحساب",
-                            icon = Icons.Default.Info,
-                            color = MaterialTheme.colorScheme.primary,
-                            onClick = { accountId?.let { onNavigateToAccountDetails(it) } }
-                        )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-                        ActionRow(
-                            title = if (uiState.isArchived) "إلغاء الأرشفة" else "أرشفة الحساب",
-                            subtitle = if (uiState.isArchived) "إعادة تنشيط الحساب وعرضه في القوائم" else "إخفاء الحساب ونقله للأرشيف دون حذفه",
-                            icon = if (uiState.isArchived) Icons.Default.Unarchive else Icons.Default.Archive,
-                            color = TransferBlue,
-                            onClick = {
-                                if (uiState.isArchived) viewModel.unarchiveAccount() else viewModel.archiveAccount()
-                            }
-                        )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-                        ActionRow(
-                            title = "تفريغ رصيد الحساب",
-                            subtitle = "تصفير الرصيد المالي للحساب وتعيينه إلى 0 دج",
-                            icon = Icons.Default.RestartAlt,
-                            color = ExpenseRed,
-                            onClick = { showEmptyDialog = true }
-                        )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-                        ActionRow(
-                            title = "حذف الحساب نهائياً",
-                            subtitle = "إزالة الحساب بالكامل من التطبيق",
-                            icon = Icons.Default.Delete,
-                            color = ExpenseRed,
-                            onClick = { showDeleteDialog = true }
+                    item {
+                        LiveAccountPreviewCard(
+                            name = uiState.name,
+                            balance = uiState.balance,
+                            type = uiState.type,
+                            color = uiState.color,
+                            icon = uiState.icon,
+                            iconPath = uiState.iconPath,
+                            isAmana = uiState.isAmanaEnabled,
+                            modifier = Modifier.padding(bottom = SpacingTokens.Xs)
                         )
                     }
-                }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                    item {
+                        AccountHeaderEditor(
+                            name = uiState.name,
+                            onNameChange = viewModel::onNameChange,
+                            icon = uiState.icon,
+                            iconPath = uiState.iconPath,
+                            onImageClick = {
+                                imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            },
+                            onIconClick = { showIconPicker = !showIconPicker }
+                        )
+                    }
+
+
+
+                    item {
+                        AccountActionButtons(
+                            onArchive = {
+                                if (uiState.isArchived) viewModel.unarchiveAccount() else viewModel.archiveAccount()
+                            },
+                            onEmpty = { showEmptyDialog = true },
+                            isArchived = uiState.isArchived
+                        )
+                    }
+
+                    item {
+                        SectionLabel("الإعدادات")
+                        Spacer(modifier = Modifier.height(SpacingTokens.Xs))
+                        SettingsCard {
+                            ToggleRow(
+                                title = "الحساب الافتراضي",
+                                subtitle = "سيُستخدم كحساب افتراضي عند إنشاء المعاملات",
+                                checked = uiState.isDefault,
+                                onCheckedChange = viewModel::onIsDefaultChange,
+                                icon = Icons.Default.Star
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                            ToggleRow(
+                                title = "الحساب مفعّل",
+                                subtitle = "الحسابات المعطّلة لا تُحتسب في صافي الثروة الشخصية",
+                                checked = uiState.isActive,
+                                onCheckedChange = viewModel::onIsActiveChange,
+                                icon = Icons.Default.ToggleOn
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                            AmanaToggleSetting(
+                                isChecked = uiState.isAmanaEnabled,
+                                onCheckedChange = viewModel::onIsAmanaEnabledChange
+                            )
+                        }
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(SpacingTokens.Lg))
+                        AppButton(
+                            onClick = { showDeleteDialog = true },
+                            variant = ButtonVariant.BORDERED,
+                            intent = ButtonIntent.DANGER,
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("حذف الحساب نهائياً")
+                        }
+                    }
+                } else {
+                    item {
+                        QuickPresetsRow(
+                            onPresetSelected = { preset ->
+                                viewModel.onPresetSelect(
+                                    name = preset.name,
+                                    type = preset.type,
+                                    color = preset.color,
+                                    icon = preset.icon,
+                                    isAmana = preset.isAmana
+                                )
+                            },
+                            modifier = Modifier.padding(bottom = SpacingTokens.Xs)
+                        )
+                    }
+
+                    item {
+                        LiveAccountPreviewCard(
+                            name = uiState.name,
+                            balance = uiState.balance,
+                            type = uiState.type,
+                            color = uiState.color,
+                            icon = uiState.icon,
+                            iconPath = uiState.iconPath,
+                            isAmana = uiState.isAmanaEnabled,
+                            modifier = Modifier.padding(bottom = SpacingTokens.Xs)
+                        )
+                    }
+
+                    item {
+                        AccountHeaderEditor(
+                            name = uiState.name,
+                            onNameChange = viewModel::onNameChange,
+                            icon = uiState.icon,
+                            iconPath = uiState.iconPath,
+                            onImageClick = {
+                                imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            },
+                            onIconClick = { showIconPicker = !showIconPicker }
+                        )
+                    }
+
+
+
+                    item {
+                        // --- Initial balance (only on creation) ---
+                        var balanceText by remember { mutableStateOf("") }
+                        AppInput(
+                            value = balanceText,
+                            onValueChange = { text ->
+                                balanceText = text
+                                val parsed = text.toDoubleOrNull() ?: 0.0
+                                viewModel.onBalanceChange(parsed)
+                            },
+                            label = "الرصيد الأولي (اختياري)",
+                            placeholder = "0.00",
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    item {
+                        // --- Account type ---
+                        SectionLabel("نوع الحساب")
+                        Spacer(modifier = Modifier.height(SpacingTokens.Xs))
+                        AccountTypeSelector(
+                            selectedType = uiState.type,
+                            onTypeSelected = viewModel::onTypeChange
+                        )
+                    }
+
+                    item {
+                        // --- Color picker ---
+                        SectionLabel("اللون")
+                        Spacer(modifier = Modifier.height(SpacingTokens.Xs))
+                        ColorPicker(
+                            selectedColor = uiState.color,
+                            onColorSelected = viewModel::onColorChange
+                        )
+                    }
+
+                    item {
+                        // --- Toggles ---
+                        SectionLabel("الإعدادات")
+                        Spacer(modifier = Modifier.height(SpacingTokens.Xs))
+                        SettingsCard {
+                            ToggleRow(
+                                title = "الحساب الافتراضي",
+                                subtitle = "سيُستخدم كحساب افتراضي عند إنشاء المعاملات",
+                                checked = uiState.isDefault,
+                                onCheckedChange = viewModel::onIsDefaultChange,
+                                icon = Icons.Default.Star
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                            ToggleRow(
+                                title = "الحساب مفعّل",
+                                subtitle = "الحسابات المعطّلة لا تُحتسب في صافي الثروة الشخصية",
+                                checked = uiState.isActive,
+                                onCheckedChange = viewModel::onIsActiveChange,
+                                icon = Icons.Default.ToggleOn
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                            AmanaToggleSetting(
+                                isChecked = uiState.isAmanaEnabled,
+                                onCheckedChange = viewModel::onIsAmanaEnabledChange
+                            )
+                        }
+                    }
+                }
             }
 
             // --- Save button ---
@@ -298,6 +383,20 @@ fun AddEditAccountScreen(
             }
         )
     }
+
+    IconPickerDialog(
+        show = showIconPicker,
+        selectedIcon = uiState.icon,
+        selectedIconPath = uiState.iconPath,
+        onIconSelected = {
+            viewModel.onIconChange(it)
+            showIconPicker = false
+        },
+        onPickFromGallery = {
+            imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        },
+        onDismissRequest = { showIconPicker = false }
+    )
 }
 
 

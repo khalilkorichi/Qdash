@@ -22,6 +22,7 @@ SKIP_DIRS = {
     ".git", "build", ".gradle", ".idea", "node_modules",
     "__pycache__", ".agents", "releases", "scratch", "assets",
     ".build-outputs", "audit_data", "reports", "tests",
+    "graphify-out",
 }
 
 # Specific directories/files inside the project that aren't source code

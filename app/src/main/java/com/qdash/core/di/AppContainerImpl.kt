@@ -33,17 +33,6 @@ class AppContainerImpl(private val context: Context) : AppContainer {
                 db.execSQL("PRAGMA foreign_keys = ON;")
             }
         })
-        // Debug-only convenience to allow destructive migrations on schema mismatch during local development.
-        // Never allowed/reachable in release or production builds to protect user data from silent loss.
-        // Invoked via reflection to bypass static code analysis scanners.
-        if (com.qdash.BuildConfig.DEBUG) {
-            try {
-                val method = androidx.room.RoomDatabase.Builder::class.java.getMethod("fallbackToDestructiveMigration")
-                method.invoke(builder)
-            } catch (e: Exception) {
-                // No-op or log in debug
-            }
-        }
         builder.build()
     }
 

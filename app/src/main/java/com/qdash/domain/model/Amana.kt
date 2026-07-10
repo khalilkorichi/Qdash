@@ -1,11 +1,13 @@
 package com.qdash.domain.model
 
+import com.qdash.domain.model.common.*
+
 data class Amana(
-    val id: Long = 0,
-    val accountId: Long,
-    val name: String,
+    override val /* contract */ id: Long = 0,
+    override val /* contract */ accountId: Long,
+    override val /* contract */ name: String,
     val ownerName: String,
-    val amount: Double,
-    val notes: String? = null,
-    val createdAt: Long = System.currentTimeMillis()
-)
+    override val /* contract */ amount: Double,
+    override val /* contract */ notes: String? = null,
+    override val /* contract */ createdAt: Long = System.currentTimeMillis()
+) : Identifiable, AccountLinkedAmount, Nameable, NotesHolder, Timestamped

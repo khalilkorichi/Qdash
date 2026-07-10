@@ -1,18 +1,19 @@
 package com.qdash.domain.model
 
 import com.qdash.data.local.entities.*
+import com.qdash.domain.model.common.*
 
 data class SavingsContribution(
-    val id: Long = 0,
+    override val /* contract */ id: Long = 0,
     val savingGoalId: Long,
-    val accountId: Long,
-    val amount: Double,
-    val type: SavingsContributionType,
-    val note: String? = null,
+    override val /* contract */ accountId: Long,
+    override val /* contract */ amount: Double,
+    override val /* contract */ type: SavingsContributionType,
+    override val /* contract */ note: String? = null,
     val date: Long,
     val linkedTransactionId: Long? = null,
-    val createdAt: Long = System.currentTimeMillis()
-)
+    override val /* contract */ createdAt: Long = System.currentTimeMillis()
+) : Identifiable, AccountLinkedAmount, TypeHolder<SavingsContributionType>, Notable, Timestamped
 
 enum class SavingsContributionType {
     DEPOSIT, WITHDRAWAL
@@ -29,8 +30,8 @@ enum class DebtType {
 }
 
 data class Debt(
-    val id: Long = 0,
-    val title: String,
+    override val /* contract */ id: Long = 0,
+    override val /* contract */ title: String,
     val creditorName: String,
     val totalAmount: Double,
     val remainingAmount: Double,
@@ -41,25 +42,25 @@ data class Debt(
     val paymentFrequency: String,
     val linkedAccountId: Long? = null,
     val priority: Int,
-    val notes: String? = null,
-    val color: String,
-    val icon: String,
-    val createdAt: Long = System.currentTimeMillis(),
+    override val /* contract */ notes: String? = null,
+    override val /* contract */ color: String,
+    override val /* contract */ icon: String,
+    override val /* contract */ createdAt: Long = System.currentTimeMillis(),
     val isClosed: Boolean = false,
     val debtType: DebtType = DebtType.INSTALLMENT
-)
+) : Identifiable, Titled, NotesHolder, ColorTagged, IconTagged, Timestamped
 
 data class DebtPayment(
-    val id: Long = 0,
+    override val /* contract */ id: Long = 0,
     val debtId: Long,
-    val accountId: Long,
-    val amount: Double,
+    override val /* contract */ accountId: Long,
+    override val /* contract */ amount: Double,
     val paymentDate: Long,
     val paymentType: DebtPaymentType,
-    val note: String? = null,
+    override val /* contract */ note: String? = null,
     val linkedTransactionId: Long? = null,
-    val createdAt: Long = System.currentTimeMillis()
-)
+    override val /* contract */ createdAt: Long = System.currentTimeMillis()
+) : Identifiable, AccountLinkedAmount, Notable, Timestamped
 
 enum class DebtPaymentType {
     MINIMUM, EXTRA, MANUAL, SCHEDULED
@@ -77,23 +78,23 @@ data class DebtStrategyResult(
 data class TransferRequest(
     val fromAccountId: Long,
     val toAccountId: Long,
-    val amount: Double,
+    override val /* contract */ amount: Double,
     val feeAmount: Double? = null,
-    val note: String? = null,
+    override val /* contract */ note: String? = null,
     val date: Long
-)
+) : AmountHolder, Notable
 
 data class TransferRecord(
-    val id: Long = 0,
+    override val /* contract */ id: Long = 0,
     val fromAccountId: Long,
     val toAccountId: Long,
-    val amount: Double,
+    override val /* contract */ amount: Double,
     val feeAmount: Double? = null,
-    val note: String? = null,
+    override val /* contract */ note: String? = null,
     val date: Long,
     val referenceId: String,
-    val createdAt: Long = System.currentTimeMillis()
-)
+    override val /* contract */ createdAt: Long = System.currentTimeMillis()
+) : Identifiable, AmountHolder, Notable, Timestamped
 
 data class ExportReportRequest(
     val reportType: String, // "MONTHLY", "ANNUAL", "SAVINGS", "DEBTS", "ANALYTICS", "ACCOUNT_STATEMENT"
@@ -116,10 +117,10 @@ data class ExportResult(
 )
 
 data class ReportSection(
-    val title: String,
+    override val /* contract */ title: String,
     val content: String,
     val type: SectionType
-)
+) : Titled
 
 enum class SectionType {
     KPI_SUMMARY, CHART, TABLE, TEXT
@@ -242,11 +243,11 @@ fun TransferRecord.toEntity() = TransferEntity(
 )
 
 data class ContextAwareSuggestion(
-    val title: String,
+    override val /* contract */ title: String,
     val suggestionText: String,
-    val note: String,
+    override val /* contract */ note: String,
     val defaultAmount: Double,
     val targetKeyword: String,
     val iconName: String
-)
+) : Titled, Notable
 

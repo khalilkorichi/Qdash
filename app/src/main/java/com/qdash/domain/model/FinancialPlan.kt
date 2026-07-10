@@ -1,6 +1,7 @@
 package com.qdash.domain.model
 
 import com.qdash.data.local.entities.FinancialPlanEntity
+import com.qdash.domain.model.common.*
 
 enum class FinancialPlanType {
     MONTHLY_SPENDING, EMERGENCY_FUND, TRAVEL_SAVINGS,
@@ -12,8 +13,8 @@ enum class FinancialPlanStatus {
 }
 
 data class FinancialPlan(
-    val id: Long = 0,
-    val title: String,
+    override val /* contract */ id: Long = 0,
+    override val /* contract */ title: String,
     val type: FinancialPlanType,
     val targetAmount: Double,
     val currentAmount: Double = 0.0,
@@ -22,11 +23,11 @@ data class FinancialPlan(
     val startDate: Long = System.currentTimeMillis(),
     val endDate: Long? = null,
     val status: FinancialPlanStatus = FinancialPlanStatus.ACTIVE,
-    val notes: String? = null,
-    val color: String = "#6C63FF",
-    val icon: String = "flag",
-    val createdAt: Long = System.currentTimeMillis()
-) {
+    override val /* contract */ notes: String? = null,
+    override val /* contract */ color: String = "#6C63FF",
+    override val /* contract */ icon: String = "flag",
+    override val /* contract */ createdAt: Long = System.currentTimeMillis()
+) : Identifiable, Titled, NotesHolder, ColorTagged, IconTagged, Timestamped {
     val progressPercent: Float
         get() = if (targetAmount <= 0) 0f else (currentAmount / targetAmount).toFloat().coerceIn(0f, 1f)
 
