@@ -48,21 +48,25 @@ fun AccountDetailsScreen(
             }
         },
         floatingActionButton = {
-            if (selectedTab == 1) { // Amana tab
-                ExtendedFloatingActionButton(
-                    onClick = { showAddAmanaSheet = true },
-                    containerColor = Primary,
-                    contentColor = Color.White,
-                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                    text = { Text("إضافة أمانة") }
-                )
-            } else if (uiState.account != null) {
-                FloatingActionButton(
-                    onClick = { onEditAccount(uiState.account!!.id) },
-                    containerColor = Primary,
-                    contentColor = Color.White
-                ) {
-                    Icon(Icons.Default.Edit, contentDescription = "تعديل الحساب")
+            val account = uiState.account
+            if (account != null) {
+                val activeTab = if (account.isAmanaEnabled) selectedTab else 0
+                if (account.isAmanaEnabled && activeTab == 1) { // Amana tab
+                    ExtendedFloatingActionButton(
+                        onClick = { showAddAmanaSheet = true },
+                        containerColor = Primary,
+                        contentColor = Color.White,
+                        icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                        text = { Text("إضافة أمانة") }
+                    )
+                } else {
+                    FloatingActionButton(
+                        onClick = { onEditAccount(account.id) },
+                        containerColor = Primary,
+                        contentColor = Color.White
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = "تعديل الحساب")
+                    }
                 }
             }
         }
@@ -88,33 +92,36 @@ fun AccountDetailsScreen(
             }
 
             val account = uiState.account ?: return@Scaffold
+            val activeTab = if (account.isAmanaEnabled) selectedTab else 0
 
             AccountBalanceCard(
                 balance = account.balance,
                 isActive = account.isActive,
-                totalAmana = uiState.totalAmanaForAccount,
-                realBalance = uiState.realBalance
+                totalAmana = if (account.isAmanaEnabled) uiState.totalAmanaForAccount else 0.0,
+                realBalance = if (account.isAmanaEnabled) uiState.realBalance else account.balance
             )
 
-            // --- Tabs ---
-            val tabs = listOf("المعاملات", "الأمانات")
-            PrimaryTabRow(selectedTabIndex = selectedTab) {
-                tabs.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        text = {
-                            Text(
-                                text = title,
-                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
-                            )
-                        }
-                    )
+            if (account.isAmanaEnabled) {
+                // --- Tabs ---
+                val tabs = listOf("المعاملات", "الأمانات")
+                PrimaryTabRow(selectedTabIndex = selectedTab) {
+                    tabs.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            text = {
+                                Text(
+                                    text = title,
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+                                )
+                            }
+                        )
+                    }
                 }
             }
 
             // --- Tab content ---
-            when (selectedTab) {
+            when (activeTab) {
                 0 -> TransactionsTab(transactions = uiState.transactions, currentAccountId = uiState.account?.id)
                 1 -> AmanasTab(
                     amanas = uiState.amanas,
