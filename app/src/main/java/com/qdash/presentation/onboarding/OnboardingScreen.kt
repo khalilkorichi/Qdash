@@ -154,11 +154,11 @@ fun OnboardingScreen(
                             onRemoveCustomWallet = { viewModel.onRemoveCustomWallet(it) },
                             onNext = {
                                 keyboardController?.hide()
-                                viewModel.completeWalletSetup(skip = false, onFinished = onFinished)
+                                viewModel.completeWalletSetup(skip = false, onFinished = { viewModel.nextStep() })
                             },
                             onSkip = {
                                 keyboardController?.hide()
-                                viewModel.completeWalletSetup(skip = true, onFinished = onFinished)
+                                viewModel.completeWalletSetup(skip = true, onFinished = { viewModel.nextStep() })
                             }
                         )
                     }
