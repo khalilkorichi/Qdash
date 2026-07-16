@@ -184,7 +184,12 @@ fun TransactionItem(
                                 append(it)
                             }
                             append(" • ")
-                            append(FormatterUtils.formatDate(transaction.date))
+                            val dateText = if (transaction.occurredAt != null) {
+                                FormatterUtils.formatDateTime(transaction.occurredAt)
+                            } else {
+                                FormatterUtils.formatDate(transaction.date)
+                            }
+                            append(dateText)
                         }
                         Text(
                             text = subtitleText,

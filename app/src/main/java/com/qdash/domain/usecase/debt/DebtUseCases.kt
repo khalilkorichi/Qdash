@@ -48,12 +48,11 @@ class RecordDebtPaymentUseCase(
         
         // 3. Update debt remaining amount
         val newRemaining = maxOf(0.0, debt.remainingAmount - amount)
-        debtRepository.updateDebt(
-            debt.copy(
-                remainingAmount = newRemaining,
-                isClosed = newRemaining <= 0.0
-            )
-        )
+        val updatedDebt = when (debt) {
+            is RegularDebt -> debt.copy(remainingAmount = newRemaining, isClosed = newRemaining <= 0.0)
+            is InstallmentDebt -> debt.copy(remainingAmount = newRemaining, isClosed = newRemaining <= 0.0)
+        }
+        debtRepository.updateDebt(updatedDebt)
         
         return paymentId
     }
@@ -61,10 +60,14 @@ class RecordDebtPaymentUseCase(
 
 class GetDebtPlanUseCase {
     operator fun invoke(debts: List<Debt>, strategy: String): List<Debt> {
+        val activeDebts = debts.filter { !it.isClosed }
+        val installments = activeDebts.filterIsInstance<InstallmentDebt>()
+        val regulars = activeDebts.filterIsInstance<RegularDebt>()
+        
         return when (strategy.lowercase()) {
-            "snowball" -> debts.sortedBy { it.remainingAmount }
-            "avalanche" -> debts.sortedByDescending { it.interestRate ?: 0.0 }
-            else -> debts.sortedBy { it.priority }
+            "snowball" -> installments.sortedBy { it.remainingAmount } + regulars.sortedBy { it.remainingAmount }
+            "avalanche" -> installments.sortedByDescending { it.interestRate } + regulars.sortedBy { it.remainingAmount }
+            else -> installments.sortedBy { it.priority } + regulars.sortedBy { it.id }
         }
     }
 }
@@ -72,7 +75,7 @@ class GetDebtPlanUseCase {
 class CompareDebtStrategiesUseCase {
     operator fun invoke(debts: List<Debt>): List<DebtStrategyResult> {
         val activeDebts = debts.filter { !it.isClosed }
-        val installments = activeDebts.filter { it.debtType == DebtType.INSTALLMENT }
+        val installments = activeDebts.filterIsInstance<InstallmentDebt>()
         if (installments.isEmpty()) return emptyList()
         
         val totalDebt = installments.sumOf { it.remainingAmount }
@@ -112,21 +115,25 @@ class GetDebtInsightsUseCase(
         if (debts.isEmpty()) {
             list.add("الحمد لله، لا توجد ديون معلقة أو التزامات متأخرة حالياً.")
         } else {
-            val regulars = debts.filter { it.debtType == DebtType.REGULAR }
+            val regulars = debts.filterIsInstance<RegularDebt>()
+            val installments = debts.filterIsInstance<InstallmentDebt>()
             val totalRemaining = debts.sumOf { it.remainingAmount }
             list.add("إجمالي المبالغ المطلوبة للسداد: ${String.format(Locale.getDefault(), "%,.1f", totalRemaining)} د.ج.")
             
             if (regulars.isNotEmpty()) {
                 list.add("لديك ${regulars.size} التزام(ات) دين عادي مستحقة السداد.")
             }
+            if (installments.isNotEmpty()) {
+                list.add("لديك ${installments.size} خطة قروض مقسطة جارية.")
+            }
 
-            val highPriority = debts.minByOrNull { it.priority }
+            val highPriority = installments.minByOrNull { it.priority }
             if (highPriority != null) {
                 list.add("نوصي بوضع الأولوية لتسوية '${highPriority.title}' للدائن '${highPriority.creditorName}'.")
             }
             
             val closest = debts.minByOrNull { it.remainingAmount }
-            if (closest != null && closest != highPriority) {
+            if (closest != null && (highPriority == null || closest.id != highPriority.id)) {
                 list.add("يمكنك تصفية وغلق '${closest.title}' سريعاً لتقليص عدد الدائنين وتصفية ذهنك.")
             }
         }
@@ -140,7 +147,11 @@ class CloseDebtUseCase(
     suspend operator fun invoke(id: Long) {
         val debt = debtRepository.getDebtById(id)
         if (debt != null) {
-            debtRepository.updateDebt(debt.copy(remainingAmount = 0.0, isClosed = true))
+            val updatedDebt = when (debt) {
+                is RegularDebt -> debt.copy(remainingAmount = 0.0, isClosed = true)
+                is InstallmentDebt -> debt.copy(remainingAmount = 0.0, isClosed = true)
+            }
+            debtRepository.updateDebt(updatedDebt)
         }
     }
 }

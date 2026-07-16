@@ -5,8 +5,6 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.qdash.data.local.AppDatabase
 import com.qdash.data.local.entities.AccountEntity
-import com.qdash.data.local.entities.DebtEntity
-import com.qdash.data.local.entities.DebtPaymentEntity
 import com.qdash.data.repository.DebtRepositoryImpl
 import com.qdash.data.repository.TransactionRepositoryImpl
 import com.qdash.domain.model.*
@@ -30,7 +28,8 @@ class DebtUseCaseTest {
     private lateinit var transactionRepo: TransactionRepository
     private lateinit var debtRepo: DebtRepository
 
-    private lateinit var updateDebtUseCase: UpdateDebtUseCase
+    private lateinit var updateRegularDebtUseCase: UpdateRegularDebtUseCase
+    private lateinit var updateInstallmentDebtUseCase: UpdateInstallmentDebtUseCase
     private lateinit var deleteDebtUseCase: DeleteDebtUseCase
     private lateinit var forgiveDebtUseCase: ForgiveDebtUseCase
     private lateinit var cancelDebtPaymentUseCase: CancelDebtPaymentUseCase
@@ -70,7 +69,8 @@ class DebtUseCaseTest {
             debtPaymentDao = db.debtPaymentDao()
         )
 
-        updateDebtUseCase = UpdateDebtUseCase(debtRepo)
+        updateRegularDebtUseCase = UpdateRegularDebtUseCase(debtRepo)
+        updateInstallmentDebtUseCase = UpdateInstallmentDebtUseCase(debtRepo)
         deleteDebtUseCase = DeleteDebtUseCase(debtRepo, transactionRepo)
         forgiveDebtUseCase = ForgiveDebtUseCase(debtRepo)
         cancelDebtPaymentUseCase = CancelDebtPaymentUseCase(debtRepo, transactionRepo)
@@ -88,10 +88,10 @@ class DebtUseCaseTest {
             AccountEntity(name = "البنك", type = "REGULAR", balance = 5000.0, color = "#FFF", icon = "")
         )
         val debtId = debtRepo.insertDebt(
-            Debt(
+            InstallmentDebt(
                 title = "قرض", creditorName = "أحمد", totalAmount = 10000.0, remainingAmount = 10000.0,
                 minimumPayment = 1000.0, paymentFrequency = "MONTHLY", priority = 3, color = "#FFF", icon = "",
-                linkedAccountId = accountId, debtType = DebtType.INSTALLMENT
+                linkedAccountId = accountId, interestRate = 0.0
             )
         )
 
@@ -107,14 +107,14 @@ class DebtUseCaseTest {
         )
 
         // Update remaining manually as record usecase would, to keep repo mock accurate
-        val currentDebt = debtRepo.getDebtById(debtId)!!
+        val currentDebt = debtRepo.getDebtById(debtId)!! as InstallmentDebt
         debtRepo.updateDebt(currentDebt.copy(remainingAmount = 8000.0))
 
         // 3. Test Update: New Total Amount is 9000 (which is > 2000 paid)
-        val result = updateDebtUseCase(
+        val result = updateInstallmentDebtUseCase(
             debtId = debtId, title = "قرض معدل", creditorName = "أحمد", totalAmount = 9000.0,
             minimumPayment = 1000.0, paymentFrequency = "MONTHLY", linkedAccountId = accountId, priority = 3,
-            notes = "تعديل", color = "#FFF", interestRate = 0.0, dueDate = null, debtType = DebtType.INSTALLMENT
+            notes = "تعديل", color = "#FFF", interestRate = 0.0, dueDate = null
         )
 
         assertTrue(result.isSuccess)
@@ -131,10 +131,10 @@ class DebtUseCaseTest {
             AccountEntity(name = "البنك", type = "REGULAR", balance = 5000.0, color = "#FFF", icon = "")
         )
         val debtId = debtRepo.insertDebt(
-            Debt(
+            InstallmentDebt(
                 title = "قرض", creditorName = "أحمد", totalAmount = 10000.0, remainingAmount = 10000.0,
                 minimumPayment = 1000.0, paymentFrequency = "MONTHLY", priority = 3, color = "#FFF", icon = "",
-                linkedAccountId = accountId, debtType = DebtType.INSTALLMENT
+                linkedAccountId = accountId, interestRate = 0.0
             )
         )
 
@@ -148,14 +148,14 @@ class DebtUseCaseTest {
         debtRepo.insertPayment(
             DebtPayment(debtId = debtId, accountId = accountId, amount = 4000.0, paymentDate = System.currentTimeMillis(), paymentType = DebtPaymentType.MANUAL, linkedTransactionId = txId)
         )
-        val currentDebt = debtRepo.getDebtById(debtId)!!
+        val currentDebt = debtRepo.getDebtById(debtId)!! as InstallmentDebt
         debtRepo.updateDebt(currentDebt.copy(remainingAmount = 6000.0))
 
         // 3. Test Update: New Total Amount is 3000 (which is < 4000 paid) -> should fail
-        val result = updateDebtUseCase(
+        val result = updateInstallmentDebtUseCase(
             debtId = debtId, title = "قرض معدل", creditorName = "أحمد", totalAmount = 3000.0,
             minimumPayment = 1000.0, paymentFrequency = "MONTHLY", linkedAccountId = accountId, priority = 3,
-            notes = "تعديل", color = "#FFF", interestRate = 0.0, dueDate = null, debtType = DebtType.INSTALLMENT
+            notes = "تعديل", color = "#FFF", interestRate = 0.0, dueDate = null
         )
 
         assertTrue(result.isFailure)
@@ -169,10 +169,10 @@ class DebtUseCaseTest {
             AccountEntity(name = "البنك", type = "REGULAR", balance = 5000.0, color = "#FFF", icon = "")
         )
         val debtId = debtRepo.insertDebt(
-            Debt(
+            InstallmentDebt(
                 title = "قرض", creditorName = "أحمد", totalAmount = 10000.0, remainingAmount = 10000.0,
                 minimumPayment = 1000.0, paymentFrequency = "MONTHLY", priority = 3, color = "#FFF", icon = "",
-                linkedAccountId = accountId, debtType = DebtType.INSTALLMENT
+                linkedAccountId = accountId, interestRate = 0.0
             )
         )
 
@@ -218,10 +218,10 @@ class DebtUseCaseTest {
             AccountEntity(name = "البنك", type = "REGULAR", balance = 5000.0, color = "#FFF", icon = "")
         )
         val debtId = debtRepo.insertDebt(
-            Debt(
+            InstallmentDebt(
                 title = "قرض", creditorName = "أحمد", totalAmount = 10000.0, remainingAmount = 10000.0,
                 minimumPayment = 1000.0, paymentFrequency = "MONTHLY", priority = 3, color = "#FFF", icon = "",
-                linkedAccountId = accountId, debtType = DebtType.INSTALLMENT
+                linkedAccountId = accountId, interestRate = 0.0
             )
         )
 
@@ -251,10 +251,10 @@ class DebtUseCaseTest {
             AccountEntity(name = "البنك", type = "REGULAR", balance = 5000.0, color = "#FFF", icon = "")
         )
         val debtId = debtRepo.insertDebt(
-            Debt(
+            InstallmentDebt(
                 title = "قرض", creditorName = "أحمد", totalAmount = 10000.0, remainingAmount = 8000.0,
                 minimumPayment = 1000.0, paymentFrequency = "MONTHLY", priority = 3, color = "#FFF", icon = "",
-                linkedAccountId = accountId, debtType = DebtType.INSTALLMENT, isClosed = true
+                linkedAccountId = accountId, isClosed = true, interestRate = 0.0
             )
         )
 

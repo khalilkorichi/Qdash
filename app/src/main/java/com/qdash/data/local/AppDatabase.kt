@@ -18,6 +18,7 @@ import com.qdash.data.local.entities.*
         UserCategoryMappingEntity::class,
         SavingsContributionEntity::class,
         DebtEntity::class,
+        DebtInstallmentDetailsEntity::class,
         DebtPaymentEntity::class,
         TransferEntity::class,
         NotificationEntity::class,
@@ -32,7 +33,7 @@ import com.qdash.data.local.entities.*
         UserProfileEntity::class,
         AmanaEntity::class
     ],
-    version = 27,
+    version = 29,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {

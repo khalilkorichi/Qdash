@@ -171,7 +171,8 @@ fun TransactionsViewModel.addTransaction(
     isRecurring: Boolean,
     recurringPeriod: String? = null,
     tags: String? = null,
-    kind: TransactionKind? = null
+    kind: TransactionKind? = null,
+    occurredAt: Long? = null
 ) {
     viewModelScope.launch {
         _uiState.update { it.copy(isSaving = true, saveCompleted = false, error = null) }
@@ -198,7 +199,8 @@ fun TransactionsViewModel.addTransaction(
                 isRecurring = isRecurring,
                 recurringPeriod = recurringPeriod,
                 tags = tags,
-                kind = resolvedKind
+                kind = resolvedKind,
+                occurredAt = occurredAt
             )
             transactionRepository.insertTransaction(transaction)
 
@@ -241,7 +243,8 @@ fun TransactionsViewModel.updateTransaction(
     isRecurring: Boolean,
     recurringPeriod: String? = null,
     tags: String? = null,
-    kind: TransactionKind? = null
+    kind: TransactionKind? = null,
+    occurredAt: Long? = null
 ) {
     viewModelScope.launch {
         _uiState.update { it.copy(isSaving = true, saveCompleted = false, error = null) }
@@ -269,7 +272,8 @@ fun TransactionsViewModel.updateTransaction(
                 isRecurring = isRecurring,
                 recurringPeriod = recurringPeriod,
                 tags = tags,
-                kind = resolvedKind
+                kind = resolvedKind,
+                occurredAt = occurredAt
             )
             transactionRepository.updateTransaction(transaction)
             _uiState.update { it.copy(isSaving = false, saveCompleted = true) }
@@ -278,4 +282,5 @@ fun TransactionsViewModel.updateTransaction(
         }
     }
 }
+
 

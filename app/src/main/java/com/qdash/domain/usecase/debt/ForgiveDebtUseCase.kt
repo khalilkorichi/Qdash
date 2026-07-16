@@ -1,5 +1,6 @@
 package com.qdash.domain.usecase.debt
 
+import com.qdash.domain.model.copyDebt
 import com.qdash.domain.repository.DebtRepository
 
 class ForgiveDebtUseCase(
@@ -16,7 +17,7 @@ class ForgiveDebtUseCase(
             "$originalNotes\n[تم الإعفاء من الدين]"
         }
 
-        val updatedDebt = debt.copy(
+        val updatedDebt = debt.copyDebt(
             remainingAmount = 0.0,
             isClosed = true,
             notes = updatedNotes

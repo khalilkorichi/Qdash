@@ -2,10 +2,12 @@ package com.qdash.data.repository
 
 import com.qdash.data.local.dao.DebtDao
 import com.qdash.data.local.dao.DebtPaymentDao
+import com.qdash.data.local.entities.DebtInstallmentDetailsEntity
 import com.qdash.domain.model.Debt
 import com.qdash.domain.model.DebtPayment
 import com.qdash.domain.model.toDomain
 import com.qdash.domain.model.toEntity
+import com.qdash.domain.model.toInstallmentDetailsEntity
 import com.qdash.domain.repository.DebtRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -28,14 +30,26 @@ class DebtRepositoryImpl(
     }
 
     override suspend fun insertDebt(debt: Debt): Long {
-        return debtDao.insertDebt(debt.toEntity())
+        val debtId = debtDao.insertDebt(debt.toEntity())
+        val details = debt.toInstallmentDetailsEntity()?.copy(debtId = debtId)
+        if (details != null) {
+            debtDao.insertInstallmentDetails(details)
+        }
+        return debtId
     }
 
     override suspend fun updateDebt(debt: Debt) {
         debtDao.updateDebt(debt.toEntity())
+        val details = debt.toInstallmentDetailsEntity()
+        if (details != null) {
+            debtDao.insertInstallmentDetails(details)
+        } else {
+            debtDao.deleteInstallmentDetails(debt.id)
+        }
     }
 
     override suspend fun deleteDebt(debt: Debt) {
+        debtDao.deleteInstallmentDetails(debt.id)
         debtDao.deleteDebt(debt.toEntity())
     }
 

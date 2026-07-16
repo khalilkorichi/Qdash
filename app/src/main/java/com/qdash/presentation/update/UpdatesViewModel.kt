@@ -247,7 +247,7 @@ class UpdatesViewModel(
     fun checkForUpdatesThrottled() {
         val lastCheck = preferencesManager.lastUpdateCheckTime
         val now = System.currentTimeMillis()
-        if (now - lastCheck >= 2 * 60 * 60 * 1000L) { // 2 hours throttle
+        if (now - lastCheck >= 30 * 60 * 1000L) { // 30 minutes throttle
             checkForUpdates(isBackground = true)
         }
     }

@@ -1,5 +1,6 @@
 package com.qdash.domain.usecase.debt
 
+import com.qdash.domain.model.copyDebt
 import com.qdash.domain.repository.DebtRepository
 import com.qdash.domain.repository.TransactionRepository
 
@@ -23,7 +24,7 @@ class CancelDebtPaymentUseCase(
 
         // 4. Update the remaining amount of the debt and activate it if it was closed
         val newRemaining = debt.remainingAmount + payment.amount
-        val updatedDebt = debt.copy(
+        val updatedDebt = debt.copyDebt(
             remainingAmount = newRemaining,
             isClosed = false // If it was closed, re-opening it is required
         )

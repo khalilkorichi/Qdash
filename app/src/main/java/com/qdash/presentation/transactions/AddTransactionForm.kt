@@ -53,6 +53,8 @@ fun AddTransactionFormContent(
     onToAccountIdChange: (Long?) -> Unit,
     transactionDate: Long,
     onTransactionDateChange: (Long) -> Unit,
+    occurredAt: Long?,
+    onOccurredAtChange: (Long?) -> Unit,
     isRecurring: Boolean,
     onRecurringChange: (Boolean) -> Unit,
     recurringPeriod: String,
@@ -257,7 +259,9 @@ fun AddTransactionFormContent(
         TransactionDateSelector(
             transactionDate = transactionDate,
             onDateChanged = onTransactionDateChange,
-            typeAccentColor = typeAccentColor
+            typeAccentColor = typeAccentColor,
+            occurredAt = occurredAt,
+            onOccurredAtChanged = onOccurredAtChange
         )
 
         RecurringOptionsSection(

@@ -1,9 +1,6 @@
 package com.qdash.data.local.entities
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
-import androidx.room.Index
-import androidx.room.ForeignKey
+import androidx.room.*
 
 @Entity(
     tableName = "savings_contributions",
@@ -57,19 +54,43 @@ data class DebtEntity(
     val creditorName: String,
     val totalAmount: Double,
     val remainingAmount: Double,
-    val interestRate: Double? = null,
     val dueDate: Long? = null,
-    val minimumPayment: Double,
-    val recommendedPayment: Double? = null,
-    val paymentFrequency: String, // "MONTHLY", "WEEKLY", "MANUAL"
     val linkedAccountId: Long? = null,
-    val priority: Int,
     val notes: String? = null,
     val color: String,
     val icon: String,
     val createdAt: Long = System.currentTimeMillis(),
     val isClosed: Boolean = false,
     val debtType: String = "INSTALLMENT"
+)
+
+@Entity(
+    tableName = "debt_installment_details",
+    foreignKeys = [
+        ForeignKey(
+            entity = DebtEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["debtId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
+)
+data class DebtInstallmentDetailsEntity(
+    @PrimaryKey val debtId: Long,
+    val interestRate: Double,
+    val minimumPayment: Double,
+    val recommendedPayment: Double? = null,
+    val paymentFrequency: String,
+    val priority: Int
+)
+
+data class DebtWithInstallmentDetails(
+    @Embedded val debt: DebtEntity,
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "debtId"
+    )
+    val installmentDetails: DebtInstallmentDetailsEntity?
 )
 
 @Entity(
@@ -137,7 +158,9 @@ data class TransferEntity(
     val note: String? = null,
     val date: Long,
     val referenceId: String,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    // Precise execution timestamp shared with all linked TransactionEntity legs.
+    val occurredAt: Long? = null
 )
 
 @Entity(

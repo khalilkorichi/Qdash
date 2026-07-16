@@ -52,7 +52,10 @@ data class TransactionEntity(
     val userAcceptedSuggestion: Boolean? = null,
     val kind: String = "INCOME",
     val transferId: String? = null,
-    val isDebit: Boolean = true
+    val isDebit: Boolean = true,
+    // Precise execution timestamp (epoch ms, local timezone). Null for records created before
+    // time-picker support was added. Display time only when this field is non-null.
+    val occurredAt: Long? = null
 )
 
 @Entity(

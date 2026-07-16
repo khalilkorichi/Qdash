@@ -20,6 +20,8 @@ class TransferBetweenAccountsUseCase(
         }
         
         val referenceId = "TRF-${UUID.randomUUID().toString().take(6).uppercase()}"
+        // All legs of this transfer share the same occurredAt for consistent ordering.
+        val occurredAt = request.occurredAt
         
         // 1. Transaction corresponding to reduction from source account
         transactionRepository.insertTransaction(
@@ -30,7 +32,8 @@ class TransferBetweenAccountsUseCase(
                 accountId = request.fromAccountId,
                 toAccountId = request.toAccountId,
                 note = request.note ?: "تحويل رصيد إلى ${toAccount.name}",
-                date = request.date
+                date = request.date,
+                occurredAt = occurredAt
             )
         )
         
@@ -42,7 +45,8 @@ class TransferBetweenAccountsUseCase(
                 categoryId = 12L, // other
                 accountId = request.toAccountId,
                 note = request.note ?: "استلام رصيد محول من ${fromAccount.name}",
-                date = request.date
+                date = request.date,
+                occurredAt = occurredAt
             )
         )
         
@@ -56,12 +60,13 @@ class TransferBetweenAccountsUseCase(
                     categoryId = 5L, // bills / fees
                     accountId = request.fromAccountId,
                     note = "رسوم عملية تحويل ($referenceId)",
-                    date = request.date
+                    date = request.date,
+                    occurredAt = occurredAt
                 )
             )
         }
         
-        // 4. Save transfer record
+        // 4. Save transfer record (shares same occurredAt as all legs)
         val transferRecord = TransferRecord(
             fromAccountId = request.fromAccountId,
             toAccountId = request.toAccountId,
@@ -69,12 +74,14 @@ class TransferBetweenAccountsUseCase(
             feeAmount = request.feeAmount,
             note = request.note,
             date = request.date,
-            referenceId = referenceId
+            referenceId = referenceId,
+            occurredAt = occurredAt
         )
         transferRepository.insertTransfer(transferRecord)
         return true
     }
 }
+
 
 class GetTransfersUseCase(
     private val transferRepository: TransferRepository

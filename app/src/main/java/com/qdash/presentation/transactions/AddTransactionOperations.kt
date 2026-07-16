@@ -27,6 +27,7 @@ fun performSaveTransaction(
     recurringPeriod: String,
     selectedTags: List<String>,
     transactionDate: Long,
+    occurredAt: Long?,
     transactionId: Long?,
     note: String,
     viewModel: TransactionsViewModel,
@@ -80,7 +81,8 @@ fun performSaveTransaction(
                         isRecurring = isRecurring,
                         recurringPeriod = if (isRecurring) recurringPeriod else null,
                         tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
-                        kind = com.qdash.domain.model.TransactionKind.SALARY
+                        kind = com.qdash.domain.model.TransactionKind.SALARY,
+                        occurredAt = occurredAt
                     )
                 } else {
                     viewModel.addTransaction(
@@ -94,7 +96,8 @@ fun performSaveTransaction(
                         isRecurring = isRecurring,
                         recurringPeriod = if (isRecurring) recurringPeriod else null,
                         tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
-                        kind = com.qdash.domain.model.TransactionKind.SALARY
+                        kind = com.qdash.domain.model.TransactionKind.SALARY,
+                        occurredAt = occurredAt
                     )
                 }
             } else if (isSavings) {
@@ -113,7 +116,8 @@ fun performSaveTransaction(
                         isRecurring = isRecurring,
                         recurringPeriod = if (isRecurring) recurringPeriod else null,
                         tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
-                        kind = com.qdash.domain.model.TransactionKind.INCOME
+                        kind = com.qdash.domain.model.TransactionKind.INCOME,
+                        occurredAt = occurredAt
                     )
                 } else {
                     viewModel.addTransaction(
@@ -127,7 +131,8 @@ fun performSaveTransaction(
                         isRecurring = isRecurring,
                         recurringPeriod = if (isRecurring) recurringPeriod else null,
                         tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
-                        kind = com.qdash.domain.model.TransactionKind.INCOME
+                        kind = com.qdash.domain.model.TransactionKind.INCOME,
+                        occurredAt = occurredAt
                     )
                 }
             }
@@ -146,7 +151,8 @@ fun performSaveTransaction(
                     isRecurring = isRecurring,
                     recurringPeriod = if (isRecurring) recurringPeriod else null,
                     tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
-                    kind = kind
+                    kind = kind,
+                    occurredAt = occurredAt
                 )
             } else {
                 viewModel.addTransaction(
@@ -160,7 +166,8 @@ fun performSaveTransaction(
                     isRecurring = isRecurring,
                     recurringPeriod = if (isRecurring) recurringPeriod else null,
                     tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
-                    kind = kind
+                    kind = kind,
+                    occurredAt = occurredAt
                 )
             }
         } else {
@@ -177,7 +184,8 @@ fun performSaveTransaction(
                     isRecurring = isRecurring,
                     recurringPeriod = if (isRecurring) recurringPeriod else null,
                     tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
-                    kind = com.qdash.domain.model.TransactionKind.TRANSFER
+                    kind = com.qdash.domain.model.TransactionKind.TRANSFER,
+                    occurredAt = occurredAt
                 )
             } else {
                 viewModel.addTransaction(
@@ -191,12 +199,14 @@ fun performSaveTransaction(
                     isRecurring = isRecurring,
                     recurringPeriod = if (isRecurring) recurringPeriod else null,
                     tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
-                    kind = com.qdash.domain.model.TransactionKind.TRANSFER
+                    kind = com.qdash.domain.model.TransactionKind.TRANSFER,
+                    occurredAt = occurredAt
                 )
             }
         }
     }
 }
+
 
 fun parseDraftJson(
     draftJson: String?,
@@ -261,7 +271,8 @@ fun loadInitialTransaction(
         subcategoryId: Long?,
         selectedAccountId: Long?,
         toAccountId: Long?,
-        transactionDate: Long
+        transactionDate: Long,
+        occurredAt: Long?
     ) -> Unit
 ) {
     if (transactionId == null || transactions.isEmpty()) return
@@ -290,9 +301,11 @@ fun loadInitialTransaction(
     }
     onResult(
         amtStr, note, isRecurring, recurringPeriod, tags, type,
-        selectedCategoryId, subcategoryId, transaction.accountId, transaction.toAccountId, transaction.date
+        selectedCategoryId, subcategoryId, transaction.accountId, transaction.toAccountId, transaction.date,
+        transaction.occurredAt
     )
 }
+
 
 fun getFormattedDisplayAmount(rawAmount: String, operatorsList: Set<String>): String {
     val result = if (rawAmount == "0" || rawAmount.isEmpty()) {
@@ -397,6 +410,7 @@ fun AddTransactionEffects(
     onSelectedAccountIdChange: (Long?) -> Unit,
     onToAccountIdChange: (Long?) -> Unit,
     onTransactionDateChange: (Long) -> Unit,
+    onOccurredAtChange: (Long?) -> Unit,
     onSalaryAutomationChange: (Boolean) -> Unit,
     onKeypadExpandedChange: (Boolean) -> Unit,
     hasLoadedInitialData: Boolean,
@@ -417,7 +431,7 @@ fun AddTransactionEffects(
 
     LaunchedEffect(uiState.transactions, transactionId) {
         if (!hasLoadedInitialData && transactionId != null && uiState.transactions.isNotEmpty()) {
-            loadInitialTransaction(transactionId, uiState.transactions, uiState.categories) { amtStr, n, isRec, recPer, tgs, tp, selCatId, subCatId, selAccId, toAccId, date ->
+            loadInitialTransaction(transactionId, uiState.transactions, uiState.categories) { amtStr, n, isRec, recPer, tgs, tp, selCatId, subCatId, selAccId, toAccId, date, time ->
                 onRawAmountChange(TextFieldValue(amtStr, selection = TextRange(amtStr.length)))
                 onNoteChange(n)
                 onRecurringChange(isRec)
@@ -429,6 +443,7 @@ fun AddTransactionEffects(
                 onSelectedAccountIdChange(selAccId)
                 onToAccountIdChange(toAccId)
                 onTransactionDateChange(date)
+                onOccurredAtChange(time)
                 onKeypadExpandedChange(false)
                 onLoadedInitialDataChange(true)
             }
@@ -484,3 +499,4 @@ fun AddTransactionEffects(
         }
     }
 }
+

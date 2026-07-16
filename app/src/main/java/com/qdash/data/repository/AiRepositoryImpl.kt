@@ -1098,7 +1098,8 @@ class AiRepositoryImpl(
                         categoryId = categoryId,
                         accountId = accountId,
                         note = if (note.isEmpty()) null else note,
-                        date = System.currentTimeMillis()
+                        date = System.currentTimeMillis(),
+                        occurredAt = System.currentTimeMillis()
                     )
                     val id = transactionRepository.insertTransaction(newTransaction)
                     result.put("insertedId", id)
@@ -1281,7 +1282,8 @@ class AiRepositoryImpl(
                 categoryId = categoryId,
                 accountId = accountId,
                 note = "AI generated transaction from: $prompt",
-                date = System.currentTimeMillis()
+                date = System.currentTimeMillis(),
+                occurredAt = System.currentTimeMillis()
             )
             val id = transactionRepository.insertTransaction(newTransaction)
             return "Successfully recorded a transaction of **$amount DZD** (ID: $id) under the account *${accounts.firstOrNull()?.name ?: "Default"}* and category *${categories.firstOrNull()?.name ?: "Default"}*."
@@ -1380,9 +1382,16 @@ class AiRepositoryImpl(
 
             val debtsStr = if (debts.isNotEmpty()) {
                 val activeDebts = debts.filter { !it.isClosed }
-                if (activeDebts.isEmpty()) "لا توجد ديون نشطة"
+                if (activeDebts.isEmpty()) "لا توجد ديون أو أقساط معلقة"
                 else activeDebts.joinToString("\n") { d ->
-                    "- ${d.title} (${d.creditorName}): المتبقي = ${d.remainingAmount} دج من ${d.totalAmount} دج"
+                    when (d) {
+                        is com.qdash.domain.model.RegularDebt -> {
+                            "- دين عادي: ${d.title} (${d.creditorName}) | المتبقي = ${d.remainingAmount} دج من أصل ${d.totalAmount} دج | الاستحقاق = ${d.dueDate?.let { java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(java.util.Date(it)) } ?: "غير محدد"}"
+                        }
+                        is com.qdash.domain.model.InstallmentDebt -> {
+                            "- قرض مقسط: ${d.title} (${d.creditorName}) | المتبقي = ${d.remainingAmount} دج من أصل ${d.totalAmount} دج | القسط = ${d.minimumPayment} دج | الفائدة = ${d.interestRate}% | الأولوية = ${d.priority}"
+                        }
+                    }
                 }
             } else "لا توجد ديون"
 

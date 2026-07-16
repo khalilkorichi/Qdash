@@ -31,8 +31,9 @@ class FinancialAlertsWorker(
             // 1. Process Debts
             val activeDebts = debtRepository.getActiveDebts().first()
             for (debt in activeDebts) {
-                if (!debt.isClosed && debt.dueDate != null) {
-                    val diff = debt.dueDate - now
+                val dueDate = debt.dueDate
+                if (!debt.isClosed && dueDate != null) {
+                    val diff = dueDate - now
                     val daysLeft = diff / oneDayMillis
                     
                     // Notify if due in 3 days or less, but still in the future or today
@@ -45,13 +46,16 @@ class FinancialAlertsWorker(
                         }
 
                         if (!alreadyNotified) {
+                            val isRegular = debt is com.qdash.domain.model.RegularDebt
+                            val term = if (isRegular) "دين" else "قسط قرض"
+                            val titleText = if (isRegular) "تذكير بسداد دين 💸" else "تذكير بقسط قرض قريب 💸"
                             val msg = if (daysLeft == 0L) {
-                                "يستحق سداد دين لـ ${debt.creditorName} بقيمة ${debt.remainingAmount.toInt()} د.ج اليوم!"
+                                "يستحق سداد $term لـ ${debt.creditorName} بقيمة ${debt.remainingAmount.toInt()} د.ج اليوم!"
                             } else {
-                                "يستحق سداد دين لـ ${debt.creditorName} بقيمة ${debt.remainingAmount.toInt()} د.ج خلال $daysLeft أيام."
+                                "يستحق سداد $term لـ ${debt.creditorName} بقيمة ${debt.remainingAmount.toInt()} د.ج خلال $daysLeft أيام."
                             }
                             val notification = AppNotification(
-                                title = "تذكير بسداد دين 💸",
+                                title = titleText,
                                 message = msg,
                                 type = NotificationType.DEBT_DUE,
                                 relatedEntityId = debt.id,

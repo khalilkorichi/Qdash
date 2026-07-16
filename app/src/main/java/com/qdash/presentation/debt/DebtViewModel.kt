@@ -34,7 +34,8 @@ class DebtViewModel(
     private val compareDebtStrategiesUseCase = CompareDebtStrategiesUseCase()
     private val getDebtInsightsUseCase = GetDebtInsightsUseCase(debtRepository)
     private val closeDebtUseCase = CloseDebtUseCase(debtRepository)
-    private val updateDebtUseCase = UpdateDebtUseCase(debtRepository)
+    private val updateRegularDebtUseCase = UpdateRegularDebtUseCase(debtRepository)
+    private val updateInstallmentDebtUseCase = UpdateInstallmentDebtUseCase(debtRepository)
     private val deleteDebtUseCase = DeleteDebtUseCase(debtRepository, transactionRepository)
     private val forgiveDebtUseCase = ForgiveDebtUseCase(debtRepository)
     private val cancelDebtPaymentUseCase = CancelDebtPaymentUseCase(debtRepository, transactionRepository)
@@ -101,22 +102,36 @@ class DebtViewModel(
         debtType: DebtType = DebtType.INSTALLMENT
     ) {
         viewModelScope.launch {
-            val debt = Debt(
-                title = title,
-                creditorName = creditorName,
-                totalAmount = totalAmount,
-                remainingAmount = totalAmount,
-                minimumPayment = if (debtType == DebtType.REGULAR) 0.0 else minimumPayment,
-                paymentFrequency = if (debtType == DebtType.REGULAR) "NONE" else paymentFrequency,
-                linkedAccountId = linkedAccountId,
-                priority = if (debtType == DebtType.REGULAR) 3 else priority,
-                notes = notes,
-                color = color,
-                icon = "credit_card",
-                interestRate = if (debtType == DebtType.REGULAR) null else interestRate,
-                dueDate = dueDate,
-                debtType = debtType
-            )
+            val debt = if (debtType == DebtType.REGULAR) {
+                RegularDebt(
+                    title = title,
+                    creditorName = creditorName,
+                    totalAmount = totalAmount,
+                    remainingAmount = totalAmount,
+                    dueDate = dueDate,
+                    linkedAccountId = linkedAccountId,
+                    notes = notes,
+                    color = color,
+                    icon = "credit_card"
+                )
+            } else {
+                InstallmentDebt(
+                    title = title,
+                    creditorName = creditorName,
+                    totalAmount = totalAmount,
+                    remainingAmount = totalAmount,
+                    dueDate = dueDate,
+                    linkedAccountId = linkedAccountId,
+                    notes = notes,
+                    color = color,
+                    icon = "credit_card",
+                    interestRate = interestRate ?: 0.0,
+                    minimumPayment = minimumPayment,
+                    recommendedPayment = null,
+                    paymentFrequency = paymentFrequency,
+                    priority = priority
+                )
+            }
             addDebtUseCase(debt)
         }
     }
@@ -139,21 +154,35 @@ class DebtViewModel(
         onError: (String) -> Unit = {}
     ) {
         viewModelScope.launch {
-            val result = updateDebtUseCase(
-                debtId = debtId,
-                title = title,
-                creditorName = creditorName,
-                totalAmount = totalAmount,
-                minimumPayment = minimumPayment,
-                paymentFrequency = paymentFrequency,
-                linkedAccountId = linkedAccountId,
-                priority = priority,
-                notes = notes,
-                color = color,
-                interestRate = interestRate,
-                dueDate = dueDate,
-                debtType = debtType
-            )
+            val result = if (debtType == DebtType.REGULAR) {
+                updateRegularDebtUseCase(
+                    debtId = debtId,
+                    title = title,
+                    creditorName = creditorName,
+                    totalAmount = totalAmount,
+                    dueDate = dueDate,
+                    linkedAccountId = linkedAccountId,
+                    notes = notes,
+                    color = color,
+                    icon = "credit_card"
+                )
+            } else {
+                updateInstallmentDebtUseCase(
+                    debtId = debtId,
+                    title = title,
+                    creditorName = creditorName,
+                    totalAmount = totalAmount,
+                    minimumPayment = minimumPayment,
+                    paymentFrequency = paymentFrequency,
+                    linkedAccountId = linkedAccountId,
+                    priority = priority,
+                    notes = notes,
+                    color = color,
+                    icon = "credit_card",
+                    interestRate = interestRate ?: 0.0,
+                    dueDate = dueDate
+                )
+            }
             result.onSuccess {
                 onSuccess()
             }.onFailure {

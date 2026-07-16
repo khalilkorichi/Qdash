@@ -580,13 +580,93 @@ val MIGRATION_26_27 = object : Migration(26, 27) {
     }
 }
 
+/**
+ * Adds precise execution timestamp support to financial records.
+ * - occurredAt: epoch-ms set only for records created after this migration.
+ * - Legacy records keep occurredAt = NULL to avoid fabricating historical times.
+ * - SQLite omitting a DEFAULT clause guarantees NULL for existing rows.
+ */
+val MIGRATION_27_28 = object : Migration(27, 28) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Add nullable occurredAt to transactions (no DEFAULT = NULL for existing rows)
+        db.execSQL("ALTER TABLE `transactions` ADD COLUMN `occurredAt` INTEGER")
+        // Add nullable occurredAt to transfers (shared across all legs of a transfer)
+        db.execSQL("ALTER TABLE `transfers` ADD COLUMN `occurredAt` INTEGER")
+        // Index helps filtering/sorting records that have a known execution time
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_occurredAt` ON `transactions` (`occurredAt`)")
+    }
+}
+
+val MIGRATION_28_29 = object : Migration(28, 29) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // 1. Create the new child table debt_installment_details
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `debt_installment_details` (
+                `debtId` INTEGER NOT NULL, 
+                `interestRate` REAL NOT NULL, 
+                `minimumPayment` REAL NOT NULL, 
+                `recommendedPayment` REAL, 
+                `paymentFrequency` TEXT NOT NULL, 
+                `priority` INTEGER NOT NULL, 
+                PRIMARY KEY(`debtId`), 
+                FOREIGN KEY(`debtId`) REFERENCES `debts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE 
+            )
+        """.trimIndent())
+
+        // 2. Populate debt_installment_details table from debts for installment type
+        db.execSQL("""
+            INSERT INTO `debt_installment_details` (`debtId`, `interestRate`, `minimumPayment`, `recommendedPayment`, `paymentFrequency`, `priority`)
+            SELECT `id`, IFNULL(`interestRate`, 0.0), IFNULL(`minimumPayment`, 0.0), `recommendedPayment`, IFNULL(`paymentFrequency`, 'MONTHLY'), IFNULL(`priority`, 3)
+            FROM `debts`
+            WHERE `debtType` = 'INSTALLMENT'
+        """.trimIndent())
+
+        // 3. Recreate debts table to drop columns
+        db.execSQL("""
+            CREATE TABLE `debts_new` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                `title` TEXT NOT NULL, 
+                `creditorName` TEXT NOT NULL, 
+                `totalAmount` REAL NOT NULL, 
+                `remainingAmount` REAL NOT NULL, 
+                `dueDate` INTEGER, 
+                `linkedAccountId` INTEGER, 
+                `notes` TEXT, 
+                `color` TEXT NOT NULL, 
+                `icon` TEXT NOT NULL, 
+                `createdAt` INTEGER NOT NULL, 
+                `isClosed` INTEGER NOT NULL, 
+                `debtType` TEXT NOT NULL, 
+                FOREIGN KEY(`linkedAccountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL 
+            )
+        """.trimIndent())
+
+        // Recreate the index on debts_new
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_debts_linkedAccountId` ON `debts_new` (`linkedAccountId`)")
+
+        // Copy records from debts to debts_new
+        db.execSQL("""
+            INSERT INTO `debts_new` (`id`, `title`, `creditorName`, `totalAmount`, `remainingAmount`, `dueDate`, `linkedAccountId`, `notes`, `color`, `icon`, `createdAt`, `isClosed`, `debtType`)
+            SELECT `id`, `title`, `creditorName`, `totalAmount`, `remainingAmount`, `dueDate`, `linkedAccountId`, `notes`, `color`, `icon`, `createdAt`, `isClosed`, `debtType`
+            FROM `debts`
+        """.trimIndent())
+
+        // Drop original debts table
+        db.execSQL("DROP TABLE `debts`")
+
+        // Rename debts_new to debts
+        db.execSQL("ALTER TABLE `debts_new` RENAME TO `debts`")
+    }
+}
+
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
     MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
     MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
     MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25,
-    MIGRATION_25_26, MIGRATION_26_27
+    MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29
 )
+
 
 

@@ -78,6 +78,7 @@ fun AddTransactionScreen(
     )) { mutableStateOf<List<String>>(emptyList()) }
     var isKeypadExpanded by rememberSaveable { mutableStateOf(true) }
     var transactionDate by rememberSaveable { mutableStateOf(initialDate ?: System.currentTimeMillis()) }
+    var occurredAt by rememberSaveable { mutableStateOf<Long?>(System.currentTimeMillis()) }
 
     var type by rememberSaveable(saver = Saver<MutableState<TransactionType>, String>(
         save = { it.value.name },
@@ -149,6 +150,7 @@ fun AddTransactionScreen(
         onSelectedAccountIdChange = { selectedAccountId = it },
         onToAccountIdChange = { toAccountId = it },
         onTransactionDateChange = { transactionDate = it },
+        onOccurredAtChange = { occurredAt = it },
         onSalaryAutomationChange = { isSalaryAutomation = it },
         onKeypadExpandedChange = { isKeypadExpanded = it },
         hasLoadedInitialData = hasLoadedInitialData,
@@ -193,6 +195,7 @@ fun AddTransactionScreen(
             recurringPeriod = recurringPeriod,
             selectedTags = selectedTags,
             transactionDate = transactionDate,
+            occurredAt = occurredAt,
             transactionId = transactionId,
             note = note,
             viewModel = viewModel,
@@ -241,6 +244,8 @@ fun AddTransactionScreen(
             onToAccountIdChange = { toAccountId = it },
             transactionDate = transactionDate,
             onTransactionDateChange = { transactionDate = it },
+            occurredAt = occurredAt,
+            onOccurredAtChange = { occurredAt = it },
             isRecurring = isRecurring,
             onRecurringChange = { isRecurring = it },
             recurringPeriod = recurringPeriod,
@@ -355,7 +360,8 @@ fun AddTransactionScreen(
                         isRecurring = isRecurring,
                         recurringPeriod = if (isRecurring) recurringPeriod else null,
                         tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
-                        kind = kind
+                        kind = kind,
+                        occurredAt = occurredAt
                     )
                 } else {
                     viewModel.addTransaction(
@@ -369,7 +375,8 @@ fun AddTransactionScreen(
                         isRecurring = isRecurring,
                         recurringPeriod = if (isRecurring) recurringPeriod else null,
                         tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
-                        kind = kind
+                        kind = kind,
+                        occurredAt = occurredAt
                     )
                 }
             }

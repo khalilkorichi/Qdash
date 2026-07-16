@@ -22,9 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.core.ui.components.EmptyStateView
 import com.qdash.core.utils.FormatterUtils
-import com.qdash.domain.model.Debt
-import com.qdash.domain.model.DebtStrategyResult
-import com.qdash.domain.model.DebtType
+import com.qdash.domain.model.*
 import com.qdash.ui.designsystem.components.*
 import com.qdash.ui.designsystem.tokens.ColorTokens
 import com.qdash.ui.designsystem.tokens.ShapeTokens
@@ -43,13 +41,24 @@ fun DebtsMainContent(
     onStrategyChange: (String) -> Unit,
     onSelectDebt: (Debt) -> Unit,
     onPayClick: (Debt) -> Unit,
-    onAddDebtClick: () -> Unit,
+    onAddDebtClick: (DebtType) -> Unit,
     onEditClick: (Debt) -> Unit,
     onDeleteClick: (Debt) -> Unit,
     onForgiveClick: (Debt) -> Unit,
     onPaymentsHistoryClick: (Debt) -> Unit
 ) {
     val primary = MaterialTheme.colorScheme.primary
+    var selectedTab by remember { mutableStateOf(0) } // 0: Regular, 1: Installment
+    val tabs = listOf("الديون العادية", "الديون المقسطة")
+
+    val filteredDebts = remember(debts, selectedTab) {
+        if (selectedTab == 0) {
+            debts.filterIsInstance<RegularDebt>()
+        } else {
+            debts.filterIsInstance<InstallmentDebt>()
+        }
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -59,11 +68,35 @@ fun DebtsMainContent(
     ) {
         // SUMMARY METRICS HERO CARD
         item {
-            DebtsSummaryHeroCard(debts = debts)
+            DebtsSummaryHeroCard(debts = filteredDebts)
         }
 
-        // STRATEGY COMPILER DISPLAY
-        if (strategyResults.isNotEmpty() && debts.any { !it.isClosed }) {
+        // TABS FOR SEPARATION
+        item {
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = primary,
+                modifier = Modifier.clip(RoundedCornerShape(12.dp))
+            ) {
+                tabs.forEachIndexed { index, label ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index },
+                        text = {
+                            Text(
+                                label,
+                                fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 13.sp
+                            )
+                        }
+                    )
+                }
+            }
+        }
+
+        // STRATEGY COMPILER DISPLAY (Only for Installments)
+        if (selectedTab == 1 && strategyResults.isNotEmpty() && filteredDebts.any { !it.isClosed }) {
             item {
                 DebtsStrategyHeader(
                     selectedStrategy = selectedStrategy,
@@ -112,31 +145,45 @@ fun DebtsMainContent(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("شروط وجداول الديون القائمة", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    text = if (selectedTab == 0) "شروط وجداول الديون العادية" else "شروط وجداول القروض والأقساط",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
                 AppButton(
-                    onClick = onAddDebtClick,
+                    onClick = {
+                        val type = if (selectedTab == 0) DebtType.REGULAR else DebtType.INSTALLMENT
+                        onAddDebtClick(type)
+                    },
                     variant = ButtonVariant.LIGHT,
                     intent = ButtonIntent.DANGER,
                     leadingIcon = { Icon(Icons.Default.AddCircleOutline, null, modifier = Modifier.size(18.dp)) }
                 ) {
-                    Text("تسجيل دين", fontWeight = FontWeight.Bold)
+                    Text(if (selectedTab == 0) "سلفة جديدة" else "قرض جديد", fontWeight = FontWeight.Bold)
                 }
             }
         }
 
         // DEBT CARDS
-        if (debts.isEmpty()) {
+        if (filteredDebts.isEmpty()) {
             item {
                 EmptyStateView(
-                    title = "لا توجد ديون مسجلة",
-                    description = "مبروك! لا توجد التزامات مالية قائمة مسجلة بالبرنامج. يمكنك إضافة أي التزام لمراقبته وتسويته بذكاء."
+                    title = if (selectedTab == 0) "لا توجد ديون عادية" else "لا توجد ديون مقسطة",
+                    description = if (selectedTab == 0) 
+                        "لا توجد التزامات ديون شخصية أو سلف بسيطة مسجلة حالياً." 
+                    else 
+                        "لا توجد قروض بنكية أو خطط تقسيط تجارية مسجلة حالياً."
                 )
             }
         } else {
-            val orderedDebts = if (selectedStrategy == "snowball") {
-                debts.sortedBy { it.remainingAmount }
+            val orderedDebts = if (selectedTab == 1) {
+                if (selectedStrategy == "snowball") {
+                    filteredDebts.sortedBy { it.remainingAmount }
+                } else {
+                    filteredDebts.sortedByDescending { (it as InstallmentDebt).interestRate }
+                }
             } else {
-                debts.sortedByDescending { it.interestRate ?: 0.0 }
+                filteredDebts.sortedBy { it.remainingAmount }
             }
             items(orderedDebts, key = { it.id }) { debt ->
                 DebtListCard(
@@ -154,59 +201,55 @@ fun DebtsMainContent(
 }
 
 @Composable
-private fun DebtsSummaryHeroCard(debts: List<Debt>) {
-    val totalRemaining = debts.filter { !it.isClosed }.sumOf { it.remainingAmount }
-    val totalMin = debts.filter { !it.isClosed }.sumOf { it.minimumPayment }
+fun DebtsSummaryHeroCard(debts: List<Debt>) {
+    val totalRemaining = debts.sumOf { it.remainingAmount }
+    val totalPaid = debts.sumOf { it.totalAmount - it.remainingAmount }
+    val progress = if (debts.isEmpty()) 1f else (totalPaid / debts.sumOf { it.totalAmount }).toFloat()
 
     AppCard(
-        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        modifier = Modifier.fillMaxWidth(),
         variant = CardVariant.SOLID,
-        shape = ShapeTokens.Xxl,
-        backgroundColor = Color.Transparent
+        shape = ShapeTokens.Xl,
+        backgroundColor = MaterialTheme.colorScheme.primaryContainer
     ) {
-        Box(
-            modifier = Modifier.fillMaxWidth().background(
-                androidx.compose.ui.graphics.Brush.linearGradient(
-                    colors = listOf(Color(0xFF141416), Color(0xFF381212))
-                )
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = "إجمالي الالتزامات المالية القائمة",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
             )
-        ) {
-            Box(modifier = Modifier.size(150.dp).align(Alignment.TopEnd).offset(x = 40.dp, y = (-30).dp).clip(CircleShape).background(Color.White.copy(alpha = 0.03f)))
-            Box(modifier = Modifier.size(100.dp).align(Alignment.BottomStart).offset(x = (-20).dp, y = 30.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.04f)))
-            Column(modifier = Modifier.padding(24.dp)) {
-                Text("إجمالي التزامات الديون القائمة", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.6f))
-                Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = FormatterUtils.formatCurrency(totalRemaining),
+                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(
-                    text = FormatterUtils.convertNumerals("${String.format(Locale.getDefault(), "%,d", totalRemaining.toLong())} د.ج"),
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
+                    text = "نسبة الإنجاز في السداد: ${(progress * 100).toInt()}%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
                 )
-                Spacer(modifier = Modifier.height(20.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column {
-                        Text("القسط الشهري الإجمالي", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text("${totalMin.toInt()} د.ج", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
-                    }
-                    Column {
-                        Text("القضايا النشطة", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text("${debts.count { !it.isClosed }} قضايا دين", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text("الديون المغلقة", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text("${debts.count { it.isClosed }} ذمة مبرأة", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
-                    }
-                }
+                Text(
+                    text = "تم سداد: ${FormatterUtils.formatCurrency(totalPaid)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
+                )
             }
+            Spacer(modifier = Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+            )
         }
     }
 }
 
 @Composable
-private fun DebtsStrategyHeader(
+fun DebtsStrategyHeader(
     selectedStrategy: String,
     primaryColor: Color,
     onStrategyChange: (String) -> Unit
@@ -216,21 +259,16 @@ private fun DebtsStrategyHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("مخطط تسوية الديون الاستراتيجي", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Row(
-            modifier = Modifier
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                .padding(3.dp)
-        ) {
+        Text("خطط واستراتيجيات تصفية القروض", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("snowball" to "كرة الثلج", "avalanche" to "الانهيار").forEach { (id, label) ->
                 val isSelected = selectedStrategy == id
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(if (isSelected) primaryColor else Color.Transparent)
+                        .background(if (isSelected) primaryColor else MaterialTheme.colorScheme.surfaceVariant)
                         .clickable { onStrategyChange(id) }
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -246,47 +284,44 @@ private fun DebtsStrategyHeader(
 }
 
 @Composable
-private fun DebtsStrategyResultCard(
+fun DebtsStrategyResultCard(
     strategyResults: List<DebtStrategyResult>,
     selectedStrategy: String,
     primaryColor: Color
 ) {
-    val currentStratResult = strategyResults.find {
-        if (selectedStrategy == "snowball") it.strategyName.contains("الثلج")
-        else it.strategyName.contains("الانهيار")
-    } ?: strategyResults.firstOrNull() ?: DebtStrategyResult(
-        strategyName = "جدولة افتراضية",
-        durationInMonths = 0.0,
-        estimatedDebtFreeDate = System.currentTimeMillis(),
-        monthlyPaymentNeeded = 0.0,
-        paymentScheduleSummary = "لا توجد تفاصيل حالياً."
-    )
+    val result = strategyResults.find { 
+        it.strategyName.contains(if (selectedStrategy == "snowball") "كرة الثلج" else "الانهيار")
+    } ?: strategyResults.firstOrNull()
 
-    AppCard(
-        modifier = Modifier.fillMaxWidth(),
-        variant = CardVariant.SOLID,
-        shape = ShapeTokens.Xl,
-        backgroundColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.AutoAwesome, null, tint = primaryColor, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(currentStratResult.strategyName, fontWeight = FontWeight.Bold, color = primaryColor)
+    result?.let {
+        AppCard(
+            modifier = Modifier.fillMaxWidth(),
+            variant = CardVariant.OUTLINED,
+            shape = ShapeTokens.Lg,
+            backgroundColor = MaterialTheme.colorScheme.surface
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(it.strategyName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = primaryColor)
+                    Box(modifier = Modifier.background(primaryColor.copy(alpha = 0.12f), CircleShape).padding(horizontal = 8.dp, vertical = 4.dp)) {
+                        val roundedMonths = String.format(Locale.getDefault(), "%.1f", it.durationInMonths)
+                        Text("${roundedMonths} شهر", fontSize = 10.sp, color = primaryColor, fontWeight = FontWeight.Bold)
+                    }
                 }
-                Box(modifier = Modifier.background(IncomeGreen.copy(alpha = 0.15f), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                    Text("الحل الأمثل!", fontSize = 10.sp, color = IncomeGreen, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "الدفعات الشهرية الإجمالية المطلوبة: ${it.monthlyPaymentNeeded.toInt()} د.ج / شهر",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium
+                )
+                it.paymentScheduleSummary?.let { summary ->
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(summary, style = MaterialTheme.typography.labelSmall, color = TextGray)
                 }
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(currentStratResult.paymentScheduleSummary ?: "", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-            Spacer(modifier = Modifier.height(10.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(FormatterUtils.convertNumerals("الفترة المقدرة للتصفية: ${String.format(Locale.getDefault(), "%.1f", currentStratResult.durationInMonths)} شهر"), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = ExpenseRed)
-                Text("جاهز للتصفية الكاملة!", style = MaterialTheme.typography.bodySmall, color = TextGray)
             }
         }
     }
@@ -303,7 +338,7 @@ fun DebtListCard(
     onPaymentsHistoryClick: (Debt) -> Unit
 ) {
     val progress = if (debt.totalAmount > 0) ((debt.totalAmount - debt.remainingAmount) / debt.totalAmount).toFloat() else 1f
-    val isUrgent = debt.priority == 1
+    val isUrgent = debt is InstallmentDebt && debt.priority == 1
     val isClosed = debt.isClosed
     val isDark = MaterialTheme.colorScheme.background != ColorTokens.BackgroundLight
 
@@ -333,8 +368,8 @@ fun DebtListCard(
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(debt.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                            val typeLabel = if (debt.debtType == DebtType.REGULAR) "عادي" else "مقسط"
-                            val typeColor = if (debt.debtType == DebtType.REGULAR) SavingsAmber else ExpenseRed
+                            val typeLabel = if (debt is RegularDebt) "عادي" else "مقسط"
+                            val typeColor = if (debt is RegularDebt) SavingsAmber else ExpenseRed
                             Box(modifier = Modifier.background(typeColor.copy(alpha = 0.15f), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 2.dp)) {
                                 Text(typeLabel, fontSize = 8.sp, color = typeColor, fontWeight = FontWeight.Bold)
                             }
@@ -392,13 +427,16 @@ fun DebtListCard(
                     Text(text = FormatterUtils.formatCurrency(debt.remainingAmount), fontWeight = FontWeight.Bold, color = if (isClosed) IncomeGreen else ExpenseRed)
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(if (debt.debtType == DebtType.REGULAR) "النوع" else "القسط / الفائدة", style = MaterialTheme.typography.labelSmall, color = TextGray)
+                    Text(if (debt is RegularDebt) "النوع" else "القسط / الفائدة", style = MaterialTheme.typography.labelSmall, color = TextGray)
                     Spacer(modifier = Modifier.height(2.dp))
-                    if (debt.debtType == DebtType.REGULAR) {
-                        Text("دين عادي", fontWeight = FontWeight.Bold, color = SavingsAmber)
-                    } else {
-                        val interestStr = if (debt.interestRate != null) "${debt.interestRate}%" else "مرن"
-                        Text("${debt.minimumPayment.toInt()} د.ج / $interestStr", fontWeight = FontWeight.Bold)
+                    when (debt) {
+                        is RegularDebt -> {
+                            Text("دين عادي", fontWeight = FontWeight.Bold, color = SavingsAmber)
+                        }
+                        is InstallmentDebt -> {
+                            val interestStr = "${debt.interestRate}%"
+                            Text("${debt.minimumPayment.toInt()} د.ج / $interestStr", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }

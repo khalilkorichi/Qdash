@@ -13,10 +13,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import com.qdash.core.ui.components.FinTrackTopBar
-import com.qdash.domain.model.Debt
-import com.qdash.domain.model.DebtPayment
-import com.qdash.domain.model.DebtPaymentType
-import com.qdash.domain.model.DebtType
+import com.qdash.domain.model.*
+import com.qdash.domain.model.RegularDebt
+import com.qdash.domain.model.InstallmentDebt
 import com.qdash.presentation.debt.components.*
 import com.qdash.ui.designsystem.components.AppDialog
 
@@ -35,7 +34,8 @@ fun DebtsScreen(
     var activeDebtForDetails by remember { mutableStateOf<Debt?>(null) }
 
     // Dialog visibility states
-    var showAddDebtDialog by remember { mutableStateOf(false) }
+    var showAddRegularDebtDialog by remember { mutableStateOf(false) }
+    var showAddInstallmentDebtDialog by remember { mutableStateOf(false) }
     var showPaymentDialog by remember { mutableStateOf<Debt?>(null) }
     var showEditDebtBottomSheet by remember { mutableStateOf<Debt?>(null) }
     var showDeleteConfirmDialog by remember { mutableStateOf<Debt?>(null) }
@@ -102,7 +102,13 @@ fun DebtsScreen(
                             viewModel.selectDebt(d.id)
                         },
                         onPayClick = { d -> showPaymentDialog = d },
-                        onAddDebtClick = { showAddDebtDialog = true },
+                        onAddDebtClick = { type ->
+                            if (type == DebtType.REGULAR) {
+                                showAddRegularDebtDialog = true
+                            } else {
+                                showAddInstallmentDebtDialog = true
+                            }
+                        },
                         onEditClick = { d -> showEditDebtBottomSheet = d },
                         onDeleteClick = { d -> showDeleteConfirmDialog = d },
                         onForgiveClick = { d -> showForgiveConfirmDialog = d },
@@ -115,52 +121,159 @@ fun DebtsScreen(
 
                 // --- DIALOGS ---
 
-                if (showAddDebtDialog) {
-                    AddDebtDialog(
+                if (showAddRegularDebtDialog) {
+                    AddRegularDebtDialog(
                         accounts = uiState.accounts,
-                        onDismissRequest = { showAddDebtDialog = false },
-                        onConfirm = { title, creditorName, totalAmount, minimumPayment, paymentFrequency, linkedAccountId, priority, notes, color, interestRate, dueDate, debtType ->
+                        onDismissRequest = { showAddRegularDebtDialog = false },
+                        onConfirm = { title, creditorName, totalAmount, linkedAccountId, notes, color, dueDate ->
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.addDebt(title, creditorName, totalAmount, minimumPayment, paymentFrequency, linkedAccountId, priority, notes, color, interestRate, dueDate, debtType)
-                            showAddDebtDialog = false
+                            viewModel.addDebt(
+                                title = title,
+                                creditorName = creditorName,
+                                totalAmount = totalAmount,
+                                minimumPayment = 0.0,
+                                paymentFrequency = "NONE",
+                                linkedAccountId = linkedAccountId,
+                                priority = 3,
+                                notes = notes,
+                                color = color,
+                                dueDate = dueDate,
+                                debtType = DebtType.REGULAR
+                            )
+                            showAddRegularDebtDialog = false
+                        }
+                    )
+                }
+
+                if (showAddInstallmentDebtDialog) {
+                    AddInstallmentDebtDialog(
+                        accounts = uiState.accounts,
+                        onDismissRequest = { showAddInstallmentDebtDialog = false },
+                        onConfirm = { title, creditorName, totalAmount, minimumPayment, paymentFrequency, linkedAccountId, priority, notes, color, interestRate, dueDate ->
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            viewModel.addDebt(
+                                title = title,
+                                creditorName = creditorName,
+                                totalAmount = totalAmount,
+                                minimumPayment = minimumPayment,
+                                paymentFrequency = paymentFrequency,
+                                linkedAccountId = linkedAccountId,
+                                priority = priority,
+                                notes = notes,
+                                color = color,
+                                interestRate = interestRate,
+                                dueDate = dueDate,
+                                debtType = DebtType.INSTALLMENT
+                            )
+                            showAddInstallmentDebtDialog = false
                         }
                     )
                 }
 
                 showPaymentDialog?.let { debt ->
-                    RecordPaymentDialog(
-                        debt = debt,
-                        accounts = uiState.accounts,
-                        onDismissRequest = { showPaymentDialog = null },
-                        onConfirm = { amount, paymentType, note, date, accountId ->
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.makePayment(debtId = debt.id, accountId = accountId, amount = amount, paymentType = paymentType, note = note, date = date)
-                            showPaymentDialog = null
+                    when (debt) {
+                        is RegularDebt -> {
+                            RecordRegularPaymentDialog(
+                                debt = debt,
+                                accounts = uiState.accounts,
+                                onDismissRequest = { showPaymentDialog = null },
+                                onConfirm = { amount, note, date, accountId ->
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.makePayment(
+                                        debtId = debt.id,
+                                        accountId = accountId,
+                                        amount = amount,
+                                        paymentType = DebtPaymentType.MANUAL,
+                                        note = note,
+                                        date = date
+                                    )
+                                    showPaymentDialog = null
+                                }
+                            )
                         }
-                    )
+                        is InstallmentDebt -> {
+                            RecordInstallmentPaymentDialog(
+                                debt = debt,
+                                accounts = uiState.accounts,
+                                onDismissRequest = { showPaymentDialog = null },
+                                onConfirm = { amount, paymentType, note, date, accountId ->
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.makePayment(
+                                        debtId = debt.id,
+                                        accountId = accountId,
+                                        amount = amount,
+                                        paymentType = paymentType,
+                                        note = note,
+                                        date = date
+                                    )
+                                    showPaymentDialog = null
+                                }
+                            )
+                        }
+                    }
                 }
 
                 showEditDebtBottomSheet?.let { targetDebt ->
-                    EditDebtBottomSheet(
-                        debt = targetDebt,
-                        accounts = uiState.accounts,
-                        onDismissRequest = { showEditDebtBottomSheet = null },
-                        onConfirm = { title, creditorName, totalAmount, minimumPayment, paymentFrequency, linkedAccountId, priority, notes, color, interestRate, dueDate, debtType ->
-                            viewModel.updateDebtDetails(
-                                debtId = targetDebt.id, title = title, creditorName = creditorName,
-                                totalAmount = totalAmount, minimumPayment = minimumPayment,
-                                paymentFrequency = paymentFrequency, linkedAccountId = linkedAccountId,
-                                priority = priority, notes = notes, color = color,
-                                interestRate = interestRate, dueDate = dueDate,
-                                debtType = debtType,
-                                onSuccess = {
-                                    showEditDebtBottomSheet = null
-                                    Toast.makeText(context, "تم تحديث الدين بنجاح", Toast.LENGTH_SHORT).show()
-                                },
-                                onError = { error -> Toast.makeText(context, error, Toast.LENGTH_LONG).show() }
+                    when (targetDebt) {
+                        is RegularDebt -> {
+                            EditRegularDebtBottomSheet(
+                                debt = targetDebt,
+                                accounts = uiState.accounts,
+                                onDismissRequest = { showEditDebtBottomSheet = null },
+                                onConfirm = { title, creditorName, totalAmount, linkedAccountId, notes, color, dueDate ->
+                                    viewModel.updateDebtDetails(
+                                        debtId = targetDebt.id,
+                                        title = title,
+                                        creditorName = creditorName,
+                                        totalAmount = totalAmount,
+                                        minimumPayment = 0.0,
+                                        paymentFrequency = "NONE",
+                                        linkedAccountId = linkedAccountId,
+                                        priority = 3,
+                                        notes = notes,
+                                        color = color,
+                                        interestRate = 0.0,
+                                        dueDate = dueDate,
+                                        debtType = DebtType.REGULAR,
+                                        onSuccess = {
+                                            showEditDebtBottomSheet = null
+                                            Toast.makeText(context, "تم تحديث الدين بنجاح", Toast.LENGTH_SHORT).show()
+                                        },
+                                        onError = { error -> Toast.makeText(context, error, Toast.LENGTH_LONG).show() }
+                                    )
+                                }
                             )
                         }
-                    )
+                        is InstallmentDebt -> {
+                            EditInstallmentDebtBottomSheet(
+                                debt = targetDebt,
+                                accounts = uiState.accounts,
+                                onDismissRequest = { showEditDebtBottomSheet = null },
+                                onConfirm = { title, creditorName, totalAmount, minimumPayment, paymentFrequency, linkedAccountId, priority, notes, color, interestRate, dueDate ->
+                                    viewModel.updateDebtDetails(
+                                        debtId = targetDebt.id,
+                                        title = title,
+                                        creditorName = creditorName,
+                                        totalAmount = totalAmount,
+                                        minimumPayment = minimumPayment,
+                                        paymentFrequency = paymentFrequency,
+                                        linkedAccountId = linkedAccountId,
+                                        priority = priority,
+                                        notes = notes,
+                                        color = color,
+                                        interestRate = interestRate,
+                                        dueDate = dueDate,
+                                        debtType = DebtType.INSTALLMENT,
+                                        onSuccess = {
+                                            showEditDebtBottomSheet = null
+                                            Toast.makeText(context, "تم تحديث الدين بنجاح", Toast.LENGTH_SHORT).show()
+                                        },
+                                        onError = { error -> Toast.makeText(context, error, Toast.LENGTH_LONG).show() }
+                                    )
+                                }
+                            )
+                        }
+                    }
                 }
 
                 showDeleteConfirmDialog?.let { targetDebt ->

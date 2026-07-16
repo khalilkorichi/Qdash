@@ -22,7 +22,9 @@ data class Transaction(
         TransactionType.TRANSFER -> TransactionKind.TRANSFER
     },
     val transferId: String? = null,
-    val isDebit: Boolean = true
+    val isDebit: Boolean = true,
+    // Precise execution timestamp. Null for legacy records — never display a fabricated time.
+    val occurredAt: Long? = null
 ) : Identifiable, AccountLinkedAmount, Notable
 
 enum class TransactionType {
@@ -125,7 +127,8 @@ fun TransactionEntity.toDomain() = Transaction(
     tags = tags,
     kind = try { TransactionKind.valueOf(kind) } catch (e: Exception) { TransactionKind.INCOME },
     transferId = transferId,
-    isDebit = isDebit
+    isDebit = isDebit,
+    occurredAt = occurredAt
 )
 
 fun AccountEntity.toDomain() = Account(
@@ -211,7 +214,8 @@ fun Transaction.toEntity() = TransactionEntity(
     tags = tags,
     kind = kind.name,
     transferId = transferId,
-    isDebit = isDebit
+    isDebit = isDebit,
+    occurredAt = occurredAt
 )
 
 fun Account.toEntity() = AccountEntity(

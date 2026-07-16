@@ -121,6 +121,26 @@ object FormatterUtils {
         return convertNumerals(sdf.format(Date(timestamp)))
     }
 
+    /**
+     * Formats epoch milliseconds as local-timezone time string (HH:mm).
+     * Only call this when occurredAt is non-null — never fabricate times for legacy records.
+     */
+    fun formatTime(timestamp: Long): String {
+        val sdf = SimpleDateFormat("HH:mm", Locale.US)
+        return convertNumerals(sdf.format(Date(timestamp)))
+    }
+
+    /**
+     * Formats epoch milliseconds as full date+time string (e.g. "16 يوليو 2026 — 14:35").
+     * Only call this when occurredAt is non-null.
+     */
+    fun formatDateTime(timestamp: Long): String {
+        val datePart = formatDate(timestamp)
+        val timePart = formatTime(timestamp)
+        return "$datePart — $timePart"
+    }
+
+
     fun formatFileSize(size: Long): String {
         if (size <= 0) return "0 ب"
         val units = arrayOf("ب", "ك.ب", "م.ب", "ج.ب")

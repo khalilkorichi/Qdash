@@ -265,10 +265,23 @@ fun TransactionDateSelector(
     transactionDate: Long,
     onDateChanged: (Long) -> Unit,
     typeAccentColor: Color,
+    // Precise execution timestamp — null for legacy records or when user hasn't set a time yet.
+    occurredAt: Long? = null,
+    onOccurredAtChanged: ((Long?) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
-    
+    var showTimePicker by remember { mutableStateOf(false) }
+
+    // Extract hour/minute from occurredAt (or current time as default for the picker)
+    val cal = remember(occurredAt) {
+        java.util.Calendar.getInstance().apply {
+            timeInMillis = occurredAt ?: System.currentTimeMillis()
+        }
+    }
+    val pickerHour = cal.get(java.util.Calendar.HOUR_OF_DAY)
+    val pickerMinute = cal.get(java.util.Calendar.MINUTE)
+
     Column(modifier = modifier) {
         SectionLabel(text = "تاريخ العملية")
         Spacer(modifier = Modifier.height(6.dp))
@@ -334,14 +347,15 @@ fun TransactionDateSelector(
                 text = "اليوم",
                 isSelected = isToday,
                 accentColor = typeAccentColor,
-                onClick = { onDateChanged(System.currentTimeMillis()) }
+                // Preserve day of transactionDate but keep time in occurredAt unchanged
+                onClick = { onDateChanged(mergeDateTime(System.currentTimeMillis(), occurredAt)) }
             )
 
             QuickDateButton(
                 text = "البارحة",
                 isSelected = isYesterday,
                 accentColor = typeAccentColor,
-                onClick = { onDateChanged(System.currentTimeMillis() - 24 * 60 * 60 * 1000L) }
+                onClick = { onDateChanged(mergeDateTime(System.currentTimeMillis() - 24 * 60 * 60 * 1000L, occurredAt)) }
             )
 
             QuickDateButton(
@@ -351,17 +365,136 @@ fun TransactionDateSelector(
                 onClick = { showDatePicker = true }
             )
         }
+
+        // Time picker section (only shown if callback provided)
+        if (onOccurredAtChanged != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(elevation = 1.dp, shape = RoundedCornerShape(14.dp))
+                    .clickable { showTimePicker = true }
+                    .testTag("time_selector"),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = if (occurredAt != null)
+                        typeAccentColor.copy(alpha = 0.4f)
+                    else
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.AccessTime,
+                            contentDescription = null,
+                            tint = if (occurredAt != null) typeAccentColor else TextGray,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = if (occurredAt != null)
+                                FormatterUtils.formatTime(occurredAt)
+                            else
+                                "إضافة وقت (اختياري)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (occurredAt != null)
+                                MaterialTheme.colorScheme.onSurface
+                            else
+                                TextGray,
+                            fontWeight = if (occurredAt != null) FontWeight.SemiBold else FontWeight.Normal
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (occurredAt != null) {
+                            // Allow removing the time
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "إزالة الوقت",
+                                tint = TextGray,
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .clickable { onOccurredAtChanged(null) }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "تعديل الوقت",
+                            tint = TextGray,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+        }
     }
 
     if (showDatePicker) {
         AppDatePickerDialog(
             initialSelectedDateMillis = transactionDate,
             onDismissRequest = { showDatePicker = false },
-            onDateSelected = { onDateChanged(it) },
+            onDateSelected = { selectedDate ->
+                // Preserve time component from occurredAt when date changes
+                onDateChanged(mergeDateTime(selectedDate, occurredAt))
+            },
+            confirmButtonColor = typeAccentColor
+        )
+    }
+
+    if (showTimePicker && onOccurredAtChanged != null) {
+        AppTimePickerDialog(
+            initialHour = pickerHour,
+            initialMinute = pickerMinute,
+            onDismissRequest = { showTimePicker = false },
+            onTimeSelected = { hour, minute ->
+                // Merge selected time into transactionDate to produce occurredAt epoch
+                val newOccurredAt = buildOccurredAt(transactionDate, hour, minute)
+                onOccurredAtChanged(newOccurredAt)
+            },
             confirmButtonColor = typeAccentColor
         )
     }
 }
+
+/**
+ * Merges the day from [dateMills] with the time-of-day from [timeMills].
+ * If [timeMills] is null, returns [dateMills] unchanged.
+ * Used to update transactionDate quick-buttons without resetting the user's chosen time.
+ */
+private fun mergeDateTime(dateMills: Long, timeMills: Long?): Long {
+    if (timeMills == null) return dateMills
+    val dateCal = java.util.Calendar.getInstance().apply { timeInMillis = dateMills }
+    val timeCal = java.util.Calendar.getInstance().apply { timeInMillis = timeMills }
+    dateCal.set(java.util.Calendar.HOUR_OF_DAY, timeCal.get(java.util.Calendar.HOUR_OF_DAY))
+    dateCal.set(java.util.Calendar.MINUTE, timeCal.get(java.util.Calendar.MINUTE))
+    dateCal.set(java.util.Calendar.SECOND, 0)
+    dateCal.set(java.util.Calendar.MILLISECOND, 0)
+    return dateCal.timeInMillis
+}
+
+/**
+ * Produces an occurredAt epoch by combining the date component of [dateMills] with
+ * the explicit [hour] and [minute] chosen by the user via the time picker.
+ */
+private fun buildOccurredAt(dateMills: Long, hour: Int, minute: Int): Long {
+    val cal = java.util.Calendar.getInstance().apply { timeInMillis = dateMills }
+    cal.set(java.util.Calendar.HOUR_OF_DAY, hour)
+    cal.set(java.util.Calendar.MINUTE, minute)
+    cal.set(java.util.Calendar.SECOND, 0)
+    cal.set(java.util.Calendar.MILLISECOND, 0)
+    return cal.timeInMillis
+}
+
+
 
 @Composable
 fun RecurringOptionsSection(

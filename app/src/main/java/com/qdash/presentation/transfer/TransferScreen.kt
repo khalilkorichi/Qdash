@@ -48,7 +48,7 @@ fun TransferScreen(
                     accounts = uiState.accounts,
                     isLoading = uiState.isLoading,
                     error = uiState.error,
-                    onExecuteTransfer = { fromId, toId, amt, fee, note, date, onSuccess ->
+                    onExecuteTransfer = { fromId, toId, amt, fee, note, date, occurredAt, onSuccess ->
                         viewModel.executeTransfer(
                             fromAccountId = fromId,
                             toAccountId = toId,
@@ -56,6 +56,7 @@ fun TransferScreen(
                             feeAmount = fee,
                             note = note,
                             date = date,
+                            occurredAt = occurredAt,
                             onComplete = onSuccess
                         )
                     }

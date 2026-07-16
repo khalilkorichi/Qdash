@@ -55,7 +55,7 @@ class TransferViewModel(
         }
     }
 
-    fun executeTransfer(fromAccountId: Long, toAccountId: Long, amount: Double, feeAmount: Double?, note: String?, date: Long = System.currentTimeMillis(), onComplete: (Boolean) -> Unit) {
+    fun executeTransfer(fromAccountId: Long, toAccountId: Long, amount: Double, feeAmount: Double?, note: String?, date: Long = System.currentTimeMillis(), occurredAt: Long? = null, onComplete: (Boolean) -> Unit) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, success = false, error = null) }
             val isValid = validateTransferUseCase(fromAccountId, amount, feeAmount)
@@ -71,7 +71,8 @@ class TransferViewModel(
                 amount = amount,
                 feeAmount = feeAmount,
                 note = note,
-                date = date
+                date = date,
+                occurredAt = occurredAt
             )
             val isSuccess = transferBetweenAccountsUseCase(request)
             if (isSuccess) {
@@ -84,3 +85,4 @@ class TransferViewModel(
         }
     }
 }
+

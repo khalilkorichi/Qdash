@@ -33,6 +33,7 @@ import com.qdash.ui.designsystem.components.*
 import com.qdash.ui.designsystem.tokens.*
 import java.text.SimpleDateFormat
 import java.util.*
+import com.qdash.presentation.transactions.TransactionDateSelector
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,6 +48,7 @@ fun TransferFormCard(
         feeAmount: Double?,
         note: String?,
         date: Long,
+        occurredAt: Long?,
         onSuccess: (Boolean) -> Unit
     ) -> Unit,
     modifier: Modifier = Modifier
@@ -58,7 +60,7 @@ fun TransferFormCard(
     var feeAmount by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     var transferDate by remember { mutableStateOf(System.currentTimeMillis()) }
-    var showDatePicker by remember { mutableStateOf(false) }
+    var occurredAt by remember { mutableStateOf<Long?>(System.currentTimeMillis()) }
 
     // Dropdown visibility
     var showFromDropdown by remember { mutableStateOf(false) }
@@ -353,65 +355,25 @@ fun TransferFormCard(
             }
 
             // 3. ADDITIONAL DETAILS
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = feeAmount,
-                    onValueChange = { feeAmount = it },
-                    label = { Text("الرسوم (د.ج)") },
-                    placeholder = { Text("0") },
-                    leadingIcon = { Icon(Icons.Default.Percent, null, tint = TextGray, modifier = Modifier.size(18.dp)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    visualTransformation = com.qdash.core.utils.ThousandsSeparatorTransformation(),
-                    modifier = Modifier.weight(0.8f),
-                    shape = RoundedCornerShape(12.dp)
-                )
-
-                // Date button inline
-                Box(
-                    modifier = Modifier
-                        .weight(1.4f)
-                        .height(56.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                        .clickable { showDatePicker = true }
-                        .padding(horizontal = 12.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(Icons.Default.DateRange, null, tint = TransferBlue, modifier = Modifier.size(18.dp))
-                        Column {
-                            Text("تاريخ العملية", style = MaterialTheme.typography.labelSmall, color = TextGray, fontSize = 8.sp)
-                            Text(
-                                text = FormatterUtils.formatDate(transferDate),
-                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-                    }
-                }
-            }
-
             OutlinedTextField(
-                value = note,
-                onValueChange = { note = it },
-                label = { Text("سبب التحويل وملاحظات") },
-                placeholder = { Text("مثال: لتغذية ظرف المصاريف الأسبوعية") },
-                leadingIcon = { Icon(Icons.Default.EditNote, null, tint = TextGray) },
+                value = feeAmount,
+                onValueChange = { feeAmount = it },
+                label = { Text("الرسوم (د.ج)") },
+                placeholder = { Text("0") },
+                leadingIcon = { Icon(Icons.Default.Percent, null, tint = TextGray, modifier = Modifier.size(18.dp)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                visualTransformation = com.qdash.core.utils.ThousandsSeparatorTransformation(),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             )
 
-            if (showDatePicker) {
-                AppDatePickerDialog(
-                    initialSelectedDateMillis = transferDate,
-                    onDismissRequest = { showDatePicker = false },
-                    onDateSelected = { transferDate = it },
-                    confirmButtonColor = TransferBlue
-                )
-            }
+            TransactionDateSelector(
+                transactionDate = transferDate,
+                onDateChanged = { transferDate = it },
+                typeAccentColor = TransferBlue,
+                occurredAt = occurredAt,
+                onOccurredAtChanged = { occurredAt = it }
+            )
 
             // 4. SUBMIT ACTION BUTTON
             AppButton(
@@ -423,12 +385,13 @@ fun TransferFormCard(
 
                     if (fromId != null && toId != null && amt > 0) {
                         if (fromId == toId) return@AppButton
-                        onExecuteTransfer(fromId, toId, amt, fee, note.ifBlank { null }, transferDate) { success ->
+                        onExecuteTransfer(fromId, toId, amt, fee, note.ifBlank { null }, transferDate, occurredAt) { success ->
                             if (success) {
                                 amount = ""
                                 feeAmount = ""
                                 note = ""
                                 transferDate = System.currentTimeMillis()
+                                occurredAt = System.currentTimeMillis()
                             }
                         }
                     }
@@ -543,9 +506,13 @@ fun TransferRecordItem(
                         color = TextGray,
                         fontSize = 11.sp
                     )
-                    val sdf = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.getDefault())
+                    val displayTime = if (record.occurredAt != null) {
+                        FormatterUtils.formatDateTime(record.occurredAt)
+                    } else {
+                        FormatterUtils.formatDate(record.date)
+                    }
                     Text(
-                        text = sdf.format(Date(record.date)),
+                        text = displayTime,
                         fontSize = 9.sp,
                         color = TextGray.copy(alpha = 0.8f)
                     )

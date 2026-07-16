@@ -24,20 +24,32 @@ interface SavingsContributionDao {
 
 @Dao
 interface DebtDao {
+    @Transaction
     @Query("SELECT * FROM debts ORDER BY createdAt DESC")
-    fun getAllDebts(): Flow<List<DebtEntity>>
+    fun getAllDebts(): Flow<List<DebtWithInstallmentDetails>>
 
-    @Query("SELECT * FROM debts WHERE isClosed = 0 ORDER BY priority ASC")
-    fun getActiveDebts(): Flow<List<DebtEntity>>
+    @Transaction
+    @Query("SELECT * FROM debts WHERE isClosed = 0")
+    fun getActiveDebts(): Flow<List<DebtWithInstallmentDetails>>
 
+    @Transaction
     @Query("SELECT * FROM debts WHERE id = :id")
-    suspend fun getDebtById(id: Long): DebtEntity?
+    suspend fun getDebtById(id: Long): DebtWithInstallmentDetails?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDebt(debt: DebtEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertInstallmentDetails(details: DebtInstallmentDetailsEntity)
+
     @Update
     suspend fun updateDebt(debt: DebtEntity)
+
+    @Update
+    suspend fun updateInstallmentDetails(details: DebtInstallmentDetailsEntity)
+
+    @Query("DELETE FROM debt_installment_details WHERE debtId = :debtId")
+    suspend fun deleteInstallmentDetails(debtId: Long)
 
     @Delete
     suspend fun deleteDebt(debt: DebtEntity)

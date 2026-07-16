@@ -8,23 +8,23 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.core.utils.FormatterUtils
-import com.qdash.domain.model.Account
-import com.qdash.domain.model.Debt
-import com.qdash.domain.model.DebtPayment
-import com.qdash.domain.model.DebtType
+import com.qdash.domain.model.*
 import com.qdash.ui.designsystem.components.*
 import com.qdash.ui.designsystem.tokens.ShapeTokens
 import com.qdash.ui.theme.ExpenseRed
 import com.qdash.ui.theme.IncomeGreen
+import com.qdash.ui.theme.SavingsAmber
 import com.qdash.ui.theme.TextGray
 import java.text.SimpleDateFormat
 import java.util.*
@@ -66,7 +66,10 @@ fun DebtDetailsContent(
                     shape = ShapeTokens.Lg,
                     leadingIcon = { Icon(Icons.Default.CreditCard, null) }
                 ) {
-                    Text("تسجيل سداد دفعة جديدة", fontWeight = FontWeight.Bold)
+                    Text(
+                        text = if (debt is RegularDebt) "تسجيل سداد دين جديد" else "تسجيل سداد دفعة قسط جديدة",
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -127,7 +130,8 @@ fun DebtDetailsContent(
                             Column {
                                 val sdf = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.getDefault())
                                 val dateStr = sdf.format(Date(payment.paymentDate))
-                                Text(payment.note ?: "تسديد قسط دين منتظم", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                val defaultNote = if (debt is RegularDebt) "تسديد سداد دين" else "تسديد قسط دين منتظم"
+                                Text(payment.note ?: defaultNote, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(dateStr, style = MaterialTheme.typography.labelSmall, color = TextGray)
                             }
@@ -142,8 +146,8 @@ fun DebtDetailsContent(
                                 fontWeight = FontWeight.Bold,
                                 color = IncomeGreen
                             )
-                            // زر إلغاء الدفعة — يظهر للديون العادية المغلقة أو لأي دفعة قابلة للتراجع
-                            if (debt.debtType == DebtType.REGULAR || debt.isClosed) {
+                            // Undo payment button: allowed for Regular debts, or closed debts
+                            if (debt is RegularDebt || debt.isClosed) {
                                 IconButton(
                                     onClick = { onCancelPaymentClick(payment) },
                                     modifier = Modifier.size(36.dp)
@@ -200,13 +204,33 @@ private fun DebtSummaryCard(debt: Debt, accounts: List<Account>, progress: Float
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Decoupled metadata row based on subclass properties
+            val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+            val metaItems = remember(debt, onSurfaceColor) {
+                val list = mutableListOf(
+                    Triple("الأصل", FormatterUtils.formatCurrency(debt.totalAmount), onSurfaceColor),
+                    Triple("الجهة", debt.creditorName, onSurfaceColor)
+                )
+                when (debt) {
+                    is RegularDebt -> {
+                        list.add(Triple("النوع", "دين مرن", SavingsAmber))
+                    }
+                    is InstallmentDebt -> {
+                        list.add(Triple("الفائدة", "${debt.interestRate}%", ExpenseRed))
+                        list.add(Triple("القسط الأدنى", "${debt.minimumPayment.toInt()} د.ج", onSurfaceColor))
+                    }
+                }
+                list
+            }
+
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                listOf(
-                    Triple("الأصل", FormatterUtils.formatCurrency(debt.totalAmount), MaterialTheme.colorScheme.onSurface),
-                    Triple("الجهة", debt.creditorName, MaterialTheme.colorScheme.onSurface),
-                    Triple("الأولوية", if (debt.priority == 1) "عاجل" else "عادي", if (debt.priority == 1) ExpenseRed else MaterialTheme.colorScheme.onSurface)
-                ).forEach { (label, value, valueColor) ->
-                    AppCard(modifier = Modifier.weight(1f), variant = CardVariant.FLAT, shape = ShapeTokens.Lg, backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)) {
+                metaItems.forEach { (label, value, valueColor) ->
+                    AppCard(
+                        modifier = Modifier.weight(1f),
+                        variant = CardVariant.FLAT,
+                        shape = ShapeTokens.Lg,
+                        backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(label, style = MaterialTheme.typography.labelSmall, color = TextGray)
                             Spacer(modifier = Modifier.height(4.dp))
@@ -220,7 +244,8 @@ private fun DebtSummaryCard(debt: Debt, accounts: List<Account>, progress: Float
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(Icons.Default.Event, null, tint = ExpenseRed, modifier = Modifier.size(16.dp))
-                    Text("تاريخ الاستحقاق: ${FormatterUtils.formatDate(debt.dueDate)}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = ExpenseRed)
+                    val label = if (debt is RegularDebt) "تاريخ الاستحقاق النهائى" else "تاريخ القسط القادم"
+                    Text("$label: ${FormatterUtils.formatDate(debt.dueDate!!)}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = ExpenseRed)
                 }
             }
 
@@ -240,7 +265,7 @@ private fun DebtSummaryCard(debt: Debt, accounts: List<Account>, progress: Float
                 AppCard(modifier = Modifier.fillMaxWidth(), variant = CardVariant.FLAT, shape = ShapeTokens.Lg, backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)) {
                     Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Default.Notes, null, tint = TextGray, modifier = Modifier.size(16.dp))
-                        Text(debt.notes, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
+                        Text(debt.notes!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
                     }
                 }
             }
