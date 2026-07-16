@@ -17,8 +17,8 @@ data class BudgetGoal(
     override val /* contract */ color: String,
     override val /* contract */ icon: String,
     override val /* contract */ createdAt: Long = System.currentTimeMillis()
-) : Identifiable, Titled, ColorTagged, IconTagged, Timestamped {
-    val remainingAmount: Double
+) : Identifiable, Titled, ColorTagged, IconTagged, Timestamped, RemainingAmountTrackable {
+    override val /* contract */ remainingAmount: Double
         get() = amountLimit - spentAmount
 
     val usagePercent: Double
