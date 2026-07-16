@@ -1,6 +1,7 @@
 package com.qdash.domain.model
 
 import com.qdash.data.local.entities.NotificationEntity
+import com.qdash.domain.model.common.Identifiable
 
 enum class NotificationType {
     BUDGET_ALERT, SUBSCRIPTION_REMINDER, SAVINGS_MILESTONE,
@@ -9,7 +10,7 @@ enum class NotificationType {
 }
 
 data class AppNotification(
-    val id: Long = 0,
+    override val /* contract */ id: Long = 0,
     val title: String,
     val message: String,
     val type: NotificationType,
@@ -17,7 +18,7 @@ data class AppNotification(
     val timestamp: Long = System.currentTimeMillis(),
     val deepLinkRoute: String? = null,
     val relatedEntityId: Long? = null
-)
+) : Identifiable
 
 fun NotificationEntity.toDomain() = AppNotification(
     id = id,

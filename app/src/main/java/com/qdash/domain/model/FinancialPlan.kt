@@ -27,11 +27,11 @@ data class FinancialPlan(
     override val /* contract */ color: String = "#6C63FF",
     override val /* contract */ icon: String = "flag",
     override val /* contract */ createdAt: Long = System.currentTimeMillis()
-) : Identifiable, Titled, NotesHolder, ColorTagged, IconTagged, Timestamped {
+) : Identifiable, Titled, NotesHolder, ColorTagged, IconTagged, Timestamped, RemainingAmountTrackable {
     val progressPercent: Float
         get() = if (targetAmount <= 0) 0f else (currentAmount / targetAmount).toFloat().coerceIn(0f, 1f)
 
-    val remainingAmount: Double
+    override val /* contract */ remainingAmount: Double
         get() = (targetAmount - currentAmount).coerceAtLeast(0.0)
 
     val isCompleted: Boolean
