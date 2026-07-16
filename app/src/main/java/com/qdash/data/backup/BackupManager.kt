@@ -384,7 +384,23 @@ class BackupManager(
                 fallbackEx.printStackTrace()
             }
             stagingDir.deleteRecursively()
-            Result.failure(e)
+            // Translate low-level exceptions into descriptive user-facing messages
+            val userMessage = when {
+                e.message?.contains("FOREIGN KEY", ignoreCase = true) == true ||
+                e.message?.contains("787") == true ->
+                    "فشلت الاستعادة: الملف يحتوي على بيانات غير مترابطة. " +
+                    "يرجى استخدام نسخة احتياطية أحدث أو إنشاء نسخة احتياطية جديدة من هاتفك القديم."
+                e.message?.contains("UNIQUE", ignoreCase = true) == true ->
+                    "فشلت الاستعادة: تعارض في بيانات الملف (تكرار في السجلات)."
+                e.message?.contains("no such table", ignoreCase = true) == true ->
+                    "ملف النسخة الاحتياطية من إصدار قديم غير مدعوم حالياً."
+                e.message?.contains("فشل فحص سلامة", ignoreCase = true) == true ->
+                    e.message ?: "فشلت الاستعادة بسبب سلامة البيانات."
+                e is OutOfMemoryError ->
+                    "فشلت الاستعادة: ملف النسخة الاحتياطية كبير جداً. يرجى تفريغ ذاكرة الجهاز والمحاولة مجدداً."
+                else -> "حدث خطأ أثناء الاستعادة: ${e.localizedMessage ?: "خطأ غير معروف"}"
+            }
+            Result.failure(Exception(userMessage, e))
         }
     }
 

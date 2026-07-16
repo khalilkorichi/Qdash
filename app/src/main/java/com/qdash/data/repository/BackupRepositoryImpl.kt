@@ -79,6 +79,7 @@ class BackupRepositoryImpl(
                 put("isRecurring", it.isRecurring)
                 put("recurringPeriod", it.recurringPeriod ?: JSONObject.NULL)
                 put("attachmentPath", it.attachmentPath ?: JSONObject.NULL)
+                put("occurredAt", it.occurredAt ?: JSONObject.NULL)
             })
         }
         backupObj.put("transactions", txArray)
@@ -152,24 +153,26 @@ class BackupRepositoryImpl(
         val debtsArray = JSONArray()
         database.debtDao().getAllDebts().first().forEach {
             debtsArray.put(JSONObject().apply {
-                put("id", it.id)
-                put("title", it.title)
-                put("creditorName", it.creditorName)
-                put("totalAmount", it.totalAmount)
-                put("remainingAmount", it.remainingAmount)
-                put("interestRate", it.interestRate ?: JSONObject.NULL)
-                put("dueDate", it.dueDate ?: JSONObject.NULL)
-                put("minimumPayment", it.minimumPayment)
-                put("recommendedPayment", it.recommendedPayment ?: JSONObject.NULL)
-                put("paymentFrequency", it.paymentFrequency)
-                put("linkedAccountId", it.linkedAccountId ?: JSONObject.NULL)
-                put("priority", it.priority)
-                put("notes", it.notes ?: JSONObject.NULL)
-                put("color", it.color)
-                put("icon", it.icon)
-                put("createdAt", it.createdAt)
-                put("isClosed", it.isClosed)
-                put("debtType", it.debtType)
+                val debt = it.debt
+                val details = it.installmentDetails
+                put("id", debt.id)
+                put("title", debt.title)
+                put("creditorName", debt.creditorName)
+                put("totalAmount", debt.totalAmount)
+                put("remainingAmount", debt.remainingAmount)
+                put("interestRate", details?.interestRate ?: JSONObject.NULL)
+                put("dueDate", debt.dueDate ?: JSONObject.NULL)
+                put("minimumPayment", details?.minimumPayment ?: 0.0)
+                put("recommendedPayment", details?.recommendedPayment ?: JSONObject.NULL)
+                put("paymentFrequency", details?.paymentFrequency ?: "NONE")
+                put("linkedAccountId", debt.linkedAccountId ?: JSONObject.NULL)
+                put("priority", details?.priority ?: 3)
+                put("notes", debt.notes ?: JSONObject.NULL)
+                put("color", debt.color)
+                put("icon", debt.icon)
+                put("createdAt", debt.createdAt)
+                put("isClosed", debt.isClosed)
+                put("debtType", debt.debtType)
             })
         }
         backupObj.put("debts", debtsArray)
@@ -332,11 +335,17 @@ class BackupRepositoryImpl(
             }
         }
 
-        // 2. Restore Categories (Only custom ones)
+        // 2. Restore Categories — root categories first, then subcategories
+        // (self-referential FK: parentId must reference an already-inserted row)
         val catsArray = json.optJSONArray("categories")
         if (catsArray != null) {
-            for (i in 0 until catsArray.length()) {
-                val obj = catsArray.getJSONObject(i)
+            // Build list of all category objects
+            val allCatObjects = (0 until catsArray.length()).map { catsArray.getJSONObject(it) }
+            val rootCats = allCatObjects.filter { it.isNull("parentId") || !it.has("parentId") }
+            val subCats = allCatObjects.filter { !it.isNull("parentId") && it.has("parentId") }
+
+            // Insert root categories first (parentId == null), then subcategories
+            for (obj in rootCats + subCats) {
                 database.categoryDao().insertCategory(
                     CategoryEntity(
                         id = obj.getLong("id"),
@@ -344,7 +353,7 @@ class BackupRepositoryImpl(
                         type = obj.getString("type"),
                         icon = obj.getString("icon"),
                         color = obj.getString("color"),
-                        budgetLimit = if (obj.isNull("budgetLimit")) null else obj.getDouble("budgetLimit"),
+                        budgetLimit = if (obj.isNull("budgetLimit")) null else obj.optDouble("budgetLimit"),
                         isSystem = obj.optBoolean("isSystem", false),
                         parentId = if (obj.has("parentId") && !obj.isNull("parentId")) obj.getLong("parentId") else null,
                         sortOrder = obj.optInt("sortOrder", 0)
@@ -363,18 +372,30 @@ class BackupRepositoryImpl(
                         id = obj.getLong("id"),
                         amount = obj.getDouble("amount"),
                         type = obj.getString("type"),
-                        categoryId = obj.getLong("categoryId"),
+                        // categoryId is nullable — old backups may have 0 or missing value
+                        categoryId = if (obj.has("categoryId") && !obj.isNull("categoryId")) {
+                            val cid = obj.getLong("categoryId")
+                            if (cid == 0L) null else cid
+                        } else null,
                         accountId = obj.getLong("accountId"),
                         toAccountId = if (obj.has("toAccountId") && !obj.isNull("toAccountId")) obj.getLong("toAccountId") else null,
                         note = if (obj.has("note") && !obj.isNull("note")) obj.getString("note") else null,
                         date = obj.getLong("date"),
                         isRecurring = obj.optBoolean("isRecurring", false),
                         recurringPeriod = if (obj.has("recurringPeriod") && !obj.isNull("recurringPeriod")) obj.getString("recurringPeriod") else null,
-                        attachmentPath = if (obj.has("attachmentPath") && !obj.isNull("attachmentPath")) obj.getString("attachmentPath") else null
+                        attachmentPath = if (obj.has("attachmentPath") && !obj.isNull("attachmentPath")) obj.getString("attachmentPath") else null,
+                        tags = if (obj.has("tags") && !obj.isNull("tags")) obj.getString("tags") else null,
+                        // kind/isDebit: provide safe defaults for very old backups
+                        kind = obj.optString("kind", obj.optString("type", "INCOME")),
+                        isDebit = obj.optBoolean("isDebit", true),
+                        transferId = if (obj.has("transferId") && !obj.isNull("transferId")) obj.getString("transferId") else null,
+                        // occurredAt: null for old backups (no fabricated time), preserved for new ones
+                        occurredAt = if (obj.has("occurredAt") && !obj.isNull("occurredAt")) obj.getLong("occurredAt") else null
                     )
                 )
             }
         }
+
 
         // Restore remaining tables
         val incomeArray = json.optJSONArray("income_sources")
@@ -462,28 +483,37 @@ class BackupRepositoryImpl(
         if (debtsArray != null) {
             for (i in 0 until debtsArray.length()) {
                 val obj = debtsArray.getJSONObject(i)
+                val debtId = obj.getLong("id")
+                val debtType = obj.optString("debtType", "INSTALLMENT")
                 database.debtDao().insertDebt(
                     DebtEntity(
-                        id = obj.getLong("id"),
+                        id = debtId,
                         title = obj.getString("title"),
                         creditorName = obj.getString("creditorName"),
                         totalAmount = obj.getDouble("totalAmount"),
                         remainingAmount = obj.getDouble("remainingAmount"),
-                        interestRate = if (obj.has("interestRate") && !obj.isNull("interestRate")) obj.getDouble("interestRate") else null,
                         dueDate = if (obj.has("dueDate") && !obj.isNull("dueDate")) obj.getLong("dueDate") else null,
-                        minimumPayment = obj.getDouble("minimumPayment"),
-                        recommendedPayment = if (obj.has("recommendedPayment") && !obj.isNull("recommendedPayment")) obj.getDouble("recommendedPayment") else null,
-                        paymentFrequency = obj.getString("paymentFrequency"),
                         linkedAccountId = if (obj.has("linkedAccountId") && !obj.isNull("linkedAccountId")) obj.getLong("linkedAccountId") else null,
-                        priority = obj.getInt("priority"),
                         notes = if (obj.has("notes") && !obj.isNull("notes")) obj.getString("notes") else null,
                         color = obj.getString("color"),
                         icon = obj.getString("icon"),
                         createdAt = obj.optLong("createdAt", System.currentTimeMillis()),
                         isClosed = obj.optBoolean("isClosed", false),
-                        debtType = obj.optString("debtType", "INSTALLMENT")
+                        debtType = debtType
                     )
                 )
+                if (debtType == "INSTALLMENT") {
+                    database.debtDao().insertInstallmentDetails(
+                        DebtInstallmentDetailsEntity(
+                            debtId = debtId,
+                            interestRate = if (obj.has("interestRate") && !obj.isNull("interestRate")) obj.getDouble("interestRate") else 0.0,
+                            minimumPayment = obj.optDouble("minimumPayment", 0.0),
+                            recommendedPayment = if (obj.has("recommendedPayment") && !obj.isNull("recommendedPayment")) obj.getDouble("recommendedPayment") else null,
+                            paymentFrequency = obj.optString("paymentFrequency", "MONTHLY"),
+                            priority = obj.optInt("priority", 3)
+                        )
+                    )
+                }
             }
         }
 
@@ -852,30 +882,32 @@ class BackupRepositoryImpl(
             counts["debts"] = list.size
             writer.name("debts").beginArray()
             list.forEach {
+                val debt = it.debt
+                val details = it.installmentDetails
                 writer.beginObject()
-                writer.name("id").value(it.id)
-                writer.name("title").value(it.title)
-                writer.name("creditorName").value(it.creditorName)
-                writer.name("totalAmount").value(it.totalAmount)
-                writer.name("remainingAmount").value(it.remainingAmount)
+                writer.name("id").value(debt.id)
+                writer.name("title").value(debt.title)
+                writer.name("creditorName").value(debt.creditorName)
+                writer.name("totalAmount").value(debt.totalAmount)
+                writer.name("remainingAmount").value(debt.remainingAmount)
                 writer.name("interestRate")
-                if (it.interestRate == null) writer.nullValue() else writer.value(it.interestRate)
+                if (details?.interestRate == null) writer.nullValue() else writer.value(details.interestRate)
                 writer.name("dueDate")
-                if (it.dueDate == null) writer.nullValue() else writer.value(it.dueDate)
-                writer.name("minimumPayment").value(it.minimumPayment)
+                if (debt.dueDate == null) writer.nullValue() else writer.value(debt.dueDate)
+                writer.name("minimumPayment").value(details?.minimumPayment ?: 0.0)
                 writer.name("recommendedPayment")
-                if (it.recommendedPayment == null) writer.nullValue() else writer.value(it.recommendedPayment)
-                writer.name("paymentFrequency").value(it.paymentFrequency)
+                if (details?.recommendedPayment == null) writer.nullValue() else writer.value(details.recommendedPayment)
+                writer.name("paymentFrequency").value(details?.paymentFrequency ?: "MONTHLY")
                 writer.name("linkedAccountId")
-                if (it.linkedAccountId == null) writer.nullValue() else writer.value(it.linkedAccountId)
-                writer.name("priority").value(it.priority.toLong())
+                if (debt.linkedAccountId == null) writer.nullValue() else writer.value(debt.linkedAccountId)
+                writer.name("priority").value((details?.priority ?: 3).toLong())
                 writer.name("notes")
-                if (it.notes == null) writer.nullValue() else writer.value(it.notes)
-                writer.name("color").value(it.color)
-                writer.name("icon").value(it.icon)
-                writer.name("createdAt").value(it.createdAt)
-                writer.name("isClosed").value(it.isClosed)
-                writer.name("debtType").value(it.debtType)
+                if (debt.notes == null) writer.nullValue() else writer.value(debt.notes)
+                writer.name("color").value(debt.color)
+                writer.name("icon").value(debt.icon)
+                writer.name("createdAt").value(debt.createdAt)
+                writer.name("isClosed").value(debt.isClosed)
+                writer.name("debtType").value(debt.debtType)
                 writer.endObject()
             }
             writer.endArray()
@@ -1193,37 +1225,14 @@ class BackupRepositoryImpl(
 
         fun isSelected(table: String) = selectedTables == null || selectedTables.contains(table)
 
-        // Clear only selected tables to be restored
-        if (isSelected("transactions")) database.openHelper.writableDatabase.execSQL("DELETE FROM transactions")
-        if (isSelected("accounts")) database.openHelper.writableDatabase.execSQL("DELETE FROM accounts")
-        if (isSelected("categories")) database.openHelper.writableDatabase.execSQL("DELETE FROM categories")
-        if (isSelected("income_sources")) database.openHelper.writableDatabase.execSQL("DELETE FROM income_sources")
-        if (isSelected("saving_goals")) database.openHelper.writableDatabase.execSQL("DELETE FROM saving_goals")
-        if (isSelected("savings_contributions")) database.openHelper.writableDatabase.execSQL("DELETE FROM savings_contributions")
-        if (isSelected("subscriptions")) database.openHelper.writableDatabase.execSQL("DELETE FROM subscriptions")
-        if (isSelected("debts")) database.openHelper.writableDatabase.execSQL("DELETE FROM debts")
-        if (isSelected("debt_payments")) database.openHelper.writableDatabase.execSQL("DELETE FROM debt_payments")
-        if (isSelected("transfers")) database.openHelper.writableDatabase.execSQL("DELETE FROM transfers")
-        if (isSelected("budget_goals")) database.openHelper.writableDatabase.execSQL("DELETE FROM budget_goals")
-        if (isSelected("financial_plans")) database.openHelper.writableDatabase.execSQL("DELETE FROM financial_plans")
-        if (isSelected("transaction_templates")) database.openHelper.writableDatabase.execSQL("DELETE FROM transaction_templates")
-        if (isSelected("notifications")) database.openHelper.writableDatabase.execSQL("DELETE FROM notifications")
-        if (isSelected("category_rules")) database.openHelper.writableDatabase.execSQL("DELETE FROM category_rules")
-        if (isSelected("user_category_mappings")) database.openHelper.writableDatabase.execSQL("DELETE FROM user_category_mappings")
-        if (isSelected("ai_chat_messages")) database.openHelper.writableDatabase.execSQL("DELETE FROM ai_chat_messages")
-        if (isSelected("postal_profiles")) database.openHelper.writableDatabase.execSQL("DELETE FROM postal_profiles")
-        if (isSelected("salary_delays")) database.openHelper.writableDatabase.execSQL("DELETE FROM salary_delays")
-        if (isSelected("salary_distributions")) database.openHelper.writableDatabase.execSQL("DELETE FROM salary_distributions")
-        if (isSelected("salary_envelopes")) database.openHelper.writableDatabase.execSQL("DELETE FROM salary_envelopes")
-        if (isSelected("transactions")) database.openHelper.writableDatabase.execSQL("DELETE FROM daily_financial_aggregates")
-
-        reader.beginObject() // {
+        // ── Pass 1: collect all table data into memory ─────────────────────────
+        // We read the entire JSON first so that we can insert in FK dependency
+        // order regardless of the order the keys appear in the backup file.
+        val tableData = mutableMapOf<String, MutableList<Map<String, Any?>>>()
+        reader.beginObject()
         while (reader.hasNext()) {
             val key = reader.nextName()
-            if (!isSelected(key)) {
-                reader.skipValue()
-                continue
-            }
+            val rows = mutableListOf<Map<String, Any?>>()
             reader.beginArray()
             while (reader.hasNext()) {
                 reader.beginObject()
@@ -1245,20 +1254,147 @@ class BackupRepositoryImpl(
                     }
                 }
                 reader.endObject()
-
-                // Map & insert row
-                insertRow(key, fields)
+                rows.add(fields)
             }
             reader.endArray()
+            tableData[key] = rows
         }
         reader.endObject()
         reader.close()
 
+        // ── Clear only selected tables ──────────────────────────────────────────
+        // Delete in reverse-dependency order so CASCADE actions don't interfere.
+        if (isSelected("salary_envelopes")) database.openHelper.writableDatabase.execSQL("DELETE FROM salary_envelopes")
+        if (isSelected("salary_distributions")) database.openHelper.writableDatabase.execSQL("DELETE FROM salary_distributions")
+        if (isSelected("salary_delays")) database.openHelper.writableDatabase.execSQL("DELETE FROM salary_delays")
+        if (isSelected("postal_profiles")) database.openHelper.writableDatabase.execSQL("DELETE FROM postal_profiles")
+        if (isSelected("ai_chat_messages")) database.openHelper.writableDatabase.execSQL("DELETE FROM ai_chat_messages")
+        if (isSelected("user_category_mappings")) database.openHelper.writableDatabase.execSQL("DELETE FROM user_category_mappings")
+        if (isSelected("category_rules")) database.openHelper.writableDatabase.execSQL("DELETE FROM category_rules")
+        if (isSelected("notifications")) database.openHelper.writableDatabase.execSQL("DELETE FROM notifications")
+        if (isSelected("transaction_templates")) database.openHelper.writableDatabase.execSQL("DELETE FROM transaction_templates")
+        if (isSelected("financial_plans")) database.openHelper.writableDatabase.execSQL("DELETE FROM financial_plans")
+        if (isSelected("budget_goals")) database.openHelper.writableDatabase.execSQL("DELETE FROM budget_goals")
+        if (isSelected("transfers")) database.openHelper.writableDatabase.execSQL("DELETE FROM transfers")
+        if (isSelected("debt_payments")) database.openHelper.writableDatabase.execSQL("DELETE FROM debt_payments")
+        if (isSelected("debts")) database.openHelper.writableDatabase.execSQL("DELETE FROM debts")
+        if (isSelected("subscriptions")) database.openHelper.writableDatabase.execSQL("DELETE FROM subscriptions")
+        if (isSelected("savings_contributions")) database.openHelper.writableDatabase.execSQL("DELETE FROM savings_contributions")
+        if (isSelected("saving_goals")) database.openHelper.writableDatabase.execSQL("DELETE FROM saving_goals")
+        if (isSelected("income_sources")) database.openHelper.writableDatabase.execSQL("DELETE FROM income_sources")
+        if (isSelected("transactions")) database.openHelper.writableDatabase.execSQL("DELETE FROM transactions")
+        if (isSelected("categories")) database.openHelper.writableDatabase.execSQL("DELETE FROM categories")
+        if (isSelected("accounts")) database.openHelper.writableDatabase.execSQL("DELETE FROM accounts")
+        if (isSelected("transactions")) database.openHelper.writableDatabase.execSQL("DELETE FROM daily_financial_aggregates")
+
+        // ── Pass 2: insert in FK dependency order ───────────────────────────────
+        // Tier 0 — no FK parents
+        if (isSelected("accounts")) {
+            tableData["accounts"]?.forEach { insertRow("accounts", it) }
+        }
+
+        // Tier 1 — categories: root categories first (parentId == null), then subcategories
+        if (isSelected("categories")) {
+            val categoryRows = tableData["categories"] ?: emptyList()
+            val rootCategories = categoryRows.filter { it["parentId"] == null }
+            val subCategories = categoryRows.filter { it["parentId"] != null }
+            rootCategories.forEach { insertRow("categories", it) }
+            subCategories.forEach { insertRow("categories", it) }
+        }
+
+        // Tier 2 — depend on accounts and/or root categories
+        if (isSelected("income_sources")) {
+            tableData["income_sources"]?.forEach { insertRow("income_sources", it) }
+        }
+        if (isSelected("saving_goals")) {
+            tableData["saving_goals"]?.forEach { insertRow("saving_goals", it) }
+        }
+        if (isSelected("transactions")) {
+            tableData["transactions"]?.forEach { insertRow("transactions", it) }
+        }
+        if (isSelected("subscriptions")) {
+            tableData["subscriptions"]?.forEach { insertRow("subscriptions", it) }
+        }
+        if (isSelected("debts")) {
+            tableData["debts"]?.forEach { insertRow("debts", it) }
+        }
+        if (isSelected("transfers")) {
+            tableData["transfers"]?.forEach { insertRow("transfers", it) }
+        }
+
+        // Tier 3 — depend on saving_goals or debts (which must exist first)
+        if (isSelected("savings_contributions")) {
+            tableData["savings_contributions"]?.forEach { insertRow("savings_contributions", it) }
+        }
+        if (isSelected("debt_payments")) {
+            tableData["debt_payments"]?.forEach { insertRow("debt_payments", it) }
+        }
+
+        // Tier 4 — no critical FK parents, or parents already inserted above
+        if (isSelected("budget_goals")) {
+            tableData["budget_goals"]?.forEach { insertRow("budget_goals", it) }
+        }
+        if (isSelected("financial_plans")) {
+            tableData["financial_plans"]?.forEach { insertRow("financial_plans", it) }
+        }
+        if (isSelected("transaction_templates")) {
+            tableData["transaction_templates"]?.forEach { insertRow("transaction_templates", it) }
+        }
+        if (isSelected("notifications")) {
+            tableData["notifications"]?.forEach { insertRow("notifications", it) }
+        }
+        if (isSelected("category_rules")) {
+            tableData["category_rules"]?.forEach { insertRow("category_rules", it) }
+        }
+        if (isSelected("user_category_mappings")) {
+            tableData["user_category_mappings"]?.forEach { insertRow("user_category_mappings", it) }
+        }
+        if (isSelected("ai_chat_messages")) {
+            tableData["ai_chat_messages"]?.forEach { insertRow("ai_chat_messages", it) }
+        }
+        if (isSelected("postal_profiles")) {
+            tableData["postal_profiles"]?.forEach { insertRow("postal_profiles", it) }
+        }
+        if (isSelected("salary_delays")) {
+            tableData["salary_delays"]?.forEach { insertRow("salary_delays", it) }
+        }
+        if (isSelected("salary_distributions")) {
+            tableData["salary_distributions"]?.forEach { insertRow("salary_distributions", it) }
+        }
+        if (isSelected("salary_envelopes")) {
+            tableData["salary_envelopes"]?.forEach { insertRow("salary_envelopes", it) }
+        }
+
+        // ── Post-restore tasks ──────────────────────────────────────────────────
         if (isSelected("transactions")) {
             regenerateDailyFinancialAggregates()
         }
         if (isSelected("categories")) {
             DatabaseSeeder.prepopulateSystemDefaults(database)
+        }
+
+        // FK integrity check — throws if any orphan records remain
+        verifyRestoreIntegrity()
+    }
+
+    /**
+     * Runs SQLite's built-in FK integrity check within the current transaction.
+     * Throws [IllegalStateException] if any orphan (FK-violating) records are found,
+     * which causes the surrounding withTransaction block to roll back automatically.
+     */
+    private fun verifyRestoreIntegrity() {
+        val db = database.openHelper.writableDatabase
+        // SupportSQLiteDatabase uses query() not rawQuery(); bindArgs must be an explicit typed array
+        db.query("PRAGMA foreign_key_check", arrayOfNulls<Any>(0)).use { cursor ->
+            if (cursor.moveToFirst()) {
+                val table = cursor.getString(0)
+                val rowId = cursor.getLong(1)
+                val parent = cursor.getString(2)
+                throw IllegalStateException(
+                    "فشل فحص سلامة قاعدة البيانات: سجل يتيم في جدول '$table' (rowId=$rowId) يشير إلى '$parent' غير موجود. " +
+                    "يرجى التحقق من سلامة ملف النسخة الاحتياطية."
+                )
+            }
         }
     }
 
@@ -1381,28 +1517,39 @@ class BackupRepositoryImpl(
                     isAutoShiftableBySalary = boolVal("isAutoShiftableBySalary")
                 )
             )
-            "debts" -> database.debtDao().insertDebt(
-                DebtEntity(
-                    id = longVal("id"),
-                    title = stringVal("title"),
-                    creditorName = stringVal("creditorName"),
-                    totalAmount = doubleVal("totalAmount"),
-                    remainingAmount = doubleVal("remainingAmount"),
-                    interestRate = doubleValOrNull("interestRate"),
-                    dueDate = longValOrNull("dueDate"),
-                    minimumPayment = doubleVal("minimumPayment"),
-                    recommendedPayment = doubleValOrNull("recommendedPayment"),
-                    paymentFrequency = stringVal("paymentFrequency"),
-                    linkedAccountId = longValOrNull("linkedAccountId"),
-                    priority = intVal("priority"),
-                    notes = stringValOrNull("notes"),
-                    color = stringVal("color"),
-                    icon = stringVal("icon"),
-                    createdAt = longVal("createdAt"),
-                    isClosed = boolVal("isClosed"),
-                    debtType = stringVal("debtType").ifEmpty { "INSTALLMENT" }
+            "debts" -> {
+                val debtId = longVal("id")
+                val dType = stringVal("debtType").ifEmpty { "INSTALLMENT" }
+                database.debtDao().insertDebt(
+                    DebtEntity(
+                        id = debtId,
+                        title = stringVal("title"),
+                        creditorName = stringVal("creditorName"),
+                        totalAmount = doubleVal("totalAmount"),
+                        remainingAmount = doubleVal("remainingAmount"),
+                        dueDate = longValOrNull("dueDate"),
+                        linkedAccountId = longValOrNull("linkedAccountId"),
+                        notes = stringValOrNull("notes"),
+                        color = stringVal("color"),
+                        icon = stringVal("icon"),
+                        createdAt = longVal("createdAt"),
+                        isClosed = boolVal("isClosed"),
+                        debtType = dType
+                    )
                 )
-            )
+                if (dType == "INSTALLMENT") {
+                    database.debtDao().insertInstallmentDetails(
+                        DebtInstallmentDetailsEntity(
+                            debtId = debtId,
+                            interestRate = doubleValOrNull("interestRate") ?: 0.0,
+                            minimumPayment = doubleValOrNull("minimumPayment") ?: 0.0,
+                            recommendedPayment = doubleValOrNull("recommendedPayment"),
+                            paymentFrequency = stringVal("paymentFrequency").ifEmpty { "MONTHLY" },
+                            priority = intVal("priority")
+                        )
+                    )
+                }
+            }
             "debt_payments" -> database.debtPaymentDao().insertPayment(
                 DebtPaymentEntity(
                     id = longVal("id"),

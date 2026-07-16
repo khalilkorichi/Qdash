@@ -84,15 +84,25 @@ object DatabaseSeeder {
             )
 
             val existingCategories = categoryDao.getAllCategories().first()
+            val existingByNameKey = existingCategories
+                .map { Triple(it.name, it.type, it.parentId) }
+                .toSet()
+            val existingIds = existingCategories.map { it.id }.toSet()
+
             for (expected in expectedCategories) {
-                val exists = existingCategories.any { 
-                    it.name == expected.name && 
-                    it.type == expected.type && 
-                    it.parentId == expected.parentId 
-                }
-                if (!exists) {
-                    categoryDao.insertCategory(expected)
-                }
+                val existsByName = existingByNameKey.contains(
+                    Triple(expected.name, expected.type, expected.parentId)
+                )
+                // Skip if the category already exists by name/type/parentId
+                if (existsByName) continue
+
+                // If the fixed ID is already taken by a different user category, skip
+                // insertion to avoid REPLACE cascade-deleting user data.
+                val idConflict = expected.id > 0 && existingIds.contains(expected.id)
+                if (idConflict) continue
+
+                // Safe to insert: no name conflict AND no ID conflict
+                categoryDao.insertCategoryIgnoreConflict(expected)
             }
 
             // Accounts are seeded by the user during onboarding or manually created afterwards.

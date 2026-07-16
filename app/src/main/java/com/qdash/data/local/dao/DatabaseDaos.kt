@@ -6,31 +6,31 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TransactionDao {
-    @Query("SELECT * FROM transactions ORDER BY date DESC")
+    @Query("SELECT * FROM transactions ORDER BY COALESCE(occurredAt, date) DESC, id DESC")
     fun getAllTransactions(): Flow<List<TransactionEntity>>
 
-    @Query("SELECT * FROM transactions ORDER BY date DESC LIMIT :limit")
+    @Query("SELECT * FROM transactions ORDER BY COALESCE(occurredAt, date) DESC, id DESC LIMIT :limit")
     fun getRecentTransactions(limit: Int): Flow<List<TransactionEntity>>
 
-    @Query("SELECT * FROM transactions WHERE accountId = :accountId ORDER BY date DESC")
+    @Query("SELECT * FROM transactions WHERE accountId = :accountId ORDER BY COALESCE(occurredAt, date) DESC, id DESC")
     fun getTransactionsByAccount(accountId: Long): Flow<List<TransactionEntity>>
 
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun getTransactionById(id: Long): TransactionEntity?
 
-    @Query("SELECT * FROM transactions WHERE note LIKE '%' || :query || '%' ORDER BY date DESC LIMIT 50")
+    @Query("SELECT * FROM transactions WHERE note LIKE '%' || :query || '%' ORDER BY COALESCE(occurredAt, date) DESC, id DESC LIMIT 50")
     fun searchTransactions(query: String): Flow<List<TransactionEntity>>
 
-    @Query("SELECT * FROM transactions WHERE type = :type ORDER BY date DESC")
+    @Query("SELECT * FROM transactions WHERE type = :type ORDER BY COALESCE(occurredAt, date) DESC, id DESC")
     fun getTransactionsByType(type: String): Flow<List<TransactionEntity>>
 
-    @Query("SELECT * FROM transactions WHERE date BETWEEN :startDate AND :endDate ORDER BY date DESC")
+    @Query("SELECT * FROM transactions WHERE date BETWEEN :startDate AND :endDate ORDER BY COALESCE(occurredAt, date) DESC, id DESC")
     fun getTransactionsByDateRange(startDate: Long, endDate: Long): Flow<List<TransactionEntity>>
 
-    @Query("SELECT * FROM transactions WHERE date BETWEEN :startDate AND :endDate ORDER BY date DESC")
+    @Query("SELECT * FROM transactions WHERE date BETWEEN :startDate AND :endDate ORDER BY COALESCE(occurredAt, date) DESC, id DESC")
     suspend fun getTransactionsByDateRangeList(startDate: Long, endDate: Long): List<TransactionEntity>
 
-    @Query("SELECT * FROM transactions WHERE categoryId = :categoryId ORDER BY date DESC")
+    @Query("SELECT * FROM transactions WHERE categoryId = :categoryId ORDER BY COALESCE(occurredAt, date) DESC, id DESC")
     fun getTransactionsByCategory(categoryId: Long): Flow<List<TransactionEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -147,6 +147,9 @@ interface CategoryDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCategory(category: CategoryEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertCategoryIgnoreConflict(category: CategoryEntity): Long
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCategories(categories: List<CategoryEntity>)
