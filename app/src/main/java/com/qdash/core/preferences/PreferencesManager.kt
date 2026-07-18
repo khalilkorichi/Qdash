@@ -271,6 +271,10 @@ class PreferencesManager(context: Context) {
         get() = mainPrefs.getLong("last_sync_timestamp", 0L)
         set(value) = mainPrefs.edit().putLong("last_sync_timestamp", value).apply()
 
+    var hasPendingBackupRestoreCheck: Boolean
+        get() = mainPrefs.getBoolean("has_pending_backup_restore_check", false)
+        set(value) = mainPrefs.edit().putBoolean("has_pending_backup_restore_check", value).apply()
+
     var guestBirthdate: String?
         get() = mainPrefs.getString("guest_birthdate", null)
         set(value) = mainPrefs.edit().putString("guest_birthdate", value).apply()

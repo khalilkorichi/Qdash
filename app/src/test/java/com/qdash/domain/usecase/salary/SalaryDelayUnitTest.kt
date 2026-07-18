@@ -56,8 +56,8 @@ class SalaryDelayUnitTest {
         )
 
         // Debts
-        val debts = listOf(
-            Debt(
+        val debts: List<Debt> = listOf(
+            InstallmentDebt(
                 id = 20,
                 title = "قرض سيارة",
                 creditorName = "Creditor",
@@ -68,9 +68,10 @@ class SalaryDelayUnitTest {
                 priority = 1,
                 color = "#FF0000",
                 icon = "car",
+                interestRate = 0.0,
                 dueDate = 1000400000L // affected: +25 severity
             ),
-            Debt(
+            InstallmentDebt(
                 id = 21,
                 title = "قرض عقاري",
                 creditorName = "Creditor",
@@ -81,6 +82,7 @@ class SalaryDelayUnitTest {
                 priority = 1,
                 color = "#FF0000",
                 icon = "house",
+                interestRate = 0.0,
                 dueDate = 3000000000L // not affected
             )
         )

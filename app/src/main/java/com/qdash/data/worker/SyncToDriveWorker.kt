@@ -19,6 +19,10 @@ class SyncToDriveWorker(
             return Result.success()
         }
 
+        if (preferencesManager.hasPendingBackupRestoreCheck) {
+            return Result.success()
+        }
+
         val result = driveSyncRepository.uploadToAppData(applicationContext)
         return if (result.isSuccess) {
             Result.success()

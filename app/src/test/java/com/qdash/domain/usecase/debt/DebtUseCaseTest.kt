@@ -114,7 +114,7 @@ class DebtUseCaseTest {
         val result = updateInstallmentDebtUseCase(
             debtId = debtId, title = "قرض معدل", creditorName = "أحمد", totalAmount = 9000.0,
             minimumPayment = 1000.0, paymentFrequency = "MONTHLY", linkedAccountId = accountId, priority = 3,
-            notes = "تعديل", color = "#FFF", interestRate = 0.0, dueDate = null
+            notes = "تعديل", color = "#FFF", icon = "credit_card", interestRate = 0.0, dueDate = null
         )
 
         assertTrue(result.isSuccess)
@@ -155,7 +155,7 @@ class DebtUseCaseTest {
         val result = updateInstallmentDebtUseCase(
             debtId = debtId, title = "قرض معدل", creditorName = "أحمد", totalAmount = 3000.0,
             minimumPayment = 1000.0, paymentFrequency = "MONTHLY", linkedAccountId = accountId, priority = 3,
-            notes = "تعديل", color = "#FFF", interestRate = 0.0, dueDate = null
+            notes = "تعديل", color = "#FFF", icon = "credit_card", interestRate = 0.0, dueDate = null
         )
 
         assertTrue(result.isFailure)

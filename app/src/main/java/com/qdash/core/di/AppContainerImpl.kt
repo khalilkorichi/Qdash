@@ -429,6 +429,14 @@ class AppContainerImpl(private val context: Context) : AppContainer {
         com.qdash.domain.usecase.settings.RestoreBackupUseCase(backupRepository, completeOnboardingUseCase)
     }
 
+    override val checkForExistingBackupUseCase: com.qdash.domain.usecase.settings.CheckForExistingBackupUseCase by lazy {
+        com.qdash.domain.usecase.settings.CheckForExistingBackupUseCase(driveSyncRepository)
+    }
+
+    override val restoreFromDriveUseCase: com.qdash.domain.usecase.settings.RestoreFromDriveUseCase by lazy {
+        com.qdash.domain.usecase.settings.RestoreFromDriveUseCase(driveSyncRepository, completeOnboardingUseCase)
+    }
+
     override val getTransactionsUseCase: com.qdash.domain.usecase.transaction.GetTransactionsUseCase by lazy {
         com.qdash.domain.usecase.transaction.GetTransactionsUseCase(transactionRepository)
     }

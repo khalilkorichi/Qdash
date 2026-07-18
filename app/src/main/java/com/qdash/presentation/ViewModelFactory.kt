@@ -142,6 +142,8 @@ class ViewModelFactory(
                     preferencesManager = container.preferencesManager,
                     authRepository = container.authRepository,
                     driveSyncRepository = container.driveSyncRepository,
+                    checkForExistingBackupUseCase = container.checkForExistingBackupUseCase,
+                    restoreFromDriveUseCase = container.restoreFromDriveUseCase,
                     context = context
                 ) as T
             }
@@ -236,7 +238,9 @@ class ViewModelFactory(
                     container.preferencesManager,
                     container.authRepository,
                     container.driveSyncRepository,
-                    container.completeOnboardingUseCase
+                    container.completeOnboardingUseCase,
+                    container.checkForExistingBackupUseCase,
+                    container.restoreFromDriveUseCase
                 ) as T
             }
             modelClass.isAssignableFrom(DocumentSimulatorViewModel::class.java) -> {
