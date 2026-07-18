@@ -220,6 +220,12 @@ fun SettingsScreen(
                 0 -> GeneralTab(
                     uiState = uiState,
                     userProfile = userProfile,
+                    onSignInClick = launchGoogleSignIn,
+                    onSignOutClick = {
+                        viewModel.disconnectGoogleDrive {
+                            Toast.makeText(context, "تم تسجيل الخروج بنجاح", Toast.LENGTH_SHORT).show()
+                        }
+                    },
                     onToggleDark = { viewModel.toggleDarkTheme(it) },
                     onToggleHideDecimals = { viewModel.toggleHideDecimals(it) },
                     onToggleAmountWords = { viewModel.toggleAmountWords(it) },

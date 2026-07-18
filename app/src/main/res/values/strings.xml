@@ -6,4 +6,6 @@
     <string name="nav_analytics">الإحصائيات</string>
     <string name="nav_accounts">الحسابات</string>
     <string name="nav_settings">الإعدادات</string>
+    <string name="google_sign_in">تسجيل الدخول باستخدام Google</string>
+    <string name="google_sign_out">تسجيل الخروج من Google</string>
 </resources>

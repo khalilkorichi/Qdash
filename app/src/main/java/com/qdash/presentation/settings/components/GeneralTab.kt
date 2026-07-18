@@ -24,6 +24,8 @@ import com.qdash.ui.theme.TransferBlue
 fun GeneralTab(
     uiState: SettingsUiState,
     userProfile: UserProfile?,
+    onSignInClick: () -> Unit,
+    onSignOutClick: () -> Unit,
     onToggleDark: (Boolean) -> Unit,
     onToggleHideDecimals: (Boolean) -> Unit,
     onToggleAmountWords: (Boolean) -> Unit,
@@ -51,6 +53,14 @@ fun GeneralTab(
             userProfile = userProfile,
             lastSyncTimestamp = uiState.lastSyncTimestamp,
             onClick = onNavigateToAccountManagement
+        )
+
+        // Google Sign-In / Sign-Out Button
+        GoogleSignInOutButton(
+            isLinked = userProfile?.isGoogleLinked == true,
+            isLoading = uiState.isSyncing,
+            onSignInClick = onSignInClick,
+            onSignOutClick = onSignOutClick
         )
 
         Spacer(modifier = Modifier.height(8.dp))
