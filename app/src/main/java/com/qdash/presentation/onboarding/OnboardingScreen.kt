@@ -36,6 +36,22 @@ fun OnboardingScreen(
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
+    val backupToRestore by viewModel.backupFoundToRestore.collectAsState()
+    val isRestoring by viewModel.isRestoringBackup.collectAsState()
+
+    if (backupToRestore != null) {
+        com.qdash.presentation.backup.components.RestoreBackupPromptDialog(
+            modifiedTime = backupToRestore!!.modifiedTime,
+            isLoading = isRestoring,
+            onConfirm = {
+                viewModel.restoreBackup(context, onFinished)
+            },
+            onDismiss = {
+                viewModel.skipBackupRestore(onFinished)
+            }
+        )
+    }
+
     // Set up Notification Permission Launcher
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()

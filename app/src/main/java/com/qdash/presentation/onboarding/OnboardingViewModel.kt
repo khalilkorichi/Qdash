@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.qdash.domain.usecase.onboarding.CompleteOnboardingUseCase
+import com.qdash.domain.model.BackupFileMetadata
+import com.qdash.domain.usecase.settings.CheckForExistingBackupUseCase
+import com.qdash.domain.usecase.settings.RestoreFromDriveUseCase
 
 // Represents a wallet option the user can select/deselect in the setup screen
 data class WalletOption(
@@ -60,11 +63,18 @@ class OnboardingViewModel(
     private val preferencesManager: com.qdash.core.preferences.PreferencesManager,
     private val authRepository: AuthRepository,
     private val driveSyncRepository: DriveSyncRepository,
-    private val completeOnboardingUseCase: CompleteOnboardingUseCase
+    private val completeOnboardingUseCase: CompleteOnboardingUseCase,
+    private val checkForExistingBackupUseCase: CheckForExistingBackupUseCase,
+    private val restoreFromDriveUseCase: RestoreFromDriveUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
+
+    val backupFoundToRestore: StateFlow<BackupFileMetadata?> = driveSyncRepository.backupFoundToRestore
+
+    private val _isRestoringBackup = MutableStateFlow(false)
+    val isRestoringBackup: StateFlow<Boolean> = _isRestoringBackup.asStateFlow()
 
     init {
         // Default language is Arabic
@@ -233,27 +243,60 @@ class OnboardingViewModel(
 
     fun linkGoogleAccount(account: GoogleSignInAccount, context: Context, onFinished: () -> Unit) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isSaving = true, savingMessage = "جاري ربط حساب Google ومزامنة البيانات...")
+            _uiState.value = _uiState.value.copy(isSaving = true, savingMessage = "جاري ربط حساب Google والتحقق من النسخ الاحتياطية...")
             val result = authRepository.signIn(account)
             if (result.isSuccess) {
-                // Try pulling from Google Drive
-                val syncResult = driveSyncRepository.downloadFromAppData(context)
-                if (syncResult.isSuccess) {
-                    val hasBackup = syncResult.getOrThrow()
-                    if (!hasBackup) {
-                        // No backup found: first-time Google user, upload current local seeded database
+                preferencesManager.hasPendingBackupRestoreCheck = true
+                val checkResult = checkForExistingBackupUseCase(context)
+                if (checkResult.isSuccess) {
+                    val metadata = checkResult.getOrThrow()
+                    if (metadata != null) {
+                        driveSyncRepository.setBackupFoundToRestore(metadata)
+                        _uiState.value = _uiState.value.copy(isSaving = false)
+                    } else {
+                        // No backup found: first-time Google user, upload current local database
                         driveSyncRepository.uploadToAppData(context)
+                        preferencesManager.hasPendingBackupRestoreCheck = false
+                        preferencesManager.isFirstLaunch = false
+                        _uiState.value = _uiState.value.copy(isSaving = false)
+                        onFinished()
                     }
+                } else {
+                    preferencesManager.hasPendingBackupRestoreCheck = false
+                    preferencesManager.isFirstLaunch = false
+                    _uiState.value = _uiState.value.copy(isSaving = false)
+                    onFinished()
                 }
-                preferencesManager.isFirstLaunch = false
-                _uiState.value = _uiState.value.copy(isSaving = false)
-                onFinished()
             } else {
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
                     savingMessage = "فشل ربط الحساب: ${result.exceptionOrNull()?.localizedMessage ?: "خطأ غير معروف"}"
                 )
             }
+        }
+    }
+
+    fun restoreBackup(context: Context, onFinished: () -> Unit) {
+        viewModelScope.launch {
+            _isRestoringBackup.value = true
+            val result = restoreFromDriveUseCase(context)
+            _isRestoringBackup.value = false
+            if (result.isSuccess) {
+                driveSyncRepository.setBackupFoundToRestore(null)
+                preferencesManager.hasPendingBackupRestoreCheck = false
+                preferencesManager.isFirstLaunch = false
+                onFinished()
+            }
+        }
+    }
+
+    fun skipBackupRestore(onFinished: () -> Unit) {
+        viewModelScope.launch {
+            driveSyncRepository.setBackupFoundToRestore(null)
+            preferencesManager.hasPendingBackupRestoreCheck = false
+            completeOnboardingUseCase()
+            preferencesManager.isFirstLaunch = false
+            onFinished()
         }
     }
 

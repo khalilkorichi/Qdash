@@ -131,6 +131,8 @@ class AppStartupTest {
             preferencesManager = container.preferencesManager,
             authRepository = container.authRepository,
             driveSyncRepository = container.driveSyncRepository,
+            checkForExistingBackupUseCase = container.checkForExistingBackupUseCase,
+            restoreFromDriveUseCase = container.restoreFromDriveUseCase,
             context = context
         )
         assertNotNull(settingsViewModel)

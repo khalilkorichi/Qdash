@@ -8,4 +8,9 @@
     <string name="nav_settings">الإعدادات</string>
     <string name="google_sign_in">تسجيل الدخول باستخدام Google</string>
     <string name="google_sign_out">تسجيل الخروج من Google</string>
+    <string name="restore_backup_title">استعادة النسخة الاحتياطية</string>
+    <string name="restore_backup_message">تم العثور على نسخة احتياطية سابقة بتاريخ %1$s. هل تريد استعادتها الآن؟</string>
+    <string name="restore_confirm">استعادة</string>
+    <string name="restore_skip">تخطي</string>
+    <string name="restoring_data">جاري استعادة البيانات...</string>
 </resources>

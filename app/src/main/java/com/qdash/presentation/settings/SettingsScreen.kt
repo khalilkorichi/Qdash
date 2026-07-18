@@ -282,6 +282,33 @@ fun SettingsScreen(
         )
     }
 
+    val backupToRestore by viewModel.backupFoundToRestore.collectAsState()
+    val isRestoring by viewModel.isRestoringBackup.collectAsState()
+    val navController = com.qdash.presentation.navigation.LocalNavController.current
+
+    if (backupToRestore != null) {
+        com.qdash.presentation.backup.components.RestoreBackupPromptDialog(
+            modifiedTime = backupToRestore!!.modifiedTime,
+            isLoading = isRestoring,
+            onConfirm = {
+                viewModel.restoreBackup(
+                    onSuccess = {
+                        Toast.makeText(context, "تمت استعادة بياناتك بنجاح!", Toast.LENGTH_SHORT).show()
+                        navController?.navigate(com.qdash.presentation.navigation.Screen.Home.route) {
+                            popUpTo(com.qdash.presentation.navigation.Screen.Home.route) { inclusive = true }
+                        }
+                    },
+                    onFailure = { err ->
+                        Toast.makeText(context, "فشل الاستعادة: $err", Toast.LENGTH_LONG).show()
+                    }
+                )
+            },
+            onDismiss = {
+                viewModel.skipBackupRestore()
+            }
+        )
+    }
+
     // ─── Dashboard Customization Dialog ──────────────────────────────────────
     if (showDashboardCustomizationDialog) {
         DashboardCustomizationDialog(

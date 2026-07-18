@@ -10,8 +10,12 @@ import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.drive.Drive
 import com.qdash.core.preferences.PreferencesManager
 import com.qdash.data.backup.BackupManager
+import com.qdash.domain.model.BackupFileMetadata
 import com.qdash.domain.repository.DriveSyncRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -19,6 +23,13 @@ class DriveSyncRepositoryImpl(
     private val backupManager: BackupManager,
     private val preferencesManager: PreferencesManager
 ) : DriveSyncRepository {
+
+    private val _backupFoundToRestore = MutableStateFlow<BackupFileMetadata?>(null)
+    override val backupFoundToRestore: StateFlow<BackupFileMetadata?> = _backupFoundToRestore.asStateFlow()
+
+    override fun setBackupFoundToRestore(metadata: BackupFileMetadata?) {
+        _backupFoundToRestore.value = metadata
+    }
 
     override suspend fun uploadToAppData(context: Context): Result<Unit> = withContext(Dispatchers.IO) {
         val googleAccount = GoogleSignIn.getLastSignedInAccount(context)
@@ -143,6 +154,39 @@ class DriveSyncRepositoryImpl(
             Result.failure(e)
         } finally {
             if (tempFile.exists()) tempFile.delete()
+        }
+    }
+
+    override suspend fun checkIfBackupExists(context: Context): Result<BackupFileMetadata?> = withContext(Dispatchers.IO) {
+        val googleAccount = GoogleSignIn.getLastSignedInAccount(context)
+            ?: return@withContext Result.failure(Exception("حساب Google غير متصل."))
+
+        try {
+            val credential = GoogleAccountCredential.usingOAuth2(
+                context,
+                listOf("https://www.googleapis.com/auth/drive.appdata")
+            ).setSelectedAccount(googleAccount.account)
+
+            val driveService = Drive.Builder(
+                NetHttpTransport(),
+                GsonFactory.getDefaultInstance(),
+                credential
+            ).setApplicationName("Qdash").build()
+
+            val query = driveService.files().list()
+                .setSpaces("appDataFolder")
+                .setFields("files(id, name, modifiedTime)")
+                .execute()
+            val existingFile = query.files.find { it.name == "appdata.zip" }
+
+            if (existingFile != null) {
+                val modifiedTime = existingFile.modifiedTime?.value ?: System.currentTimeMillis()
+                Result.success(BackupFileMetadata(existingFile.id, existingFile.name, modifiedTime))
+            } else {
+                Result.success(null)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

@@ -70,11 +70,16 @@ class WalletOnboardingViewModelTest {
         repo = FakeAccountRepository()
         fakePrefs = FakePrefs()
         prefsManager = buildFakePreferencesManager(fakePrefs)
+        val completeOnboardingUseCase = com.qdash.domain.usecase.onboarding.CompleteOnboardingUseCase(prefsManager)
+        val driveRepo = FakeDriveSyncRepository()
         vm = OnboardingViewModel(
             accountRepository = repo,
             preferencesManager = prefsManager,
             authRepository = FakeAuthRepository(),
-            driveSyncRepository = FakeDriveSyncRepository()
+            driveSyncRepository = driveRepo,
+            completeOnboardingUseCase = completeOnboardingUseCase,
+            checkForExistingBackupUseCase = com.qdash.domain.usecase.settings.CheckForExistingBackupUseCase(driveRepo),
+            restoreFromDriveUseCase = com.qdash.domain.usecase.settings.RestoreFromDriveUseCase(driveRepo, completeOnboardingUseCase)
         )
     }
 
@@ -246,7 +251,14 @@ class WalletOnboardingViewModelTest {
     }
 
     private class FakeDriveSyncRepository : com.qdash.domain.repository.DriveSyncRepository {
+        override val backupFoundToRestore = MutableStateFlow<com.qdash.domain.model.BackupFileMetadata?>(null)
+
+        override fun setBackupFoundToRestore(metadata: com.qdash.domain.model.BackupFileMetadata?) {
+            backupFoundToRestore.value = metadata
+        }
+
         override suspend fun uploadToAppData(context: android.content.Context): Result<Unit> = Result.success(Unit)
         override suspend fun downloadFromAppData(context: android.content.Context): Result<Boolean> = Result.success(false)
+        override suspend fun checkIfBackupExists(context: android.content.Context): Result<com.qdash.domain.model.BackupFileMetadata?> = Result.success(null)
     }
 }

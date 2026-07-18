@@ -126,6 +126,8 @@ interface AppContainer {
     val exportSettingsUseCase: com.qdash.domain.usecase.settings.ExportSettingsUseCase
     val resetAppDataUseCase: com.qdash.domain.usecase.settings.ResetAppDataUseCase
     val restoreBackupUseCase: com.qdash.domain.usecase.settings.RestoreBackupUseCase
+    val checkForExistingBackupUseCase: com.qdash.domain.usecase.settings.CheckForExistingBackupUseCase
+    val restoreFromDriveUseCase: com.qdash.domain.usecase.settings.RestoreFromDriveUseCase
     val getTransactionsUseCase: com.qdash.domain.usecase.transaction.GetTransactionsUseCase
     val filterTransactionsUseCase: com.qdash.domain.usecase.transaction.FilterTransactionsUseCase
     val checkForUpdateUseCase: com.qdash.domain.usecase.update.CheckForUpdateUseCase
