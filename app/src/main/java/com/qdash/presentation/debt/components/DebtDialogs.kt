@@ -501,7 +501,7 @@ fun RecordRegularPaymentDialog(
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
-        title = { Text("تسجيل سداد دين عادي / سلفة", fontWeight = FontWeight.Bold) },
+        title = { Text("تسديد سلفة", fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("الدين: ${debt.title}", fontWeight = FontWeight.Medium, color = ExpenseRed)
@@ -651,7 +651,7 @@ fun RecordInstallmentPaymentDialog(
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
-        title = { Text("تسجيل سداد دفعة قسط دين", fontWeight = FontWeight.Bold) },
+        title = { Text("تسديد قسط", fontWeight = FontWeight.Bold) },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -781,9 +781,9 @@ fun RecordInstallmentPaymentDialog(
                     }
                 },
                 variant = ButtonVariant.SOLID,
-                intent = ButtonIntent.DANGER
+                intent = ButtonIntent.SUCCESS
             ) {
-                Text("تسجيل سداد القسط", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("تسديد", color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {

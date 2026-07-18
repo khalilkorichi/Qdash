@@ -88,7 +88,7 @@ fun EditRegularDebtBottomSheet(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "تعديل تفاصيل الدين العادي",
+                    text = "تعديل تفاصيل السلفة",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 20.sp),
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Right

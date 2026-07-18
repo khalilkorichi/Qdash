@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import com.qdash.domain.usecase.onboarding.CompleteOnboardingUseCase
 
 // Represents a wallet option the user can select/deselect in the setup screen
 data class WalletOption(
@@ -58,7 +59,8 @@ class OnboardingViewModel(
     private val accountRepository: AccountRepository,
     private val preferencesManager: com.qdash.core.preferences.PreferencesManager,
     private val authRepository: AuthRepository,
-    private val driveSyncRepository: DriveSyncRepository
+    private val driveSyncRepository: DriveSyncRepository,
+    private val completeOnboardingUseCase: CompleteOnboardingUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
@@ -219,8 +221,9 @@ class OnboardingViewModel(
                 }
             }
 
-            // Mark setup as done regardless of skip — prevents showing screen again
-            preferencesManager.walletSetupCompleted = true
+            // Mark setup as done regardless of skip — prevents showing screen again.
+            // Also sets isFirstLaunch = false so returning users skip onboarding on next cold start.
+            completeOnboardingUseCase()
             preferencesManager.walletSetupSkipped = skip
 
             _uiState.value = _uiState.value.copy(isSaving = false)

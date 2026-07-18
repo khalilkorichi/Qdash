@@ -426,7 +426,7 @@ class AppContainerImpl(private val context: Context) : AppContainer {
     }
 
     override val restoreBackupUseCase: com.qdash.domain.usecase.settings.RestoreBackupUseCase by lazy {
-        com.qdash.domain.usecase.settings.RestoreBackupUseCase(backupRepository)
+        com.qdash.domain.usecase.settings.RestoreBackupUseCase(backupRepository, completeOnboardingUseCase)
     }
 
     override val getTransactionsUseCase: com.qdash.domain.usecase.transaction.GetTransactionsUseCase by lazy {
@@ -443,6 +443,15 @@ class AppContainerImpl(private val context: Context) : AppContainer {
 
     override val downloadUpdateUseCase: com.qdash.domain.usecase.update.DownloadUpdateUseCase by lazy {
         com.qdash.domain.usecase.update.DownloadUpdateUseCase(updateRepository)
+    }
+
+    // Onboarding state management
+    override val completeOnboardingUseCase: com.qdash.domain.usecase.onboarding.CompleteOnboardingUseCase by lazy {
+        com.qdash.domain.usecase.onboarding.CompleteOnboardingUseCase(preferencesManager)
+    }
+
+    override val getOnboardingStateUseCase: com.qdash.domain.usecase.onboarding.GetOnboardingStateUseCase by lazy {
+        com.qdash.domain.usecase.onboarding.GetOnboardingStateUseCase(preferencesManager)
     }
 
     init {

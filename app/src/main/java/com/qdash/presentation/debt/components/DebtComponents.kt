@@ -431,7 +431,7 @@ fun DebtListCard(
                     Spacer(modifier = Modifier.height(2.dp))
                     when (debt) {
                         is RegularDebt -> {
-                            Text("دين عادي", fontWeight = FontWeight.Bold, color = SavingsAmber)
+                            Text("سلفة", fontWeight = FontWeight.Bold, color = SavingsAmber)
                         }
                         is InstallmentDebt -> {
                             val interestStr = "${debt.interestRate}%"

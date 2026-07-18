@@ -62,12 +62,12 @@ fun DebtDetailsContent(
                     onClick = onPayClick,
                     modifier = Modifier.fillMaxWidth(),
                     variant = ButtonVariant.SOLID,
-                    intent = ButtonIntent.DANGER,
+                    intent = ButtonIntent.SUCCESS,
                     shape = ShapeTokens.Lg,
                     leadingIcon = { Icon(Icons.Default.CreditCard, null) }
                 ) {
                     Text(
-                        text = if (debt is RegularDebt) "تسجيل سداد دين جديد" else "تسجيل سداد دفعة قسط جديدة",
+                        text = "تسديد",
                         fontWeight = FontWeight.Bold
                     )
                 }

@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import com.qdash.domain.usecase.onboarding.CompleteOnboardingUseCase
 
 data class BackupUiState(
     val isLoading: Boolean = false,
@@ -45,7 +46,8 @@ class BackupViewModel(
     private val preferencesManager: PreferencesManager,
     private val authRepository: AuthRepository,
     private val driveSyncRepository: DriveSyncRepository,
-    private val context: Context
+    private val context: Context,
+    private val completeOnboardingUseCase: CompleteOnboardingUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BackupUiState())
@@ -195,6 +197,9 @@ class BackupViewModel(
             backupRepository.performRestoreV2(preview, selectedTables) { stage, percent ->
                 // Optionally update
             }.onSuccess {
+                // A restored backup means the user is an existing user —
+                // they should never see onboarding again.
+                completeOnboardingUseCase()
                 _uiState.value = BackupUiState(
                     successMessage = "تم استعادة البيانات المحددة بنجاح! سيتم تحديث قاعدة البيانات الحالية."
                 )

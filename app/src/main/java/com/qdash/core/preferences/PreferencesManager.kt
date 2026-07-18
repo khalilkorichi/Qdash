@@ -247,6 +247,18 @@ class PreferencesManager(context: Context) {
             notifyDashboardConfigChanged()
         }
 
+    /**
+     * Marks onboarding as fully complete by atomically setting both
+     * [isFirstLaunch] = false and [walletSetupCompleted] = true.
+     * This is the single canonical call for completing onboarding.
+     */
+    fun markOnboardingCompleted() {
+        mainPrefs.edit()
+            .putBoolean("is_first_launch", false)
+            .putBoolean("wallet_setup_completed", true)
+            .apply()
+    }
+
     var lowBalanceLimit: Double
         get() = mainPrefs.getFloat("low_balance_limit", 5000.0f).toDouble()
         set(value) = mainPrefs.edit().putFloat("low_balance_limit", value.toFloat()).apply()

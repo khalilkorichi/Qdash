@@ -130,4 +130,9 @@ interface AppContainer {
     val filterTransactionsUseCase: com.qdash.domain.usecase.transaction.FilterTransactionsUseCase
     val checkForUpdateUseCase: com.qdash.domain.usecase.update.CheckForUpdateUseCase
     val downloadUpdateUseCase: com.qdash.domain.usecase.update.DownloadUpdateUseCase
+
+    // Onboarding state management
+    val completeOnboardingUseCase: com.qdash.domain.usecase.onboarding.CompleteOnboardingUseCase
+    val getOnboardingStateUseCase: com.qdash.domain.usecase.onboarding.GetOnboardingStateUseCase
 }
+

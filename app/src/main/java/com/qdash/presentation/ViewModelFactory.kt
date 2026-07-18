@@ -197,7 +197,8 @@ class ViewModelFactory(
                     preferencesManager = container.preferencesManager,
                     authRepository = container.authRepository,
                     driveSyncRepository = container.driveSyncRepository,
-                    context = context
+                    context = context,
+                    completeOnboardingUseCase = container.completeOnboardingUseCase
                 ) as T
             }
             modelClass.isAssignableFrom(com.qdash.presentation.update.UpdatesViewModel::class.java) -> {
@@ -234,7 +235,8 @@ class ViewModelFactory(
                     container.accountRepository,
                     container.preferencesManager,
                     container.authRepository,
-                    container.driveSyncRepository
+                    container.driveSyncRepository,
+                    container.completeOnboardingUseCase
                 ) as T
             }
             modelClass.isAssignableFrom(DocumentSimulatorViewModel::class.java) -> {
