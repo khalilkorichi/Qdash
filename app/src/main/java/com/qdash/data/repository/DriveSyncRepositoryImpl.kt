@@ -13,6 +13,9 @@ import com.qdash.data.backup.BackupManager
 import com.qdash.domain.model.BackupFileMetadata
 import com.qdash.domain.repository.DriveSyncRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -20,6 +23,13 @@ class DriveSyncRepositoryImpl(
     private val backupManager: BackupManager,
     private val preferencesManager: PreferencesManager
 ) : DriveSyncRepository {
+
+    private val _backupFoundToRestore = MutableStateFlow<BackupFileMetadata?>(null)
+    override val backupFoundToRestore: StateFlow<BackupFileMetadata?> = _backupFoundToRestore.asStateFlow()
+
+    override fun setBackupFoundToRestore(metadata: BackupFileMetadata?) {
+        _backupFoundToRestore.value = metadata
+    }
 
     override suspend fun uploadToAppData(context: Context): Result<Unit> = withContext(Dispatchers.IO) {
         val googleAccount = GoogleSignIn.getLastSignedInAccount(context)

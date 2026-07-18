@@ -71,8 +71,7 @@ class OnboardingViewModel(
     private val _uiState = MutableStateFlow(OnboardingUiState())
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
 
-    private val _backupFoundToRestore = MutableStateFlow<BackupFileMetadata?>(null)
-    val backupFoundToRestore: StateFlow<BackupFileMetadata?> = _backupFoundToRestore.asStateFlow()
+    val backupFoundToRestore: StateFlow<BackupFileMetadata?> = driveSyncRepository.backupFoundToRestore
 
     private val _isRestoringBackup = MutableStateFlow(false)
     val isRestoringBackup: StateFlow<Boolean> = _isRestoringBackup.asStateFlow()
@@ -252,7 +251,7 @@ class OnboardingViewModel(
                 if (checkResult.isSuccess) {
                     val metadata = checkResult.getOrThrow()
                     if (metadata != null) {
-                        _backupFoundToRestore.value = metadata
+                        driveSyncRepository.setBackupFoundToRestore(metadata)
                         _uiState.value = _uiState.value.copy(isSaving = false)
                     } else {
                         // No backup found: first-time Google user, upload current local database
@@ -283,7 +282,7 @@ class OnboardingViewModel(
             val result = restoreFromDriveUseCase(context)
             _isRestoringBackup.value = false
             if (result.isSuccess) {
-                _backupFoundToRestore.value = null
+                driveSyncRepository.setBackupFoundToRestore(null)
                 preferencesManager.hasPendingBackupRestoreCheck = false
                 preferencesManager.isFirstLaunch = false
                 onFinished()
@@ -293,7 +292,7 @@ class OnboardingViewModel(
 
     fun skipBackupRestore(onFinished: () -> Unit) {
         viewModelScope.launch {
-            _backupFoundToRestore.value = null
+            driveSyncRepository.setBackupFoundToRestore(null)
             preferencesManager.hasPendingBackupRestoreCheck = false
             completeOnboardingUseCase()
             preferencesManager.isFirstLaunch = false

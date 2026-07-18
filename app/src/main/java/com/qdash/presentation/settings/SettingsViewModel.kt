@@ -45,8 +45,7 @@ class SettingsViewModel(
     private val context: Context
 ) : ViewModel() {
 
-    private val _backupFoundToRestore = MutableStateFlow<BackupFileMetadata?>(null)
-    val backupFoundToRestore: StateFlow<BackupFileMetadata?> = _backupFoundToRestore.asStateFlow()
+    val backupFoundToRestore: StateFlow<BackupFileMetadata?> = driveSyncRepository.backupFoundToRestore
 
     private val _isRestoringBackup = MutableStateFlow(false)
     val isRestoringBackup: StateFlow<Boolean> = _isRestoringBackup.asStateFlow()
@@ -148,7 +147,7 @@ class SettingsViewModel(
                 if (checkResult.isSuccess) {
                     val metadata = checkResult.getOrThrow()
                     if (metadata != null) {
-                        _backupFoundToRestore.value = metadata
+                        driveSyncRepository.setBackupFoundToRestore(metadata)
                         // Do not trigger onSuccess yet, wait for user confirmation/skip.
                     } else {
                         // No backup found: first-time Google user, upload current local database
@@ -180,7 +179,7 @@ class SettingsViewModel(
             if (result.isSuccess) {
                 val restored = result.getOrThrow()
                 if (restored) {
-                    _backupFoundToRestore.value = null
+                    driveSyncRepository.setBackupFoundToRestore(null)
                     preferencesManager.hasPendingBackupRestoreCheck = false
                     _uiState.update { it.copy(connectedAccountEmail = preferencesManager.connectedEmail, backupRestoreStatus = "تم استعادة البيانات السحابية بنجاح!") }
                     onSuccess()
@@ -198,7 +197,7 @@ class SettingsViewModel(
 
     fun skipBackupRestore() {
         viewModelScope.launch {
-            _backupFoundToRestore.value = null
+            driveSyncRepository.setBackupFoundToRestore(null)
             preferencesManager.hasPendingBackupRestoreCheck = false
             _uiState.update { it.copy(connectedAccountEmail = preferencesManager.connectedEmail) }
         }
