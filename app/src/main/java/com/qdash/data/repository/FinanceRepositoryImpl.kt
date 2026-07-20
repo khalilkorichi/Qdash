@@ -236,53 +236,46 @@ class TransactionRepositoryImpl(
         val oldTxEntity = transactionDao.getTransactionById(transaction.id) ?: return@withTransaction
         val oldTx = oldTxEntity.toDomain()
         val oldDate = oldTx.date
-        
-        // 1. Revert old balance effects
+
+        // 1. Revert old balance effects using atomic delta (avoids stale read-modify-write)
         if (oldTx.transferId != null) {
             val oldMirroredEntities = transactionDao.getTransactionsByTransferId(oldTx.transferId)
             oldMirroredEntities.forEach { entity ->
-                val acc = accountDao.getAccountById(entity.accountId)
-                if (acc != null) {
-                    val revertOffset = if (entity.isDebit) entity.amount else -entity.amount
-                    accountDao.updateAccount(acc.copy(balance = acc.balance + revertOffset))
-                }
+                val revertDelta = if (entity.isDebit) entity.amount else -entity.amount
+                accountDao.adjustBalance(entity.accountId, revertDelta)
             }
         } else {
-            val oldAccount = accountDao.getAccountById(oldTx.accountId)
-            if (oldAccount != null) {
-                val oldOffset = when (oldTx.kind) {
-                    TransactionKind.EXPENSE, TransactionKind.SAVINGS_WITHDRAWAL -> -oldTx.amount
-                    TransactionKind.INCOME, TransactionKind.SALARY, TransactionKind.SAVINGS_CONTRIBUTION -> oldTx.amount
-                    TransactionKind.TRANSFER -> -oldTx.amount
-                }
-                accountDao.updateAccount(oldAccount.copy(balance = oldAccount.balance - oldOffset))
+            val oldRevertDelta = when (oldTx.kind) {
+                TransactionKind.EXPENSE, TransactionKind.SAVINGS_WITHDRAWAL -> oldTx.amount
+                TransactionKind.INCOME, TransactionKind.SALARY, TransactionKind.SAVINGS_CONTRIBUTION -> -oldTx.amount
+                TransactionKind.TRANSFER -> oldTx.amount
             }
+            accountDao.adjustBalance(oldTx.accountId, oldRevertDelta)
             if (oldTx.type == TransactionType.TRANSFER && oldTx.toAccountId != null) {
-                val oldDest = accountDao.getAccountById(oldTx.toAccountId)
-                if (oldDest != null) {
-                    accountDao.updateAccount(oldDest.copy(balance = oldDest.balance - oldTx.amount))
-                }
+                accountDao.adjustBalance(oldTx.toAccountId, -oldTx.amount)
             }
         }
 
-        // 2. Apply new balance effects and update DB
-        if (transaction.transferId != null) {
-            val mirroredEntities = transactionDao.getTransactionsByTransferId(transaction.transferId)
+        // 2. Resolve transferId: the incoming transaction from the ViewModel may not carry it,
+        //    so fall back to the value stored in the DB entity.
+        val resolvedTransferId = transaction.transferId ?: oldTxEntity.transferId
+
+        // 3. Apply new balance effects using atomic delta and persist the updated entity
+        if (resolvedTransferId != null) {
+            val mirroredEntities = transactionDao.getTransactionsByTransferId(resolvedTransferId)
             val debitEntity = mirroredEntities.find { it.isDebit }
-            val creditEntity = mirroredEntities.find { it.isDebit.not() }
+            val creditEntity = mirroredEntities.find { !it.isDebit }
 
             if (debitEntity != null) {
                 val updatedDebit = transaction.copy(
                     id = debitEntity.id,
                     isDebit = true,
                     accountId = transaction.accountId,
-                    toAccountId = transaction.toAccountId
+                    toAccountId = transaction.toAccountId,
+                    transferId = resolvedTransferId
                 )
                 transactionDao.updateTransaction(updatedDebit.toEntity())
-                val acc = accountDao.getAccountById(updatedDebit.accountId)
-                if (acc != null) {
-                    accountDao.updateAccount(acc.copy(balance = acc.balance - updatedDebit.amount))
-                }
+                accountDao.adjustBalance(updatedDebit.accountId, -updatedDebit.amount)
             }
 
             if (creditEntity != null) {
@@ -290,25 +283,22 @@ class TransactionRepositoryImpl(
                     id = creditEntity.id,
                     isDebit = false,
                     accountId = transaction.toAccountId ?: transaction.accountId,
-                    toAccountId = transaction.accountId
+                    toAccountId = transaction.accountId,
+                    transferId = resolvedTransferId
                 )
                 transactionDao.updateTransaction(updatedCredit.toEntity())
-                val acc = accountDao.getAccountById(updatedCredit.accountId)
-                if (acc != null) {
-                    accountDao.updateAccount(acc.copy(balance = acc.balance + updatedCredit.amount))
-                }
+                accountDao.adjustBalance(updatedCredit.accountId, updatedCredit.amount)
             }
         } else {
-            val newAccount = accountDao.getAccountById(transaction.accountId)
-                ?: throw IllegalArgumentException("الحساب المالي الجديد المحدد غير موجود!")
+            val newAccountId = transaction.accountId
+                .also { accountDao.getAccountById(it) ?: throw IllegalArgumentException("الحساب المالي الجديد المحدد غير موجود!") }
 
             val offset = when (transaction.kind) {
                 TransactionKind.EXPENSE, TransactionKind.SAVINGS_WITHDRAWAL -> -transaction.amount
                 TransactionKind.INCOME, TransactionKind.SALARY, TransactionKind.SAVINGS_CONTRIBUTION -> transaction.amount
                 TransactionKind.TRANSFER -> -transaction.amount
             }
-            accountDao.updateAccount(newAccount.copy(balance = newAccount.balance + offset))
-            
+            accountDao.adjustBalance(newAccountId, offset)
             transactionDao.updateTransaction(transaction.toEntity())
         }
 
@@ -369,6 +359,9 @@ class TransactionRepositoryImpl(
         val affectedDates = mutableSetOf<Long>()
         val processedTransferIds = mutableSetOf<String>()
         val idsToDelete = ids.toMutableSet()
+        // Accumulate balance deltas per account to avoid stale reads when multiple
+        // transactions share the same account.
+        val balanceDeltas = mutableMapOf<Long, Double>()
 
         ids.forEach { id ->
             val tx = transactionDao.getTransactionById(id) ?: return@forEach
@@ -380,36 +373,33 @@ class TransactionRepositoryImpl(
                     val mirrors = transactionDao.getTransactionsByTransferId(tx.transferId)
                     mirrors.forEach { entity ->
                         idsToDelete.add(entity.id)
-                        val acc = accountDao.getAccountById(entity.accountId)
-                        if (acc != null) {
-                            val revertOffset = if (entity.isDebit) entity.amount else -entity.amount
-                            accountDao.updateAccount(acc.copy(balance = acc.balance + revertOffset))
-                        }
+                        val revertDelta = if (entity.isDebit) entity.amount else -entity.amount
+                        balanceDeltas[entity.accountId] = (balanceDeltas[entity.accountId] ?: 0.0) + revertDelta
                     }
                 }
             } else {
-                val account = accountDao.getAccountById(tx.accountId)
-                if (account != null) {
-                    val kindEnum = try { TransactionKind.valueOf(tx.kind) } catch (e: Exception) { TransactionKind.INCOME }
-                    val revertOffset = when (kindEnum) {
-                        TransactionKind.EXPENSE, TransactionKind.SAVINGS_WITHDRAWAL -> tx.amount
-                        TransactionKind.INCOME, TransactionKind.SALARY, TransactionKind.SAVINGS_CONTRIBUTION -> -tx.amount
-                        TransactionKind.TRANSFER -> tx.amount
-                    }
-                    accountDao.updateAccount(account.copy(balance = account.balance + revertOffset))
+                val kindEnum = try { TransactionKind.valueOf(tx.kind) } catch (e: Exception) { TransactionKind.INCOME }
+                val revertDelta = when (kindEnum) {
+                    TransactionKind.EXPENSE, TransactionKind.SAVINGS_WITHDRAWAL -> tx.amount
+                    TransactionKind.INCOME, TransactionKind.SALARY, TransactionKind.SAVINGS_CONTRIBUTION -> -tx.amount
+                    TransactionKind.TRANSFER -> tx.amount
                 }
+                balanceDeltas[tx.accountId] = (balanceDeltas[tx.accountId] ?: 0.0) + revertDelta
                 if (tx.type == TransactionType.TRANSFER.name && tx.toAccountId != null) {
-                    val destAccount = accountDao.getAccountById(tx.toAccountId)
-                    if (destAccount != null) {
-                        accountDao.updateAccount(destAccount.copy(balance = destAccount.balance - tx.amount))
-                    }
+                    balanceDeltas[tx.toAccountId] = (balanceDeltas[tx.toAccountId] ?: 0.0) - tx.amount
                 }
             }
+        }
+
+        // Apply all balance changes atomically, one adjustBalance call per account
+        balanceDeltas.forEach { (accountId, delta) ->
+            accountDao.adjustBalance(accountId, delta)
         }
 
         transactionDao.deleteTransactionsBulk(idsToDelete.toList())
         affectedDates.forEach { syncAggregateForDate(it) }
     }
+
 
     override suspend fun updateTransactionsCategoryBulk(ids: List<Long>, newCategoryId: Long) = database.withTransaction {
         transactionDao.updateTransactionsCategoryBulk(ids, newCategoryId)

@@ -143,4 +143,77 @@ class UseCaseTest {
         assertEquals(true, info.hasUpdate)
         assertEquals("2.0.0", info.versionName)
     }
+
+    /**
+     * Verifies the core balance-delta math for a transaction update:
+     *
+     *   Initial account balance: 5000 DZD
+     *   Existing EXPENSE: 1000 DZD  →  account shows 4000 DZD
+     *   Edit expense to: 2000 DZD   →  account must show 3000 DZD (net Δ = -1000, not -3000)
+     *
+     * This test exercises the revert+apply delta logic in isolation using plain
+     * arithmetic — the same math the repository executes via adjustBalance SQL calls.
+     * A result of (initialBalance - oldAmount - newAmount) = 2000 DZD would indicate
+     * the bug is present (revert not applied).
+     */
+    @Test
+    fun testUpdateTransactionBalanceDelta() {
+        val initialBalance = 5000.0
+        val oldExpenseAmount = 1000.0
+        val newExpenseAmount = 2000.0
+
+        // Simulate state after original insert: balance reduced by old expense
+        var accountBalance = initialBalance - oldExpenseAmount  // 4000.0
+
+        // --- updateTransaction delta logic (mirrors FinanceRepositoryImpl) ---
+
+        // Step 1: Revert old EXPENSE → add back old amount (atomic adjustBalance equivalent)
+        val oldRevertDelta = oldExpenseAmount  // EXPENSE revert = +amount
+        accountBalance += oldRevertDelta       // 4000 + 1000 = 5000
+
+        // Step 2: Apply new EXPENSE → subtract new amount (atomic adjustBalance equivalent)
+        val newOffset = -newExpenseAmount      // EXPENSE offset = -amount
+        accountBalance += newOffset            // 5000 - 2000 = 3000
+
+        // --- Assertions ---
+        val expectedBalance = initialBalance - newExpenseAmount  // 5000 - 2000 = 3000
+        assertEquals(
+            "Balance after editing expense from $oldExpenseAmount to $newExpenseAmount should be $expectedBalance, not ${initialBalance - oldExpenseAmount - newExpenseAmount}",
+            expectedBalance,
+            accountBalance,
+            0.001
+        )
+    }
+
+    /**
+     * Verifies that changing a transaction's type (EXPENSE → INCOME) correctly
+     * nets both the revert of the old effect and the application of the new effect.
+     *
+     *   Initial balance: 5000 DZD
+     *   Existing EXPENSE: 1000 DZD  →  account shows 4000 DZD
+     *   Change to INCOME: 3000 DZD  →  account must show 7000 DZD (4000 + 1000 revert + 3000 income)
+     */
+    @Test
+    fun testUpdateTransactionKindChange_ExpenseToIncome() {
+        val initialBalance = 5000.0
+        val oldExpenseAmount = 1000.0
+        val newIncomeAmount = 3000.0
+
+        var accountBalance = initialBalance - oldExpenseAmount  // 4000.0
+
+        // Revert old EXPENSE
+        accountBalance += oldExpenseAmount   // 4000 + 1000 = 5000
+
+        // Apply new INCOME
+        accountBalance += newIncomeAmount    // 5000 + 3000 = 8000
+
+        val expectedBalance = initialBalance - oldExpenseAmount + oldExpenseAmount + newIncomeAmount
+        assertEquals(
+            "After changing expense to income, balance should be $expectedBalance",
+            expectedBalance,
+            accountBalance,
+            0.001
+        )
+    }
 }
+

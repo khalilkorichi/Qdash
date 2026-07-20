@@ -1,26 +1,34 @@
 package com.qdash.ui.designsystem.components
 
+import android.text.format.DateFormat
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -29,17 +37,26 @@ import com.qdash.core.utils.FormatterUtils
 import com.qdash.ui.designsystem.tokens.ColorTokens
 import com.qdash.ui.designsystem.tokens.MotionTokens
 import com.qdash.ui.designsystem.tokens.ShapeTokens
-import java.util.*
+import kotlinx.coroutines.launch
+import kotlin.math.abs
+
+private data class PresetTime(
+    val hour: Int,
+    val minute: Int,
+    val label: String
+)
 
 /**
- * RTL-native time picker dialog matching the app design system.
- * Only used when user explicitly opts to set a precise time (occurredAt).
+ * Custom Wheel-based Time Picker Dialog matching the requested mockup design.
+ * Provides vertical scrollable wheels for hours, minutes, and AM/PM with snapping.
+ * Includes a presets quick-selection row and confirmation button.
  *
- * @param initialHour  Hour (0-23) to pre-select. Usually from occurredAt or Calendar.HOUR_OF_DAY.
+ * @param initialHour Hour (0-23) to pre-select.
  * @param initialMinute Minute (0-59) to pre-select.
- * @param onDismissRequest Called when the user dismisses without confirming.
- * @param onTimeSelected  Called with (hour, minute) on confirm.
- * @param confirmButtonColor Accent color for the confirm button and selected cells.
+ * @param onDismissRequest Called when the user dismisses/cancels the picker.
+ * @param onTimeSelected Called with (hour, minute) on confirmation.
+ * @param is24Hour True for 24-hour format, false for 12-hour format with AM/PM.
+ * @param confirmButtonColor Accent color for the confirmation button and active selections.
  */
 @Composable
 fun AppTimePickerDialog(
@@ -47,148 +64,236 @@ fun AppTimePickerDialog(
     initialMinute: Int,
     onDismissRequest: () -> Unit,
     onTimeSelected: (hour: Int, minute: Int) -> Unit,
+    modifier: Modifier = Modifier,
+    is24Hour: Boolean = DateFormat.is24HourFormat(LocalContext.current),
     confirmButtonColor: Color = MaterialTheme.colorScheme.primary
 ) {
     Dialog(onDismissRequest = onDismissRequest) {
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            val transitionState = remember { MutableTransitionState(false).apply { targetState = true } }
-            val transition = rememberTransition(transitionState, label = "timepicker_entrance")
+        val isDark = MaterialTheme.colorScheme.background != ColorTokens.BackgroundLight
+        val dialogBgColor = if (isDark) ColorTokens.ElevatedSurfaceDark else ColorTokens.SurfaceLight
+        val dividerColor = if (isDark) ColorTokens.DividerDark else ColorTokens.BorderLight
+        val textPrimary = if (isDark) ColorTokens.TextPrimaryDark else ColorTokens.TextPrimaryLight
+        val textSecondary = if (isDark) ColorTokens.TextSecondaryDark else ColorTokens.TextSecondaryLight
 
-            val alpha by transition.animateFloat(
-                transitionSpec = { tween(durationMillis = 180, easing = LinearOutSlowInEasing) },
-                label = "timepicker_alpha"
-            ) { if (it) 1f else 0f }
+        var selectedHour by rememberSaveable { mutableIntStateOf(initialHour.coerceIn(0, 23)) }
+        var selectedMinute by rememberSaveable { mutableIntStateOf(initialMinute.coerceIn(0, 59)) }
 
-            val translateY by transition.animateFloat(
-                transitionSpec = { tween(durationMillis = 180, easing = FastOutSlowInEasing) },
-                label = "timepicker_translateY"
-            ) { if (it) 0f else 25f }
+        val displayHour = remember(selectedHour) {
+            if (selectedHour == 0) 12 else if (selectedHour > 12) selectedHour - 12 else selectedHour
+        }
+        val isPm = remember(selectedHour) { selectedHour >= 12 }
+        val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
-            val isDark = MaterialTheme.colorScheme.background != ColorTokens.BackgroundLight
-            val dialogBgColor = if (isDark) ColorTokens.ElevatedSurfaceDark else ColorTokens.SurfaceLight
-            val dividerColor = if (isDark) ColorTokens.DividerDark else ColorTokens.BorderLight
-            val textPrimary = if (isDark) ColorTokens.TextPrimaryDark else ColorTokens.TextPrimaryLight
-            val textSecondary = if (isDark) ColorTokens.TextSecondaryDark else ColorTokens.TextSecondaryLight
-
-            var selectedHour by remember { mutableIntStateOf(initialHour.coerceIn(0, 23)) }
-            var selectedMinute by remember { mutableIntStateOf(initialMinute.coerceIn(0, 59)) }
-
-            Card(
+        Card(
+            modifier = modifier.fillMaxWidth(),
+            shape = ShapeTokens.Xl,
+            colors = CardDefaults.cardColors(containerColor = dialogBgColor),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .graphicsLayer(alpha = alpha, translationY = translateY),
-                shape = ShapeTokens.Xl,
-                colors = CardDefaults.cardColors(containerColor = dialogBgColor),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                // Header (Title & Close button)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Header
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "اختر الوقت",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = textSecondary
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = FormatterUtils.convertNumerals(
-                                    "%02d:%02d".format(selectedHour, selectedMinute)
-                                ),
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                                color = textPrimary
-                            )
-                        }
+                    Text(
+                        text = if (isRtl) "اختر الوقت" else "Time",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = textPrimary
+                    )
+                    IconButton(onClick = onDismissRequest) {
                         Icon(
-                            imageVector = Icons.Default.AccessTime,
-                            contentDescription = null,
-                            tint = confirmButtonColor,
-                            modifier = Modifier.size(24.dp)
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "إلغاء",
+                            tint = textSecondary
                         )
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-                    HorizontalDivider(color = dividerColor, thickness = 1.dp)
-                    Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                    // Hours + Minutes pickers side by side
+                // Scroll Selection Area
+                val itemHeight = 44.dp
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color = if (isDark) Color(0xFF1E1E1E) else Color(0xFFF9F9F9),
+                            shape = RoundedCornerShape(14.dp)
+                        )
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Gray highlighted bar in the center behind active items
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.92f)
+                            .height(itemHeight)
+                            .background(
+                                color = if (isDark) Color(0xFF2C2C2C) else Color(0xFFEEEEEE),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                    )
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Hours (0-23)
-                        TimeColumn(
-                            label = "الساعة",
-                            items = (0..23).toList(),
-                            selected = selectedHour,
-                            onSelected = { selectedHour = it },
-                            accentColor = confirmButtonColor,
-                            isDark = isDark,
-                            textPrimary = textPrimary,
-                            dividerColor = dividerColor,
-                            modifier = Modifier.weight(1f)
+                        val hoursList = if (is24Hour) {
+                            (0..23).map { "%02d".format(it) }
+                        } else {
+                            (1..12).map { "%d".format(it) }
+                        }
+                        val minutesList = (0..59).map { "%02d".format(it) }
+                        val amPmList = if (isRtl) listOf("ص", "م") else listOf("am", "pm")
+
+                        val initialHourIndex = if (is24Hour) {
+                            selectedHour
+                        } else {
+                            if (selectedHour == 0) 11 else if (selectedHour > 12) selectedHour - 13 else selectedHour - 1
+                        }
+
+                        // Hours Column
+                        WheelColumn(
+                            items = hoursList,
+                            initialIndex = initialHourIndex,
+                            onIndexSelected = { index ->
+                                if (is24Hour) {
+                                    selectedHour = index
+                                } else {
+                                    val hourVal = index + 1
+                                    selectedHour = if (isPm) {
+                                        if (hourVal == 12) 12 else hourVal + 12
+                                    } else {
+                                        if (hourVal == 12) 0 else hourVal
+                                    }
+                                }
+                            },
+                            isInfinite = true,
+                            itemHeight = itemHeight,
+                            modifier = Modifier.weight(1.2f)
                         )
 
-                        // Separator
+                        // Separator ":"
                         Text(
                             text = ":",
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                            color = confirmButtonColor,
-                            modifier = Modifier.align(Alignment.CenterVertically)
+                            color = textPrimary,
+                            modifier = Modifier.padding(horizontal = 8.dp)
                         )
 
-                        // Minutes — multiples of 5 for easy picking; fine-tune via +1/-1 arrows
-                        TimeColumn(
-                            label = "الدقيقة",
-                            items = (0..59).toList(),
-                            selected = selectedMinute,
-                            onSelected = { selectedMinute = it },
-                            accentColor = confirmButtonColor,
-                            isDark = isDark,
-                            textPrimary = textPrimary,
-                            dividerColor = dividerColor,
-                            modifier = Modifier.weight(1f)
+                        // Minutes Column
+                        WheelColumn(
+                            items = minutesList,
+                            initialIndex = selectedMinute,
+                            onIndexSelected = { selectedMinute = it },
+                            isInfinite = true,
+                            itemHeight = itemHeight,
+                            modifier = Modifier.weight(1.2f)
                         )
-                    }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-                    HorizontalDivider(color = dividerColor, thickness = 1.dp)
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Footer buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        AppButton(
-                            onClick = onDismissRequest,
-                            modifier = Modifier.weight(1f),
-                            variant = ButtonVariant.LIGHT,
-                            intent = ButtonIntent.PRIMARY
-                        ) {
-                            Text("إلغاء", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        }
-
-                        TimePickerConfirmButton(
-                            onClick = {
-                                onTimeSelected(selectedHour, selectedMinute)
-                                onDismissRequest()
-                            },
-                            modifier = Modifier.weight(1f),
-                            backgroundColor = confirmButtonColor
-                        ) {
-                            Text("تأكيد", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
+                        // AM/PM Column (Only for 12-hour format)
+                        if (!is24Hour) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            WheelColumn(
+                                items = amPmList,
+                                initialIndex = if (isPm) 1 else 0,
+                                onIndexSelected = { index ->
+                                    val toPm = index == 1
+                                    selectedHour = if (toPm) {
+                                        if (displayHour == 12) 12 else displayHour + 12
+                                    } else {
+                                        if (displayHour == 12) 0 else displayHour
+                                    }
+                                },
+                                isInfinite = false,
+                                itemHeight = itemHeight,
+                                modifier = Modifier.weight(1f)
+                            )
                         }
                     }
+                }
+
+                // Presets Section
+                Spacer(modifier = Modifier.height(20.dp))
+                Text(
+                    text = if (isRtl) "الاختصارات" else "Presets",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = textSecondary,
+                    modifier = Modifier.align(Alignment.Start)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val labelAm = if (isRtl) "ص" else "am"
+                    val labelPm = if (isRtl) "م" else "pm"
+
+                    val presets = listOf(
+                        PresetTime(9, 0, if (is24Hour) "09:00" else "9 $labelAm"),
+                        PresetTime(12, 0, if (is24Hour) "12:00" else "12 $labelPm"),
+                        PresetTime(16, 0, if (is24Hour) "16:00" else "4 $labelPm"),
+                        PresetTime(18, 0, if (is24Hour) "18:00" else "6 $labelPm")
+                    )
+
+                    presets.forEach { preset ->
+                        val isSelected = selectedHour == preset.hour && selectedMinute == preset.minute
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(38.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    if (isSelected) confirmButtonColor.copy(alpha = 0.12f) else Color.Transparent
+                                )
+                                .border(
+                                    width = if (isSelected) 1.5.dp else 1.dp,
+                                    color = if (isSelected) confirmButtonColor else dividerColor,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .clickable {
+                                    selectedHour = preset.hour
+                                    selectedMinute = preset.minute
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = FormatterUtils.convertNumerals(preset.label),
+                                color = if (isSelected) confirmButtonColor else textSecondary,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            )
+                        }
+                    }
+                }
+
+                // Confirm Action Button
+                Spacer(modifier = Modifier.height(24.dp))
+                TimePickerConfirmButton(
+                    onClick = {
+                        onTimeSelected(selectedHour, selectedMinute)
+                        onDismissRequest()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    backgroundColor = confirmButtonColor
+                ) {
+                    Text(
+                        text = if (isRtl) "تأكيد" else "Done",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = Color.White
+                    )
                 }
             }
         }
@@ -196,70 +301,104 @@ fun AppTimePickerDialog(
 }
 
 /**
- * Scrollable column of time values. Each value is a tappable chip.
- * Renders as a vertical grid of fixed-height rows, showing 5 at a time.
+ * Scrollable column of items representing a scroll wheel.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun TimeColumn(
-    label: String,
-    items: List<Int>,
-    selected: Int,
-    onSelected: (Int) -> Unit,
-    accentColor: Color,
-    isDark: Boolean,
-    textPrimary: Color,
-    dividerColor: Color,
-    modifier: Modifier = Modifier
+private fun WheelColumn(
+    items: List<String>,
+    initialIndex: Int,
+    onIndexSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    isInfinite: Boolean = true,
+    itemHeight: Dp = 44.dp
 ) {
-    val textMuted = if (isDark) ColorTokens.TextMutedDark else ColorTokens.TextSecondaryLight
+    val coroutineScope = rememberCoroutineScope()
+    val virtualIndex = if (isInfinite) (items.size * 500) + initialIndex else initialIndex
+    val lazyListState = rememberLazyListState(initialFirstVisibleItemIndex = virtualIndex)
+    val snapFlingBehavior = rememberSnapFlingBehavior(lazyListState = lazyListState)
 
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
+    // Sync scroll state with external selection
+    LaunchedEffect(lazyListState.firstVisibleItemIndex) {
+        val realIndex = if (isInfinite) {
+            lazyListState.firstVisibleItemIndex % items.size
+        } else {
+            lazyListState.firstVisibleItemIndex
+        }
+        onIndexSelected(realIndex.coerceIn(0, items.lastIndex))
+    }
+
+    // Scroll programmatically when initialIndex changes from presets
+    LaunchedEffect(initialIndex) {
+        val currentVirtualIndex = lazyListState.firstVisibleItemIndex
+        val currentRealIndex = if (isInfinite) {
+            currentVirtualIndex % items.size
+        } else {
+            currentVirtualIndex
+        }
+        if (currentRealIndex != initialIndex) {
+            if (isInfinite) {
+                val diff = initialIndex - currentRealIndex
+                lazyListState.animateScrollToItem(currentVirtualIndex + diff)
+            } else {
+                lazyListState.animateScrollToItem(initialIndex)
+            }
+        }
+    }
+
+    Box(
+        modifier = modifier.height(itemHeight * 5),
+        contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-            color = textMuted,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+        LazyColumn(
+            state = lazyListState,
+            flingBehavior = snapFlingBehavior,
+            contentPadding = PaddingValues(vertical = itemHeight * 2),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            val totalItems = if (isInfinite) items.size * 1000 else items.size
+            items(totalItems) { index ->
+                val realIndex = if (isInfinite) index % items.size else index
+                val isSelected = index == lazyListState.firstVisibleItemIndex
 
-        // Quick-pick grid: 6 columns, rows as needed
-        val rowsOf6 = items.chunked(6)
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            rowsOf6.forEach { rowItems ->
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    rowItems.forEach { value ->
-                        val isSelected = value == selected
-                        val cellBg = if (isSelected) accentColor else dividerColor.copy(alpha = 0.15f)
-                        val cellTextColor = if (isSelected) Color.White else textPrimary
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .aspectRatio(1f)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(cellBg)
-                                .clickable { onSelected(value) },
-                            contentAlignment = Alignment.Center
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(itemHeight)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
                         ) {
-                            Text(
-                                text = FormatterUtils.convertNumerals("%02d".format(value)),
-                                color = cellTextColor,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                ),
-                                fontSize = 11.sp,
-                                textAlign = TextAlign.Center
-                            )
+                            coroutineScope.launch {
+                                lazyListState.animateScrollToItem(index)
+                            }
                         }
-                    }
-                    // Fill remaining slots in last row
-                    repeat(6 - rowItems.size) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
+                        .graphicsLayer {
+                            // Apply fading barrel distortion effect based on distance to center
+                            val distance = abs(index - lazyListState.firstVisibleItemIndex)
+                            alpha = when (distance) {
+                                0 -> 1f
+                                1 -> 0.45f
+                                2 -> 0.15f
+                                else -> 0f
+                            }
+                            scaleX = when (distance) {
+                                0 -> 1.12f
+                                1 -> 0.92f
+                                2 -> 0.78f
+                                else -> 0.7f
+                            }
+                            scaleY = scaleX
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = items[realIndex],
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
         }
@@ -276,7 +415,7 @@ private fun TimePickerConfirmButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1f,
+        targetValue = if (isPressed) 0.97f else 1f,
         animationSpec = MotionTokens.springBouncy(),
         label = "time_confirm_scale"
     )
@@ -284,7 +423,7 @@ private fun TimePickerConfirmButton(
         onClick = onClick,
         modifier = modifier
             .scale(scale)
-            .height(48.dp),
+            .height(50.dp),
         shape = ShapeTokens.Md,
         color = backgroundColor,
         contentColor = Color.White,
@@ -298,3 +437,4 @@ private fun TimePickerConfirmButton(
         )
     }
 }
+
