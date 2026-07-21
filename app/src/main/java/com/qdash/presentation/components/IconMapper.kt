@@ -44,8 +44,15 @@ fun getIconByName(name: String): ImageVector {
         "checkroom" -> Icons.Default.Checkroom
         "spa" -> Icons.Default.Spa
         "child_care" -> Icons.Default.ChildCare
-        "build" -> Icons.Default.Build
-        "local_pharmacy" -> Icons.Default.LocalPharmacy
-        else -> Icons.Default.AttachMoney
+        "ic_cat_marche", "shopping_cart" -> Icons.Default.ShoppingCart
+        "ic_cat_flexy", "phone", "wifi" -> Icons.Default.Wifi
+        "ic_cat_transport", "local_taxi", "transport", "car" -> Icons.Default.DirectionsCar
+        "ic_cat_health", "medical_services", "health", "local_pharmacy" -> Icons.Default.MedicalServices
+        "ic_cat_fastfood", "fastfood", "restaurant", "food" -> Icons.Default.Restaurant
+        "ic_cat_bricolage", "build" -> Icons.Default.Build
+        "ic_cat_education", "school", "education" -> Icons.Default.School
+        "ic_cat_family", "groups", "family" -> Icons.Default.Groups
+        "ic_cat_default", "category", "folder" -> Icons.Default.Category
+        else -> Icons.Default.Category
     }
 }

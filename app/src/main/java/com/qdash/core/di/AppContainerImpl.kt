@@ -153,8 +153,16 @@ class AppContainerImpl(private val context: Context) : AppContainer {
         com.qdash.domain.usecase.categorization.GetCategorySuggestionUseCase(categorizationEngine)
     }
 
+    override val getSmartCategorySuggestionUseCase: com.qdash.domain.usecase.transaction.GetSmartCategorySuggestionUseCase by lazy {
+        com.qdash.domain.usecase.transaction.GetSmartCategorySuggestionUseCase(categorizationEngine)
+    }
+
     override val learnCategoryMappingUseCase: com.qdash.domain.usecase.categorization.LearnCategoryMappingUseCase by lazy {
         com.qdash.domain.usecase.categorization.LearnCategoryMappingUseCase(categorizationRepository)
+    }
+
+    override val learnCategoryMappingUseCaseTransaction: com.qdash.domain.usecase.transaction.LearnCategoryMappingUseCase by lazy {
+        com.qdash.domain.usecase.transaction.LearnCategoryMappingUseCase(categorizationRepository)
     }
 
     override val debtRepository: DebtRepository by lazy {

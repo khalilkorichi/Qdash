@@ -12,5 +12,5 @@ data class CategorySuggestion(
 )
 
 enum class SuggestionSource {
-    RULE, HISTORY, AI, NONE
+    RULE, HISTORY, KEYWORD, AI, NONE
 }

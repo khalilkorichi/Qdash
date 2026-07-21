@@ -351,21 +351,40 @@ fun calculateExpectedBalances(
     selectedAccountId: Long?,
     toAccountId: Long?,
     type: TransactionType,
-    parsedAmount: Double
+    parsedAmount: Double,
+    isEditMode: Boolean = false,
+    originalAmount: Double = 0.0,
+    originalType: TransactionType? = null,
+    originalAccountId: Long? = null,
+    originalToAccountId: Long? = null
 ): Map<Long, Double> {
     return accounts.associate { acc ->
+        var baseBalance = acc.balance
+
+        if (isEditMode && originalType != null) {
+            if (acc.id == originalAccountId) {
+                baseBalance = when (originalType) {
+                    TransactionType.EXPENSE -> acc.balance + originalAmount
+                    TransactionType.INCOME -> acc.balance - originalAmount
+                    TransactionType.TRANSFER -> acc.balance + originalAmount
+                }
+            } else if (originalType == TransactionType.TRANSFER && acc.id == originalToAccountId) {
+                baseBalance = acc.balance - originalAmount
+            }
+        }
+
         val expected = when (type) {
             TransactionType.EXPENSE -> {
-                if (acc.id == selectedAccountId) acc.balance - parsedAmount else acc.balance
+                if (acc.id == selectedAccountId) baseBalance - parsedAmount else baseBalance
             }
             TransactionType.INCOME -> {
-                if (acc.id == selectedAccountId) acc.balance + parsedAmount else acc.balance
+                if (acc.id == selectedAccountId) baseBalance + parsedAmount else baseBalance
             }
             TransactionType.TRANSFER -> {
                 when (acc.id) {
-                    selectedAccountId -> acc.balance - parsedAmount
-                    toAccountId -> acc.balance + parsedAmount
-                    else -> acc.balance
+                    selectedAccountId -> baseBalance - parsedAmount
+                    toAccountId -> baseBalance + parsedAmount
+                    else -> baseBalance
                 }
             }
         }
@@ -416,7 +435,8 @@ fun AddTransactionEffects(
     hasLoadedInitialData: Boolean,
     onLoadedInitialDataChange: (Boolean) -> Unit,
     hasLoadedDraft: Boolean,
-    onLoadedDraftChange: (Boolean) -> Unit
+    onLoadedDraftChange: (Boolean) -> Unit,
+    onInitEditMode: ((amount: Double, type: TransactionType, accountId: Long?, toAccountId: Long?) -> Unit)? = null
 ) {
     LaunchedEffect(uiState.saveCompleted) {
         if (uiState.saveCompleted) {
@@ -431,6 +451,10 @@ fun AddTransactionEffects(
 
     LaunchedEffect(uiState.transactions, transactionId) {
         if (!hasLoadedInitialData && transactionId != null && uiState.transactions.isNotEmpty()) {
+            val tx = uiState.transactions.find { it.id == transactionId }
+            if (tx != null) {
+                onInitEditMode?.invoke(tx.amount, tx.type, tx.accountId, tx.toAccountId)
+            }
             loadInitialTransaction(transactionId, uiState.transactions, uiState.categories) { amtStr, n, isRec, recPer, tgs, tp, selCatId, subCatId, selAccId, toAccId, date, time ->
                 onRawAmountChange(TextFieldValue(amtStr, selection = TextRange(amtStr.length)))
                 onNoteChange(n)

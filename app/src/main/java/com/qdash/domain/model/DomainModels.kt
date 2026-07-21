@@ -65,7 +65,8 @@ data class Category(
     val budgetLimit: Double? = null,
     val isSystem: Boolean = false,
     val parentId: Long? = null,
-    val sortOrder: Int = 0
+    val sortOrder: Int = 0,
+    val subcategories: List<Category> = emptyList()
 ) : Identifiable, Nameable, ColorTagged, IconTagged
 
 enum class CategoryType {

@@ -22,6 +22,12 @@ import com.qdash.ui.theme.*
 @Composable
 fun AddTransactionScreen(
     viewModel: TransactionsViewModel,
+    addTxViewModel: AddTransactionViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+        factory = com.qdash.presentation.ViewModelFactory(
+            (LocalContext.current.applicationContext as com.qdash.FinTrackApp).container,
+            LocalContext.current
+        )
+    ),
     initialType: String = "EXPENSE",
     transactionId: Long? = null,
     initialDate: Long? = null,
@@ -106,8 +112,18 @@ fun AddTransactionScreen(
         com.qdash.core.utils.CalculatorParser.evaluate(rawAmount)
     }
 
-    val expectedBalances = remember(uiState.accounts, selectedAccountId, toAccountId, type, parsedAmount) {
-        calculateExpectedBalances(uiState.accounts, selectedAccountId, toAccountId, type, parsedAmount)
+    val expectedBalances = remember(
+        uiState.accounts, selectedAccountId, toAccountId, type, parsedAmount,
+        addTxViewModel.isEditMode, addTxViewModel.originalAmount, addTxViewModel.originalType,
+        addTxViewModel.originalAccountId, addTxViewModel.originalToAccountId
+    ) {
+        addTxViewModel.calculatePreviewBalances(
+            accounts = uiState.accounts,
+            selectedAccountId = selectedAccountId,
+            toAccountId = toAccountId,
+            type = type,
+            parsedAmount = parsedAmount
+        )
     }
 
     val activeBudget = remember(selectedCategoryId, uiState.budgetGoals, type) {
@@ -156,7 +172,10 @@ fun AddTransactionScreen(
         hasLoadedInitialData = hasLoadedInitialData,
         onLoadedInitialDataChange = { hasLoadedInitialData = it },
         hasLoadedDraft = hasLoadedDraft,
-        onLoadedDraftChange = { hasLoadedDraft = it }
+        onLoadedDraftChange = { hasLoadedDraft = it },
+        onInitEditMode = { amt, tp, accId, toAccId ->
+            addTxViewModel.initEditMode(amt, tp, accId, toAccId)
+        }
     )
 
     var showSaveTemplateDialog by remember { mutableStateOf(false) }

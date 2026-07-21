@@ -1,4 +1,4 @@
-﻿package com.qdash.presentation.transactions
+package com.qdash.presentation.transactions
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -313,8 +313,8 @@ class TransactionsViewModel(
         }
         suggestionJob = viewModelScope.launch {
             try {
-                // Keypress debounce delay
-                kotlinx.coroutines.delay(300L)
+                // Keypress debounce delay (200ms for fast feedback)
+                kotlinx.coroutines.delay(200L)
                 val suggestion = getCategorySuggestionUseCase(note, amount, accountId)
                 val matchedCategory = _uiState.value.categories.find { it.id == suggestion.suggestedCategoryId }
                 _uiState.update {
@@ -325,6 +325,20 @@ class TransactionsViewModel(
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 // Ignore cancelations
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun acceptSuggestion(noteText: String, categoryId: Long) {
+        learnMapping(noteText, categoryId)
+    }
+
+    fun learnMapping(noteText: String, categoryId: Long) {
+        viewModelScope.launch {
+            try {
+                learnCategoryMappingUseCase(noteText, categoryId)
             } catch (e: Exception) {
                 e.printStackTrace()
             }

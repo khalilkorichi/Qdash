@@ -30,7 +30,9 @@ interface AppContainer {
     val deleteBudgetGoalUseCase: com.qdash.domain.usecase.budget.DeleteBudgetGoalUseCase
     val getBudgetAlertsUseCase: com.qdash.domain.usecase.budget.GetBudgetAlertsUseCase
     val getCategorySuggestionUseCase: com.qdash.domain.usecase.categorization.GetCategorySuggestionUseCase
+    val getSmartCategorySuggestionUseCase: com.qdash.domain.usecase.transaction.GetSmartCategorySuggestionUseCase
     val learnCategoryMappingUseCase: com.qdash.domain.usecase.categorization.LearnCategoryMappingUseCase
+    val learnCategoryMappingUseCaseTransaction: com.qdash.domain.usecase.transaction.LearnCategoryMappingUseCase
 
     // New feature repositories
     val debtRepository: DebtRepository

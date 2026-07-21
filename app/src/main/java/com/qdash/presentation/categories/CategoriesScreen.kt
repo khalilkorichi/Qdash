@@ -140,15 +140,20 @@ fun CategoriesScreen(
                         // Subcategories
                         AnimatedVisibility(visible = isExpanded) {
                             Column(
-                                modifier = Modifier.padding(start = 32.dp, top = 4.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                modifier = Modifier.padding(start = 16.dp, top = 6.dp, bottom = 6.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                uiState.subcategories.forEach { sub ->
-                                    SubcategoryItem(
-                                        subcategory = sub,
-                                        onDelete = { viewModel.deleteCategory(sub) }
+                                val subList = uiState.subcategories.filter { it.parentId == category.id }
+                                if (subList.isNotEmpty()) {
+                                    com.qdash.presentation.categories.components.SubcategoryChipGrid(
+                                        subcategories = subList,
+                                        selectedSubcategoryId = null,
+                                        onSubcategorySelected = { sub ->
+                                            // Handle subcategory click or edit
+                                        }
                                     )
                                 }
+
                                 // Add subcategory button
                                 TextButton(
                                     onClick = { showAddDialog = true },

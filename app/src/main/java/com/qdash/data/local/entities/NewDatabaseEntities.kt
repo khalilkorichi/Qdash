@@ -66,6 +66,9 @@ data class DebtEntity(
 
 @Entity(
     tableName = "debt_installment_details",
+    indices = [
+        Index(value = ["debtId"])
+    ],
     foreignKeys = [
         ForeignKey(
             entity = DebtEntity::class,

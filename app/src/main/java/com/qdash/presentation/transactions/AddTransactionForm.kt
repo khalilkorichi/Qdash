@@ -129,6 +129,16 @@ fun AddTransactionFormContent(
             singleLine = true
         )
 
+        // Real-time non-blocking smart category suggestion row
+        com.qdash.presentation.transactions.components.SmartCategorySuggestionRow(
+            suggestion = uiState.currentSuggestion,
+            matchedCategory = uiState.suggestedCategory,
+            onAcceptSuggestion = { categoryId ->
+                onAcceptSuggestion(categoryId)
+            },
+            onDismissSuggestion = onDismissSuggestion
+        )
+
         TagsSection(
             selectedTags = selectedTags,
             onTagsChanged = onTagsChange,

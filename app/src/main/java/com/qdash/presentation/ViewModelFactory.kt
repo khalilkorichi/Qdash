@@ -67,6 +67,12 @@ class ViewModelFactory(
                     container.amanaRepository
                 ) as T
             }
+            modelClass.isAssignableFrom(com.qdash.presentation.transactions.AddTransactionViewModel::class.java) -> {
+                com.qdash.presentation.transactions.AddTransactionViewModel(
+                    container.getSmartCategorySuggestionUseCase,
+                    container.learnCategoryMappingUseCaseTransaction
+                ) as T
+            }
             modelClass.isAssignableFrom(TransactionsViewModel::class.java) -> {
                 TransactionsViewModel(
                     container.transactionRepository,
