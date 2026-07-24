@@ -125,7 +125,7 @@ class PreferencesManager(context: Context) {
         set(value) = mainPrefs.edit().putBoolean("amount_words_enabled", value).apply()
 
     var selectedAiModel: String
-        get() = mainPrefs.getString("selected_ai_model", "gemini-2.5-flash") ?: "gemini-2.5-flash"
+        get() = mainPrefs.getString("selected_ai_model", "gemini-3.6-flash-high") ?: "gemini-3.6-flash-high"
         set(value) = mainPrefs.edit().putString("selected_ai_model", value).apply()
 
     var notificationPermissionHandled: Boolean

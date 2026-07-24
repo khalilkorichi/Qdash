@@ -1,4 +1,4 @@
-﻿package com.qdash.presentation.ai
+package com.qdash.presentation.ai
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
@@ -67,9 +67,13 @@ data class AiChatUiState(
     val inputText: String = "",
     val currentSessionTitle: String = "محادثة جديدة",
     val sessions: List<String> = emptyList(),
-    val selectedModelId: String = "gemini-2.5-flash",
+    val selectedModelId: String = "gemini-3.6-flash-high",
     val proactiveInsights: List<String> = emptyList(),
     val models: List<AiModelInfo> = listOf(
+        AiModelInfo("gemini-3.6-flash-high", "Gemini Flash 3.6 (High)", "Google"),
+        AiModelInfo("gemini-3.6-flash-medium", "Gemini Flash 3.6 (Medium)", "Google"),
+        AiModelInfo("gemini-3.6-flash-low", "Gemini Flash 3.6 (Low)", "Google"),
+        AiModelInfo("gemini-3.5-flash-lite", "Gemini 3.5 Flash Lite", "Google"),
         AiModelInfo("gemini-2.5-flash", "Gemini 2.5 Flash", "Google"),
         AiModelInfo("gemini-3.1-flash", "Gemini 3.1 Flash", "Google"),
         AiModelInfo("gemini-2.5-flash-lite", "Gemini 2.5 Flash-Lite", "Google"),

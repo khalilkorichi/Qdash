@@ -14,6 +14,18 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
+fun parseGeminiModelConfig(modelId: String): Pair<String, Int?> {
+    return when (modelId) {
+        "gemini-3.6-flash-high" -> Pair("gemini-3.6-flash", 8192)
+        "gemini-3.6-flash-medium" -> Pair("gemini-3.6-flash", 4096)
+        "gemini-3.6-flash-low" -> Pair("gemini-3.6-flash", 1024)
+        "gemini-3.5-flash-lite" -> Pair("gemini-3.5-flash-lite", null)
+        "gemini-3.1-flash" -> Pair("gemini-3.5-flash", null)
+        "gemini-3.1-pro" -> Pair("gemini-3.1-pro-preview", null)
+        else -> Pair(modelId, null)
+    }
+}
+
 class GeminiProvider(
     private val apiKey: String,
     private val parentClient: OkHttpClient
@@ -38,6 +50,10 @@ class GeminiProvider(
         }
 
         val models = listOf(
+            "gemini-3.6-flash-high",
+            "gemini-3.6-flash-medium",
+            "gemini-3.6-flash-low",
+            "gemini-3.5-flash-lite",
             "gemini-2.5-flash",
             "gemini-2.5-flash-lite",
             "gemini-2.5-pro",
@@ -64,7 +80,8 @@ class GeminiProvider(
         userMessage: String,
         modelId: String
     ): String {
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/$modelId:generateContent?key=$apiKey"
+        val (apiModelId, thinkingBudget) = parseGeminiModelConfig(modelId)
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/$apiModelId:generateContent?key=$apiKey"
         
         val contentsArray = JSONArray()
         for (msg in history) {
@@ -91,6 +108,13 @@ class GeminiProvider(
         val requestBodyJson = JSONObject().apply {
             put("contents", contentsArray)
             put("systemInstruction", systemInstruction)
+            if (thinkingBudget != null) {
+                put("generationConfig", JSONObject().apply {
+                    put("thinkingConfig", JSONObject().apply {
+                        put("thinkingBudget", thinkingBudget)
+                    })
+                })
+            }
         }
         
         val request = Request.Builder()

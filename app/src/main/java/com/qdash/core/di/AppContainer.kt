@@ -105,6 +105,8 @@ interface AppContainer {
     val bulkEditTransactionsUseCase: com.qdash.domain.usecase.transaction.BulkEditTransactionsUseCase
     val cardDbSnapshotUseCase: com.qdash.domain.usecase.ai.CardDbSnapshotUseCase
     val sendCardAiMessageUseCase: com.qdash.domain.usecase.ai.SendCardAiMessageUseCase
+    val getAiSettingsUseCase: com.qdash.domain.usecase.ai.GetAiSettingsUseCase
+    val saveAiSettingsUseCase: com.qdash.domain.usecase.ai.SaveAiSettingsUseCase
     
     // Salary Use Cases
     val getSalaryManagementOverviewUseCase: com.qdash.domain.usecase.salary.GetSalaryManagementOverviewUseCase

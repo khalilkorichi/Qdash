@@ -361,6 +361,14 @@ class AppContainerImpl(private val context: Context) : AppContainer {
         com.qdash.domain.usecase.ai.SendCardAiMessageUseCase(aiRepository)
     }
 
+    override val getAiSettingsUseCase: com.qdash.domain.usecase.ai.GetAiSettingsUseCase by lazy {
+        com.qdash.domain.usecase.ai.GetAiSettingsUseCase(preferencesManager)
+    }
+
+    override val saveAiSettingsUseCase: com.qdash.domain.usecase.ai.SaveAiSettingsUseCase by lazy {
+        com.qdash.domain.usecase.ai.SaveAiSettingsUseCase(preferencesManager)
+    }
+
     // Salary Use Cases
     override val getSalaryManagementOverviewUseCase: com.qdash.domain.usecase.salary.GetSalaryManagementOverviewUseCase by lazy {
         com.qdash.domain.usecase.salary.GetSalaryManagementOverviewUseCase(incomeRepository, subscriptionRepository, debtRepository)

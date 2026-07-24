@@ -19,7 +19,8 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun CardAiThinkingPanel(
     thinkingStep: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    modelTierLabel: String? = null
 ) {
     val steps = listOf(
         "قراءة وتحميل بيانات البطاقة وسياق الميزانية",
@@ -40,11 +41,24 @@ fun CardAiThinkingPanel(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "المستشار الذكي يفكر...",
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.primary
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "المستشار الذكي يفكر...",
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.primary
+                )
+                if (!modelTierLabel.isNullOrBlank()) {
+                    Text(
+                        text = modelTierLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+            }
 
             steps.forEachIndexed { index, stepTitle ->
                 val isCompleted = thinkingStep > index

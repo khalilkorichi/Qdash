@@ -799,11 +799,7 @@ class AiRepositoryImpl(
 
     private suspend fun callGeminiApiWithTools(apiKey: String, sessionTitle: String, userPrompt: String, modelId: String): String = withContext(Dispatchers.IO) {
         try {
-            val apiModelId = when (modelId) {
-                "gemini-3.1-flash" -> "gemini-3.5-flash"
-                "gemini-3.1-pro" -> "gemini-3.1-pro-preview"
-                else -> modelId
-            }
+            val (apiModelId, thinkingBudget) = com.qdash.data.ai.providers.parseGeminiModelConfig(modelId)
             val url = "https://generativelanguage.googleapis.com/v1beta/models/$apiModelId:generateContent?key=$apiKey"
             
             // Get previous chat history to pass as context
@@ -929,6 +925,13 @@ class AiRepositoryImpl(
                 put("contents", contentsArray)
                 put("tools", JSONArray().put(JSONObject().put("functionDeclarations", functionDeclarations)))
                 put("systemInstruction", systemInstruction)
+                if (thinkingBudget != null) {
+                    put("generationConfig", JSONObject().apply {
+                        put("thinkingConfig", JSONObject().apply {
+                            put("thinkingBudget", thinkingBudget)
+                        })
+                    })
+                }
             }
 
             val request = Request.Builder()
