@@ -1,5 +1,7 @@
 package com.qdash.presentation.plans
 
+import androidx.compose.runtime.Immutable
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qdash.domain.model.FinancialPlan
@@ -9,6 +11,7 @@ import com.qdash.domain.repository.FinancialPlanRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+@Immutable
 data class FinancialPlansUiState(
     val plans: List<FinancialPlan> = emptyList(),
     val activePlans: List<FinancialPlan> = emptyList(),

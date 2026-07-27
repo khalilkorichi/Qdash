@@ -20,6 +20,7 @@ import com.qdash.core.ui.components.FinTrackTopBar
 import com.qdash.domain.model.PostalProfileRole
 import com.qdash.presentation.simulator.components.*
 import com.qdash.ui.designsystem.components.FormGrid
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,7 +29,7 @@ fun DocumentSimulatorScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     var showProfilePicker by remember { mutableStateOf(false) }

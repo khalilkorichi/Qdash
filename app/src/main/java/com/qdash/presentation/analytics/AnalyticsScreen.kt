@@ -29,6 +29,7 @@ import com.qdash.presentation.navigation.LocalNavController
 import com.qdash.presentation.navigation.Screen
 import com.qdash.ui.theme.*
 import java.util.Calendar
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,7 +39,7 @@ fun AnalyticsScreen(
     modifier: Modifier = Modifier
 ) {
     val Primary = MaterialTheme.colorScheme.primary
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val navController = LocalNavController.current
     val isRefreshing = uiState.isRefreshing
     val pullRefreshState = rememberPullToRefreshState()

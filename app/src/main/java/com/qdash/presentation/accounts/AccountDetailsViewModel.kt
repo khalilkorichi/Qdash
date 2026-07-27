@@ -1,5 +1,7 @@
 package com.qdash.presentation.accounts
 
+import androidx.compose.runtime.Immutable
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qdash.domain.model.Account
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@Immutable
 data class AccountDetailsUiState(
     val account: Account? = null,
     val transactions: List<Transaction> = emptyList(),

@@ -18,6 +18,7 @@ import com.qdash.domain.model.RegularDebt
 import com.qdash.domain.model.InstallmentDebt
 import com.qdash.presentation.debt.components.*
 import com.qdash.ui.designsystem.components.AppDialog
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,7 +28,7 @@ fun DebtsScreen(
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val pullRefreshState = rememberPullToRefreshState()
 
     // Sub-screen navigation

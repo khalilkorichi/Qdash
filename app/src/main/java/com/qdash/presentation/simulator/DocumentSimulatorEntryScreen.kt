@@ -35,6 +35,7 @@ import com.qdash.ui.designsystem.components.ButtonIntent
 import com.qdash.ui.designsystem.components.ButtonVariant
 import com.qdash.ui.designsystem.components.CardVariant
 import com.qdash.ui.theme.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,7 +46,7 @@ fun DocumentSimulatorEntryScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         modifier = modifier.fillMaxSize(),

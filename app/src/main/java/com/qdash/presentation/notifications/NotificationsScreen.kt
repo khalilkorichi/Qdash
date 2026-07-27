@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.sp
 import com.qdash.core.ui.components.UnifiedScreenHeader
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,8 +23,8 @@ fun NotificationsScreen(
     onBack: () -> Unit
 ) {
     val Primary = MaterialTheme.colorScheme.primary
-    val uiState by viewModel.uiState.collectAsState()
-    val grouped by viewModel.groupedNotifications.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val grouped by viewModel.groupedNotifications.collectAsStateWithLifecycle()
     val isRefreshing = uiState.isRefreshing
     val pullRefreshState = rememberPullToRefreshState()
 

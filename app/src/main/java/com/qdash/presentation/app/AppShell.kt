@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import com.qdash.presentation.ai.components.FloatingAiBubble
 import com.qdash.presentation.ai.components.MiniChatOverlay
 import com.qdash.presentation.ai.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 
 /**
@@ -58,7 +59,7 @@ internal fun FinTrackAppShell(
 
     // Shared Updates View Model for global background updating
     val updatesViewModel: UpdatesViewModel = viewModel(factory = factory)
-    val updateUiState by updatesViewModel.uiState.collectAsState()
+    val updateUiState by updatesViewModel.uiState.collectAsStateWithLifecycle()
 
     val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -203,7 +204,7 @@ internal fun FinTrackAppShell(
             }
 
             // ── Global AI Chat Floating Bubble Overlay (Bottom-Left) ──────────
-            val aiChatState by aiChatViewModel.uiState.collectAsState()
+            val aiChatState by aiChatViewModel.uiState.collectAsStateWithLifecycle()
 
             val aiBubbleBottomPadding by animateDpAsState(
                 targetValue = if (isBottomScreen && isBottomControlsVisible) {

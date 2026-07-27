@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.sp
 import com.qdash.core.ui.components.UnifiedScreenHeader
 import com.qdash.domain.model.Category
 import com.qdash.domain.model.CategoryType
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun CategoriesScreen(
@@ -24,7 +25,7 @@ fun CategoriesScreen(
     onBack: () -> Unit
 ) {
     val Primary = MaterialTheme.colorScheme.primary
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("مصروف", "دخل")
     var showAddDialog by remember { mutableStateOf(false) }

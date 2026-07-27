@@ -241,7 +241,7 @@ internal fun TransactionsTab(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(transactions, key = { it.id }) { tx ->
+            items(transactions, key = { it.id }, contentType = { "transaction" }) { tx ->
                 val cat = categories.firstOrNull { it.id == tx.categoryId }
                 val accName = accounts.firstOrNull { it.id == tx.accountId }?.name ?: "غير معروف"
                 val toAccName = accounts.firstOrNull { it.id == tx.toAccountId }?.name
@@ -295,7 +295,7 @@ internal fun AmanasTab(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(amanas, key = { it.id }) { amana ->
+            items(amanas, key = { it.id }, contentType = { "amana" }) { amana ->
                 SwipeableAmanaRow(
                     amana = amana,
                     onDelete = { amanaToDelete = amana }

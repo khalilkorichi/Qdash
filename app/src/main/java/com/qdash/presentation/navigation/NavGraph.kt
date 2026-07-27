@@ -92,48 +92,36 @@ internal fun FinTrackNavGraph(
             val initial = initialState.destination.route
             val target = targetState.destination.route
             if (isBottomNavRoute(initial) && isBottomNavRoute(target)) {
-                fadeIn(animationSpec = tween(220))
+                NavTransitions.fadeEnter
             } else {
-                slideInHorizontally(
-                    initialOffsetX = { -it / 6 }, // RTL-aware slide in from left to right
-                    animationSpec = tween(300, easing = FastOutSlowInEasing)
-                ) + fadeIn(animationSpec = tween(300))
+                NavTransitions.enterFromRight
             }
         },
         exitTransition = {
             val initial = initialState.destination.route
             val target = targetState.destination.route
             if (isBottomNavRoute(initial) && isBottomNavRoute(target)) {
-                fadeOut(animationSpec = tween(220))
+                NavTransitions.fadeExit
             } else {
-                slideOutHorizontally(
-                    targetOffsetX = { it / 6 }, // RTL-aware slide out to right
-                    animationSpec = tween(300, easing = FastOutSlowInEasing)
-                ) + fadeOut(animationSpec = tween(200))
+                NavTransitions.exitToRight
             }
         },
         popEnterTransition = {
             val initial = initialState.destination.route
             val target = targetState.destination.route
             if (isBottomNavRoute(initial) && isBottomNavRoute(target)) {
-                fadeIn(animationSpec = tween(220))
+                NavTransitions.fadeEnter
             } else {
-                slideInHorizontally(
-                    initialOffsetX = { it / 6 }, // RTL-aware slide in from right to left
-                    animationSpec = tween(300, easing = FastOutSlowInEasing)
-                ) + fadeIn(animationSpec = tween(300))
+                NavTransitions.popEnterFromLeft
             }
         },
         popExitTransition = {
             val initial = initialState.destination.route
             val target = targetState.destination.route
             if (isBottomNavRoute(initial) && isBottomNavRoute(target)) {
-                fadeOut(animationSpec = tween(220))
+                NavTransitions.fadeExit
             } else {
-                slideOutHorizontally(
-                    targetOffsetX = { -it / 6 }, // RTL-aware slide out to left
-                    animationSpec = tween(300, easing = FastOutSlowInEasing)
-                ) + fadeOut(animationSpec = tween(200))
+                NavTransitions.popExitToLeft
             }
         }
     ) {

@@ -1,5 +1,7 @@
 package com.qdash.presentation.settings
 
+import androidx.compose.runtime.Immutable
+
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -17,6 +19,7 @@ import com.qdash.core.utils.FormatterUtils
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+@Immutable
 data class SettingsUiState(
     val lastBackupDate: String = "غير متوفر",
     val isAutoBackupEnabled: Boolean = false,

@@ -23,6 +23,7 @@ import com.qdash.ui.theme.ExpenseRed
 import com.qdash.ui.theme.IncomeGreen
 import com.qdash.ui.theme.SavingsAmber
 import com.qdash.ui.theme.TextGray
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,7 +33,7 @@ fun UpdatesScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
     
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -117,7 +118,7 @@ fun UpdatesScreen(
                     }
                 }
                 is UpdateUiState.Checking -> {
-                    val steps by viewModel.checkingSteps.collectAsState()
+                    val steps by viewModel.checkingSteps.collectAsStateWithLifecycle()
                     CheckingUpdatesSection(steps = steps)
                 }
                 is UpdateUiState.NoUpdate -> {
@@ -269,7 +270,7 @@ fun UpdatesScreen(
                 state !is UpdateUiState.BackupInProgress &&
                 state !is UpdateUiState.BackupSuccess) {
                 
-                val downloadedApks by viewModel.downloadedApks.collectAsState()
+                val downloadedApks by viewModel.downloadedApks.collectAsStateWithLifecycle()
                 if (downloadedApks.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     DownloadedUpdatesSection(

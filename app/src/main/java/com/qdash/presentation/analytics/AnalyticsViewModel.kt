@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import java.util.Calendar
+import androidx.compose.runtime.Immutable
 
 data class CategoryShare(
     val categoryId: Long,
@@ -23,6 +24,7 @@ data class CashFlowTrend(
     val expense: Double
 )
 
+@Immutable
 data class AnalyticsUiState(
     val selectedPeriod: String = "ALL", // "ALL", "DAY", "WEEK", "MONTH", "YEAR"
     val spendingsByCategory: List<CategoryShare> = emptyList(),

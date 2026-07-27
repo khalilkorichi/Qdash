@@ -24,6 +24,7 @@ import com.qdash.presentation.salary.components.SalaryDelayHistoryCard
 import com.qdash.presentation.salary.components.SalaryOverviewCard
 import com.qdash.ui.theme.Primary
 import com.qdash.ui.theme.TextGray
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,7 +34,7 @@ fun SalaryScreen(
     modifier: Modifier = Modifier
 ) {
     val Primary = MaterialTheme.colorScheme.primary
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.userMessage) {

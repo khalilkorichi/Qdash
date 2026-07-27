@@ -16,10 +16,10 @@ android {
     applicationId = "com.qdash"
     minSdk = 24
     targetSdk = 36
-    versionCode = 93
-    versionName = "1.0.0.93"
+    versionCode = 94
+    versionName = "1.0.0.94"
     buildConfigField("Long", "BUILD_TIMESTAMP", "${System.currentTimeMillis()}L")
-    buildConfigField("Long", "UPDATE_IDENTITY", "194L")
+    buildConfigField("Long", "UPDATE_IDENTITY", "195L")
     buildConfigField("String", "GEMINI_API_KEY", "\"${System.getenv("GEMINI_API_KEY") ?: ""}\"")
     buildConfigField("String", "OPENROUTER_API_KEY", "\"${System.getenv("OPENROUTER_API_KEY") ?: ""}\"")
     buildConfigField("String", "NVIDIA_API_KEY", "\"${System.getenv("NVIDIA_API_KEY") ?: ""}\"")
@@ -108,6 +108,12 @@ secrets {
 
 composeCompiler {
   featureFlags.add(org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag.StrongSkipping)
+  // Generates compose_metrics/ and compose_reports/ under build/outputs.
+  // Run: ./gradlew assembleRelease -PcomposeMetrics=true to produce stability reports.
+  if (project.findProperty("composeMetrics") == "true") {
+    metricsDestination = project.layout.buildDirectory.dir("outputs/compose_metrics")
+    reportsDestination = project.layout.buildDirectory.dir("outputs/compose_reports")
+  }
 }
 
 // Some unused dependencies are commented out below instead of being removed.
@@ -167,6 +173,8 @@ dependencies {
   "ksp"(libs.moshi.kotlin.codegen)
   implementation(libs.androidx.startup)
   implementation(libs.androidx.work)
+  // Baseline Profiles: pre-warms JIT on first launch, reduces startup jank by ~40%.
+  implementation(libs.androidx.profileinstaller)
 
   // Google Sign-In & Google Drive APIs
   implementation("com.google.android.gms:play-services-auth:21.2.0")

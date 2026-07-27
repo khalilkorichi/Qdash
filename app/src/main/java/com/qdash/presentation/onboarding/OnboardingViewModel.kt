@@ -1,5 +1,7 @@
 package com.qdash.presentation.onboarding
 
+import androidx.compose.runtime.Immutable
+
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -37,6 +39,7 @@ data class CustomWalletDraft(
     val icon: String = "account_balance_wallet"
 )
 
+@Immutable
 data class OnboardingUiState(
     val currentStep: Int = 1,
     val selectedLanguage: String = "ar",

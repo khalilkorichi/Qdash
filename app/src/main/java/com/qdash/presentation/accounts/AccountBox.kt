@@ -375,78 +375,14 @@ fun AccountItemCard(
                             textAlign = TextAlign.Center
                         )
                     } else {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            filteredTransactions.forEach { tx ->
-                                val cat = categories.items.firstOrNull { it.id == tx.categoryId }
-                                val isIncoming = tx.type == TransactionType.INCOME || (tx.type == TransactionType.TRANSFER && tx.toAccountId == account.id)
-                                val amountColor = if (isIncoming) IncomeGreen else ExpenseRed
-                                val amountPrefix = if (isIncoming) "+" else "-"
-
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        // Small category circle
-                                        val catColor = try {
-                                            Color(android.graphics.Color.parseColor(cat?.color ?: "#6C63FF"))
-                                        } catch (e: Exception) {
-                                            accentColor
-                                        }
-                                        Box(
-                                            modifier = Modifier
-                                                .size(32.dp)
-                                                .background(catColor.copy(alpha = 0.15f), CircleShape),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = getIconByName(cat?.icon ?: "receipt_long"),
-                                                contentDescription = null,
-                                                tint = catColor,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
-
-                                        Spacer(modifier = Modifier.width(10.dp))
-
-                                        Column {
-                                            Text(
-                                                text = tx.note ?: cat?.name ?: "عملية مالية",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSurface,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                            Spacer(modifier = Modifier.height(2.dp))
-                                            Text(
-                                                text = FormatterUtils.formatDate(tx.date),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = TextGray,
-                                                fontSize = 10.sp
-                                            )
-                                        }
-                                    }
-
-                                    Text(
-                                        text = FormatterUtils.formatCurrency(tx.amount, amountPrefix),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Black,
-                                        color = amountColor
-                                    )
-                                }
-                            }
-                        }
+                        // LazyColumn with key+contentType replaces forEach+Column.
+                        // Only visible rows compose; unchanged rows are skipped entirely.
+                        AccountBoxTransactionList(
+                            filteredTransactions = filteredTransactions,
+                            categories = categories,
+                            accountId = account.id,
+                            accentColor = accentColor
+                        )
                     }
                 }
             }

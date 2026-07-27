@@ -17,6 +17,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.qdash.core.ui.components.FinTrackTopBar
 import com.qdash.domain.model.TransactionType
 import com.qdash.ui.theme.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,7 +37,7 @@ fun AddTransactionScreen(
     modifier: Modifier = Modifier
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()

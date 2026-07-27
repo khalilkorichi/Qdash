@@ -1,5 +1,7 @@
 package com.qdash.presentation.transactions
 
+import androidx.compose.runtime.Immutable
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qdash.domain.model.*
@@ -15,6 +17,7 @@ import com.qdash.domain.usecase.transaction.BulkEditParams
 import com.qdash.domain.usecase.transaction.FilterTransactionsUseCase
 import com.qdash.domain.usecase.transaction.TransactionFilterParams
 
+@Immutable
 data class TransactionsUiState(
     val transactions: List<Transaction> = emptyList(),
     val filteredTransactions: List<Transaction> = emptyList(),

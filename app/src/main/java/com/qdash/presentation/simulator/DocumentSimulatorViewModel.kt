@@ -9,7 +9,9 @@ import com.qdash.domain.usecase.simulator.AmountConversionEngine
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 
+@Immutable
 data class DocumentSimulatorUiState(
     val selectedDocType: DocumentType = DocumentType.CHEQUE,
     

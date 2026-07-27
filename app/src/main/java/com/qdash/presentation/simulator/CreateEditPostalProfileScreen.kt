@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.qdash.core.ui.components.FinTrackTopBar
 import com.qdash.domain.model.PostalProfile
 import com.qdash.domain.model.PostalProfileRole
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,7 +31,7 @@ fun CreateEditPostalProfileScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     // Find profile if editing
     val editingProfile = remember(profileId, uiState.savedProfiles) {

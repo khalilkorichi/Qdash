@@ -14,6 +14,7 @@ import com.qdash.core.ui.components.EmptyStateView
 import com.qdash.core.ui.components.FinTrackTopBar
 import com.qdash.ui.designsystem.components.*
 import com.qdash.ui.designsystem.tokens.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -21,7 +22,7 @@ fun TransferScreen(
     viewModel: TransferViewModel,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(

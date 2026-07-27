@@ -24,6 +24,7 @@ import com.qdash.ui.theme.Primary
 import com.qdash.ui.theme.TextGray
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +36,7 @@ fun BudgetGoalsScreen(
     modifier: Modifier = Modifier
 ) {
     val Primary = MaterialTheme.colorScheme.primary
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showArchived by remember { mutableStateOf(false) }
     val isRefreshing = uiState.isRefreshing
     val pullRefreshState = rememberPullToRefreshState()

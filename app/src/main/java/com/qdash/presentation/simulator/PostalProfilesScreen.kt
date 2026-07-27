@@ -25,6 +25,7 @@ import com.qdash.core.ui.components.FinTrackTopBar
 import com.qdash.domain.model.PostalProfile
 import com.qdash.domain.model.PostalProfileRole
 import com.qdash.core.ui.components.EmptyStateView
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +36,7 @@ fun PostalProfilesScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val profiles = uiState.savedProfiles
     val Primary = MaterialTheme.colorScheme.primary
 

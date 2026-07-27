@@ -35,6 +35,7 @@ import com.qdash.ui.designsystem.components.AppCard
 import com.qdash.ui.designsystem.components.CardVariant
 import com.qdash.ui.designsystem.tokens.ShapeTokens
 import kotlinx.coroutines.launch
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,7 +44,7 @@ fun CardAiChatSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     
     if (uiState.isSheetOpen) {

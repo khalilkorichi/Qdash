@@ -1,5 +1,7 @@
 package com.qdash.presentation.search
 
+import androidx.compose.runtime.Immutable
+
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,6 +16,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+@Immutable
 data class SearchUiState(
     val query: String = "",
     val transactions: List<Transaction> = emptyList(),

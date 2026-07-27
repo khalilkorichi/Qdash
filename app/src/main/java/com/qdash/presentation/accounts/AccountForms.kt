@@ -240,7 +240,7 @@ internal fun AccountTypeSelector(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(horizontal = 0.dp)
     ) {
-        items(types) { (type, label) ->
+        items(types, key = { (type, _) -> type.name }, contentType = { "account_type" }) { (type, label) ->
             val isSelected = type == selectedType
             FilterChip(
                 selected = isSelected,
@@ -274,7 +274,7 @@ internal fun ColorPicker(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         contentPadding = PaddingValues(horizontal = 0.dp)
     ) {
-        items(ACCOUNT_COLORS) { hex ->
+        items(ACCOUNT_COLORS, key = { it }, contentType = { "color" }) { hex ->
             val color = remember(hex) {
                 runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrElse { Color.Gray }
             }
@@ -350,7 +350,7 @@ internal fun IconPicker(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(ACCOUNT_ICONS) { (key, vector) ->
+            items(ACCOUNT_ICONS, key = { (k, _) -> k }, contentType = { "icon" }) { (key, vector) ->
                 val isSelected = key == selectedIcon && selectedIconPath == null
                 Box(
                     modifier = Modifier

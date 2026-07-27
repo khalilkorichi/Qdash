@@ -1,8 +1,5 @@
 package com.qdash.presentation.home
 
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,7 +10,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -56,23 +52,32 @@ fun HomeScreen(
     val shouldShowReminder = uiState.showWalletReminder && uiState.accounts.none { it.balance > 0.0 }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        val blurRadius by animateDpAsState(
+        val blurRadius by androidx.compose.animation.core.animateDpAsState(
             targetValue = if (showBalanceDetails) 15.dp else 0.dp,
-            animationSpec = tween(durationMillis = 300),
+            animationSpec = androidx.compose.animation.core.tween(durationMillis = 300),
             label = "blur"
         )
+
+        // Stable lambda references — wrapped in remember so child composables
+        // are not recomposed when HomeScreen recomposes for unrelated state changes.
+        val onRefresh = remember(viewModel) { { viewModel.refresh() } }
+        val onToggleShowBalances = remember(viewModel) { { viewModel.toggleShowBalances() } }
+        val onDismissReminder = remember(viewModel) { { viewModel.dismissWalletReminder() } }
+        val onToggleAccountBalance = remember(viewModel) { { id: Long -> viewModel.toggleAccountBalanceVisibility(id) } }
+        val onPeriodSelected = remember(viewModel) { { period: String -> viewModel.setChartPeriod(period) } }
 
         Scaffold(
             modifier = modifier
                 .fillMaxSize()
-                .blur(blurRadius)
+                // conditionalBlur: RenderThread on API 31+, no-op on API 24-30
+                .conditionalBlur(blurRadius)
                 .testTag("home_screen"),
             floatingActionButton = {} // Radial FAB is overlaid manually by the shell container
         ) { innerPadding ->
 
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
-                onRefresh = { viewModel.refresh() },
+                onRefresh = onRefresh,
                 state = pullRefreshState,
                 modifier = Modifier.fillMaxSize()
             ) {
@@ -109,7 +114,7 @@ fun HomeScreen(
                     if (shouldShowReminder) {
                         item {
                             WalletSetupReminderCard(
-                                onDismiss = { viewModel.dismissWalletReminder() }
+                                onDismiss = onDismissReminder
                             )
                         }
                     }
@@ -180,7 +185,7 @@ fun HomeScreen(
                                         accounts = uiState.accounts,
                                         accountBalancesVisibility = uiState.accountBalancesVisibility,
                                         isLoading = uiState.isLoading,
-                                        onToggleBalanceVisibility = { viewModel.toggleAccountBalanceVisibility(it) },
+                                        onToggleBalanceVisibility = onToggleAccountBalance,
                                         onAccountClick = onAccountClick
                                     )
                                 }
@@ -191,7 +196,7 @@ fun HomeScreen(
                                         expenseTrendData = uiState.expenseTrendData,
                                         chartPeriod = uiState.chartPeriod,
                                         isLoading = uiState.isLoading,
-                                        onPeriodSelected = { viewModel.setChartPeriod(it) }
+                                        onPeriodSelected = onPeriodSelected
                                     )
                                 }
                             }
@@ -271,8 +276,8 @@ fun HomeScreen(
             showBalances = showBalances,
             accounts = uiState.accounts,
             accountBalancesVisibility = uiState.accountBalancesVisibility,
-            onToggleShowBalances = { viewModel.toggleShowBalances() },
-            onToggleAccountBalanceVisibility = { viewModel.toggleAccountBalanceVisibility(it) },
+            onToggleShowBalances = onToggleShowBalances,
+            onToggleAccountBalanceVisibility = onToggleAccountBalance,
             onAccountClick = onAccountClick,
             onDismiss = { showBalanceDetails = false },
             primaryColor = primary

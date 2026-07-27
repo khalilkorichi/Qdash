@@ -1,5 +1,7 @@
 package com.qdash.presentation.ai
 
+import androidx.compose.runtime.Immutable
+
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -58,6 +60,7 @@ data class AiErrorState(
     val message: String
 )
 
+@Immutable
 data class AiChatUiState(
     val messages: List<AiChatMessage> = emptyList(),
     val suggestions: List<String> = emptyList(),

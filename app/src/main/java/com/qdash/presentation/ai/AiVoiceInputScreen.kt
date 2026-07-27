@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import com.qdash.domain.model.AiVoiceState
 import com.qdash.presentation.ai.components.SpeechRecognizerHelper
 import kotlinx.coroutines.launch
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun AiVoiceInputScreen(
@@ -57,8 +58,8 @@ fun AiVoiceInputScreen(
     onNavigateToChat: (String) -> Unit,
     onClose: () -> Unit
 ) {
-    val voiceState by viewModel.voiceState.collectAsState()
-    val voiceText by viewModel.voiceText.collectAsState()
+    val voiceState by viewModel.voiceState.collectAsStateWithLifecycle()
+    val voiceText by viewModel.voiceText.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }

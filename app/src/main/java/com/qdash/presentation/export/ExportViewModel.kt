@@ -1,5 +1,7 @@
 package com.qdash.presentation.export
 
+import androidx.compose.runtime.Immutable
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qdash.domain.model.*
@@ -8,6 +10,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+@Immutable
 data class ExportUiState(
     val accounts: List<Account> = emptyList(),
     val isLoading: Boolean = false,

@@ -1,5 +1,7 @@
 package com.qdash.presentation.savings
 
+import androidx.compose.runtime.Immutable
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qdash.domain.model.*
@@ -8,6 +10,7 @@ import com.qdash.domain.usecase.savings.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+@Immutable
 data class SavingsUiState(
     val goals: List<SavingGoal> = emptyList(),
     val contributions: List<SavingsContribution> = emptyList(),

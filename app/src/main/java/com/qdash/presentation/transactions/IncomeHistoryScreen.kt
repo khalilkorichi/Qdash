@@ -33,6 +33,7 @@ import com.qdash.presentation.transactions.components.TransactionActionMenuDialo
 import com.qdash.ui.theme.*
 import com.qdash.ui.designsystem.components.*
 import com.qdash.ui.designsystem.tokens.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun IncomeHistoryScreen(
@@ -40,7 +41,7 @@ fun IncomeHistoryScreen(
     onBack: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val navController = com.qdash.presentation.navigation.LocalNavController.current
     var showDeleteDialog by remember { mutableStateOf<com.qdash.domain.model.Transaction?>(null) }
     var showActionMenuForTransaction by remember { mutableStateOf<com.qdash.domain.model.Transaction?>(null) }

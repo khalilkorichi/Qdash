@@ -1,5 +1,7 @@
 package com.qdash.presentation.debt
 
+import androidx.compose.runtime.Immutable
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qdash.domain.model.*
@@ -8,6 +10,7 @@ import com.qdash.domain.usecase.debt.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+@Immutable
 data class DebtUiState(
     val debts: List<Debt> = emptyList(),
     val payments: List<DebtPayment> = emptyList(),

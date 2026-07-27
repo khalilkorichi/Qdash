@@ -1,5 +1,7 @@
 package com.qdash.presentation.update
 
+import androidx.compose.runtime.Immutable
+
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -21,6 +23,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
 
+@Immutable
 sealed class UpdateUiState {
     object Idle : UpdateUiState()
     object Checking : UpdateUiState()

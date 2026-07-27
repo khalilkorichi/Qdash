@@ -1,5 +1,7 @@
 package com.qdash.presentation.backup
 
+import androidx.compose.runtime.Immutable
+
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -28,6 +30,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.qdash.domain.usecase.onboarding.CompleteOnboardingUseCase
 
+@Immutable
 data class BackupUiState(
     val isLoading: Boolean = false,
     val successMessage: String? = null,

@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.qdash.core.ui.components.UnifiedScreenHeader
 import com.qdash.domain.model.FinancialPlanStatus
 import com.qdash.presentation.plans.components.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun FinancialPlansScreen(
@@ -20,7 +21,7 @@ fun FinancialPlansScreen(
     onBack: () -> Unit
 ) {
     val Primary = MaterialTheme.colorScheme.primary
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showAddDialog by remember { mutableStateOf(false) }
 
     Scaffold { padding ->

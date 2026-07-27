@@ -26,6 +26,7 @@ import com.qdash.ui.theme.TextGray
 import com.qdash.ui.theme.Primary
 import com.qdash.ui.designsystem.components.*
 import com.qdash.ui.designsystem.tokens.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,7 +35,7 @@ fun AccountManagementScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val userProfile by viewModel.userProfile.collectAsState()
+    val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
     
     var showConfirmDialog by remember { mutableStateOf(false) }
     var birthdateText by remember { mutableStateOf("") }

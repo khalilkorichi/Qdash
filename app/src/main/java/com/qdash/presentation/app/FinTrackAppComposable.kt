@@ -12,6 +12,7 @@ import com.qdash.core.di.AppContainer
 import com.qdash.presentation.ViewModelFactory
 import com.qdash.presentation.settings.SettingsViewModel
 import com.qdash.ui.theme.KdachTheme
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
  * Top-level composable that wraps the entire app with theme, RTL direction,
@@ -30,7 +31,7 @@ fun FinTrackApp(
     isFirstLaunch: Boolean = false
 ) {
     val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
-    val settingsUiState by settingsViewModel.uiState.collectAsState()
+    val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
 
     // isDarkTheme does NOT depend on currentRoute — stable during navigation
     // Only check onboarding once; after that, use settings preference

@@ -1,5 +1,7 @@
 package com.qdash.presentation.categories
 
+import androidx.compose.runtime.Immutable
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qdash.domain.model.Category
@@ -8,6 +10,7 @@ import com.qdash.domain.repository.CategoryRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+@Immutable
 data class CategoriesUiState(
     val rootCategories: List<Category> = emptyList(),
     val selectedParent: Category? = null,

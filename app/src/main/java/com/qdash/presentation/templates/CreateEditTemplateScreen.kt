@@ -27,6 +27,7 @@ import com.qdash.core.ui.components.FinTrackTopBar
 import com.qdash.domain.model.*
 import com.qdash.presentation.templates.components.*
 import com.qdash.ui.theme.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,7 +38,7 @@ fun CreateEditTemplateScreen(
     modifier: Modifier = Modifier
 ) {
     val Primary = MaterialTheme.colorScheme.primary
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     var name by remember { mutableStateOf("") }
     var amountText by remember { mutableStateOf("") }

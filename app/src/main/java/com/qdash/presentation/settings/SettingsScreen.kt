@@ -42,6 +42,7 @@ import com.qdash.ui.designsystem.components.*
 import com.qdash.ui.designsystem.tokens.ShapeTokens
 import com.qdash.presentation.settings.components.*
 import kotlinx.coroutines.launch
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 // ─── Tab Definitions ──────────────────────────────────────────────────────────
 private data class SettingsTab(val label: String, val icon: ImageVector)
@@ -70,12 +71,12 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val Primary = MaterialTheme.colorScheme.primary
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = context as? android.app.Activity
     val scope = rememberCoroutineScope()
 
-    val userProfile by viewModel.userProfile.collectAsState()
+    val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
     var showBirthdateDialog by remember { mutableStateOf(false) }
     var birthdateInput by remember { mutableStateOf("") }
 
@@ -282,8 +283,8 @@ fun SettingsScreen(
         )
     }
 
-    val backupToRestore by viewModel.backupFoundToRestore.collectAsState()
-    val isRestoring by viewModel.isRestoringBackup.collectAsState()
+    val backupToRestore by viewModel.backupFoundToRestore.collectAsStateWithLifecycle()
+    val isRestoring by viewModel.isRestoringBackup.collectAsStateWithLifecycle()
     val navController = com.qdash.presentation.navigation.LocalNavController.current
 
     if (backupToRestore != null) {

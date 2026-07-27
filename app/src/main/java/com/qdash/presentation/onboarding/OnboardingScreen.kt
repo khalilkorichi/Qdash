@@ -26,18 +26,19 @@ import com.qdash.presentation.onboarding.components.*
 import com.qdash.ui.theme.Primary
 import com.qdash.ui.theme.TextGray
 import com.qdash.ui.designsystem.components.shimmerEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun OnboardingScreen(
     viewModel: OnboardingViewModel,
     onFinished: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    val backupToRestore by viewModel.backupFoundToRestore.collectAsState()
-    val isRestoring by viewModel.isRestoringBackup.collectAsState()
+    val backupToRestore by viewModel.backupFoundToRestore.collectAsStateWithLifecycle()
+    val isRestoring by viewModel.isRestoringBackup.collectAsStateWithLifecycle()
 
     if (backupToRestore != null) {
         com.qdash.presentation.backup.components.RestoreBackupPromptDialog(

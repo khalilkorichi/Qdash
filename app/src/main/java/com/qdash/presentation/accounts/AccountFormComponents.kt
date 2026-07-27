@@ -99,7 +99,7 @@ fun QuickPresetsRow(
             horizontalArrangement = Arrangement.spacedBy(SpacingTokens.Sm),
             contentPadding = PaddingValues(vertical = 4.dp)
         ) {
-            items(ACCOUNT_PRESETS) { preset ->
+            items(ACCOUNT_PRESETS, key = { it.name }, contentType = { "preset" }) { preset ->
                 AppCard(
                     modifier = Modifier.wrapContentSize(),
                     variant = CardVariant.INTERACTIVE,

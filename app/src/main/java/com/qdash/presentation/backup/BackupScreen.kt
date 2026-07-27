@@ -28,6 +28,7 @@ import com.qdash.core.ui.components.UnifiedScreenHeader
 import com.qdash.presentation.backup.components.*
 import com.qdash.ui.designsystem.tokens.ColorTokens
 import com.qdash.ui.designsystem.tokens.ShapeTokens
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,12 +38,12 @@ fun BackupScreen(
     showTopBar: Boolean = true
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
-    val uiState by viewModel.uiState.collectAsState()
-    val backupProgress by viewModel.backupProgress.collectAsState()
-    val backupFolderUri by viewModel.backupFolderUri.collectAsState()
-    val backupScheduleInterval by viewModel.backupScheduleInterval.collectAsState()
-    val lastBackupUriForShare by viewModel.lastBackupUri.collectAsState()
-    val userProfile by viewModel.userProfile.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val backupProgress by viewModel.backupProgress.collectAsStateWithLifecycle()
+    val backupFolderUri by viewModel.backupFolderUri.collectAsStateWithLifecycle()
+    val backupScheduleInterval by viewModel.backupScheduleInterval.collectAsStateWithLifecycle()
+    val lastBackupUriForShare by viewModel.lastBackupUri.collectAsStateWithLifecycle()
+    val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current

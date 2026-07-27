@@ -1,5 +1,7 @@
 package com.qdash.presentation.notifications
 
+import androidx.compose.runtime.Immutable
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qdash.domain.model.AppNotification
@@ -10,6 +12,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
+@Immutable
 data class NotificationsUiState(
     val notifications: List<AppNotification> = emptyList(),
     val unreadCount: Int = 0,

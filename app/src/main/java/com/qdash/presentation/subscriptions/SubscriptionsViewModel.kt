@@ -1,5 +1,7 @@
 package com.qdash.presentation.subscriptions
 
+import androidx.compose.runtime.Immutable
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qdash.domain.model.*
@@ -7,6 +9,7 @@ import com.qdash.domain.repository.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+@Immutable
 data class SubscriptionsUiState(
     val subscriptions: List<Subscription> = emptyList(),
     val accounts: List<Account> = emptyList(),
