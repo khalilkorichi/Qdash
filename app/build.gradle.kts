@@ -16,10 +16,10 @@ android {
     applicationId = "com.qdash"
     minSdk = 24
     targetSdk = 36
-    versionCode = 102
-    versionName = "1.0.0.102"
+    versionCode = 103
+    versionName = "1.0.0.103"
     buildConfigField("Long", "BUILD_TIMESTAMP", "${System.currentTimeMillis()}L")
-    buildConfigField("Long", "UPDATE_IDENTITY", "203L")
+    buildConfigField("Long", "UPDATE_IDENTITY", "204L")
     buildConfigField("String", "GEMINI_API_KEY", "\"${System.getenv("GEMINI_API_KEY") ?: ""}\"")
     buildConfigField("String", "OPENROUTER_API_KEY", "\"${System.getenv("OPENROUTER_API_KEY") ?: ""}\"")
     buildConfigField("String", "NVIDIA_API_KEY", "\"${System.getenv("NVIDIA_API_KEY") ?: ""}\"")

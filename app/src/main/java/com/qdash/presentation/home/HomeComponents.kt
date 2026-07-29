@@ -476,16 +476,16 @@ fun PremiumTopBalanceCard(
                         )
                     }
 
-                    // Wallet icon button (view accounts)
+                    // Currency Exchange button (navigates to exchange rates)
                     IconButton(
-                        onClick = onCardClick,
+                        onClick = { navController?.navigate(com.qdash.presentation.navigation.Screen.CurrencyExchange.route) },
                         modifier = Modifier
                             .size(44.dp)
                             .background(Color.White.copy(alpha = 0.15f), CircleShape)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.AccountBalanceWallet,
-                            contentDescription = "الحسابات",
+                            imageVector = Icons.Default.CurrencyExchange,
+                            contentDescription = "أسعار الصرف",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
