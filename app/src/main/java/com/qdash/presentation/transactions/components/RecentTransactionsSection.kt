@@ -46,13 +46,54 @@ fun LazyListScope.recentTransactionsSection(
 ) {
     if (isLoading) {
         items(4, key = { "recent_skeleton_$it" }) {
-            Box(
+            Surface(
                 modifier = Modifier
-                    .padding(horizontal = 16.dp, vertical = 5.dp)
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
                     .fillMaxWidth()
-                    .height(72.dp)
-                    .shimmerEffect(ShapeTokens.Md)
-            )
+                    .height(68.dp),
+                shape = ShapeTokens.Md,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .shimmerEffect(androidx.compose.foundation.shape.CircleShape)
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .width(110.dp)
+                                    .height(14.dp)
+                                    .shimmerEffect(RoundedCornerShape(4.dp))
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .width(70.dp)
+                                    .height(10.dp)
+                                    .shimmerEffect(RoundedCornerShape(3.dp))
+                            )
+                        }
+                    }
+                    Box(
+                        modifier = Modifier
+                            .width(80.dp)
+                            .height(16.dp)
+                            .shimmerEffect(RoundedCornerShape(4.dp))
+                    )
+                }
+            }
         }
     } else {
         if (recentTxs.isEmpty()) {

@@ -1,18 +1,18 @@
 package com.qdash.ui.designsystem.components
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -20,26 +20,78 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import com.qdash.ui.designsystem.tokens.ColorTokens
 import com.qdash.ui.designsystem.tokens.ShapeTokens
+import com.qdash.ui.designsystem.tokens.SpacingTokens
 
+/**
+ * Global Skeleton Loading State composable.
+ * Renders a list of shimmer-animated card placeholders matching the app's design system.
+ */
 @Composable
 fun AppLoadingState(
     modifier: Modifier = Modifier,
-    color: Color = Color.Unspecified
+    color: Color = Color.Unspecified,
+    itemCount: Int = 4
 ) {
-    val indicatorColor = if (color == Color.Unspecified) MaterialTheme.colorScheme.primary else color
-    Box(
-        modifier = modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = SpacingTokens.Lg, vertical = SpacingTokens.Md),
+        verticalArrangement = Arrangement.spacedBy(SpacingTokens.Md)
     ) {
-        CircularProgressIndicator(
-            color = indicatorColor,
-            strokeWidth = 3.dp,
-            modifier = Modifier.size(36.dp)
-        )
+        repeat(itemCount) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(68.dp),
+                shape = ShapeTokens.Md,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = SpacingTokens.Lg, vertical = SpacingTokens.Md),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(SpacingTokens.Md)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .shimmerEffect(CircleShape)
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .width(110.dp)
+                                    .height(14.dp)
+                                    .shimmerEffect(RoundedCornerShape(4.dp))
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .width(65.dp)
+                                    .height(10.dp)
+                                    .shimmerEffect(RoundedCornerShape(3.dp))
+                            )
+                        }
+                    }
+                    Box(
+                        modifier = Modifier
+                            .width(80.dp)
+                            .height(16.dp)
+                            .shimmerEffect(RoundedCornerShape(4.dp))
+                    )
+                }
+            }
+        }
     }
-}@Composable
+}
+
+@Composable
 fun AppSkeleton(
     width: Dp,
     height: Dp,

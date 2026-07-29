@@ -82,7 +82,12 @@ fun HomeScreen(
                 state = pullRefreshState,
                 modifier = Modifier.fillMaxSize()
             ) {
-                val sections = uiState.visibleSections
+                if (uiState.isLoading) {
+                    com.qdash.ui.designsystem.components.home.HomeSkeleton(
+                        modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
+                    )
+                } else {
+                    val sections = uiState.visibleSections
 
                 LazyColumn(
                     modifier = Modifier
@@ -268,8 +273,9 @@ fun HomeScreen(
                         }
                     }
                 }
-            } // end PullToRefreshBox
-        } // end Scaffold
+            }
+        }
+    }
 
         // ── Available Balance Detailed Modal ──
         BalanceDetailsDialog(

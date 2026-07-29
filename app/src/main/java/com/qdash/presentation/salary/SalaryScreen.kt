@@ -79,14 +79,7 @@ fun SalaryScreen(
 
             if (uiState.isLoading) {
                 item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = Primary)
-                    }
+                    com.qdash.ui.designsystem.components.salary.SalarySkeleton()
                 }
             } else if (uiState.overview?.salary == null) {
                 item {
