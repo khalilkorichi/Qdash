@@ -7,7 +7,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.SyncAlt
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
@@ -24,7 +24,7 @@ import com.qdash.ui.designsystem.tokens.ShapeTokens
 /**
  * Animated swap button for the currency converter.
  * On press: scales down (bounce) and rotates 180°.
- * Uses Material Icons SyncAlt (SVG vector, not emoji).
+ * Uses Material Icons SwapVert (vertical arrows matching top/bottom input fields).
  */
 @Composable
 fun SwapCurrencyButton(
@@ -63,7 +63,7 @@ fun SwapCurrencyButton(
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            imageVector = Icons.Default.SyncAlt,
+            imageVector = Icons.Default.SwapVert,
             contentDescription = "تبديل العملتين",
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier
