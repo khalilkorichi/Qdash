@@ -17,6 +17,7 @@ import com.qdash.presentation.currency.OfficialRatesUiState
 import com.qdash.ui.designsystem.components.AppLoadingState
 import com.qdash.ui.designsystem.components.currency.DataSourceBadge
 import com.qdash.ui.designsystem.components.currency.ExchangeRateListItem
+import com.qdash.ui.designsystem.components.currency.ExchangeRateSkeleton
 import com.qdash.ui.designsystem.tokens.ColorTokens
 import com.qdash.ui.designsystem.tokens.SpacingTokens
 
@@ -39,7 +40,7 @@ fun OfficialMarketTab(
     when (val s = state) {
         is OfficialRatesUiState.Idle,
         is OfficialRatesUiState.Loading -> {
-            AppLoadingState(modifier = modifier.fillMaxSize())
+            ExchangeRateSkeleton(modifier = modifier)
         }
 
         is OfficialRatesUiState.Error -> {
