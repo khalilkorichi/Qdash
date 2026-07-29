@@ -3,6 +3,8 @@ package com.qdash.presentation.currency.tabs
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
@@ -52,6 +54,7 @@ fun ParallelMarketTab(
                         lastUpdatedAt = maxLastUpdated,
                         isRefreshing = converterState.isRefreshingParallel,
                         onRefreshClick = viewModel::refreshParallelRatesManually,
+                        badgeIcon = Icons.Default.Storefront,
                         useWesternNumerals = useWesternNumerals
                     )
                     HorizontalDivider(
