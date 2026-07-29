@@ -31,9 +31,10 @@ import com.qdash.data.local.entities.*
         SalaryDistributionEntity::class,
         SalaryEnvelopeEntity::class,
         UserProfileEntity::class,
-        AmanaEntity::class
+        AmanaEntity::class,
+        ExchangeRateEntity::class
     ],
-    version = 29,
+    version = 31,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -60,5 +61,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun salaryDistributionDao(): SalaryDistributionDao
     abstract fun userProfileDao(): UserProfileDao
     abstract fun amanaDao(): AmanaDao
+    abstract fun exchangeRateDao(): ExchangeRateDao
 }
 

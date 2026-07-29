@@ -16,10 +16,10 @@ android {
     applicationId = "com.qdash"
     minSdk = 24
     targetSdk = 36
-    versionCode = 94
-    versionName = "1.0.0.94"
+    versionCode = 95
+    versionName = "1.0.0.95"
     buildConfigField("Long", "BUILD_TIMESTAMP", "${System.currentTimeMillis()}L")
-    buildConfigField("Long", "UPDATE_IDENTITY", "195L")
+    buildConfigField("Long", "UPDATE_IDENTITY", "196L")
     buildConfigField("String", "GEMINI_API_KEY", "\"${System.getenv("GEMINI_API_KEY") ?: ""}\"")
     buildConfigField("String", "OPENROUTER_API_KEY", "\"${System.getenv("OPENROUTER_API_KEY") ?: ""}\"")
     buildConfigField("String", "NVIDIA_API_KEY", "\"${System.getenv("NVIDIA_API_KEY") ?: ""}\"")
@@ -175,6 +175,7 @@ dependencies {
   implementation(libs.androidx.work)
   // Baseline Profiles: pre-warms JIT on first launch, reduces startup jank by ~40%.
   implementation(libs.androidx.profileinstaller)
+  implementation("org.jsoup:jsoup:1.18.3")
 
   // Google Sign-In & Google Drive APIs
   implementation("com.google.android.gms:play-services-auth:21.2.0")

@@ -140,5 +140,12 @@ interface AppContainer {
     // Onboarding state management
     val completeOnboardingUseCase: com.qdash.domain.usecase.onboarding.CompleteOnboardingUseCase
     val getOnboardingStateUseCase: com.qdash.domain.usecase.onboarding.GetOnboardingStateUseCase
+
+    // Currency Exchange
+    val exchangeRateRepository: com.qdash.domain.repository.ExchangeRateRepository
+    val getExchangeRatesUseCase: com.qdash.domain.usecase.currency.GetExchangeRatesUseCase
+    val convertCurrencyUseCase: com.qdash.domain.usecase.currency.ConvertCurrencyUseCase
+    val refreshOfficialRatesUseCase: com.qdash.domain.usecase.currency.RefreshOfficialRatesUseCase
+    val refreshParallelRatesUseCase: com.qdash.domain.usecase.currency.RefreshParallelRatesUseCase
 }
 

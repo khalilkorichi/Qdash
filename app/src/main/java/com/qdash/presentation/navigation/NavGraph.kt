@@ -212,6 +212,9 @@ internal fun FinTrackNavGraph(
                 },
                 onDocumentSimulatorClick = {
                     navController.navigate(Screen.DocumentSimulatorEntry.route)
+                },
+                onCurrencyExchangeClick = {
+                    navController.navigate(Screen.CurrencyExchange.route)
                 }
             )
         }
@@ -655,6 +658,16 @@ internal fun FinTrackNavGraph(
                 viewModel = simulatorViewModel,
                 profileId = profileId,
                 onBack = { navController.popBackStack() }
+            )
+        }
+
+        // ── Currency Exchange ───────────────────────────────────────────────
+        composable(Screen.CurrencyExchange.route) {
+            val currencyViewModel: com.qdash.presentation.currency.CurrencyExchangeViewModel =
+                viewModel(factory = factory)
+            com.qdash.presentation.currency.CurrencyExchangeScreen(
+                viewModel = currencyViewModel,
+                onBackClick = { navController.popBackStack() }
             )
         }
     }

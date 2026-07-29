@@ -478,11 +478,42 @@ class AppContainerImpl(private val context: Context) : AppContainer {
         com.qdash.domain.usecase.onboarding.GetOnboardingStateUseCase(preferencesManager)
     }
 
+    // ── Currency Exchange ──────────────────────────────────────────────────
+
+    private val exchangeRateRemoteDataSource: com.qdash.data.remote.ExchangeRateRemoteDataSource by lazy {
+        com.qdash.data.remote.ExchangeRateRemoteDataSource()
+    }
+
+    override val exchangeRateRepository: com.qdash.domain.repository.ExchangeRateRepository by lazy {
+        com.qdash.data.repository.ExchangeRateRepositoryImpl(
+            dao = database.exchangeRateDao(),
+            remote = exchangeRateRemoteDataSource
+        )
+    }
+
+    override val getExchangeRatesUseCase: com.qdash.domain.usecase.currency.GetExchangeRatesUseCase by lazy {
+        com.qdash.domain.usecase.currency.GetExchangeRatesUseCase(exchangeRateRepository)
+    }
+
+    override val convertCurrencyUseCase: com.qdash.domain.usecase.currency.ConvertCurrencyUseCase by lazy {
+        com.qdash.domain.usecase.currency.ConvertCurrencyUseCase()
+    }
+
+    override val refreshOfficialRatesUseCase: com.qdash.domain.usecase.currency.RefreshOfficialRatesUseCase by lazy {
+        com.qdash.domain.usecase.currency.RefreshOfficialRatesUseCase(exchangeRateRepository)
+    }
+
+    override val refreshParallelRatesUseCase: com.qdash.domain.usecase.currency.RefreshParallelRatesUseCase by lazy {
+        com.qdash.domain.usecase.currency.RefreshParallelRatesUseCase(exchangeRateRepository)
+    }
+
     init {
         // Pre-warm SharedPreferences to avoid main-thread blocking I/O on startup
         preferencesManager
         CoroutineScope(Dispatchers.IO).launch {
             DatabaseSeeder.prepopulateSystemDefaults(database)
+            // Seed default exchange rates if the table is empty (first install)
+            exchangeRateRepository.seedDefaultRatesIfEmpty()
         }
     }
 }

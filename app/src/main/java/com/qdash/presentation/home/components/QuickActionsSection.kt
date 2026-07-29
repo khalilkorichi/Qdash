@@ -24,6 +24,7 @@ fun QuickActionsSection(
     onSubscriptionsClick: () -> Unit,
     onDocumentSimulatorClick: () -> Unit,
     onAiAssistantClick: () -> Unit,
+    onCurrencyExchangeClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val primary = MaterialTheme.colorScheme.primary
@@ -110,6 +111,26 @@ fun QuickActionsSection(
                 iconColor = primary,
                 onClick = onAiAssistantClick
             )
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            QuickActionTile(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Default.CurrencyExchange,
+                label = "أسعار الصرف",
+                iconBg = Brush.linearGradient(
+                    listOf(
+                        androidx.compose.ui.graphics.Color(0xFFD4A017).copy(alpha = 0.28f),
+                        androidx.compose.ui.graphics.Color(0xFFD4A017).copy(alpha = 0.08f)
+                    )
+                ),
+                iconColor = androidx.compose.ui.graphics.Color(0xFFD4A017),
+                onClick = onCurrencyExchangeClick
+            )
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }

@@ -37,6 +37,30 @@ class FinTrackApp : Application() {
         schedulePeriodicFinancialAlerts()
         schedulePeriodicSmartReminders()
         schedulePeriodicDriveSync()
+        scheduleOfficialRatesRefresh()
+        scheduleParallelRatesRefresh()
+    }
+
+    private fun scheduleParallelRatesRefresh() {
+        try {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+
+            val parallelRatesRequest = PeriodicWorkRequestBuilder<com.qdash.data.worker.RefreshParallelRatesWorker>(
+                15, TimeUnit.MINUTES
+            )
+                .setConstraints(constraints)
+                .build()
+
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "PeriodicParallelExchangeRateRefresh",
+                ExistingPeriodicWorkPolicy.KEEP,
+                parallelRatesRequest
+            )
+        } catch (e: Exception) {
+            android.util.Log.w("FinTrackApp", "RefreshParallelRatesWorker scheduling failed, this is normal in tests.", e)
+        }
     }
 
     private fun schedulePeriodicDriveSync() {
@@ -117,6 +141,28 @@ class FinTrackApp : Application() {
             )
         } catch (e: Exception) {
             android.util.Log.w("FinTrackApp", "SmartReminderSchedulerWorker scheduling failed, this is normal in tests.", e)
+        }
+    }
+
+    private fun scheduleOfficialRatesRefresh() {
+        try {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+
+            val ratesRequest = PeriodicWorkRequestBuilder<com.qdash.data.worker.RefreshOfficialRatesWorker>(
+                6, TimeUnit.HOURS
+            )
+                .setConstraints(constraints)
+                .build()
+
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "PeriodicExchangeRateRefresh",
+                ExistingPeriodicWorkPolicy.KEEP,
+                ratesRequest
+            )
+        } catch (e: Exception) {
+            android.util.Log.w("FinTrackApp", "RefreshOfficialRatesWorker scheduling failed, this is normal in tests.", e)
         }
     }
 }

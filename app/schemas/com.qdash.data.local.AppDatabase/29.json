@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 29,
-    "identityHash": "94342d4415f9cfb3a419831573a45cc6",
+    "identityHash": "8a4bcf1184cb7d46dd301e7608b8de7d",
     "entities": [
       {
         "tableName": "transactions",
@@ -1218,6 +1218,17 @@
             "debtId"
           ]
         },
+        "indices": [
+          {
+            "name": "index_debt_installment_details_debtId",
+            "unique": false,
+            "columnNames": [
+              "debtId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_debt_installment_details_debtId` ON `${TABLE_NAME}` (`debtId`)"
+          }
+        ],
         "foreignKeys": [
           {
             "table": "debts",
@@ -2521,7 +2532,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '94342d4415f9cfb3a419831573a45cc6')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8a4bcf1184cb7d46dd301e7608b8de7d')"
     ]
   }
 }

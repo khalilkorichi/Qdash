@@ -16,7 +16,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.qdash.domain.usecase.simulator.AmountConversionEngine
+import com.qdash.core.utils.AmountConversionEngine
 
 @Composable
 fun ChequeVisualView(

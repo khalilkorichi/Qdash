@@ -38,6 +38,7 @@ fun HomeScreen(
     onNotificationClick: () -> Unit = {},
     onSearchClick: () -> Unit = {},
     onDocumentSimulatorClick: () -> Unit = {},
+    onCurrencyExchangeClick: () -> Unit = {},
     unreadCount: Int = 0,
     modifier: Modifier = Modifier
 ) {
@@ -175,7 +176,8 @@ fun HomeScreen(
                                         onSavingsClick = onSavingsClick,
                                         onSubscriptionsClick = onSubscriptionsClick,
                                         onDocumentSimulatorClick = onDocumentSimulatorClick,
-                                        onAiAssistantClick = { navController?.navigate(Screen.AiChat.route) }
+                                        onAiAssistantClick = { navController?.navigate(Screen.AiChat.route) },
+                                        onCurrencyExchangeClick = onCurrencyExchangeClick
                                     )
                                 }
                             }

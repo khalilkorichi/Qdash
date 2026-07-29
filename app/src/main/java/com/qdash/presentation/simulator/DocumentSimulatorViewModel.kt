@@ -1,11 +1,11 @@
-﻿package com.qdash.presentation.simulator
+package com.qdash.presentation.simulator
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qdash.domain.model.PostalProfile
 import com.qdash.domain.model.PostalProfileRole
 import com.qdash.domain.repository.PostalProfileRepository
-import com.qdash.domain.usecase.simulator.AmountConversionEngine
+import com.qdash.core.utils.AmountConversionEngine
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch

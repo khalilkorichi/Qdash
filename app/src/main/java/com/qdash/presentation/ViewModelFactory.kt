@@ -265,6 +265,14 @@ class ViewModelFactory(
                     container.accountRepository
                 ) as T
             }
+            modelClass.isAssignableFrom(com.qdash.presentation.currency.CurrencyExchangeViewModel::class.java) -> {
+                com.qdash.presentation.currency.CurrencyExchangeViewModel(
+                    getExchangeRatesUseCase = container.getExchangeRatesUseCase,
+                    convertCurrencyUseCase = container.convertCurrencyUseCase,
+                    refreshOfficialRatesUseCase = container.refreshOfficialRatesUseCase,
+                    refreshParallelRatesUseCase = container.refreshParallelRatesUseCase
+                ) as T
+            }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
     }

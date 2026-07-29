@@ -659,13 +659,53 @@ val MIGRATION_28_29 = object : Migration(28, 29) {
     }
 }
 
+/**
+ * v29 → v30: Add exchange_rates table for currency exchange feature.
+ * No existing data is affected — this is a pure additive migration.
+ */
+val MIGRATION_29_30 = object : Migration(29, 30) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS `exchange_rates` (
+                `currencyCode` TEXT NOT NULL,
+                `countryFlagEmoji` TEXT NOT NULL,
+                `officialBuyRate` REAL NOT NULL,
+                `officialSellRate` REAL NOT NULL,
+                `previousOfficialBuyRate` REAL,
+                `previousOfficialSellRate` REAL,
+                `parallelBuyRate` REAL,
+                `parallelSellRate` REAL,
+                `previousParallelBuyRate` REAL,
+                `previousParallelSellRate` REAL,
+                `source` TEXT NOT NULL,
+                `lastUpdatedAt` INTEGER NOT NULL,
+                `isManualOverride` INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(`currencyCode`)
+            )
+        """.trimIndent())
+    }
+}
+
+/**
+ * v30 → v31: Add previous rate columns to exchange_rates for trend tracking.
+ */
+val MIGRATION_30_31 = object : Migration(30, 31) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `exchange_rates` ADD COLUMN `previousOfficialBuyRate` REAL")
+        db.execSQL("ALTER TABLE `exchange_rates` ADD COLUMN `previousOfficialSellRate` REAL")
+        db.execSQL("ALTER TABLE `exchange_rates` ADD COLUMN `previousParallelBuyRate` REAL")
+        db.execSQL("ALTER TABLE `exchange_rates` ADD COLUMN `previousParallelSellRate` REAL")
+    }
+}
+
 val ALL_MIGRATIONS = arrayOf(
     MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
     MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
     MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
     MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25,
-    MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29
+    MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30,
+    MIGRATION_30_31
 )
 
 

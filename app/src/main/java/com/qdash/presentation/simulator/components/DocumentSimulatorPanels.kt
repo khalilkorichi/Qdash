@@ -25,7 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.domain.model.PostalProfileRole
-import com.qdash.domain.usecase.simulator.AmountConversionEngine
+import com.qdash.core.utils.AmountConversionEngine
 import com.qdash.presentation.simulator.DocumentSimulatorUiState
 import com.qdash.presentation.simulator.DocumentType
 import com.qdash.presentation.simulator.SimulatorActivePanel

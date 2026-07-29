@@ -25,7 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.R
-import com.qdash.domain.usecase.simulator.AmountConversionEngine
+import com.qdash.core.utils.AmountConversionEngine
 import com.qdash.presentation.simulator.DocumentSimulatorUiState
 import com.qdash.presentation.simulator.SfpOperationType
 import com.qdash.ui.designsystem.tokens.ColorTokens

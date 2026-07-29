@@ -91,6 +91,9 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
     }
 
     object Splash : Screen("splash", "الشاشة الترحيبية")
+
+    // Currency Exchange Feature
+    object CurrencyExchange : Screen("currency_exchange", "أسعار الصرف", Icons.Default.CurrencyExchange)
 }
 
 val mainBottomNavScreens = listOf(
