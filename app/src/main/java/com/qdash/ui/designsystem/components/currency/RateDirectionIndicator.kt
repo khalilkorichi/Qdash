@@ -28,6 +28,7 @@ import java.util.Locale
 @Composable
 fun RateDirectionIndicator(
     trend: RateTrend?,
+    useWesternNumerals: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     if (trend == null) return
@@ -61,7 +62,8 @@ fun RateDirectionIndicator(
         )
         if (trend.direction != RateDirection.STABLE && trend.changePercentage != 0.0) {
             val prefix = if (trend.changePercentage > 0) "+" else ""
-            val formattedPercentage = String.format(Locale.US, "%.1f", trend.changePercentage)
+            val rawPercentage = String.format(Locale.US, "%.1f", trend.changePercentage)
+            val formattedPercentage = if (useWesternNumerals) rawPercentage else com.qdash.core.utils.FormatterUtils.convertNumerals(rawPercentage)
             Text(
                 text = "$prefix$formattedPercentage%",
                 style = MaterialTheme.typography.labelSmall.copy(

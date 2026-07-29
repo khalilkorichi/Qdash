@@ -23,6 +23,8 @@ import com.qdash.ui.designsystem.tokens.MotionTokens
 import com.qdash.ui.designsystem.tokens.ShapeTokens
 import androidx.compose.foundation.isSystemInDarkTheme
 
+import com.qdash.ui.designsystem.tokens.SpacingTokens
+
 /**
  * Pill-style tab row for the currency exchange screen.
  * RTL-aware: tabs are ordered right-to-left [Parallel | Converter | Official].
@@ -49,8 +51,8 @@ fun CurrencyTabRow(
             .fillMaxWidth()
             .clip(ShapeTokens.Full)
             .background(containerColor)
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp)
+            .padding(SpacingTokens.Xs),
+        horizontalArrangement = Arrangement.spacedBy(SpacingTokens.Xxs)
     ) {
         tabs.forEachIndexed { index, label ->
             val isSelected = index == selected
@@ -69,14 +71,13 @@ fun CurrencyTabRow(
                         indication = null,
                         onClick = { onTabSelected(index) }
                     )
-                    .padding(vertical = 10.dp, horizontal = 6.dp),
+                    .padding(vertical = SpacingTokens.Sm, horizontal = SpacingTokens.Xs),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        fontSize = 13.sp
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                     ),
                     color = if (isSelected) activeTextColor else inactiveTextColor,
                     maxLines = 1
@@ -85,3 +86,4 @@ fun CurrencyTabRow(
         }
     }
 }
+

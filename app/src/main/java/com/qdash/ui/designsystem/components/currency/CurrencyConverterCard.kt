@@ -41,6 +41,7 @@ fun CurrencyConverterCard(
     onFromCurrencyChange: (String) -> Unit,
     onToCurrencyChange: (String) -> Unit,
     onSwap: () -> Unit,
+    useWesternNumerals: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val formatter = DecimalFormat("#,##0.##")
@@ -49,6 +50,10 @@ fun CurrencyConverterCard(
         put("DZD", "🇩🇿")
         availableCurrencies.forEach { put(it.currencyCode, it.countryFlagEmoji) }
     }
+
+    val displayAmount = if (useWesternNumerals || amount.isEmpty()) amount else com.qdash.core.utils.FormatterUtils.convertNumerals(amount)
+    val rawResult = if (result > 0.0) formatter.format(result) else ""
+    val displayResult = if (useWesternNumerals || rawResult.isEmpty()) rawResult else com.qdash.core.utils.FormatterUtils.convertNumerals(rawResult)
 
     AppCard(
         modifier = modifier.fillMaxWidth(),
@@ -62,7 +67,7 @@ fun CurrencyConverterCard(
             // ── From field ───────────────────────────────────────────────────
             CurrencyInputField(
                 label = "من",
-                value = amount,
+                value = displayAmount,
                 currencyCode = fromCurrency,
                 flagEmoji = flagMap[fromCurrency] ?: "🏳",
                 allCodes = allCodes,
@@ -80,7 +85,7 @@ fun CurrencyConverterCard(
             // ── To field ─────────────────────────────────────────────────────
             CurrencyInputField(
                 label = "إلى",
-                value = if (result > 0.0) formatter.format(result) else "",
+                value = displayResult,
                 currencyCode = toCurrency,
                 flagEmoji = flagMap[toCurrency] ?: "🏳",
                 allCodes = allCodes,

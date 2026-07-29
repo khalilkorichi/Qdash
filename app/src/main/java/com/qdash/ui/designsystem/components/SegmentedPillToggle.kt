@@ -107,8 +107,7 @@ private fun PillItem(
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium.copy(
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                fontSize = 13.sp
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
             ),
             color = animatedTextColor
         )

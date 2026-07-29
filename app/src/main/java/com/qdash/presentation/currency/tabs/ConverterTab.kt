@@ -32,6 +32,7 @@ fun ConverterTab(
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.converterState.collectAsStateWithLifecycle()
+    val useWesternNumerals by viewModel.useWesternNumerals.collectAsStateWithLifecycle()
     var showManualSection by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -64,12 +65,17 @@ fun ConverterTab(
             onAmountChange = viewModel::onAmountChange,
             onFromCurrencyChange = viewModel::onFromCurrencyChange,
             onToCurrencyChange = viewModel::onToCurrencyChange,
-            onSwap = viewModel::swapCurrencies
+            onSwap = viewModel::swapCurrencies,
+            useWesternNumerals = useWesternNumerals
         )
 
         // ── Arabic words (Centimes explanation) ────────────────────────────────
+        val wordsText = state.amountInWords?.let {
+            if (useWesternNumerals) it else com.qdash.core.utils.FormatterUtils.convertNumerals(it)
+        } ?: ""
+
         AnimatedVisibility(
-            visible = !state.amountInWords.isNullOrEmpty(),
+            visible = wordsText.isNotEmpty(),
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically()
         ) {
@@ -80,14 +86,14 @@ fun ConverterTab(
                 contentAlignment = Alignment.Center
             ) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFF8F9FA), // Very light grey leaning close to white for subtle contrast
-                    border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.12f)), // Subtle light black stroke easily noticeable by eye
+                    shape = com.qdash.ui.designsystem.tokens.ShapeTokens.Lg,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
                     shadowElevation = 0.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = state.amountInWords ?: "",
+                        text = wordsText,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Bold,
                             fontStyle = FontStyle.Normal,

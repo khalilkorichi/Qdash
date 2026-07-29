@@ -270,7 +270,8 @@ class ViewModelFactory(
                     getExchangeRatesUseCase = container.getExchangeRatesUseCase,
                     convertCurrencyUseCase = container.convertCurrencyUseCase,
                     refreshOfficialRatesUseCase = container.refreshOfficialRatesUseCase,
-                    refreshParallelRatesUseCase = container.refreshParallelRatesUseCase
+                    refreshParallelRatesUseCase = container.refreshParallelRatesUseCase,
+                    preferencesManager = container.preferencesManager
                 ) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

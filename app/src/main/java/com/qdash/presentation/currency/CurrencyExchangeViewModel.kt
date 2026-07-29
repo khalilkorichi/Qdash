@@ -49,8 +49,15 @@ class CurrencyExchangeViewModel(
     private val getExchangeRatesUseCase: GetExchangeRatesUseCase,
     private val convertCurrencyUseCase: ConvertCurrencyUseCase,
     private val refreshOfficialRatesUseCase: RefreshOfficialRatesUseCase,
-    private val refreshParallelRatesUseCase: RefreshParallelRatesUseCase
+    private val refreshParallelRatesUseCase: RefreshParallelRatesUseCase,
+    private val preferencesManager: com.qdash.core.preferences.PreferencesManager
 ) : ViewModel() {
+
+    // ── Number System Preference ────────────────────────────────────────────────
+    val useWesternNumerals: StateFlow<Boolean> = preferencesManager.dashboardConfigUpdates
+        .map { preferencesManager.useWesternNumerals }
+        .onStart { emit(preferencesManager.useWesternNumerals) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), preferencesManager.useWesternNumerals)
 
     // ── Official Rates State ──────────────────────────────────────────────────
 

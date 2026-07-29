@@ -1,6 +1,7 @@
 package com.qdash.data.local.entities
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
@@ -8,7 +9,14 @@ import androidx.room.PrimaryKey
  * Stores current and previous rates for official and parallel markets to compute trend indicators.
  * Fully isolated from manual user inputs (manual rates are stored session-only in UI state).
  */
-@Entity(tableName = "exchange_rates")
+@Entity(
+    tableName = "exchange_rates",
+    indices = [
+        Index(value = ["lastUpdatedAt"]),
+        Index(value = ["source"]),
+        Index(value = ["isManualOverride"])
+    ]
+)
 data class ExchangeRateEntity(
     @PrimaryKey val currencyCode: String,       // ISO 4217: "USD", "EUR", …
     val countryFlagEmoji: String,               // Flag emoji: "🇺🇸"
@@ -24,3 +32,4 @@ data class ExchangeRateEntity(
     val lastUpdatedAt: Long = System.currentTimeMillis(),
     val isManualOverride: Boolean = false
 )
+

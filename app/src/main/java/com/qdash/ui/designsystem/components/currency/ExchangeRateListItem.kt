@@ -22,11 +22,16 @@ import java.text.DecimalFormat
 @Composable
 fun ExchangeRateListItem(
     rate: ExchangeRate,
+    useWesternNumerals: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val isDark = isSystemInDarkTheme()
     val secondaryText = if (isDark) ColorTokens.TextSecondaryDark else ColorTokens.TextSecondaryLight
     val formatter = DecimalFormat("#,##0.00")
+    val formatRate: (Double) -> String = { rateVal ->
+        val raw = formatter.format(rateVal)
+        if (useWesternNumerals) raw else com.qdash.core.utils.FormatterUtils.convertNumerals(raw)
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -62,20 +67,20 @@ fun ExchangeRateListItem(
             // Buy / Sell rates with trend indicators
             Column(horizontalAlignment = Alignment.End) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    RateDirectionIndicator(trend = rate.officialBuyTrend)
-                    Spacer(Modifier.width(4.dp))
+                    RateDirectionIndicator(trend = rate.officialBuyTrend, useWesternNumerals = useWesternNumerals)
+                    Spacer(Modifier.width(SpacingTokens.Xs))
                     Text(
-                        text = "شراء: ${formatter.format(rate.officialBuyRate)} دج",
+                        text = "شراء: ${formatRate(rate.officialBuyRate)} دج",
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                         color = ColorTokens.Success
                     )
                 }
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(SpacingTokens.Xxs))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    RateDirectionIndicator(trend = rate.officialSellTrend)
-                    Spacer(Modifier.width(4.dp))
+                    RateDirectionIndicator(trend = rate.officialSellTrend, useWesternNumerals = useWesternNumerals)
+                    Spacer(Modifier.width(SpacingTokens.Xs))
                     Text(
-                        text = "بيع: ${formatter.format(rate.officialSellRate)} دج",
+                        text = "بيع: ${formatRate(rate.officialSellRate)} دج",
                         style = MaterialTheme.typography.bodySmall,
                         color = secondaryText
                     )

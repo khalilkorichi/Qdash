@@ -29,6 +29,7 @@ fun DataSourceBadge(
     lastUpdatedAt: Long?,
     isRefreshing: Boolean,
     onRefreshClick: () -> Unit,
+    useWesternNumerals: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val rotation by animateFloatAsState(
@@ -67,8 +68,10 @@ fun DataSourceBadge(
                 color = MaterialTheme.colorScheme.onSurface
             )
             if (lastUpdatedAt != null && lastUpdatedAt > 0L) {
+                com.qdash.core.utils.FormatterUtils.useWesternNumerals = useWesternNumerals
+                val formattedTime = com.qdash.core.utils.FormatterUtils.formatDateTime(lastUpdatedAt)
                 Text(
-                    text = "آخر تحديث: ${com.qdash.core.utils.FormatterUtils.formatDateTime(lastUpdatedAt)}",
+                    text = "آخر تحديث: $formattedTime",
                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )

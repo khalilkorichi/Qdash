@@ -22,14 +22,21 @@ import java.text.DecimalFormat
 @Composable
 fun ParallelMarketRateCard(
     rate: ExchangeRate,
+    useWesternNumerals: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val isDark = isSystemInDarkTheme()
     val secondaryText = if (isDark) ColorTokens.TextSecondaryDark else ColorTokens.TextSecondaryLight
     val formatter = DecimalFormat("#,##0.00")
 
-    val buyText = rate.parallelBuyRate?.let { "${formatter.format(it)} دج" } ?: "—"
-    val sellText = rate.parallelSellRate?.let { "${formatter.format(it)} دج" } ?: "—"
+    val formatVal: (Double?) -> String = { rateVal ->
+        if (rateVal == null) "—" else {
+            val s = "${formatter.format(rateVal)} دج"
+            if (useWesternNumerals) s else com.qdash.core.utils.FormatterUtils.convertNumerals(s)
+        }
+    }
+    val buyText = formatVal(rate.parallelBuyRate)
+    val sellText = formatVal(rate.parallelSellRate)
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -65,18 +72,18 @@ fun ParallelMarketRateCard(
             // Buy / Sell rates with independent trend indicators
             Column(horizontalAlignment = Alignment.End) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    RateDirectionIndicator(trend = rate.parallelBuyTrend)
-                    Spacer(Modifier.width(4.dp))
+                    RateDirectionIndicator(trend = rate.parallelBuyTrend, useWesternNumerals = useWesternNumerals)
+                    Spacer(Modifier.width(SpacingTokens.Xs))
                     Text(
                         text = "شراء: $buyText",
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                         color = ColorTokens.Success
                     )
                 }
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(SpacingTokens.Xxs))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    RateDirectionIndicator(trend = rate.parallelSellTrend)
-                    Spacer(Modifier.width(4.dp))
+                    RateDirectionIndicator(trend = rate.parallelSellTrend, useWesternNumerals = useWesternNumerals)
+                    Spacer(Modifier.width(SpacingTokens.Xs))
                     Text(
                         text = "بيع: $sellText",
                         style = MaterialTheme.typography.bodySmall,

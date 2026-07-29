@@ -33,6 +33,7 @@ fun OfficialMarketTab(
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.officialRatesState.collectAsStateWithLifecycle()
+    val useWesternNumerals by viewModel.useWesternNumerals.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.loadOfficialRates()
@@ -89,8 +90,10 @@ fun OfficialMarketTab(
                             )
                             s.lastUpdated?.let { ts ->
                                 val sdf = SimpleDateFormat("dd MMM yyyy — HH:mm", Locale("ar"))
+                                val rawDate = sdf.format(Date(ts))
+                                val displayDate = if (useWesternNumerals) rawDate else com.qdash.core.utils.FormatterUtils.convertNumerals(rawDate)
                                 Text(
-                                    text = "آخر تحديث: ${sdf.format(Date(ts))}",
+                                    text = "آخر تحديث: $displayDate",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
                                 )
@@ -115,7 +118,10 @@ fun OfficialMarketTab(
                 }
 
                 items(s.rates, key = { it.currencyCode }) { rate ->
-                    ExchangeRateListItem(rate = rate)
+                    ExchangeRateListItem(
+                        rate = rate,
+                        useWesternNumerals = useWesternNumerals
+                    )
                 }
 
                 item { Spacer(Modifier.height(SpacingTokens.Giant)) }

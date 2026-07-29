@@ -27,6 +27,7 @@ fun ParallelMarketTab(
 ) {
     val state by viewModel.officialRatesState.collectAsStateWithLifecycle()
     val converterState by viewModel.converterState.collectAsStateWithLifecycle()
+    val useWesternNumerals by viewModel.useWesternNumerals.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.loadOfficialRates()
@@ -50,7 +51,8 @@ fun ParallelMarketTab(
                         sourceText = "أسعار إرشادية (السوق الموازي)",
                         lastUpdatedAt = maxLastUpdated,
                         isRefreshing = converterState.isRefreshingParallel,
-                        onRefreshClick = viewModel::refreshParallelRatesManually
+                        onRefreshClick = viewModel::refreshParallelRatesManually,
+                        useWesternNumerals = useWesternNumerals
                     )
                     HorizontalDivider(
                         thickness = 0.5.dp,
@@ -59,7 +61,10 @@ fun ParallelMarketTab(
                 }
 
                 items(rates, key = { it.currencyCode }) { rate ->
-                    ParallelMarketRateCard(rate = rate)
+                    ParallelMarketRateCard(
+                        rate = rate,
+                        useWesternNumerals = useWesternNumerals
+                    )
                 }
 
                 item { Spacer(Modifier.height(SpacingTokens.Giant)) }
