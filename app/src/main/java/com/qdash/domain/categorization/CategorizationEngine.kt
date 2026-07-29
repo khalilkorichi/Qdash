@@ -1,4 +1,4 @@
-package com.qdash.data.categorization
+package com.qdash.domain.categorization
 
 import com.qdash.domain.model.CategorySuggestion
 

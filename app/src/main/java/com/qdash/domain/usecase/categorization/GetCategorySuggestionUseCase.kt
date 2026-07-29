@@ -1,6 +1,6 @@
 package com.qdash.domain.usecase.categorization
 
-import com.qdash.data.categorization.CategorizationEngine
+import com.qdash.domain.categorization.CategorizationEngine
 import com.qdash.domain.model.CategorySuggestion
 
 class GetCategorySuggestionUseCase(

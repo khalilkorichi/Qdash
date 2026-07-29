@@ -1,6 +1,6 @@
 package com.qdash.domain.usecase.transaction
 
-import com.qdash.data.categorization.CategorizationEngine
+import com.qdash.domain.categorization.CategorizationEngine
 import com.qdash.domain.model.CategorySuggestion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

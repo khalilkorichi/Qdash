@@ -14,4 +14,6 @@ interface NotificationRepository {
     suspend fun markAllAsRead()
     suspend fun deleteNotification(notification: AppNotification)
     suspend fun clearAll()
+    suspend fun cleanupOldNotifications(keepMax: Int = 100)
 }
+

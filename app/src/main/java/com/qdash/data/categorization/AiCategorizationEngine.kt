@@ -1,5 +1,6 @@
 package com.qdash.data.categorization
 
+import com.qdash.domain.categorization.CategorizationEngine
 import com.qdash.domain.model.CategorySuggestion
 
 interface AiCategorizationEngine : CategorizationEngine {

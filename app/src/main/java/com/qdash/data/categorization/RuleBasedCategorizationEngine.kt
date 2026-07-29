@@ -1,5 +1,6 @@
 package com.qdash.data.categorization
 
+import com.qdash.domain.categorization.CategorizationEngine
 import com.qdash.data.local.dao.CategoryDao
 import com.qdash.data.local.dao.CategoryRuleDao
 import com.qdash.data.local.dao.UserCategoryMappingDao

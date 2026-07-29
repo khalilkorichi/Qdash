@@ -91,7 +91,7 @@ class AppContainerImpl(private val context: Context) : AppContainer {
         CategorizationRepositoryImpl(database.categoryRuleDao(), database.userCategoryMappingDao())
     }
 
-    override val categorizationEngine: com.qdash.data.categorization.CategorizationEngine by lazy {
+    override val categorizationEngine: com.qdash.domain.categorization.CategorizationEngine by lazy {
         com.qdash.data.categorization.RuleBasedCategorizationEngine(
             database.categoryDao(),
             database.categoryRuleDao(),

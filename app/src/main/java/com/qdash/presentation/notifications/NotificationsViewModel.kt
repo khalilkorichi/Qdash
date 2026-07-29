@@ -1,16 +1,17 @@
 package com.qdash.presentation.notifications
 
 import androidx.compose.runtime.Immutable
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qdash.domain.model.AppNotification
 import com.qdash.domain.model.NotificationType
 import com.qdash.domain.repository.NotificationRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
+import java.util.ArrayList
+import java.util.LinkedHashMap
+import java.util.TimeZone
 
 @Immutable
 data class NotificationsUiState(
@@ -28,12 +29,18 @@ class NotificationsViewModel(
     private val _selectedFilter = MutableStateFlow<NotificationType?>(null)
     private val _isRefreshing = MutableStateFlow(false)
 
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            notificationRepository.cleanupOldNotifications(100)
+        }
+    }
+
     val uiState: StateFlow<NotificationsUiState> = combine(
-        notificationRepository.getAllNotifications(),
-        notificationRepository.getUnreadCount(),
+        notificationRepository.getAllNotifications().distinctUntilChanged(),
         _selectedFilter,
         _isRefreshing
-    ) { allNotifications, unreadCount, filter, isRefreshing ->
+    ) { allNotifications, filter, isRefreshing ->
+        val unreadCount = allNotifications.count { !it.isRead }
         val filtered = if (filter != null) {
             allNotifications.filter { it.type == filter }
         } else {
@@ -46,87 +53,80 @@ class NotificationsViewModel(
             isLoading = false,
             isRefreshing = isRefreshing
         )
-    }.stateIn(
+    }
+    .flowOn(Dispatchers.Default)
+    .stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = NotificationsUiState(isLoading = true)
     )
 
-    fun refresh() {
-        viewModelScope.launch {
-            _isRefreshing.value = true
-            kotlinx.coroutines.delay(800)
-            _isRefreshing.value = false
-        }
-    }
-
-    /**
-     * Groups the current filtered notifications by day, using Arabic day labels.
-     * Returns a map of section label → list of notifications in that section.
-     */
     val groupedNotifications: StateFlow<Map<String, List<AppNotification>>> =
         uiState.map { state ->
             groupByDay(state.notifications)
-        }.stateIn(
+        }
+        .flowOn(Dispatchers.Default)
+        .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyMap()
         )
 
     private fun groupByDay(notifications: List<AppNotification>): Map<String, List<AppNotification>> {
-        val now = Calendar.getInstance()
-        val today = calendarMidnight(now)
-        val yesterday = calendarMidnight(now).apply { add(Calendar.DAY_OF_YEAR, -1) }
-        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        if (notifications.isEmpty()) return emptyMap()
 
-        // Use LinkedHashMap to preserve insertion order (most-recent sections first)
+        val timeZone = TimeZone.getDefault()
+        val nowMs = System.currentTimeMillis()
+        val offsetMs = timeZone.getOffset(nowMs).toLong()
+
+        val msPerDay = 86_400_000L
+        val todayEpochDay = (nowMs + offsetMs) / msPerDay
+        val yesterdayEpochDay = todayEpochDay - 1
+
         val result = LinkedHashMap<String, MutableList<AppNotification>>()
 
-        notifications
-            .sortedByDescending { it.timestamp }
-            .forEach { notification ->
-                val cal = Calendar.getInstance().apply { timeInMillis = notification.timestamp }
-                val midnight = calendarMidnight(cal)
-                val label = when {
-                    midnight.timeInMillis == today.timeInMillis -> "اليوم"
-                    midnight.timeInMillis == yesterday.timeInMillis -> "أمس"
-                    else -> com.qdash.core.utils.FormatterUtils.convertNumerals(sdf.format(Date(notification.timestamp)))
-                }
-                result.getOrPut(label) { mutableListOf() }.add(notification)
+        for (notification in notifications) {
+            val notificationEpochDay = (notification.timestamp + offsetMs) / msPerDay
+            val label = when (notificationEpochDay) {
+                todayEpochDay -> "اليوم"
+                yesterdayEpochDay -> "أمس"
+                else -> com.qdash.core.utils.FormatterUtils.formatShortDate(notification.timestamp)
             }
+            result.getOrPut(label) { ArrayList() }.add(notification)
+        }
 
         return result
     }
 
-    private fun calendarMidnight(source: Calendar): Calendar {
-        return (source.clone() as Calendar).apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
+    fun refresh() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            notificationRepository.cleanupOldNotifications(100)
+            kotlinx.coroutines.delay(400)
+            _isRefreshing.value = false
         }
     }
 
     fun markAsRead(id: Long) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             notificationRepository.markAsRead(id)
         }
     }
 
     fun markAllAsRead() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             notificationRepository.markAllAsRead()
         }
     }
 
     fun deleteNotification(notification: AppNotification) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             notificationRepository.deleteNotification(notification)
         }
     }
 
     fun clearAll() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             notificationRepository.clearAll()
         }
     }

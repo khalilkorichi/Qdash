@@ -38,4 +38,8 @@ interface NotificationDao {
 
     @Query("DELETE FROM notifications WHERE timestamp < :olderThanMs")
     suspend fun deleteOlderThan(olderThanMs: Long)
+
+    @Query("DELETE FROM notifications WHERE id NOT IN (SELECT id FROM notifications ORDER BY timestamp DESC LIMIT :keepMax)")
+    suspend fun trimNotifications(keepMax: Int = 100)
 }
+

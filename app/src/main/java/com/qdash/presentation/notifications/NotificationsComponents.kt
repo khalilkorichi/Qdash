@@ -1,17 +1,12 @@
 package com.qdash.presentation.notifications
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -32,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.domain.model.AppNotification
 import com.qdash.domain.model.NotificationType
-import com.qdash.ui.theme.TextGray
 import com.qdash.ui.designsystem.components.shimmerEffect
 
 internal data class TypeVisual(val color: Color, val icon: ImageVector)
@@ -102,7 +95,7 @@ internal fun FilterRow(
             .testTag("notification_filter_row"),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(FILTER_CHIPS) { chip ->
+        items(FILTER_CHIPS, key = { it.label }) { chip ->
             val selected = chip.type == selectedFilter
             FilterChip(
                 selected = selected,
@@ -148,13 +141,12 @@ internal fun NotificationList(
             item(key = "header_$sectionLabel") {
                 SectionHeader(label = sectionLabel)
             }
-            itemsIndexed(
+            items(
                 items = notifications,
-                key = { _, n -> n.id }
-            ) { index, notification ->
-                AnimatedNotificationItem(
+                key = { n -> n.id }
+            ) { notification ->
+                SwipeableNotificationItem(
                     notification = notification,
-                    index = index,
                     onMarkAsRead = onMarkAsRead,
                     onDelete = onDelete,
                     onTap = onTap
@@ -177,44 +169,7 @@ internal fun SectionHeader(label: String) {
     )
 }
 
-@Composable
-internal fun AnimatedNotificationItem(
-    notification: AppNotification,
-    index: Int,
-    onMarkAsRead: (AppNotification) -> Unit,
-    onDelete: (AppNotification) -> Unit,
-    onTap: (AppNotification) -> Unit
-) {
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(notification.id) {
-        visible = true
-    }
-
-    AnimatedVisibility(
-        visible = visible,
-        enter = slideInVertically(
-            initialOffsetY = { it / 3 },
-            animationSpec = tween(
-                durationMillis = 350,
-                delayMillis = (index * 40).coerceAtMost(300),
-                easing = FastOutSlowInEasing
-            )
-        ) + fadeIn(
-            animationSpec = tween(
-                durationMillis = 350,
-                delayMillis = (index * 40).coerceAtMost(300)
-            )
-        )
-    ) {
-        SwipeableNotificationItem(
-            notification = notification,
-            onMarkAsRead = onMarkAsRead,
-            onDelete = onDelete,
-            onTap = onTap
-        )
-    }
-}
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SwipeableNotificationItem(
     notification: AppNotification,
@@ -222,71 +177,48 @@ internal fun SwipeableNotificationItem(
     onDelete: (AppNotification) -> Unit,
     onTap: (AppNotification) -> Unit
 ) {
-    var offsetX by remember { mutableStateOf(0f) }
-    val maxOffset = -300f
-    val animatedOffsetX by animateFloatAsState(
-        targetValue = offsetX,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "swipe_offset"
-    )
-    val deleteThreshold = -200f
-    val revealDelete = animatedOffsetX < -80f
-
-    val deleteColor = MaterialTheme.colorScheme.error
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                if (revealDelete) deleteColor.copy(alpha = 0.1f)
-                else Color.Transparent
-            )
-    ) {
-        if (revealDelete) {
-            Row(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .align(Alignment.CenterStart)
-                    .padding(start = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = null,
-                    tint = deleteColor,
-                    modifier = Modifier.size(22.dp)
-                )
-                Text("حذف", color = deleteColor, fontWeight = FontWeight.Bold)
+    val currentOnDelete by rememberUpdatedState(onDelete)
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart || value == SwipeToDismissBoxValue.StartToEnd) {
+                currentOnDelete(notification)
+                true
+            } else {
+                false
             }
         }
+    )
 
-        Box(
-            modifier = Modifier
-                .offset { androidx.compose.ui.unit.IntOffset(animatedOffsetX.toInt(), 0) }
-                .pointerInput(notification.id) {
-                    detectHorizontalDragGestures(
-                        onDragEnd = {
-                            if (offsetX < deleteThreshold) {
-                                onDelete(notification)
-                            }
-                            offsetX = 0f
-                        },
-                        onDragCancel = { offsetX = 0f },
-                        onHorizontalDrag = { _, dragAmount ->
-                            val newOffset = (offsetX + dragAmount).coerceIn(maxOffset, 0f)
-                            offsetX = newOffset
-                        }
-                    )
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = true,
+        enableDismissFromEndToStart = true,
+        backgroundContent = {
+            val color = MaterialTheme.colorScheme.error
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color.copy(alpha = 0.15f))
+                    .padding(horizontal = 20.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text("حذف", color = color, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Icon(Icons.Default.Delete, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
                 }
-        ) {
+            }
+        },
+        content = {
             NotificationItemCard(
                 notification = notification,
                 onMarkAsRead = onMarkAsRead,
                 onTap = onTap
             )
         }
-    }
+    )
 }
 
 @Composable

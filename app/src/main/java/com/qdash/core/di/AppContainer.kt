@@ -22,7 +22,7 @@ interface AppContainer {
     // Budget Goals
     val budgetGoalRepository: BudgetGoalRepository
     val categorizationRepository: CategorizationRepository
-    val categorizationEngine: com.qdash.data.categorization.CategorizationEngine
+    val categorizationEngine: com.qdash.domain.categorization.CategorizationEngine
     val calculateBudgetSpentUseCase: com.qdash.domain.usecase.budget.CalculateBudgetSpentUseCase
     val getBudgetGoalsUseCase: com.qdash.domain.usecase.budget.GetBudgetGoalsUseCase
     val addBudgetGoalUseCase: com.qdash.domain.usecase.budget.AddBudgetGoalUseCase

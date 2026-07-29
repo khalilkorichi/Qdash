@@ -34,6 +34,7 @@ class NotificationRepositoryImpl(
 
     override suspend fun insertNotification(notification: AppNotification): Long {
         val id = notificationDao.insertNotification(notification.toEntity())
+        notificationDao.trimNotifications(100)
         SystemNotificationHelper.showNotification(context, notification.copy(id = id))
         return id
     }
@@ -53,4 +54,9 @@ class NotificationRepositoryImpl(
     override suspend fun clearAll() {
         notificationDao.clearAll()
     }
+
+    override suspend fun cleanupOldNotifications(keepMax: Int) {
+        notificationDao.trimNotifications(keepMax)
+    }
 }
+
