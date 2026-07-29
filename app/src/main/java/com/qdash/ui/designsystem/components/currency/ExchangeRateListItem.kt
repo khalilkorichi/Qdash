@@ -27,10 +27,10 @@ fun ExchangeRateListItem(
 ) {
     val isDark = isSystemInDarkTheme()
     val secondaryText = if (isDark) ColorTokens.TextSecondaryDark else ColorTokens.TextSecondaryLight
-    val formatter = DecimalFormat("#,##0.00")
+    val formatter = DecimalFormat("#,##0.00", java.text.DecimalFormatSymbols(java.util.Locale.US))
     val formatRate: (Double) -> String = { rateVal ->
         val raw = formatter.format(rateVal)
-        if (useWesternNumerals) raw else com.qdash.core.utils.FormatterUtils.convertNumerals(raw)
+        com.qdash.core.utils.FormatterUtils.convertNumerals(raw, useWesternNumerals)
     }
 
     Column(modifier = modifier.fillMaxWidth()) {

@@ -89,9 +89,9 @@ fun OfficialMarketTab(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             s.lastUpdated?.let { ts ->
-                                val sdf = SimpleDateFormat("dd MMM yyyy — HH:mm", Locale("ar"))
+                                val sdf = SimpleDateFormat("dd MMM yyyy — HH:mm", Locale.US)
                                 val rawDate = sdf.format(Date(ts))
-                                val displayDate = if (useWesternNumerals) rawDate else com.qdash.core.utils.FormatterUtils.convertNumerals(rawDate)
+                                val displayDate = com.qdash.core.utils.FormatterUtils.convertNumerals(rawDate, useWesternNumerals)
                                 Text(
                                     text = "آخر تحديث: $displayDate",
                                     style = MaterialTheme.typography.labelSmall,

@@ -44,16 +44,16 @@ fun CurrencyConverterCard(
     useWesternNumerals: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    val formatter = DecimalFormat("#,##0.##")
+    val formatter = DecimalFormat("#,##0.##", java.text.DecimalFormatSymbols(java.util.Locale.US))
     val allCodes = (listOf("DZD") + availableCurrencies.map { it.currencyCode }).distinct()
     val flagMap = buildMap {
         put("DZD", "🇩🇿")
         availableCurrencies.forEach { put(it.currencyCode, it.countryFlagEmoji) }
     }
 
-    val displayAmount = if (useWesternNumerals || amount.isEmpty()) amount else com.qdash.core.utils.FormatterUtils.convertNumerals(amount)
+    val displayAmount = com.qdash.core.utils.FormatterUtils.convertNumerals(amount, useWesternNumerals)
     val rawResult = if (result > 0.0) formatter.format(result) else ""
-    val displayResult = if (useWesternNumerals || rawResult.isEmpty()) rawResult else com.qdash.core.utils.FormatterUtils.convertNumerals(rawResult)
+    val displayResult = com.qdash.core.utils.FormatterUtils.convertNumerals(rawResult, useWesternNumerals)
 
     AppCard(
         modifier = modifier.fillMaxWidth(),

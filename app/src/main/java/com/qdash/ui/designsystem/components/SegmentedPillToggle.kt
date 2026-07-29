@@ -41,8 +41,7 @@ fun SegmentedPillToggle(
     enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
-    val containerBg = if (isDark) ColorTokens.CardDark else ColorTokens.CardLight
+    val containerBg = MaterialTheme.colorScheme.surfaceVariant
 
     Row(
         modifier = modifier
@@ -82,7 +81,7 @@ private fun PillItem(
     val targetTextColor = if (isSelected) {
         MaterialTheme.colorScheme.onPrimary
     } else {
-        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+        MaterialTheme.colorScheme.onSurfaceVariant
     }
 
     val animatedBg by animateColorAsState(

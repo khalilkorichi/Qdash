@@ -40,11 +40,10 @@ fun CurrencyTabRow(
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
-    val containerColor = if (isDark) ColorTokens.CardDark else ColorTokens.BorderLight
+    val containerColor = MaterialTheme.colorScheme.surfaceVariant
     val activeColor = MaterialTheme.colorScheme.primary
     val activeTextColor = MaterialTheme.colorScheme.onPrimary
-    val inactiveTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    val inactiveTextColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     Row(
         modifier = modifier

@@ -27,12 +27,12 @@ fun ParallelMarketRateCard(
 ) {
     val isDark = isSystemInDarkTheme()
     val secondaryText = if (isDark) ColorTokens.TextSecondaryDark else ColorTokens.TextSecondaryLight
-    val formatter = DecimalFormat("#,##0.00")
+    val formatter = DecimalFormat("#,##0.00", java.text.DecimalFormatSymbols(java.util.Locale.US))
 
     val formatVal: (Double?) -> String = { rateVal ->
         if (rateVal == null) "—" else {
             val s = "${formatter.format(rateVal)} دج"
-            if (useWesternNumerals) s else com.qdash.core.utils.FormatterUtils.convertNumerals(s)
+            com.qdash.core.utils.FormatterUtils.convertNumerals(s, useWesternNumerals)
         }
     }
     val buyText = formatVal(rate.parallelBuyRate)

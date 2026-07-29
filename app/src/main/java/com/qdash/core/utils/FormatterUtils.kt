@@ -1,6 +1,7 @@
 package com.qdash.core.utils
 
 import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -9,8 +10,8 @@ object FormatterUtils {
     var hideDecimals: Boolean = true
     var useWesternNumerals: Boolean = true
 
-    fun convertNumerals(input: String): String {
-        if (useWesternNumerals) {
+    fun convertNumerals(input: String, useWestern: Boolean = useWesternNumerals): String {
+        if (useWestern) {
             return input.map { char ->
                 when (char) {
                     '٠' -> '0'
@@ -23,6 +24,8 @@ object FormatterUtils {
                     '٧' -> '7'
                     '٨' -> '8'
                     '٩' -> '9'
+                    '٫' -> '.'
+                    '٬' -> ','
                     else -> char
                 }
             }.joinToString("")
@@ -39,14 +42,17 @@ object FormatterUtils {
                     '7' -> '٧'
                     '8' -> '٨'
                     '9' -> '٩'
+                    '.' -> '٫'
+                    ',' -> '٬'
                     else -> char
                 }
             }.joinToString("")
         }
     }
 
-    private val decimalFormatWithDecimals = DecimalFormat("#,##0.00")
-    private val decimalFormatWithoutDecimals = DecimalFormat("#,##0")
+    private val usSymbols = DecimalFormatSymbols(Locale.US)
+    private val decimalFormatWithDecimals = DecimalFormat("#,##0.00", usSymbols)
+    private val decimalFormatWithoutDecimals = DecimalFormat("#,##0", usSymbols)
     
     fun formatCurrency(amount: Double, prefix: String = ""): String {
         val format = if (hideDecimals) decimalFormatWithoutDecimals else decimalFormatWithDecimals

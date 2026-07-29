@@ -63,7 +63,7 @@ fun RateDirectionIndicator(
         if (trend.direction != RateDirection.STABLE && trend.changePercentage != 0.0) {
             val prefix = if (trend.changePercentage > 0) "+" else ""
             val rawPercentage = String.format(Locale.US, "%.1f", trend.changePercentage)
-            val formattedPercentage = if (useWesternNumerals) rawPercentage else com.qdash.core.utils.FormatterUtils.convertNumerals(rawPercentage)
+            val formattedPercentage = com.qdash.core.utils.FormatterUtils.convertNumerals(rawPercentage, useWesternNumerals)
             Text(
                 text = "$prefix$formattedPercentage%",
                 style = MaterialTheme.typography.labelSmall.copy(
