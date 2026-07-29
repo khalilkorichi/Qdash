@@ -1,9 +1,10 @@
 package com.qdash.ui.designsystem.components.currency
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -13,11 +14,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.domain.model.ExchangeRate
 import com.qdash.ui.designsystem.tokens.ColorTokens
+import com.qdash.ui.designsystem.tokens.ShapeTokens
 import com.qdash.ui.designsystem.tokens.SpacingTokens
 import java.text.DecimalFormat
 
 /**
- * Single row displaying one currency's official exchange rate with buy/sell trend indicators.
+ * Single card displaying one currency's official exchange rate with buy/sell trend indicators.
  */
 @Composable
 fun ExchangeRateListItem(
@@ -33,7 +35,14 @@ fun ExchangeRateListItem(
         com.qdash.core.utils.FormatterUtils.convertNumerals(raw, useWesternNumerals)
     }
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = SpacingTokens.Lg, vertical = SpacingTokens.Xxs),
+        shape = ShapeTokens.Md,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -47,50 +56,52 @@ fun ExchangeRateListItem(
             ) {
                 Text(
                     text = rate.countryFlagEmoji,
-                    fontSize = 26.sp,
+                    fontSize = 28.sp,
                     modifier = Modifier.padding(end = SpacingTokens.Sm)
                 )
                 Column {
                     Text(
                         text = rate.currencyName,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    Spacer(Modifier.height(2.dp))
                     Text(
                         text = rate.currencyCode,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                         color = secondaryText
                     )
                 }
             }
 
-            // Buy / Sell rates with trend indicators
+            // Buy / Sell rates with trend indicators (widened spacing & larger numbers)
             Column(horizontalAlignment = Alignment.End) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RateDirectionIndicator(trend = rate.officialBuyTrend, useWesternNumerals = useWesternNumerals)
-                    Spacer(Modifier.width(SpacingTokens.Xs))
+                    Spacer(Modifier.width(SpacingTokens.Sm))
                     Text(
                         text = "شراء: ${formatRate(rate.officialBuyRate)} دج",
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 14.5.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
                         color = ColorTokens.Success
                     )
                 }
-                Spacer(Modifier.height(SpacingTokens.Xxs))
+                Spacer(Modifier.height(SpacingTokens.Sm))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RateDirectionIndicator(trend = rate.officialSellTrend, useWesternNumerals = useWesternNumerals)
-                    Spacer(Modifier.width(SpacingTokens.Xs))
+                    Spacer(Modifier.width(SpacingTokens.Sm))
                     Text(
                         text = "بيع: ${formatRate(rate.officialSellRate)} دج",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = secondaryText
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 14.5.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
         }
-        HorizontalDivider(
-            modifier = Modifier.padding(horizontal = SpacingTokens.Lg),
-            thickness = 0.5.dp,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-        )
     }
 }
