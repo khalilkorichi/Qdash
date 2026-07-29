@@ -93,9 +93,8 @@ fun AnalyticsComparisonTabContent(
 
         // Date Selector Button
         var showDashboardDatePicker by remember { mutableStateOf(false) }
-        val arabicMonths = remember {
-            arrayOf("جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر")
-        }
+        val arabicMonths = com.qdash.core.utils.FormatterUtils.getMonthNames()
+
         val pickerLabel = if (uiState.dashboardPeriod == "MONTHLY") {
             "${arabicMonths[uiState.dashboardMonth]} ${uiState.dashboardYear}"
         } else {

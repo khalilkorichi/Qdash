@@ -1,5 +1,6 @@
 package com.qdash.presentation.analytics
 
+import com.qdash.core.utils.FormatterUtils
 import com.qdash.domain.model.*
 import java.util.Calendar
 
@@ -9,10 +10,8 @@ import java.util.Calendar
  */
 object AnalyticsCalculator {
 
-    val arabicMonths = arrayOf(
-        "جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان",
-        "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
-    )
+    val arabicMonths: Array<String> get() = FormatterUtils.getMonthNames()
+
 
     /** Filter transactions by the selected analytics period. */
     fun filterByPeriod(
@@ -163,9 +162,8 @@ object AnalyticsCalculator {
         val startMillis = range.first.timeInMillis
         val endMillis = range.second.timeInMillis
 
-        val dayFormat = java.text.SimpleDateFormat("d MMM", java.util.Locale("ar"))
-        val cycleStartLabel = dayFormat.format(range.first.time)
-        val cycleEndLabel = dayFormat.format(range.second.time)
+        val cycleStartLabel = FormatterUtils.formatShortDate(range.first.timeInMillis)
+        val cycleEndLabel = FormatterUtils.formatShortDate(range.second.timeInMillis)
 
         val todayMillis = System.currentTimeMillis()
         val totalDays = ((endMillis - startMillis) / (24 * 60 * 60 * 1000)).toInt().coerceAtLeast(1)

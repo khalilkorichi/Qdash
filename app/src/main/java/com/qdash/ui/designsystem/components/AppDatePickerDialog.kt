@@ -129,12 +129,7 @@ fun AppDatePickerDialog(
                     HorizontalDivider(color = dividerColor, thickness = 1.dp)
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    val arabicMonths = remember {
-                        arrayOf(
-                            "جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان",
-                            "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
-                        )
-                    }
+                    val arabicMonths = remember { FormatterUtils.getMonthNames() }
 
                     // Month & Year Selector Header
                     Row(

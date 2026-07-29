@@ -31,6 +31,7 @@ data class SettingsUiState(
     val isHideDecimalsEnabled: Boolean = true,
     val isAmountWordsEnabled: Boolean = true,
     val useWesternNumerals: Boolean = true,
+    val useAlgerianMonths: Boolean = true,
     val dashboardSectionsOrder: List<String> = emptyList(),
     val dashboardSectionsVisibility: Map<String, Boolean> = emptyMap(),
     val lastSyncTimestamp: Long = 0L
@@ -62,6 +63,7 @@ class SettingsViewModel(
             isHideDecimalsEnabled = preferencesManager.hideDecimalsEnabled,
             isAmountWordsEnabled = preferencesManager.amountWordsEnabled,
             useWesternNumerals = preferencesManager.useWesternNumerals,
+            useAlgerianMonths = preferencesManager.useAlgerianMonths,
             lastSyncTimestamp = preferencesManager.lastSyncTimestamp
         )
     )
@@ -80,12 +82,14 @@ class SettingsViewModel(
             val hideDecimals = preferencesManager.hideDecimalsEnabled
             val amountWords = preferencesManager.amountWordsEnabled
             val useWestern = preferencesManager.useWesternNumerals
+            val useAlgerian = preferencesManager.useAlgerianMonths
 
             val sectionsOrder = preferencesManager.dashboardSectionsOrder.split(",")
             val sectionsVisibility = sectionsOrder.associateWith { preferencesManager.isSectionVisible(it) }
 
             FormatterUtils.hideDecimals = hideDecimals
             FormatterUtils.useWesternNumerals = useWestern
+            FormatterUtils.useAlgerianMonths = useAlgerian
 
             _uiState.update {
                 it.copy(
@@ -96,6 +100,7 @@ class SettingsViewModel(
                     isHideDecimalsEnabled = hideDecimals,
                     isAmountWordsEnabled = amountWords,
                     useWesternNumerals = useWestern,
+                    useAlgerianMonths = useAlgerian,
                     dashboardSectionsOrder = sectionsOrder,
                     dashboardSectionsVisibility = sectionsVisibility,
                     lastSyncTimestamp = preferencesManager.lastSyncTimestamp
@@ -133,6 +138,12 @@ class SettingsViewModel(
         preferencesManager.useWesternNumerals = enabled
         FormatterUtils.useWesternNumerals = enabled
         _uiState.update { it.copy(useWesternNumerals = enabled) }
+    }
+
+    fun toggleAlgerianMonths(enabled: Boolean) {
+        preferencesManager.useAlgerianMonths = enabled
+        FormatterUtils.useAlgerianMonths = enabled
+        _uiState.update { it.copy(useAlgerianMonths = enabled) }
     }
 
     fun toggleAutoBackup(enabled: Boolean) {

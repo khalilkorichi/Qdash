@@ -231,6 +231,7 @@ fun SettingsScreen(
                     onToggleHideDecimals = { viewModel.toggleHideDecimals(it) },
                     onToggleAmountWords = { viewModel.toggleAmountWords(it) },
                     onToggleWesternNumerals = { viewModel.toggleWesternNumerals(it) },
+                    onToggleAlgerianMonths = { viewModel.toggleAlgerianMonths(it) },
                     onNavigateToBudgetGoals = onNavigateToBudgetGoals,
                     onNavigateToDebts = onNavigateToDebts,
                     onNavigateToTransfer = onNavigateToTransfer,

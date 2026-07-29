@@ -3,12 +3,37 @@ package com.qdash.core.utils
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
 object FormatterUtils {
     var hideDecimals: Boolean = true
     var useWesternNumerals: Boolean = true
+    var useAlgerianMonths: Boolean = true
+
+    val algerianMonths = arrayOf(
+        "جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان",
+        "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+    )
+
+    val standardArabicMonths = arrayOf(
+        "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+        "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+    )
+
+    fun getMonthName(monthIndex: Int, algerian: Boolean = useAlgerianMonths): String {
+        val idx = monthIndex.coerceIn(0, 11)
+        return if (algerian) algerianMonths[idx] else standardArabicMonths[idx]
+    }
+
+    fun getMonthNames(algerian: Boolean = useAlgerianMonths): Array<String> {
+        return if (algerian) algerianMonths else standardArabicMonths
+    }
+
+    fun getMonthNamesList(algerian: Boolean = useAlgerianMonths): List<String> {
+        return getMonthNames(algerian).toList()
+    }
 
     fun convertNumerals(input: String, useWestern: Boolean = useWesternNumerals): String {
         if (useWestern) {
@@ -69,18 +94,25 @@ object FormatterUtils {
     }
 
     fun formatDate(timestamp: Long): String {
-        val sdf = SimpleDateFormat("dd MMMM yyyy", Locale("ar"))
-        return convertNumerals(sdf.format(Date(timestamp)))
+        val cal = Calendar.getInstance().apply { timeInMillis = timestamp }
+        val day = cal.get(Calendar.DAY_OF_MONTH)
+        val monthStr = getMonthName(cal.get(Calendar.MONTH))
+        val year = cal.get(Calendar.YEAR)
+        return convertNumerals("$day $monthStr $year")
     }
 
     fun formatShortDate(timestamp: Long): String {
-        val sdf = SimpleDateFormat("dd MMM", Locale("ar"))
-        return convertNumerals(sdf.format(Date(timestamp)))
+        val cal = Calendar.getInstance().apply { timeInMillis = timestamp }
+        val day = cal.get(Calendar.DAY_OF_MONTH)
+        val monthStr = getMonthName(cal.get(Calendar.MONTH))
+        return convertNumerals("$day $monthStr")
     }
 
     fun formatDateToMonthYear(timestamp: Long): String {
-        val sdf = SimpleDateFormat("MMMM yyyy", Locale("ar"))
-        return convertNumerals(sdf.format(Date(timestamp)))
+        val cal = Calendar.getInstance().apply { timeInMillis = timestamp }
+        val monthStr = getMonthName(cal.get(Calendar.MONTH))
+        val year = cal.get(Calendar.YEAR)
+        return convertNumerals("$monthStr $year")
     }
 
     /**

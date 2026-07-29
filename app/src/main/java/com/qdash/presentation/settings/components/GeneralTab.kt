@@ -30,6 +30,7 @@ fun GeneralTab(
     onToggleHideDecimals: (Boolean) -> Unit,
     onToggleAmountWords: (Boolean) -> Unit,
     onToggleWesternNumerals: (Boolean) -> Unit,
+    onToggleAlgerianMonths: (Boolean) -> Unit = {},
     onNavigateToBudgetGoals: () -> Unit,
     onNavigateToDebts: () -> Unit,
     onNavigateToTransfer: () -> Unit,
@@ -137,6 +138,20 @@ fun GeneralTab(
                     Switch(
                         checked = uiState.useWesternNumerals,
                         onCheckedChange = onToggleWesternNumerals,
+                        colors = SwitchDefaults.colors(checkedTrackColor = Primary)
+                    )
+                }
+            )
+
+            SettingsItem(
+                icon = Icons.Default.CalendarMonth,
+                iconTint = Color(0xFF059669),
+                title = "أسماء أشهر السنة",
+                subtitle = if (uiState.useAlgerianMonths) "الأسماء المعربة الجزائرية (جانفي، فيفري...)" else "الأسماء الفصحى (يناير، فبراير...)",
+                trailing = {
+                    Switch(
+                        checked = uiState.useAlgerianMonths,
+                        onCheckedChange = onToggleAlgerianMonths,
                         colors = SwitchDefaults.colors(checkedTrackColor = Primary)
                     )
                 }

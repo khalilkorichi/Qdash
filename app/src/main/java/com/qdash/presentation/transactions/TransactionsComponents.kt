@@ -127,10 +127,8 @@ fun FinancialActivityCalendar(
     onDayDoubleTapped: (Long) -> Unit
 ) {
     val Primary = MaterialTheme.colorScheme.primary
-    val monthsArabic = listOf(
-        "يناير", "فبراير", "مارس", "أبريل", "ماي", "يونيو",
-        "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
-    )
+    val monthsArabic = com.qdash.core.utils.FormatterUtils.getMonthNamesList()
+
     
     val daysHeader = listOf("س", "ح", "ن", "ث", "ر", "خ", "ج")
     

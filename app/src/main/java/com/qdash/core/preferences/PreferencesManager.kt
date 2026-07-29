@@ -148,6 +148,10 @@ class PreferencesManager(context: Context) {
         get() = mainPrefs.getBoolean("use_western_numerals", true)
         set(value) = mainPrefs.edit().putBoolean("use_western_numerals", value).apply()
 
+    var useAlgerianMonths: Boolean
+        get() = mainPrefs.getBoolean("use_algerian_months", true)
+        set(value) = mainPrefs.edit().putBoolean("use_algerian_months", value).apply()
+
     var lastNotifiedUpdateVersion: String
         get() = mainPrefs.getString("last_notified_update_version", "") ?: ""
         set(value) = mainPrefs.edit().putString("last_notified_update_version", value).apply()

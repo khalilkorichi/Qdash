@@ -84,6 +84,7 @@ class MainActivity : ComponentActivity() {
         // Initialize formatting prefs once at startup
         com.qdash.core.utils.FormatterUtils.hideDecimals = prefs.hideDecimalsEnabled
         com.qdash.core.utils.FormatterUtils.useWesternNumerals = prefs.useWesternNumerals
+        com.qdash.core.utils.FormatterUtils.useAlgerianMonths = prefs.useAlgerianMonths
 
         // Migration: existing users who already have accounts should never see wallet onboarding.
         // Mark walletSetupCompleted silently on first boot after this update.

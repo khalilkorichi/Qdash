@@ -1224,10 +1224,8 @@ fun SmartDateNavigator(
     onPrev: () -> Unit,
     onNext: () -> Unit
 ) {
-    val arabicMonths = arrayOf(
-        "جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان",
-        "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
-    )
+    val arabicMonths = com.qdash.core.utils.FormatterUtils.getMonthNames()
+
     val arabicDays = arrayOf(
         "اليوم", "أمس", "قبل يومين", "قبل 3 أيام", "قبل 4 أيام", "قبل 5 أيام", "قبل 6 أيام"
     )

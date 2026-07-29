@@ -57,10 +57,9 @@ import androidx.compose.ui.input.pointer.changedToUp
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.*
 
-private val arabicMonths = arrayOf(
-    "جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان",
-    "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
-)
+private val arabicMonths: Array<String> get() = FormatterUtils.getMonthNames()
+
+
 
 /**
  * 1. DashboardOverviewCard - Consumption of Income summary
