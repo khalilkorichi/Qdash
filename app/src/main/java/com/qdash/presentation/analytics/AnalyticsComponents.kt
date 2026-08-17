@@ -32,6 +32,8 @@ import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.ui.draw.rotate
 import com.qdash.ui.designsystem.components.AppBottomSheet
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -377,6 +379,14 @@ fun AnalyticsEmptyState(
         }
     }
 }
+data class HierarchicalCategoryShare(
+    val rootCategory: Category?,
+    val rootShare: CategoryShare,
+    val subcategoryShares: List<CategoryShare>,
+    val directShare: CategoryShare?,
+    val isExpandable: Boolean = subcategoryShares.isNotEmpty()
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InteractiveDonutCard(
@@ -393,11 +403,106 @@ fun InteractiveDonutCard(
     var viewMode by remember { mutableStateOf(ChartViewMode.DONUT) }
     var showOtherBottomSheet by remember { mutableStateOf(false) }
     var isLegendExpanded by remember { mutableStateOf(false) }
+    var expandedCategoryIds by remember { mutableStateOf(setOf<Long>()) }
 
-    val smallShares = remember(shares) { shares.filter { it.amount <= DONUT_SMALL_CATEGORY_THRESHOLD } }
-    val largeShares = remember(shares) { shares.filter { it.amount > DONUT_SMALL_CATEGORY_THRESHOLD } }
+    // Cache total amount
+    val totalAmount = remember(shares) { shares.sumOf { it.amount } }
 
-    val chartShares = remember(shares, smallShares, largeShares) {
+    // Group categories hierarchically into root categories and their subcategories
+    val hierarchicalShares = remember(shares, categories, totalAmount) {
+        if (shares.isEmpty()) return@remember emptyList<HierarchicalCategoryShare>()
+
+        val rootCategories = categories.filter { it.parentId == null }
+        val categoryMap = categories.associateBy { it.id }
+
+        val rootGroups = mutableMapOf<Long, MutableList<CategoryShare>>()
+        val directShares = mutableMapOf<Long, CategoryShare>()
+        val unmappedShares = mutableListOf<CategoryShare>()
+
+        shares.forEach { share ->
+            val cat = categoryMap[share.categoryId]
+            if (cat != null) {
+                if (cat.parentId == null) {
+                    directShares[cat.id] = share
+                    if (!rootGroups.containsKey(cat.id)) {
+                        rootGroups[cat.id] = mutableListOf()
+                    }
+                } else {
+                    val parentId = cat.parentId
+                    val parentCat = categoryMap[parentId]
+                    if (parentCat != null) {
+                        rootGroups.getOrPut(parentId) { mutableListOf() }.add(share)
+                    } else {
+                        unmappedShares.add(share)
+                    }
+                }
+            } else {
+                unmappedShares.add(share)
+            }
+        }
+
+        val result = mutableListOf<HierarchicalCategoryShare>()
+
+        rootCategories.forEach { rootCat ->
+            val subShares = (rootGroups[rootCat.id] ?: emptyList()).sortedByDescending { it.amount }
+            val direct = directShares[rootCat.id]
+            val totalRootAmount = (direct?.amount ?: 0.0) + subShares.sumOf { it.amount }
+
+            if (totalRootAmount > 0.0) {
+                val totalPct = if (totalAmount > 0.0) (totalRootAmount / totalAmount).toFloat() else 0f
+                val rootShare = CategoryShare(
+                    categoryId = rootCat.id,
+                    categoryName = rootCat.name,
+                    amount = totalRootAmount,
+                    percentage = totalPct,
+                    color = rootCat.color
+                )
+                val directSpendingShare = if (subShares.isNotEmpty() && direct != null && direct.amount > 0.0) {
+                    CategoryShare(
+                        categoryId = rootCat.id,
+                        categoryName = "${rootCat.name} (عام)",
+                        amount = direct.amount,
+                        percentage = direct.percentage,
+                        color = rootCat.color
+                    )
+                } else null
+
+                result.add(
+                    HierarchicalCategoryShare(
+                        rootCategory = rootCat,
+                        rootShare = rootShare,
+                        subcategoryShares = subShares,
+                        directShare = directSpendingShare,
+                        isExpandable = subShares.isNotEmpty()
+                    )
+                )
+            }
+        }
+
+        unmappedShares.forEach { orphanShare ->
+            val cat = categoryMap[orphanShare.categoryId]
+            result.add(
+                HierarchicalCategoryShare(
+                    rootCategory = cat,
+                    rootShare = orphanShare,
+                    subcategoryShares = emptyList(),
+                    directShare = null,
+                    isExpandable = false
+                )
+            )
+        }
+
+        result.sortedByDescending { it.rootShare.amount }
+    }
+
+    val rootShares = remember(hierarchicalShares) {
+        hierarchicalShares.map { it.rootShare }
+    }
+
+    val smallShares = remember(rootShares) { rootShares.filter { it.amount <= DONUT_SMALL_CATEGORY_THRESHOLD } }
+    val largeShares = remember(rootShares) { rootShares.filter { it.amount > DONUT_SMALL_CATEGORY_THRESHOLD } }
+
+    val chartShares = remember(rootShares, smallShares, largeShares) {
         if (smallShares.size > 1) {
             val totalSmallAmount = smallShares.sumOf { it.amount }
             val totalSmallPercentage = smallShares.sumOf { it.percentage.toDouble() }.toFloat()
@@ -410,14 +515,16 @@ fun InteractiveDonutCard(
             )
             largeShares + otherShare
         } else {
-            shares
+            rootShares
         }
     }
 
     // Bouncy animated progresses mapped to each category share to allow smooth transitions
     val animatedProgresses = chartShares.associate { share ->
         val isSelected = selectedCategory?.categoryName == share.categoryName ||
-                (share.categoryId == -99L && selectedCategory != null && smallShares.any { it.categoryId == selectedCategory.categoryId })
+                selectedCategory?.categoryId == share.categoryId ||
+                (share.categoryId == -99L && selectedCategory != null && smallShares.any { it.categoryId == selectedCategory.categoryId }) ||
+                hierarchicalShares.any { h -> h.rootShare.categoryId == share.categoryId && h.subcategoryShares.any { it.categoryId == selectedCategory?.categoryId } }
         share.categoryName to animateFloatAsState(
             targetValue = if (isSelected) 1f else 0f,
             animationSpec = spring(
@@ -427,22 +534,26 @@ fun InteractiveDonutCard(
             label = "anim_${share.categoryName}"
         ).value
     }
-    // Cache all share parsed colors once including synthetic and small shares
-    val parsedShareColors = remember(shares, chartShares) {
-        val allShares = shares + chartShares
-        allShares.associate { share ->
+    // Cache all share parsed colors once including synthetic and small shares and subcategories
+    val parsedShareColors = remember(shares, rootShares, chartShares, categories) {
+        val allShares = shares + rootShares + chartShares
+        val map = allShares.associate { share ->
             share.categoryName to (try { Color(android.graphics.Color.parseColor(share.color)) } catch (e: Exception) { null })
+        }.toMutableMap()
+        categories.forEach { cat ->
+            if (!map.containsKey(cat.name)) {
+                map[cat.name] = try { Color(android.graphics.Color.parseColor(cat.color)) } catch (e: Exception) { null }
+            }
         }
+        map
     }
-    // Cache bar chart gradients per share
-    val parsedBarBrushes = remember(shares) {
-        shares.associate { share ->
+    // Cache bar chart gradients per root share
+    val parsedBarBrushes = remember(rootShares) {
+        rootShares.associate { share ->
             val c = try { Color(android.graphics.Color.parseColor(share.color)) } catch (e: Exception) { Color.Gray }
             share.categoryName to Brush.verticalGradient(colors = listOf(c, c.copy(alpha = 0.5f)))
         }
     }
-    // Cache total amount
-    val totalAmount = remember(shares) { shares.sumOf { it.amount } }
 
     AppCard(
         modifier = Modifier
@@ -720,12 +831,16 @@ fun InteractiveDonutCard(
                                                 }
                                                 if (bestMatch?.categoryId == -99L) {
                                                     showOtherBottomSheet = true
+                                                } else if (bestMatch != null) {
+                                                    // Toggle: tap selected -> deselect, tap other -> select & expand
+                                                    val isAlreadySelected = selectedCategory?.categoryName == bestMatch.categoryName || selectedCategory?.categoryId == bestMatch.categoryId
+                                                    val newSelection = if (isAlreadySelected) null else bestMatch
+                                                    onSelectedCategoryChange(newSelection)
+                                                    if (newSelection != null && hierarchicalShares.any { it.rootShare.categoryId == bestMatch.categoryId && it.isExpandable }) {
+                                                        expandedCategoryIds = expandedCategoryIds + bestMatch.categoryId
+                                                    }
                                                 } else {
-                                                    // Toggle: tap selected -> deselect, tap other -> select
-                                                    onSelectedCategoryChange(
-                                                        if (bestMatch != null && selectedCategory?.categoryName == bestMatch.categoryName) null
-                                                        else bestMatch
-                                                    )
+                                                    onSelectedCategoryChange(null)
                                                 }
                                             } else {
                                                 onSelectedCategoryChange(null)
@@ -946,7 +1061,7 @@ fun InteractiveDonutCard(
                     contentAlignment = Alignment.BottomCenter
                 ) {
                     val density = androidx.compose.ui.platform.LocalDensity.current
-                    val totalBars = shares.size.coerceAtMost(6)
+                    val totalBars = rootShares.size.coerceAtMost(6)
                     val barSpacing = 16.dp
                     
                     Row(
@@ -954,16 +1069,16 @@ fun InteractiveDonutCard(
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.Bottom
                     ) {
-                        shares.take(6).forEach { share ->
+                        rootShares.take(6).forEach { share ->
                             val parseColor = parsedShareColors[share.categoryName] ?: Primary
-                            val isSelected = selectedCategory?.categoryName == share.categoryName
+                            val isSelected = selectedCategory?.categoryName == share.categoryName || selectedCategory?.categoryId == share.categoryId
                             val isActive = selectedCategory == null || isSelected
 
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clickable { onSelectedCategoryChange(if (selectedCategory?.categoryName == share.categoryName) null else share) }
+                                    .clickable { onSelectedCategoryChange(if (isSelected) null else share) }
                             ) {
                                 Box(
                                     modifier = Modifier
@@ -1006,16 +1121,23 @@ fun InteractiveDonutCard(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Premium Grid-style Legend
-            val legendShares = if (isLegendExpanded) shares else shares.take(5)
+            // Hierarchical Accordion Category Legend
+            val legendHierarchicalShares = if (isLegendExpanded) hierarchicalShares else hierarchicalShares.take(5)
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                legendShares.forEachIndexed { index, share ->
+                legendHierarchicalShares.forEach { item ->
+                    val share = item.rootShare
+                    val rootCat = item.rootCategory
                     val parseColor = parsedShareColors[share.categoryName] ?: MaterialTheme.colorScheme.primary
-                    val isSelected = selectedCategory?.categoryName == share.categoryName
-                    
-                    val categoryModel = remember(share.categoryId, categories) {
-                        categories.firstOrNull { it.id == share.categoryId } ?: categories.firstOrNull { it.name == share.categoryName }
-                    }
+                    val isRootSelected = selectedCategory?.categoryId == share.categoryId || selectedCategory?.categoryName == share.categoryName
+                    val isChildSelected = item.subcategoryShares.any { it.categoryId == selectedCategory?.categoryId || it.categoryName == selectedCategory?.categoryName }
+                    val isAnySelected = isRootSelected || isChildSelected
+                    val isExpanded = item.isExpandable && expandedCategoryIds.contains(share.categoryId)
+
+                    val chevronRotation by animateFloatAsState(
+                        targetValue = if (isExpanded) 180f else 0f,
+                        animationSpec = tween(durationMillis = 250),
+                        label = "chevronRotation_${share.categoryId}"
+                    )
 
                     val haptic = LocalHapticFeedback.current
 
@@ -1023,115 +1145,416 @@ fun InteractiveDonutCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .border(
-                                width = if (isSelected) 1.5.dp else 0.dp,
-                                color = if (isSelected) parseColor else Color.Transparent,
+                                width = if (isAnySelected) 1.5.dp else 0.dp,
+                                color = if (isAnySelected) parseColor else Color.Transparent,
                                 shape = ShapeTokens.Lg
-                            )
-                            .pointerInput(share, selectedCategory) {
-                                val longPressDurationMs = 2000L // 2-second long press
-                                awaitEachGesture {
-                                    val down = awaitFirstDown(requireUnconsumed = false)
-                                    val downTime = System.currentTimeMillis()
-                                    var longPressTriggered = false
-
-                                    do {
-                                        val elapsed = System.currentTimeMillis() - downTime
-                                        if (!longPressTriggered && elapsed >= longPressDurationMs) {
-                                            longPressTriggered = true
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            onCategoryLongClick(share)
-                                            break
-                                        }
-                                        val event = withTimeoutOrNull(40) {
-                                            awaitPointerEvent()
-                                        } ?: continue
-
-                                        val upPointer = event.changes.firstOrNull { it.changedToUp() }
-                                        if (upPointer != null) {
-                                            upPointer.consume()
-                                            if (!longPressTriggered) {
-                                                onSelectedCategoryChange(if (selectedCategory?.categoryName == share.categoryName) null else share)
-                                            }
-                                            break
-                                        }
-                                        if (event.changes.any { it.isConsumed }) {
-                                            break
-                                        }
-                                    } while (true)
-                                }
-                            },
+                            ),
                         variant = CardVariant.SOLID,
                         shape = ShapeTokens.Lg,
-                        backgroundColor = if (isSelected) parseColor.copy(alpha = 0.07f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        backgroundColor = if (isAnySelected) parseColor.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                         onClick = null
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            // Root Category Header Row
+                            Row(
                                 modifier = Modifier
-                                    .size(36.dp)
-                                    .background(parseColor.copy(alpha = 0.12f), CircleShape),
-                                contentAlignment = Alignment.Center
+                                    .fillMaxWidth()
+                                    .pointerInput(share, isExpanded, item.isExpandable) {
+                                        val longPressDurationMs = 2000L
+                                        awaitEachGesture {
+                                            val down = awaitFirstDown(requireUnconsumed = false)
+                                            val downTime = System.currentTimeMillis()
+                                            var longPressTriggered = false
+
+                                            do {
+                                                val elapsed = System.currentTimeMillis() - downTime
+                                                if (!longPressTriggered && elapsed >= longPressDurationMs) {
+                                                    longPressTriggered = true
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    onCategoryLongClick(share)
+                                                    break
+                                                }
+                                                val event = withTimeoutOrNull(40) {
+                                                    awaitPointerEvent()
+                                                } ?: continue
+
+                                                val upPointer = event.changes.firstOrNull { it.changedToUp() }
+                                                if (upPointer != null) {
+                                                    upPointer.consume()
+                                                    if (!longPressTriggered) {
+                                                        if (item.isExpandable) {
+                                                            expandedCategoryIds = if (isExpanded) {
+                                                                expandedCategoryIds - share.categoryId
+                                                            } else {
+                                                                expandedCategoryIds + share.categoryId
+                                                            }
+                                                        }
+                                                        onSelectedCategoryChange(if (isRootSelected) null else share)
+                                                    }
+                                                    break
+                                                }
+                                                if (event.changes.any { it.isConsumed }) {
+                                                    break
+                                                }
+                                            } while (true)
+                                        }
+                                    }
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (categoryModel != null) {
-                                    CategoryIconView(
-                                        iconStr = categoryModel.icon,
-                                        color = parseColor,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .background(parseColor.copy(alpha = 0.14f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (rootCat != null) {
+                                        CategoryIconView(
+                                            iconStr = rootCat.icon,
+                                            color = parseColor,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(10.dp)
+                                                .background(parseColor, CircleShape)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            modifier = Modifier.weight(1f, fill = false)
+                                        ) {
+                                            Text(
+                                                text = share.categoryName,
+                                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            if (item.isExpandable) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    color = parseColor.copy(alpha = 0.12f)
+                                                ) {
+                                                    Text(
+                                                        text = "${item.subcategoryShares.size} فرعية",
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontSize = 10.sp,
+                                                            fontWeight = FontWeight.Bold
+                                                        ),
+                                                        color = parseColor,
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = FormatterUtils.formatCurrency(share.amount),
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.ExtraBold),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        LinearProgressIndicator(
+                                            progress = { share.percentage.coerceIn(0f, 1f) },
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(3.5.dp)
+                                                .clip(CircleShape),
+                                            color = parseColor,
+                                            trackColor = parseColor.copy(alpha = 0.12f)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "${(share.percentage * 100).toInt()}%",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                            color = if (isAnySelected) parseColor else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                if (item.isExpandable) {
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Box(
                                         modifier = Modifier
-                                            .size(8.dp)
-                                            .background(parseColor, CircleShape)
-                                    )
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .background(if (isExpanded) parseColor.copy(alpha = 0.12f) else Color.Transparent)
+                                            .clickable {
+                                                expandedCategoryIds = if (isExpanded) {
+                                                    expandedCategoryIds - share.categoryId
+                                                } else {
+                                                    expandedCategoryIds + share.categoryId
+                                                }
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.KeyboardArrowDown,
+                                            contentDescription = if (isExpanded) "طي الفئات الفرعية" else "عرض الفئات الفرعية",
+                                            tint = if (isExpanded) parseColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier
+                                                .size(20.dp)
+                                                .rotate(chevronRotation)
+                                        )
+                                    }
                                 }
                             }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.Center
+
+                            // Subcategories list when expanded
+                            AnimatedVisibility(
+                                visible = isExpanded,
+                                enter = expandVertically(animationSpec = tween(280)) + fadeIn(animationSpec = tween(200)),
+                                exit = shrinkVertically(animationSpec = tween(220)) + fadeOut(animationSpec = tween(150))
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                                        .padding(start = 18.dp, end = 14.dp, top = 8.dp, bottom = 12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Text(
-                                        text = share.categoryName,
-                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.onSurface
+                                    HorizontalDivider(
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+                                        thickness = 0.8.dp,
+                                        modifier = Modifier.padding(bottom = 4.dp)
                                     )
-                                    Text(
-                                        text = FormatterUtils.formatCurrency(share.amount),
-                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.ExtraBold),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    LinearProgressIndicator(
-                                        progress = { share.percentage.coerceIn(0f, 1f) },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(3.dp)
-                                            .clip(CircleShape),
-                                        color = parseColor,
-                                        trackColor = parseColor.copy(alpha = 0.12f)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "${(share.percentage * 100).toInt()}%",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                        color = if (isSelected) parseColor else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+
+                                    // Subcategories
+                                    item.subcategoryShares.forEach { subShare ->
+                                        val subCatModel = categories.firstOrNull { it.id == subShare.categoryId } ?: categories.firstOrNull { it.name == subShare.categoryName }
+                                        val subColor = parsedShareColors[subShare.categoryName] ?: parseColor
+                                        val isSubSelected = selectedCategory?.categoryId == subShare.categoryId || selectedCategory?.categoryName == subShare.categoryName
+
+                                        val parentPct = if (share.amount > 0) ((subShare.amount / share.amount) * 100).toInt() else 0
+
+                                        Surface(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .border(
+                                                    width = if (isSubSelected) 1.5.dp else 0.dp,
+                                                    color = if (isSubSelected) subColor else Color.Transparent,
+                                                    shape = RoundedCornerShape(12.dp)
+                                                )
+                                                .pointerInput(subShare, isSubSelected) {
+                                                    val longPressDurationMs = 2000L
+                                                    awaitEachGesture {
+                                                        val down = awaitFirstDown(requireUnconsumed = false)
+                                                        val downTime = System.currentTimeMillis()
+                                                        var longPressTriggered = false
+
+                                                        do {
+                                                            val elapsed = System.currentTimeMillis() - downTime
+                                                            if (!longPressTriggered && elapsed >= longPressDurationMs) {
+                                                                longPressTriggered = true
+                                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                                onCategoryLongClick(subShare)
+                                                                break
+                                                            }
+                                                            val event = withTimeoutOrNull(40) {
+                                                                awaitPointerEvent()
+                                                            } ?: continue
+
+                                                            val upPointer = event.changes.firstOrNull { it.changedToUp() }
+                                                            if (upPointer != null) {
+                                                                upPointer.consume()
+                                                                if (!longPressTriggered) {
+                                                                    onSelectedCategoryChange(if (isSubSelected) null else subShare)
+                                                                }
+                                                                break
+                                                            }
+                                                            if (event.changes.any { it.isConsumed }) {
+                                                                break
+                                                            }
+                                                        } while (true)
+                                                    }
+                                                },
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = if (isSubSelected) subColor.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 12.dp, vertical = 9.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(28.dp)
+                                                        .background(subColor.copy(alpha = 0.12f), CircleShape),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    if (subCatModel != null) {
+                                                        CategoryIconView(
+                                                            iconStr = subCatModel.icon,
+                                                            color = subColor,
+                                                            modifier = Modifier.size(15.dp)
+                                                        )
+                                                    } else {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(6.dp)
+                                                                .background(subColor, CircleShape)
+                                                        )
+                                                    }
+                                                }
+                                                Spacer(modifier = Modifier.width(10.dp))
+                                                Column(
+                                                    modifier = Modifier.weight(1f),
+                                                    verticalArrangement = Arrangement.Center
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Text(
+                                                            text = subShare.categoryName,
+                                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                                            color = MaterialTheme.colorScheme.onSurface,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                        Text(
+                                                            text = FormatterUtils.formatCurrency(subShare.amount),
+                                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                    }
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Text(
+                                                            text = "$parentPct% من إجمالي الفئة",
+                                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                                fontSize = 10.sp,
+                                                                fontWeight = FontWeight.Medium
+                                                            ),
+                                                            color = TextGray
+                                                        )
+                                                        Text(
+                                                            text = "${(subShare.percentage * 100).toInt()}% من المصاريف",
+                                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                                fontSize = 10.sp,
+                                                                fontWeight = FontWeight.Bold
+                                                            ),
+                                                            color = if (isSubSelected) subColor else MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Direct parent spending item (if any)
+                                    if (item.directShare != null) {
+                                        val directShare = item.directShare
+                                        val isDirectSelected = selectedCategory?.categoryId == directShare.categoryId && selectedCategory?.categoryName == directShare.categoryName
+                                        val directParentPct = if (share.amount > 0) ((directShare.amount / share.amount) * 100).toInt() else 0
+
+                                        Surface(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .border(
+                                                    width = if (isDirectSelected) 1.5.dp else 0.dp,
+                                                    color = if (isDirectSelected) parseColor else Color.Transparent,
+                                                    shape = RoundedCornerShape(12.dp)
+                                                )
+                                                .clickable {
+                                                    onSelectedCategoryChange(if (isDirectSelected) null else directShare)
+                                                },
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = if (isDirectSelected) parseColor.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 12.dp, vertical = 9.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(28.dp)
+                                                        .background(parseColor.copy(alpha = 0.12f), CircleShape),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.ReceiptLong,
+                                                        contentDescription = null,
+                                                        tint = parseColor,
+                                                        modifier = Modifier.size(15.dp)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(10.dp))
+                                                Column(
+                                                    modifier = Modifier.weight(1f),
+                                                    verticalArrangement = Arrangement.Center
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Text(
+                                                            text = "${share.categoryName} (مباشر / أخرى)",
+                                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                                            color = MaterialTheme.colorScheme.onSurface,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                        Text(
+                                                            text = FormatterUtils.formatCurrency(directShare.amount),
+                                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                    }
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Text(
+                                                            text = "$directParentPct% من إجمالي الفئة",
+                                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                                fontSize = 10.sp,
+                                                                fontWeight = FontWeight.Medium
+                                                            ),
+                                                            color = TextGray
+                                                        )
+                                                        Text(
+                                                            text = "${(directShare.percentage * 100).toInt()}% من المصاريف",
+                                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                                fontSize = 10.sp,
+                                                                fontWeight = FontWeight.Bold
+                                                            ),
+                                                            color = if (isDirectSelected) parseColor else MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1139,7 +1562,7 @@ fun InteractiveDonutCard(
                 }
             }
             
-            if (shares.size > 5) {
+            if (hierarchicalShares.size > 5) {
                 Spacer(modifier = Modifier.height(12.dp))
                 AppButton(
                     onClick = { isLegendExpanded = !isLegendExpanded },
@@ -1156,7 +1579,7 @@ fun InteractiveDonutCard(
                     }
                 ) {
                     Text(
-                        text = if (isLegendExpanded) "عرض أقل" else "عرض المزيد (+${shares.size - 5} فئات)",
+                        text = if (isLegendExpanded) "عرض أقل" else "عرض المزيد (+${hierarchicalShares.size - 5} فئات رئيسية)",
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                     )
                 }
