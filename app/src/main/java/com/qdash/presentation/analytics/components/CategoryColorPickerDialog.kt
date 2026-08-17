@@ -4,12 +4,15 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DriveFileMove
 import androidx.compose.material.icons.filled.Palette
@@ -332,55 +335,107 @@ fun CategoryColorPickerDialog(
 
                 if (categoryTxs.isEmpty()) {
                     Text(
-                        text = "لا توجد معاملات لهذه الفئة.",
+                        text = "لا توجد معاملات مسجلة لهذه الفئة.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextGray,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp)
                     )
                 } else {
+                    val txScrollState = rememberScrollState()
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.heightIn(max = 280.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        categoryTxs.take(4).forEach { tx ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = tx.note ?: "بدون ملاحظة",
-                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    val dateStr = FormatterUtils.convertNumerals(
-                                        dateFormatter.format(java.util.Date(tx.date))
-                                    )
-                                    Text(
-                                        text = dateStr,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = TextGray
-                                    )
-                                }
-                                Text(
-                                    text = FormatterUtils.formatCurrency(tx.amount),
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Black),
-                                    color = if (tx.type == TransactionType.INCOME) IncomeGreen else ExpenseRed
-                                )
-                            }
-                        }
-                        if (categoryTxs.size > 4) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Text(
-                                text = "+ وأكثر بـ ${categoryTxs.size - 4} عمليات",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                                text = "سجل المعاملات",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            Text(
+                                text = "${categoryTxs.size} معاملة",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 260.dp)
+                                .verticalScroll(txScrollState)
+                        ) {
+                            categoryTxs.forEach { tx ->
+                                val txCat = allCategories.firstOrNull { it.id == tx.categoryId }
+                                val isSubTx = categoryModel?.parentId == null && txCat?.parentId == categoryModel?.id
+
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
+                                    border = BorderStroke(0.6.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Text(
+                                                    text = if (!tx.note.isNullOrBlank()) tx.note else (txCat?.name ?: "بدون ملاحظة"),
+                                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                if (isSubTx && txCat != null) {
+                                                    Surface(
+                                                        shape = RoundedCornerShape(4.dp),
+                                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                    ) {
+                                                        Text(
+                                                            text = txCat.name,
+                                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                                fontSize = 9.sp,
+                                                                fontWeight = FontWeight.Bold
+                                                            ),
+                                                            color = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            val dateStr = FormatterUtils.convertNumerals(
+                                                dateFormatter.format(java.util.Date(tx.date))
+                                            )
+                                            Text(
+                                                text = dateStr,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = TextGray
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = FormatterUtils.formatCurrency(tx.amount),
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Black),
+                                            color = if (tx.type == TransactionType.INCOME) IncomeGreen else ExpenseRed
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }

@@ -88,10 +88,30 @@ fun AnalyticsScreen(
 
         // ── Category detail dialog (long-press) ──
         longClickedCategory?.let { category ->
-            val categoryTxs by remember(category.categoryName, uiState.transactions, uiState.categories) {
+            val categoryTxs by remember(category, uiState.transactions, uiState.categories) {
                 derivedStateOf {
-                    val catId = uiState.categories.firstOrNull { it.name == category.categoryName }?.id
-                    uiState.transactions.filter { it.categoryId == catId }.sortedByDescending { it.date }
+                    val catId = if (category.categoryId != 0L) {
+                        category.categoryId
+                    } else {
+                        uiState.categories.firstOrNull { it.name == category.categoryName }?.id
+                    }
+                    val catModel = uiState.categories.firstOrNull { it.id == catId }
+                        ?: uiState.categories.firstOrNull { it.name == category.categoryName }
+
+                    val targetIds = if (catModel != null) {
+                        if (catModel.parentId == null) {
+                            val subIds = uiState.categories.filter { it.parentId == catModel.id }.map { it.id }.toSet()
+                            setOf(catModel.id) + subIds
+                        } else {
+                            setOf(catModel.id)
+                        }
+                    } else if (catId != null) {
+                        setOf(catId)
+                    } else {
+                        emptySet()
+                    }
+
+                    uiState.transactions.filter { it.categoryId in targetIds }.sortedByDescending { it.date }
                 }
             }
             CategoryColorPickerDialog(

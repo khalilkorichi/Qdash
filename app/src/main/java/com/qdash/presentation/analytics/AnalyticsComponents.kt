@@ -37,6 +37,9 @@ import androidx.compose.ui.draw.rotate
 import com.qdash.ui.designsystem.components.AppBottomSheet
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.TimeoutCancellationException
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -1159,29 +1162,13 @@ fun InteractiveDonutCard(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .pointerInput(share, isExpanded, item.isExpandable) {
-                                        val longPressDurationMs = 2000L
+                                    .pointerInput(share, isExpanded, item.isExpandable, isRootSelected) {
                                         awaitEachGesture {
-                                            val down = awaitFirstDown(requireUnconsumed = false)
-                                            val downTime = System.currentTimeMillis()
-                                            var longPressTriggered = false
-
-                                            do {
-                                                val elapsed = System.currentTimeMillis() - downTime
-                                                if (!longPressTriggered && elapsed >= longPressDurationMs) {
-                                                    longPressTriggered = true
-                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                    onCategoryLongClick(share)
-                                                    break
-                                                }
-                                                val event = withTimeoutOrNull(40) {
-                                                    awaitPointerEvent()
-                                                } ?: continue
-
-                                                val upPointer = event.changes.firstOrNull { it.changedToUp() }
-                                                if (upPointer != null) {
-                                                    upPointer.consume()
-                                                    if (!longPressTriggered) {
+                                            awaitFirstDown(requireUnconsumed = false)
+                                            try {
+                                                withTimeout(2000L) {
+                                                    val up = waitForUpOrCancellation()
+                                                    if (up != null) {
                                                         if (item.isExpandable) {
                                                             expandedCategoryIds = if (isExpanded) {
                                                                 expandedCategoryIds - share.categoryId
@@ -1191,12 +1178,14 @@ fun InteractiveDonutCard(
                                                         }
                                                         onSelectedCategoryChange(if (isRootSelected) null else share)
                                                     }
-                                                    break
                                                 }
-                                                if (event.changes.any { it.isConsumed }) {
-                                                    break
-                                                }
-                                            } while (true)
+                                            } catch (e: TimeoutCancellationException) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                onCategoryLongClick(share)
+                                                try {
+                                                    waitForUpOrCancellation()
+                                                } catch (_: Exception) {}
+                                            }
                                         }
                                     }
                                     .padding(horizontal = 14.dp, vertical = 12.dp),
@@ -1354,36 +1343,22 @@ fun InteractiveDonutCard(
                                                     shape = RoundedCornerShape(12.dp)
                                                 )
                                                 .pointerInput(subShare, isSubSelected) {
-                                                    val longPressDurationMs = 2000L
                                                     awaitEachGesture {
-                                                        val down = awaitFirstDown(requireUnconsumed = false)
-                                                        val downTime = System.currentTimeMillis()
-                                                        var longPressTriggered = false
-
-                                                        do {
-                                                            val elapsed = System.currentTimeMillis() - downTime
-                                                            if (!longPressTriggered && elapsed >= longPressDurationMs) {
-                                                                longPressTriggered = true
-                                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                                onCategoryLongClick(subShare)
-                                                                break
-                                                            }
-                                                            val event = withTimeoutOrNull(40) {
-                                                                awaitPointerEvent()
-                                                            } ?: continue
-
-                                                            val upPointer = event.changes.firstOrNull { it.changedToUp() }
-                                                            if (upPointer != null) {
-                                                                upPointer.consume()
-                                                                if (!longPressTriggered) {
+                                                        awaitFirstDown(requireUnconsumed = false)
+                                                        try {
+                                                            withTimeout(2000L) {
+                                                                val up = waitForUpOrCancellation()
+                                                                if (up != null) {
                                                                     onSelectedCategoryChange(if (isSubSelected) null else subShare)
                                                                 }
-                                                                break
                                                             }
-                                                            if (event.changes.any { it.isConsumed }) {
-                                                                break
-                                                            }
-                                                        } while (true)
+                                                        } catch (e: TimeoutCancellationException) {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                            onCategoryLongClick(subShare)
+                                                            try {
+                                                                waitForUpOrCancellation()
+                                                            } catch (_: Exception) {}
+                                                        }
                                                     }
                                                 },
                                             shape = RoundedCornerShape(12.dp),
@@ -1480,8 +1455,24 @@ fun InteractiveDonutCard(
                                                     color = if (isDirectSelected) parseColor else Color.Transparent,
                                                     shape = RoundedCornerShape(12.dp)
                                                 )
-                                                .clickable {
-                                                    onSelectedCategoryChange(if (isDirectSelected) null else directShare)
+                                                .pointerInput(directShare, isDirectSelected) {
+                                                    awaitEachGesture {
+                                                        awaitFirstDown(requireUnconsumed = false)
+                                                        try {
+                                                            withTimeout(2000L) {
+                                                                val up = waitForUpOrCancellation()
+                                                                if (up != null) {
+                                                                    onSelectedCategoryChange(if (isDirectSelected) null else directShare)
+                                                                }
+                                                            }
+                                                        } catch (e: TimeoutCancellationException) {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                            onCategoryLongClick(directShare)
+                                                            try {
+                                                                waitForUpOrCancellation()
+                                                            } catch (_: Exception) {}
+                                                        }
+                                                    }
                                                 },
                                             shape = RoundedCornerShape(12.dp),
                                             color = if (isDirectSelected) parseColor.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
