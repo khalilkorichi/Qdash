@@ -52,6 +52,7 @@ interface CategoryRepository {
     suspend fun deleteCategory(category: Category)
     suspend fun deleteSubcategoriesForParent(parentId: Long)
     suspend fun mergeCategories(sourceCategoryId: Long, targetCategoryId: Long)
+    suspend fun moveCategory(categoryId: Long, newParentId: Long?)
 }
 
 interface IncomeRepository {

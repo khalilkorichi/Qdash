@@ -125,6 +125,20 @@ class CategoriesViewModel(
         }
     }
 
+    fun moveCategory(categoryId: Long, newParentId: Long?) {
+        viewModelScope.launch {
+            try {
+                categoryRepository.moveCategory(categoryId, newParentId)
+                // If a parent was selected, re-trigger its subcategories load
+                _uiState.value.selectedParent?.let { parent ->
+                    selectParent(parent)
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = e.localizedMessage) }
+            }
+        }
+    }
+
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
     }

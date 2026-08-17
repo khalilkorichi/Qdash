@@ -162,6 +162,12 @@ interface CategoryDao {
 
     @Query("DELETE FROM categories WHERE parentId = :parentId")
     suspend fun deleteSubcategoriesForParent(parentId: Long)
+
+    @Query("UPDATE categories SET parentId = :newParentId WHERE parentId = :oldParentId")
+    suspend fun reassignSubcategories(oldParentId: Long, newParentId: Long)
+
+    @Query("UPDATE categories SET parentId = NULL WHERE parentId = :oldParentId")
+    suspend fun promoteSubcategoriesToRoot(oldParentId: Long)
 }
 
 @Dao

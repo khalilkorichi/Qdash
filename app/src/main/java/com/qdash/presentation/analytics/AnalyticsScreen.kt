@@ -97,8 +97,10 @@ fun AnalyticsScreen(
             CategoryColorPickerDialog(
                 category = category,
                 categoryTxs = categoryTxs,
+                allCategories = uiState.categories,
                 onDismiss = { longClickedCategory = null },
-                onColorChange = { id, color -> viewModel.updateCategoryColor(id, color) }
+                onColorChange = { id, color -> viewModel.updateCategoryColor(id, color) },
+                onMoveCategory = { id, parentId -> viewModel.moveCategory(id, parentId) }
             )
         }
 

@@ -1,8 +1,6 @@
 package com.qdash.presentation.transactions
 
-import com.qdash.data.categorization.CategorizationEngine
-import com.qdash.data.local.entities.CategoryRuleEntity
-import com.qdash.data.local.entities.UserCategoryMappingEntity
+import com.qdash.domain.categorization.CategorizationEngine
 import com.qdash.domain.model.Account
 import com.qdash.domain.model.AccountType
 import com.qdash.domain.model.CategorySuggestion
@@ -45,18 +43,17 @@ class AddTransactionViewModelTest {
                 return CategorySuggestion(null, SuggestionSource.NONE, 0.0f)
             }
         }
-        val fakeRepository = object : CategorizationRepository {
-            override fun getAllRules(): Flow<List<CategoryRuleEntity>> = flowOf(emptyList())
-            override suspend fun getAllActiveRules(): List<CategoryRuleEntity> = emptyList()
-            override suspend fun insertRule(rule: CategoryRuleEntity): Long = 1L
-            override suspend fun insertRules(rules: List<CategoryRuleEntity>) {}
-            override suspend fun deleteRule(rule: CategoryRuleEntity) {}
-            override fun getAllMappings(): Flow<List<UserCategoryMappingEntity>> = flowOf(emptyList())
-            override suspend fun getMappingByText(normalizedText: String): UserCategoryMappingEntity? = null
-            override suspend fun insertMapping(mapping: UserCategoryMappingEntity): Long = 1L
-            override suspend fun updateMapping(mapping: UserCategoryMappingEntity) {}
-            override suspend fun deleteMapping(mapping: UserCategoryMappingEntity) {}
-        }
+        val fakeRepository = java.lang.reflect.Proxy.newProxyInstance(
+            CategorizationRepository::class.java.classLoader,
+            arrayOf(CategorizationRepository::class.java)
+        ) { _, method, _ ->
+            when (method.returnType) {
+                Flow::class.java -> flowOf<Any>()
+                List::class.java -> emptyList<Any>()
+                Long::class.javaPrimitiveType, Long::class.javaObjectType -> 1L
+                else -> null
+            }
+        } as CategorizationRepository
 
         val fakeGetSmartCategorySuggestionUseCase = GetSmartCategorySuggestionUseCase(engine = fakeEngine)
         val fakeLearnCategoryMappingUseCase = LearnCategoryMappingUseCase(repository = fakeRepository)

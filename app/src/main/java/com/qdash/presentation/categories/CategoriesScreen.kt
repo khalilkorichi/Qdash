@@ -33,6 +33,7 @@ fun CategoriesScreen(
 
     var categoryToEdit by remember { mutableStateOf<Category?>(null) }
     var categoryToMerge by remember { mutableStateOf<Category?>(null) }
+    var categoryToMove by remember { mutableStateOf<Category?>(null) }
 
     val currentType = if (selectedTab == 0) CategoryType.EXPENSE else CategoryType.INCOME
     val filteredRoot = uiState.rootCategories.filter { it.type == currentType }
@@ -135,7 +136,8 @@ fun CategoriesScreen(
                             onEdit = { categoryToEdit = category },
                             onDelete = { viewModel.deleteCategory(category) },
                             onMergeClick = { categoryToMerge = category },
-                            onAddSubcategory = { showAddDialog = true }
+                            onAddSubcategory = { showAddDialog = true },
+                            onMoveClick = { categoryToMove = category }
                         )
 
                         // Subcategories
@@ -146,13 +148,14 @@ fun CategoriesScreen(
                             ) {
                                 val subList = uiState.subcategories.filter { it.parentId == category.id }
                                 if (subList.isNotEmpty()) {
-                                    com.qdash.presentation.categories.components.SubcategoryChipGrid(
-                                        subcategories = subList,
-                                        selectedSubcategoryId = null,
-                                        onSubcategorySelected = { sub ->
-                                            // Handle subcategory click or edit
-                                        }
-                                    )
+                                    subList.forEach { sub ->
+                                        SubcategoryItem(
+                                            subcategory = sub,
+                                            onEdit = { categoryToEdit = sub },
+                                            onMove = { categoryToMove = sub },
+                                            onDelete = { viewModel.deleteCategory(sub) }
+                                        )
+                                    }
                                 }
 
                                 // Add subcategory button
@@ -212,6 +215,18 @@ fun CategoriesScreen(
             onConfirm = { targetId ->
                 viewModel.mergeCategories(cat.id, targetId)
                 categoryToMerge = null
+            }
+        )
+    }
+
+    categoryToMove?.let { cat ->
+        MoveCategoryDialog(
+            category = cat,
+            allCategories = uiState.rootCategories,
+            onDismiss = { categoryToMove = null },
+            onConfirm = { newParentId ->
+                viewModel.moveCategory(cat.id, newParentId)
+                categoryToMove = null
             }
         )
     }

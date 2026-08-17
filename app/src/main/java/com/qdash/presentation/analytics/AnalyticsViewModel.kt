@@ -1,4 +1,4 @@
-﻿package com.qdash.presentation.analytics
+package com.qdash.presentation.analytics
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -352,6 +352,17 @@ class AnalyticsViewModel(
                 }
             } catch (e: Exception) {
                 // Ignore or log
+            }
+        }
+    }
+
+    fun moveCategory(categoryId: Long, newParentId: Long?) {
+        if (categoryId == 0L) return
+        viewModelScope.launch {
+            try {
+                categoryRepository.moveCategory(categoryId, newParentId)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = e.localizedMessage) }
             }
         }
     }

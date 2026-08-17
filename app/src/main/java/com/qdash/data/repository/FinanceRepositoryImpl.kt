@@ -660,6 +660,25 @@ class CategoryRepositoryImpl(
         budgetGoalDao.mergeBudgetGoalsCategory(sourceCategoryId, targetCategoryId)
         categoryDao.deleteCategory(sourceCat)
     }
+
+    override suspend fun moveCategory(categoryId: Long, newParentId: Long?) = database.withTransaction {
+        val category = categoryDao.getCategoryById(categoryId)
+            ?: throw IllegalArgumentException("الفئة غير موجودة.")
+        if (newParentId != null) {
+            require(newParentId != categoryId) { "لا يمكن نقل الفئة لتكون فئة فرعية لنفسها." }
+            val targetParent = categoryDao.getCategoryById(newParentId)
+                ?: throw IllegalArgumentException("الفئة الرئيسية المستهدفة غير موجودة.")
+
+            // Reassign any subcategories previously under categoryId to the newParentId so they remain intact
+            categoryDao.reassignSubcategories(categoryId, newParentId)
+
+            // Update category to be a subcategory of newParentId with matching type
+            categoryDao.updateCategory(category.copy(parentId = newParentId, type = targetParent.type))
+        } else {
+            // Promoting subcategory to a standalone root category
+            categoryDao.updateCategory(category.copy(parentId = null))
+        }
+    }
 }
 
 class IncomeRepositoryImpl(

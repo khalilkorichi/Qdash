@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DriveFileMove
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,27 +24,38 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.qdash.core.utils.FormatterUtils
+import com.qdash.domain.model.Category
 import com.qdash.domain.model.TransactionType
+import com.qdash.presentation.categories.MoveCategoryDialog
 import com.qdash.ui.designsystem.components.*
 import com.qdash.ui.designsystem.tokens.*
 import com.qdash.ui.theme.*
 import com.qdash.presentation.analytics.CategoryShare
 
 /**
- * Dialog that shows category transaction history and a color picker.
+ * Dialog that shows category transaction history, color picker, and category moving/organization.
  * Extracted from AnalyticsScreen to keep it under the SIZE-002 line limit.
  */
 @Composable
 fun CategoryColorPickerDialog(
     category: CategoryShare,
     categoryTxs: List<com.qdash.domain.model.Transaction>,
+    allCategories: List<Category> = emptyList(),
     onDismiss: (newColor: String) -> Unit,
-    onColorChange: (categoryId: Long, color: String) -> Unit
+    onColorChange: (categoryId: Long, color: String) -> Unit,
+    onMoveCategory: ((categoryId: Long, newParentId: Long?) -> Unit)? = null
 ) {
     var showColorPicker by remember { mutableStateOf(false) }
     var selectedColor by remember(category.categoryId) { mutableStateOf(category.color) }
     var showCustomColorDialog by remember { mutableStateOf(false) }
+    var showMoveDialog by remember { mutableStateOf(false) }
+
+    val categoryModel = remember(category.categoryId, category.categoryName, allCategories) {
+        allCategories.firstOrNull { it.id == category.categoryId }
+            ?: allCategories.firstOrNull { it.name == category.categoryName }
+    }
 
     val parsedSelectedColor = remember(selectedColor) {
         try { Color(android.graphics.Color.parseColor(selectedColor)) }
@@ -84,6 +96,19 @@ fun CategoryColorPickerDialog(
         )
     }
 
+    if (showMoveDialog && categoryModel != null) {
+        MoveCategoryDialog(
+            category = categoryModel,
+            allCategories = allCategories,
+            onDismiss = { showMoveDialog = false },
+            onConfirm = { newParentId ->
+                onMoveCategory?.invoke(categoryModel.id, newParentId)
+                showMoveDialog = false
+                onDismiss(selectedColor)
+            }
+        )
+    }
+
     androidx.compose.ui.window.Dialog(onDismissRequest = {
         if (selectedColor != category.color) {
             onColorChange(category.categoryId, selectedColor)
@@ -107,22 +132,59 @@ fun CategoryColorPickerDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "سجل معاملات: ${category.categoryName}",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
+                        categoryModel?.let { cat ->
+                            val statusLabel = if (cat.parentId != null) {
+                                val parentName = allCategories.firstOrNull { it.id == cat.parentId }?.name ?: "فئة أخرى"
+                                "فئة فرعية تابعة لـ: $parentName"
+                            } else {
+                                "فئة رئيسية"
+                            }
+                            Text(
+                                text = statusLabel,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                color = TextGray
+                            )
+                        }
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        // Move / Organize Category button
+                        if (categoryModel != null && onMoveCategory != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                    .clickable { showMoveDialog = true },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DriveFileMove,
+                                    contentDescription = "نقل وتنظيم الفئة",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(17.dp)
+                                )
+                            }
+                        }
+
+                        // Color Palette button
                         Box(
                             modifier = Modifier
-                                .size(28.dp)
+                                .size(32.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    (parsedSelectedColor ?: MaterialTheme.colorScheme.primary).copy(alpha = 0.2f)
+                                    (parsedSelectedColor ?: MaterialTheme.colorScheme.primary).copy(alpha = 0.15f)
                                 )
                                 .clickable { showColorPicker = !showColorPicker },
                             contentAlignment = Alignment.Center
@@ -131,7 +193,50 @@ fun CategoryColorPickerDialog(
                                 imageVector = Icons.Default.Palette,
                                 contentDescription = "تعديل اللون",
                                 tint = parsedSelectedColor ?: MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(17.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Quick Move Action Banner
+                if (categoryModel != null && onMoveCategory != null && !showColorPicker) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showMoveDialog = true }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DriveFileMove,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = if (categoryModel.parentId != null) "نقل الفئة أو جعلها رئيسية" else "نقل كفئة فرعية لفئة أخرى",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Text(
+                                text = "تغيير",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }

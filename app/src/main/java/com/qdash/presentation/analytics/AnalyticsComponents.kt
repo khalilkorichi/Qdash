@@ -75,6 +75,8 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.ui.input.pointer.pointerInput
@@ -1015,6 +1017,8 @@ fun InteractiveDonutCard(
                         categories.firstOrNull { it.id == share.categoryId } ?: categories.firstOrNull { it.name == share.categoryName }
                     }
 
+                    val haptic = LocalHapticFeedback.current
+
                     AppCard(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1022,11 +1026,44 @@ fun InteractiveDonutCard(
                                 width = if (isSelected) 1.5.dp else 0.dp,
                                 color = if (isSelected) parseColor else Color.Transparent,
                                 shape = ShapeTokens.Lg
-                            ),
+                            )
+                            .pointerInput(share, selectedCategory) {
+                                val longPressDurationMs = 2000L // 2-second long press
+                                awaitEachGesture {
+                                    val down = awaitFirstDown(requireUnconsumed = false)
+                                    val downTime = System.currentTimeMillis()
+                                    var longPressTriggered = false
+
+                                    do {
+                                        val elapsed = System.currentTimeMillis() - downTime
+                                        if (!longPressTriggered && elapsed >= longPressDurationMs) {
+                                            longPressTriggered = true
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            onCategoryLongClick(share)
+                                            break
+                                        }
+                                        val event = withTimeoutOrNull(40) {
+                                            awaitPointerEvent()
+                                        } ?: continue
+
+                                        val upPointer = event.changes.firstOrNull { it.changedToUp() }
+                                        if (upPointer != null) {
+                                            upPointer.consume()
+                                            if (!longPressTriggered) {
+                                                onSelectedCategoryChange(if (selectedCategory?.categoryName == share.categoryName) null else share)
+                                            }
+                                            break
+                                        }
+                                        if (event.changes.any { it.isConsumed }) {
+                                            break
+                                        }
+                                    } while (true)
+                                }
+                            },
                         variant = CardVariant.SOLID,
                         shape = ShapeTokens.Lg,
                         backgroundColor = if (isSelected) parseColor.copy(alpha = 0.07f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        onClick = { onSelectedCategoryChange(if (selectedCategory?.categoryName == share.categoryName) null else share) }
+                        onClick = null
                     ) {
                         Row(
                             modifier = Modifier

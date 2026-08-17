@@ -78,6 +78,7 @@ fun CategoryCard(
     onDelete: () -> Unit,
     onMergeClick: () -> Unit,
     onAddSubcategory: () -> Unit,
+    onMoveClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -161,6 +162,10 @@ fun CategoryCard(
                         onClick = { showMenu = false; onEdit() }
                     )
                     DropdownMenuItem(
+                        text = { Text("🔀 نقل الفئة (كفئة فرعية)") },
+                        onClick = { showMenu = false; onMoveClick() }
+                    )
+                    DropdownMenuItem(
                         text = { Text("🔗 دمج مع فئة أخرى") },
                         onClick = { showMenu = false; onMergeClick() }
                     )
@@ -185,15 +190,19 @@ fun CategoryCard(
 @Composable
 fun SubcategoryItem(
     subcategory: Category,
+    onEdit: () -> Unit,
+    onMove: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showMenu by remember { mutableStateOf(false) }
     val color = parseHex(subcategory.color)
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .clickable { onMove() }
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -205,19 +214,40 @@ fun SubcategoryItem(
                 .background(color.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.ArrowForwardIos, null, tint = color, modifier = Modifier.size(14.dp))
+            Icon(getIconVector(subcategory.icon), null, tint = color, modifier = Modifier.size(16.dp))
         }
 
         Text(
             text = subcategory.name,
             style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
             modifier = Modifier.weight(1f),
             color = MaterialTheme.colorScheme.onSurface
         )
 
-        if (!subcategory.isSystem) {
-            IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Close, null, tint = TextGray, modifier = Modifier.size(16.dp))
+        Box {
+            IconButton(onClick = { showMenu = true }, modifier = Modifier.size(32.dp)) {
+                Icon(Icons.Default.MoreVert, null, tint = TextGray, modifier = Modifier.size(16.dp))
+            }
+            DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = { showMenu = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("🔀 نقل / تغيير الفئة الرئيسية") },
+                    onClick = { showMenu = false; onMove() }
+                )
+                DropdownMenuItem(
+                    text = { Text("✏️ تعديل") },
+                    onClick = { showMenu = false; onEdit() }
+                )
+                if (!subcategory.isSystem) {
+                    DropdownMenuItem(
+                        text = { Text("حذف", color = ExpenseRed) },
+                        leadingIcon = { Icon(Icons.Default.Delete, null, tint = ExpenseRed) },
+                        onClick = { showMenu = false; onDelete() }
+                    )
+                }
             }
         }
     }

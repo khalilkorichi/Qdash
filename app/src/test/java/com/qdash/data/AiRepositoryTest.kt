@@ -52,6 +52,7 @@ class AiRepositoryTest {
         override suspend fun deleteCategory(category: Category) {}
         override suspend fun deleteSubcategoriesForParent(parentId: Long) {}
         override suspend fun mergeCategories(sourceCategoryId: Long, targetCategoryId: Long) {}
+        override suspend fun moveCategory(categoryId: Long, newParentId: Long?) {}
     }
 
     private val fakeTransactionRepository = object : TransactionRepository {
@@ -108,6 +109,7 @@ class AiRepositoryTest {
         override suspend fun markAllAsRead() {}
         override suspend fun deleteNotification(notification: AppNotification) {}
         override suspend fun clearAll() {}
+        override suspend fun cleanupOldNotifications(keepMax: Int) {}
     }
 
     private val fakeAiChatDao = object : AiChatDao {
