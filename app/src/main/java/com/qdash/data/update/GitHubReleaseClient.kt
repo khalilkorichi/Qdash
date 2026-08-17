@@ -32,7 +32,8 @@ data class GitHubReleaseResponse(
 data class GitHubAsset(
     @Json(name = "name") val name: String,
     @Json(name = "size") val size: Long,
-    @Json(name = "browser_download_url") val browserDownloadUrl: String
+    @Json(name = "browser_download_url") val browserDownloadUrl: String,
+    @Json(name = "digest") val digest: String? = null
 )
 
 interface GitHubReleaseClient {
