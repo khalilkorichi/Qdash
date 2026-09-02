@@ -8,7 +8,6 @@
     <include domain="file" path="attachments"/>
 
     <!-- Exclude cache, journals, device-specific configurations -->
-    <exclude domain="root" path="no_backup"/>
     <exclude domain="database" path="kdach_database-journal"/>
     <exclude domain="sharedpref" path="device.xml"/>
 </full-backup-content>

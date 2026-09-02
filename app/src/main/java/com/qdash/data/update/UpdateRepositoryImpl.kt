@@ -279,7 +279,8 @@ class UpdateRepositoryImpl(
             // 2. Fallback to GitHub Releases API if update.json doesn't exist/fails
             onStep(CheckingStep.FetchingReleaseFallback)
             val latestRelease = client.fetchLatestRelease()
-            val apkAsset = latestRelease.assets.firstOrNull { it.name.endsWith(".apk") }
+            val apkAsset = latestRelease.assets.firstOrNull { it.name.contains("release", ignoreCase = true) && it.name.endsWith(".apk") }
+                ?: latestRelease.assets.firstOrNull { it.name.endsWith(".apk") }
                 ?: return@withContext Result.failure(Exception("لم يتم العثور على ملف APK في إصدارات GitHub."))
 
             val remoteTagName = latestRelease.tagName

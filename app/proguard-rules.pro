@@ -1,21 +1,58 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Project specific ProGuard rules
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Preserve line numbers and attributes for debugging and reflection
+-keepattributes SourceFile,LineNumberTable
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod,Exceptions
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# ── Moshi ───────────────────────────────────────────────────────────────────
+-dontwarn com.squareup.moshi.**
+-keep class com.squareup.moshi.** { *; }
+-keep interface com.squareup.moshi.** { *; }
+-keep class * extends com.squareup.moshi.JsonAdapter { *; }
+-keepclassmembers class * {
+    @com.squareup.moshi.Json <fields>;
+}
+-keep @com.squareup.moshi.JsonClass class * { *; }
+-keepclasseswithmembers class * {
+    @com.squareup.moshi.JsonClass <fields>;
+}
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ── Retrofit & OkHttp ───────────────────────────────────────────────────────
+-dontwarn retrofit2.**
+-keep class retrofit2.** { *; }
+-keepclasseswithmembers class * {
+    @retrofit2.http.* <methods>;
+}
+-dontwarn okhttp3.**
+-dontwarn okio.**
+
+# ── Room Database ───────────────────────────────────────────────────────────
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class * { *; }
+-keep @androidx.room.Dao interface * { *; }
+-keepclassmembers class * extends androidx.room.RoomDatabase {
+    public abstract *;
+}
+
+# ── WorkManager ─────────────────────────────────────────────────────────────
+-keep class androidx.work.** { *; }
+-keep class * extends androidx.work.ListenableWorker {
+    public <init>(android.content.Context, androidx.work.WorkerParameters);
+}
+
+# ── Google APIs & Drive & GSON ──────────────────────────────────────────────
+-keep class com.google.api.services.drive.** { *; }
+-keep class com.google.api.client.** { *; }
+-keep class com.google.gson.** { *; }
+-dontwarn com.google.api.client.**
+-dontwarn com.google.common.**
+-dontwarn javax.annotation.**
+-dontwarn org.apache.http.**
+
+# ── Jsoup ───────────────────────────────────────────────────────────────────
+-keep class org.jsoup.** { *; }
+-dontwarn org.jsoup.**
+
+# ── Project Domain & Update Models ──────────────────────────────────────────
+-keep class com.qdash.domain.model.** { *; }
+-keep class com.qdash.data.update.** { *; }

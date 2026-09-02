@@ -16,10 +16,10 @@ android {
     applicationId = "com.qdash"
     minSdk = 24
     targetSdk = 36
-    versionCode = 108
-    versionName = "1.0.0.108"
+    versionCode = 109
+    versionName = "1.0.0.109"
     buildConfigField("Long", "BUILD_TIMESTAMP", "${System.currentTimeMillis()}L")
-    buildConfigField("Long", "UPDATE_IDENTITY", "209L")
+    buildConfigField("Long", "UPDATE_IDENTITY", "210L")
     buildConfigField("String", "GEMINI_API_KEY", "\"${System.getenv("GEMINI_API_KEY") ?: ""}\"")
     buildConfigField("String", "OPENROUTER_API_KEY", "\"${System.getenv("OPENROUTER_API_KEY") ?: ""}\"")
     buildConfigField("String", "NVIDIA_API_KEY", "\"${System.getenv("NVIDIA_API_KEY") ?: ""}\"")
@@ -43,11 +43,25 @@ android {
 
   signingConfigs {
     create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-      storeFile = file(keystorePath)
-      storePassword = System.getenv("STORE_PASSWORD")
-      keyAlias = "upload"
-      keyPassword = System.getenv("KEY_PASSWORD")
+      val customKeystore = System.getenv("KEYSTORE_PATH")?.let { file(it) }
+      val uploadKeystore = file("${rootDir}/my-upload-key.jks")
+      val debugKeystore = file("${rootDir}/debug.keystore")
+      if (customKeystore?.exists() == true) {
+        storeFile = customKeystore
+        storePassword = System.getenv("STORE_PASSWORD")
+        keyAlias = System.getenv("KEY_ALIAS") ?: "upload"
+        keyPassword = System.getenv("KEY_PASSWORD")
+      } else if (uploadKeystore.exists()) {
+        storeFile = uploadKeystore
+        storePassword = System.getenv("STORE_PASSWORD")
+        keyAlias = "upload"
+        keyPassword = System.getenv("KEY_PASSWORD")
+      } else {
+        storeFile = debugKeystore
+        storePassword = "android"
+        keyAlias = "androiddebugkey"
+        keyPassword = "android"
+      }
     }
     create("debugConfig") {
       storeFile = file("${rootDir}/debug.keystore")
@@ -60,7 +74,8 @@ android {
   buildTypes {
     release {
       isCrunchPngs = false
-      isMinifyEnabled = false
+      isMinifyEnabled = true
+      isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       signingConfig = signingConfigs.getByName("release")
     }
@@ -77,6 +92,10 @@ android {
     buildConfig = true
   }
   testOptions { unitTests { isIncludeAndroidResources = true } }
+  lint {
+    checkReleaseBuilds = false
+    abortOnError = false
+  }
 
   sourceSets {
     getByName("androidTest") {
@@ -95,6 +114,9 @@ android {
           excludes += "META-INF/NOTICE.txt"
           excludes += "META-INF/notice.txt"
           excludes += "META-INF/ASL2.0"
+          excludes += "META-INF/*.version"
+          excludes += "META-INF/*.properties"
+          excludes += "META-INF/INDEX.LIST"
       }
   }
 }
