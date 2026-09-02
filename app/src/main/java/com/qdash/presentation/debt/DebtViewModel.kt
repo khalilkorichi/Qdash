@@ -20,10 +20,17 @@ data class DebtUiState(
     val selectedDebtPayments: List<DebtPayment> = emptyList(),
     val strategyResults: List<DebtStrategyResult> = emptyList(),
     val selectedStrategy: String = "snowball", // "snowball", "avalanche"
+    val selectedDirection: DebtDirection = DebtDirection.OWED_BY_ME, // OWED_BY_ME vs OWED_TO_ME
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val error: String? = null
-)
+) {
+    val debtsOwedByMe: List<Debt> get() = debts.filter { it.direction == DebtDirection.OWED_BY_ME }
+    val debtsOwedToMe: List<Debt> get() = debts.filter { it.direction == DebtDirection.OWED_TO_ME }
+    val totalOwedByMe: Double get() = debtsOwedByMe.filter { !it.isClosed }.sumOf { it.remainingAmount }
+    val totalOwedToMe: Double get() = debtsOwedToMe.filter { !it.isClosed }.sumOf { it.remainingAmount }
+    val netPosition: Double get() = totalOwedToMe - totalOwedByMe
+}
 
 class DebtViewModel(
     private val debtRepository: DebtRepository,
@@ -32,7 +39,9 @@ class DebtViewModel(
 ) : ViewModel() {
 
     private val addDebtUseCase = AddDebtUseCase(debtRepository)
+    private val addLentDebtUseCase = AddLentDebtUseCase(debtRepository, transactionRepository)
     private val recordDebtPaymentUseCase = RecordDebtPaymentUseCase(debtRepository, transactionRepository)
+    private val recordLentDebtRepaymentUseCase = RecordLentDebtRepaymentUseCase(debtRepository, transactionRepository)
     private val getDebtPlanUseCase = GetDebtPlanUseCase()
     private val compareDebtStrategiesUseCase = CompareDebtStrategiesUseCase()
     private val getDebtInsightsUseCase = GetDebtInsightsUseCase(debtRepository)
@@ -269,5 +278,52 @@ class DebtViewModel(
 
     fun changeStrategy(strategy: String) {
         _uiState.update { it.copy(selectedStrategy = strategy) }
+    }
+
+    fun selectDirection(direction: DebtDirection) {
+        _uiState.update { it.copy(selectedDirection = direction) }
+    }
+
+    fun addLentDebt(
+        title: String,
+        debtorName: String,
+        totalAmount: Double,
+        linkedAccountId: Long,
+        dueDate: Long? = null,
+        notes: String? = null,
+        color: String = "#10B981"
+    ) {
+        viewModelScope.launch {
+            addLentDebtUseCase(
+                title = title,
+                debtorName = debtorName,
+                totalAmount = totalAmount,
+                linkedAccountId = linkedAccountId,
+                dueDate = dueDate,
+                notes = notes,
+                color = color
+            )
+        }
+    }
+
+    fun makeLentRepayment(
+        debtId: Long,
+        receivingAccountId: Long,
+        amount: Double,
+        note: String?,
+        date: Long = System.currentTimeMillis()
+    ) {
+        viewModelScope.launch {
+            recordLentDebtRepaymentUseCase(
+                debtId = debtId,
+                receivingAccountId = receivingAccountId,
+                amount = amount,
+                note = note,
+                paymentDate = date
+            )
+            if (_uiState.value.selectedDebt?.id == debtId) {
+                selectDebt(debtId)
+            }
+        }
     }
 }

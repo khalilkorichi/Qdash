@@ -46,13 +46,24 @@ class FinancialAlertsWorker(
                         }
 
                         if (!alreadyNotified) {
-                            val isRegular = debt is com.qdash.domain.model.RegularDebt
-                            val term = if (isRegular) "دين" else "قسط قرض"
-                            val titleText = if (isRegular) "تذكير بسداد دين 💸" else "تذكير بقسط قرض قريب 💸"
-                            val msg = if (daysLeft == 0L) {
-                                "يستحق سداد $term لـ ${debt.creditorName} بقيمة ${debt.remainingAmount.toInt()} د.ج اليوم!"
+                            val titleText: String
+                            val msg: String
+                            if (debt.direction == com.qdash.domain.model.DebtDirection.OWED_TO_ME) {
+                                titleText = "تذكير باسترداد سلفة 💸"
+                                msg = if (daysLeft == 0L) {
+                                    "يستحق استرداد سلفة من ${debt.creditorName} بقيمة ${debt.remainingAmount.toInt()} د.ج اليوم!"
+                                } else {
+                                    "يستحق استرداد سلفة من ${debt.creditorName} بقيمة ${debt.remainingAmount.toInt()} د.ج خلال $daysLeft أيام."
+                                }
                             } else {
-                                "يستحق سداد $term لـ ${debt.creditorName} بقيمة ${debt.remainingAmount.toInt()} د.ج خلال $daysLeft أيام."
+                                val isRegular = debt is com.qdash.domain.model.RegularDebt
+                                val term = if (isRegular) "دين" else "قسط قرض"
+                                titleText = if (isRegular) "تذكير بسداد دين 💸" else "تذكير بقسط قرض قريب 💸"
+                                msg = if (daysLeft == 0L) {
+                                    "يستحق سداد $term لـ ${debt.creditorName} بقيمة ${debt.remainingAmount.toInt()} د.ج اليوم!"
+                                } else {
+                                    "يستحق سداد $term لـ ${debt.creditorName} بقيمة ${debt.remainingAmount.toInt()} د.ج خلال $daysLeft أيام."
+                                }
                             }
                             val notification = AppNotification(
                                 title = titleText,

@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.core.utils.FormatterUtils
 import com.qdash.domain.model.Account
+import com.qdash.domain.model.Debt
 import com.qdash.domain.model.DebtPaymentType
 import com.qdash.domain.model.InstallmentDebt
 import com.qdash.domain.model.RegularDebt
@@ -784,6 +785,338 @@ fun RecordInstallmentPaymentDialog(
                 intent = ButtonIntent.SUCCESS
             ) {
                 Text("تسديد", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            AppButton(
+                onClick = onDismissRequest,
+                variant = ButtonVariant.LIGHT,
+                intent = ButtonIntent.PRIMARY
+            ) {
+                Text("إلغاء", fontWeight = FontWeight.Bold)
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddLentDebtDialog(
+    accounts: List<Account>,
+    onDismissRequest: () -> Unit,
+    onConfirm: (
+        title: String,
+        debtorName: String,
+        totalAmount: Double,
+        linkedAccountId: Long,
+        dueDate: Long?,
+        notes: String?,
+        color: String
+    ) -> Unit
+) {
+    val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+
+    var title by remember { mutableStateOf("") }
+    var debtorName by remember { mutableStateOf("") }
+    var totalAmount by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var color by remember { mutableStateOf("#10B981") }
+    var selectedAccountId by remember { mutableStateOf<Long?>(null) }
+    var dueDate by remember { mutableStateOf<Long?>(null) }
+    var showDueDatePicker by remember { mutableStateOf(false) }
+
+    LaunchedEffect(accounts) {
+        if (accounts.isNotEmpty() && selectedAccountId == null) {
+            selectedAccountId = accounts.first().id
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = { Text("تسجيل سلفة للغير (دين لك)", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    text = "سيتم خصم مبلغ السلفة تلقائياً من رصيد المحفظة المختارة.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                AppInput(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = "عنوان السلفة / الغرض",
+                    placeholder = "مثال: مساعدة شراء هاتف، سلفة طارئة"
+                )
+
+                AppInput(
+                    value = debtorName,
+                    onValueChange = { debtorName = it },
+                    label = "اسم المستلف / المدين",
+                    placeholder = "مثال: الصديق أحمد، الأخ محمد"
+                )
+
+                AppInput(
+                    value = totalAmount,
+                    onValueChange = { totalAmount = it },
+                    label = "مبلغ السلفة (د.ج)",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    visualTransformation = com.qdash.core.utils.ThousandsSeparatorTransformation()
+                )
+
+                Text("المحفظة المخصوم منها المبلغ (إلزامي):", style = MaterialTheme.typography.labelSmall)
+                Box {
+                    var expanded by remember { mutableStateOf(false) }
+                    val selectedAccount = accounts.find { it.id == selectedAccountId }
+                    val selectedAccountName = if (selectedAccount != null) {
+                        "${selectedAccount.name} (رصيد: ${selectedAccount.balance.toInt()} د.ج)"
+                    } else "اختر المحفظة"
+
+                    AppCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        variant = CardVariant.FLAT,
+                        onClick = { expanded = true }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(selectedAccountName)
+                            Icon(Icons.Default.ArrowDropDown, null)
+                        }
+                    }
+                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        accounts.forEach { account ->
+                            DropdownMenuItem(
+                                text = { Text("${account.name} (رصيد: ${account.balance.toInt()} د.ج)") },
+                                onClick = {
+                                    selectedAccountId = account.id
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Text("موعد الاسترداد المتوقع (اختياري):", style = MaterialTheme.typography.labelSmall)
+                AppCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    variant = CardVariant.FLAT,
+                    onClick = { showDueDatePicker = true }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.DateRange, null, tint = com.qdash.ui.theme.IncomeGreen, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (dueDate != null) FormatterUtils.formatDate(dueDate!!) else "بدون موعد محدد",
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        if (dueDate != null) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "Clear",
+                                tint = TextGray,
+                                modifier = Modifier.size(16.dp).clickable { dueDate = null }
+                            )
+                        } else {
+                            Icon(Icons.Default.Edit, null, tint = TextGray, modifier = Modifier.size(16.dp))
+                        }
+                    }
+                }
+
+                if (showDueDatePicker) {
+                    AppDatePickerDialog(
+                        initialSelectedDateMillis = dueDate ?: System.currentTimeMillis(),
+                        onDismissRequest = { showDueDatePicker = false },
+                        onDateSelected = { 
+                            dueDate = it
+                            showDueDatePicker = false
+                        },
+                        confirmButtonColor = com.qdash.ui.theme.IncomeGreen
+                    )
+                }
+
+                AppInput(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = "ملاحظات إضافية (اختياري)",
+                    placeholder = "تفاصيل الاتفاق أو طريقة الاسترداد"
+                )
+            }
+        },
+        confirmButton = {
+            AppButton(
+                onClick = {
+                    val total = totalAmount.toDoubleOrNull() ?: 0.0
+                    val chosenAcc = accounts.find { it.id == selectedAccountId }
+                    if (title.isBlank() || debtorName.isBlank()) {
+                        Toast.makeText(context, "الرجاء ملء عنوان السلفة واسم المستلف", Toast.LENGTH_SHORT).show()
+                    } else if (totalAmount.isBlank() || total <= 0.0) {
+                        Toast.makeText(context, "الرجاء إدخال مبلغ سلفة صالح أكبر من الصفر", Toast.LENGTH_SHORT).show()
+                    } else if (selectedAccountId == null) {
+                        Toast.makeText(context, "الرجاء اختيار المحفظة المخصوم منها", Toast.LENGTH_SHORT).show()
+                    } else if (chosenAcc != null && chosenAcc.balance < total) {
+                        Toast.makeText(context, "تنبيه: رصيد المحفظة (${chosenAcc.balance.toInt()} د.ج) أقل من مبلغ السلفة!", Toast.LENGTH_LONG).show()
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onConfirm(title.trim(), debtorName.trim(), total, selectedAccountId!!, dueDate, notes.ifBlank { null }, color)
+                    } else {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onConfirm(title.trim(), debtorName.trim(), total, selectedAccountId!!, dueDate, notes.ifBlank { null }, color)
+                    }
+                },
+                variant = ButtonVariant.SOLID,
+                intent = ButtonIntent.SUCCESS
+            ) {
+                Text("تسجيل وخصم من المحفظة", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            AppButton(
+                onClick = onDismissRequest,
+                variant = ButtonVariant.LIGHT,
+                intent = ButtonIntent.PRIMARY
+            ) {
+                Text("إلغاء", fontWeight = FontWeight.Bold)
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RecordLentRepaymentDialog(
+    debt: Debt,
+    accounts: List<Account>,
+    onDismissRequest: () -> Unit,
+    onConfirm: (amount: Double, note: String?, date: Long, targetAccountId: Long) -> Unit
+) {
+    val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+
+    var paymentAmount by remember { mutableStateOf("") }
+    var paymentNote by remember { mutableStateOf("") }
+    var paymentDate by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var targetAccountId by remember { mutableStateOf<Long?>(debt.linkedAccountId ?: accounts.firstOrNull()?.id) }
+    var showPaymentDatePicker by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = { Text("تحصيل استرداد سلفة", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("السلفة: ${debt.title} (المدين: ${debt.creditorName})", fontWeight = FontWeight.Medium, color = com.qdash.ui.theme.IncomeGreen)
+                Text("المتبقي للاسترداد: ${debt.remainingAmount.toInt()} د.ج", style = MaterialTheme.typography.bodySmall)
+
+                AppInput(
+                    value = paymentAmount,
+                    onValueChange = { paymentAmount = it },
+                    label = "المبلغ المسترد (د.ج)",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    visualTransformation = com.qdash.core.utils.ThousandsSeparatorTransformation()
+                )
+
+                AppInput(
+                    value = paymentNote,
+                    onValueChange = { paymentNote = it },
+                    label = "ملاحظة / تفاصيل الاستلام"
+                )
+
+                Text("تاريخ الاستلام:", style = MaterialTheme.typography.labelSmall)
+                AppCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    variant = CardVariant.FLAT,
+                    onClick = { showPaymentDatePicker = true }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.DateRange, null, tint = com.qdash.ui.theme.IncomeGreen, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = FormatterUtils.formatDate(paymentDate),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        Icon(Icons.Default.Edit, null, tint = TextGray, modifier = Modifier.size(16.dp))
+                    }
+                }
+
+                if (showPaymentDatePicker) {
+                    AppDatePickerDialog(
+                        initialSelectedDateMillis = paymentDate,
+                        onDismissRequest = { showPaymentDatePicker = false },
+                        onDateSelected = { paymentDate = it },
+                        confirmButtonColor = com.qdash.ui.theme.IncomeGreen
+                    )
+                }
+
+                Text("إيداع المبلغ في محفظة:", style = MaterialTheme.typography.labelSmall)
+                Box {
+                    var expanded by remember { mutableStateOf(false) }
+                    val selectedAccountName = accounts.find { it.id == targetAccountId }?.name ?: "اختر المحفظة"
+                    AppCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        variant = CardVariant.FLAT,
+                        onClick = { expanded = true }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(selectedAccountName)
+                            Icon(Icons.Default.ArrowDropDown, null)
+                        }
+                    }
+                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        accounts.forEach { account ->
+                            DropdownMenuItem(
+                                text = { Text("${account.name} (رصيد: ${account.balance.toInt()} د.ج)") },
+                                onClick = {
+                                    targetAccountId = account.id
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            AppButton(
+                onClick = {
+                    val amount = paymentAmount.toDoubleOrNull() ?: 0.0
+                    if (paymentAmount.isBlank() || amount <= 0.0) {
+                        Toast.makeText(context, "الرجاء إدخال مبلغ استرداد صالح أكبر من الصفر", Toast.LENGTH_SHORT).show()
+                    } else if (targetAccountId == null) {
+                        Toast.makeText(context, "الرجاء تحديد المحفظة المستلمة للمبلغ", Toast.LENGTH_SHORT).show()
+                    } else if (amount > debt.remainingAmount) {
+                        Toast.makeText(context, "المبلغ المسترد أكبر من قيمة السلفة المتبقية (${debt.remainingAmount.toInt()} د.ج)!", Toast.LENGTH_LONG).show()
+                    } else {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onConfirm(amount, paymentNote.ifBlank { null }, paymentDate, targetAccountId!!)
+                    }
+                },
+                variant = ButtonVariant.SOLID,
+                intent = ButtonIntent.SUCCESS
+            ) {
+                Text("تأكيد الإيداع في المحفظة", color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {

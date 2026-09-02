@@ -58,6 +58,7 @@ fun DebtDetailsContent(
         // PAY TRANSACTION ACTION TRIGGER
         if (!debt.isClosed) {
             item {
+                val payButtonText = if (debt.direction == DebtDirection.OWED_TO_ME) "تحصيل دفعة استرداد" else "تسديد"
                 AppButton(
                     onClick = onPayClick,
                     modifier = Modifier.fillMaxWidth(),
@@ -67,7 +68,7 @@ fun DebtDetailsContent(
                     leadingIcon = { Icon(Icons.Default.CreditCard, null) }
                 ) {
                     Text(
-                        text = "تسديد",
+                        text = payButtonText,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -87,7 +88,8 @@ fun DebtDetailsContent(
 
         // PAYMENT HISTORY LIST HEADER
         item {
-            Text("سجل تسوية السداد المالي", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            val historyTitle = if (debt.direction == DebtDirection.OWED_TO_ME) "سجل دفعات الاسترداد المالي" else "سجل تسوية السداد المالي"
+            Text(historyTitle, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         }
 
         if (selectedDebtPayments.isEmpty()) {
@@ -99,7 +101,8 @@ fun DebtDetailsContent(
                     backgroundColor = MaterialTheme.colorScheme.surface
                 ) {
                     Box(modifier = Modifier.padding(32.dp), contentAlignment = Alignment.Center) {
-                        Text("لم تسجل أي دفعات سداد لهذا الالتزام بعد.", textAlign = TextAlign.Center, color = TextGray)
+                        val emptyMsg = if (debt.direction == DebtDirection.OWED_TO_ME) "لم تسجل أي دفعات استرداد لهذه السلفة بعد." else "لم تسجل أي دفعات سداد لهذا الالتزام بعد."
+                        Text(emptyMsg, textAlign = TextAlign.Center, color = TextGray)
                     }
                 }
             }
@@ -130,7 +133,13 @@ fun DebtDetailsContent(
                             Column {
                                 val sdf = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.getDefault())
                                 val dateStr = sdf.format(Date(payment.paymentDate))
-                                val defaultNote = if (debt is RegularDebt) "تسديد سداد دين" else "تسديد قسط دين منتظم"
+                                val defaultNote = if (debt.direction == DebtDirection.OWED_TO_ME) {
+                                    "استرداد سلفة"
+                                } else if (debt is RegularDebt) {
+                                    "تسديد سداد دين"
+                                } else {
+                                    "تسديد قسط دين منتظم"
+                                }
                                 Text(payment.note ?: defaultNote, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(dateStr, style = MaterialTheme.typography.labelSmall, color = TextGray)
@@ -140,8 +149,9 @@ fun DebtDetailsContent(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            val sign = if (debt.direction == DebtDirection.OWED_TO_ME) "+" else "-"
                             Text(
-                                text = "- ${payment.amount.toInt()} د.ج",
+                                text = "$sign ${payment.amount.toInt()} د.ج",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = IncomeGreen
@@ -182,7 +192,7 @@ private fun DebtSummaryCard(debt: Debt, accounts: List<Account>, progress: Float
                     CircularProgressIndicator(
                         progress = { progress },
                         modifier = Modifier.fillMaxSize(),
-                        color = if (debt.isClosed) IncomeGreen else ExpenseRed,
+                        color = if (debt.isClosed) IncomeGreen else if (debt.direction == DebtDirection.OWED_TO_ME) IncomeGreen else ExpenseRed,
                         strokeWidth = 6.dp,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant,
                         strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
@@ -190,12 +200,13 @@ private fun DebtSummaryCard(debt: Debt, accounts: List<Account>, progress: Float
                     Text("${(progress * 100).toInt()}%", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold))
                 }
                 Column {
-                    Text("المبلغ المتبقي حالياً للسداد", style = MaterialTheme.typography.labelSmall, color = TextGray)
+                    val remainingLabel = if (debt.direction == DebtDirection.OWED_TO_ME) "المبلغ المتبقي للاسترداد" else "المبلغ المتبقي حالياً للسداد"
+                    Text(remainingLabel, style = MaterialTheme.typography.labelSmall, color = TextGray)
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = FormatterUtils.formatCurrency(debt.remainingAmount),
                         style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
-                        color = if (debt.isClosed) IncomeGreen else ExpenseRed
+                        color = if (debt.isClosed) IncomeGreen else if (debt.direction == DebtDirection.OWED_TO_ME) IncomeGreen else ExpenseRed
                     )
                 }
             }
@@ -207,17 +218,22 @@ private fun DebtSummaryCard(debt: Debt, accounts: List<Account>, progress: Float
             // Decoupled metadata row based on subclass properties
             val onSurfaceColor = MaterialTheme.colorScheme.onSurface
             val metaItems = remember(debt, onSurfaceColor) {
+                val creditorLabel = if (debt.direction == DebtDirection.OWED_TO_ME) "المدين" else "الجهة"
                 val list = mutableListOf(
                     Triple("الأصل", FormatterUtils.formatCurrency(debt.totalAmount), onSurfaceColor),
-                    Triple("الجهة", debt.creditorName, onSurfaceColor)
+                    Triple(creditorLabel, debt.creditorName, onSurfaceColor)
                 )
-                when (debt) {
-                    is RegularDebt -> {
-                        list.add(Triple("النوع", "دين مرن", SavingsAmber))
-                    }
-                    is InstallmentDebt -> {
-                        list.add(Triple("الفائدة", "${debt.interestRate}%", ExpenseRed))
-                        list.add(Triple("القسط الأدنى", "${debt.minimumPayment.toInt()} د.ج", onSurfaceColor))
+                if (debt.direction == DebtDirection.OWED_TO_ME) {
+                    list.add(Triple("النوع", "سلفة للغير", IncomeGreen))
+                } else {
+                    when (debt) {
+                        is RegularDebt -> {
+                            list.add(Triple("النوع", "دين مرن", SavingsAmber))
+                        }
+                        is InstallmentDebt -> {
+                            list.add(Triple("الفائدة", "${debt.interestRate}%", ExpenseRed))
+                            list.add(Triple("القسط الأدنى", "${debt.minimumPayment.toInt()} د.ج", onSurfaceColor))
+                        }
                     }
                 }
                 list
@@ -242,10 +258,12 @@ private fun DebtSummaryCard(debt: Debt, accounts: List<Account>, progress: Float
 
             if (debt.dueDate != null) {
                 Spacer(modifier = Modifier.height(10.dp))
+                val isPastDue = debt.dueDate!! < System.currentTimeMillis() && !debt.isClosed
+                val dateColor = if (debt.direction == DebtDirection.OWED_TO_ME && !isPastDue) IncomeGreen else ExpenseRed
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(Icons.Default.Event, null, tint = ExpenseRed, modifier = Modifier.size(16.dp))
-                    val label = if (debt is RegularDebt) "تاريخ الاستحقاق النهائى" else "تاريخ القسط القادم"
-                    Text("$label: ${FormatterUtils.formatDate(debt.dueDate!!)}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = ExpenseRed)
+                    Icon(Icons.Default.Event, null, tint = dateColor, modifier = Modifier.size(16.dp))
+                    val label = if (debt.direction == DebtDirection.OWED_TO_ME) "تاريخ الاسترداد المتوقع" else if (debt is RegularDebt) "تاريخ الاستحقاق النهائى" else "تاريخ القسط القادم"
+                    Text("$label: ${FormatterUtils.formatDate(debt.dueDate!!)}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = dateColor)
                 }
             }
 
@@ -255,7 +273,8 @@ private fun DebtSummaryCard(debt: Debt, accounts: List<Account>, progress: Float
                     Spacer(modifier = Modifier.height(6.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Icon(Icons.Default.AccountBalanceWallet, null, tint = TextGray, modifier = Modifier.size(16.dp))
-                        Text("الحساب المرتبط: $accName", style = MaterialTheme.typography.bodySmall, color = TextGray)
+                        val accLabel = if (debt.direction == DebtDirection.OWED_TO_ME) "المحفظة الأصلية" else "الحساب المرتبط"
+                        Text("$accLabel: $accName", style = MaterialTheme.typography.bodySmall, color = TextGray)
                     }
                 }
             }
@@ -302,13 +321,14 @@ private fun DebtDetailActionsCard(
                     Text("إغلاق", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.width(6.dp))
+                val forgiveLabel = if (debt.direction == DebtDirection.OWED_TO_ME) "مسامحة" else "إعفاء"
                 AppButton(
                     onClick = { onForgiveClick(debt) },
                     variant = ButtonVariant.LIGHT,
                     intent = ButtonIntent.SUCCESS,
-                    leadingIcon = { Icon(Icons.Default.CardGiftcard, "إعفاء", modifier = Modifier.size(16.dp)) }
+                    leadingIcon = { Icon(Icons.Default.CardGiftcard, forgiveLabel, modifier = Modifier.size(16.dp)) }
                 ) {
-                    Text("إعفاء", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(forgiveLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.width(6.dp))
             }

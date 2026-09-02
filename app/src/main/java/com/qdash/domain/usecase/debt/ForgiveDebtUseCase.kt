@@ -11,10 +11,15 @@ class ForgiveDebtUseCase(
             ?: return Result.failure(IllegalArgumentException("الدين غير موجود في قاعدة البيانات!"))
 
         val originalNotes = debt.notes
-        val updatedNotes = if (originalNotes.isNullOrBlank()) {
-            "تم الإعفاء من الدين"
+        val noteText = if (debt.direction == com.qdash.domain.model.DebtDirection.OWED_TO_ME) {
+            "تم الإعفاء من السلفة / مسامحة المدين"
         } else {
-            "$originalNotes\n[تم الإعفاء من الدين]"
+            "تم الإعفاء من الدين"
+        }
+        val updatedNotes = if (originalNotes.isNullOrBlank()) {
+            noteText
+        } else {
+            "$originalNotes\n[$noteText]"
         }
 
         val updatedDebt = debt.copyDebt(

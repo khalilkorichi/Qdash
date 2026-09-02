@@ -61,7 +61,9 @@ data class DebtEntity(
     val icon: String,
     val createdAt: Long = System.currentTimeMillis(),
     val isClosed: Boolean = false,
-    val debtType: String = "INSTALLMENT"
+    val debtType: String = "INSTALLMENT",
+    val direction: String = "OWED_BY_ME",
+    val initialTransactionId: Long? = null
 )
 
 @Entity(

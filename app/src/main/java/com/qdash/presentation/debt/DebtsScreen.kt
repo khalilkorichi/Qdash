@@ -37,6 +37,7 @@ fun DebtsScreen(
     // Dialog visibility states
     var showAddRegularDebtDialog by remember { mutableStateOf(false) }
     var showAddInstallmentDebtDialog by remember { mutableStateOf(false) }
+    var showAddLentDebtDialog by remember { mutableStateOf(false) }
     var showPaymentDialog by remember { mutableStateOf<Debt?>(null) }
     var showEditDebtBottomSheet by remember { mutableStateOf<Debt?>(null) }
     var showDeleteConfirmDialog by remember { mutableStateOf<Debt?>(null) }
@@ -97,6 +98,8 @@ fun DebtsScreen(
                         insights = uiState.insights,
                         strategyResults = uiState.strategyResults,
                         selectedStrategy = uiState.selectedStrategy,
+                        selectedDirection = uiState.selectedDirection,
+                        onDirectionChange = { viewModel.selectDirection(it) },
                         onStrategyChange = { viewModel.changeStrategy(it) },
                         onSelectDebt = { d ->
                             activeDebtForDetails = d
@@ -110,6 +113,7 @@ fun DebtsScreen(
                                 showAddInstallmentDebtDialog = true
                             }
                         },
+                        onAddLentDebtClick = { showAddLentDebtDialog = true },
                         onEditClick = { d -> showEditDebtBottomSheet = d },
                         onDeleteClick = { d -> showDeleteConfirmDialog = d },
                         onForgiveClick = { d -> showForgiveConfirmDialog = d },
@@ -171,8 +175,47 @@ fun DebtsScreen(
                     )
                 }
 
+                if (showAddLentDebtDialog) {
+                    AddLentDebtDialog(
+                        accounts = uiState.accounts,
+                        onDismissRequest = { showAddLentDebtDialog = false },
+                        onConfirm = { title, debtorName, totalAmount, linkedAccountId, dueDate, notes, color ->
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            viewModel.addLentDebt(
+                                title = title,
+                                debtorName = debtorName,
+                                totalAmount = totalAmount,
+                                linkedAccountId = linkedAccountId,
+                                dueDate = dueDate,
+                                notes = notes,
+                                color = color
+                            )
+                            showAddLentDebtDialog = false
+                            Toast.makeText(context, "تم تسجيل السلفة وخصم المبلغ من المحفظة بنجاح", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                }
+
                 showPaymentDialog?.let { debt ->
-                    when (debt) {
+                    if (debt.direction == DebtDirection.OWED_TO_ME) {
+                        RecordLentRepaymentDialog(
+                            debt = debt,
+                            accounts = uiState.accounts,
+                            onDismissRequest = { showPaymentDialog = null },
+                            onConfirm = { amount, note, date, targetAccountId ->
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                viewModel.makeLentRepayment(
+                                    debtId = debt.id,
+                                    receivingAccountId = targetAccountId,
+                                    amount = amount,
+                                    note = note,
+                                    date = date
+                                )
+                                showPaymentDialog = null
+                                Toast.makeText(context, "تم تسجيل استرداد السلفة وإيداعها في المحفظة بنجاح", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    } else when (debt) {
                         is RegularDebt -> {
                             RecordRegularPaymentDialog(
                                 debt = debt,
@@ -278,17 +321,25 @@ fun DebtsScreen(
                 }
 
                 showDeleteConfirmDialog?.let { targetDebt ->
+                    val isLent = targetDebt.direction == DebtDirection.OWED_TO_ME
+                    val delTitle = if (isLent) "حذف السجل المالي للسلفة" else "حذف السجل المالي للدين"
+                    val delMsg = if (isLent) {
+                        "هل أنت متأكد من حذف سلفة '${targetDebt.title}' نهائياً؟ سيؤدي ذلك إلى استرجاع مبلغ السلفة الأصلي إلى محفظتك وإلغاء أي دفعات مستردة مرتبطة بها. لا يمكن التراجع عن هذا الإجراء."
+                    } else {
+                        "هل أنت متأكد من حذف دين '${targetDebt.title}' نهائياً؟ سيؤدي ذلك أيضاً إلى حذف جميع دفعات السداد المسجلة المرتبطة به وإلغاء تأثيرها على رصيد محفظتك المالية (حذف المعاملات). لا يمكن التراجع عن هذا الإجراء."
+                    }
                     AppDialog(
                         onDismissRequest = { showDeleteConfirmDialog = null },
-                        title = "حذف السجل المالي للدين",
-                        text = "هل أنت متأكد من حذف دين '${targetDebt.title}' نهائياً؟ سيؤدي ذلك أيضاً إلى حذف جميع دفعات السداد المسجلة المرتبطة به وإلغاء تأثيرها على رصيد محفظتك المالية (حذف المعاملات). لا يمكن التراجع عن هذا الإجراء.",
+                        title = delTitle,
+                        text = delMsg,
                         confirmButtonText = "تأكيد الحذف",
                         onConfirm = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             viewModel.deleteDebt(targetDebt.id)
                             showDeleteConfirmDialog = null
                             if (activeDebtForDetails?.id == targetDebt.id) activeDebtForDetails = null
-                            Toast.makeText(context, "تم حذف الدين وإلغاء دفعاته بنجاح", Toast.LENGTH_SHORT).show()
+                            val successMsg = if (isLent) "تم حذف السلفة واسترجاع رصيدها لمحفظتك" else "تم حذف الدين وإلغاء دفعاته بنجاح"
+                            Toast.makeText(context, successMsg, Toast.LENGTH_SHORT).show()
                         },
                         dismissButtonText = "إلغاء",
                         onDismiss = { showDeleteConfirmDialog = null },
@@ -297,11 +348,19 @@ fun DebtsScreen(
                 }
 
                 showForgiveConfirmDialog?.let { targetDebt ->
+                    val isLent = targetDebt.direction == DebtDirection.OWED_TO_ME
+                    val fTitle = if (isLent) "مسامحة المدين في السلفة" else "الإعفاء من الدين"
+                    val fMsg = if (isLent) {
+                        "هل أنت متأكد من مسامحة '${targetDebt.creditorName}' في المبلغ المتبقي لسلفة '${targetDebt.title}'؟ سيتم تصفير المبلغ المتبقي وإغلاق السلفة لوجه الله دون أي تأثير إضافي على محافظك."
+                    } else {
+                        "هل أنت متأكد من الإعفاء من المتبقي لدين '${targetDebt.title}'؟ سيتم تصفير المبلغ المتبقي وتعيين الدين كمغلق دون خصم أي مبلغ من رصيدك المالي أو إنشاء معاملة سداد."
+                    }
+                    val confirmBtnText = if (isLent) "تأكيد المسامحة" else "تأكيد الإعفاء"
                     AppDialog(
                         onDismissRequest = { showForgiveConfirmDialog = null },
-                        title = "الإعفاء من الدين",
-                        text = "هل أنت متأكد من الإعفاء من المتبقي لدين '${targetDebt.title}'؟ سيتم تصفير المبلغ المتبقي وتعيين الدين كمغلق دون خصم أي مبلغ من رصيدك المالي أو إنشاء معاملة سداد.",
-                        confirmButtonText = "تأكيد الإعفاء",
+                        title = fTitle,
+                        text = fMsg,
+                        confirmButtonText = confirmBtnText,
                         onConfirm = {
                             viewModel.forgiveDebt(
                                 debtId = targetDebt.id,
@@ -310,7 +369,8 @@ fun DebtsScreen(
                                     if (activeDebtForDetails?.id == targetDebt.id) {
                                         activeDebtForDetails = uiState.debts.find { it.id == targetDebt.id }
                                     }
-                                    Toast.makeText(context, "تم الإعفاء من الدين وتصفيره", Toast.LENGTH_SHORT).show()
+                                    val toastMsg = if (isLent) "تمت المسامحة في السلفة وتصفيرها لوجه الله" else "تم الإعفاء من الدين وتصفيره"
+                                    Toast.makeText(context, toastMsg, Toast.LENGTH_SHORT).show()
                                 },
                                 onError = { error -> Toast.makeText(context, error, Toast.LENGTH_LONG).show() }
                             )
@@ -332,8 +392,8 @@ fun DebtsScreen(
                 showCancelPaymentConfirmDialog?.let { targetPayment ->
                     AppDialog(
                         onDismissRequest = { showCancelPaymentConfirmDialog = null },
-                        title = "إلغاء دفعة السداد",
-                        text = "هل أنت متأكد من إلغاء دفعة السداد هذه بقيمة ${targetPayment.amount.toInt()} د.ج؟ سيؤدي ذلك إلى حذف المعاملة المرتبطة بها واستعادة المبلغ لرصيد حسابك المالي، وزيادة المبلغ المتبقي للدين. لا يمكن التراجع عن هذا الإجراء.",
+                        title = "إلغاء الدفعة المالية",
+                        text = "هل أنت متأكد من إلغاء هذه الدفعة بقيمة ${targetPayment.amount.toInt()} د.ج؟ سيؤدي ذلك إلى حذف المعاملة المالية المرتبطة بها واستعادة توازن الرصيد في محفظتك، وتحديث المبلغ المتبقي. لا يمكن التراجع عن هذا الإجراء.",
                         confirmButtonText = "تأكيد الإلغاء",
                         onConfirm = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -341,7 +401,7 @@ fun DebtsScreen(
                                 paymentId = targetPayment.id,
                                 onSuccess = {
                                     showCancelPaymentConfirmDialog = null
-                                    Toast.makeText(context, "تم إلغاء الدفعة واستعادة الرصيد", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "تم إلغاء الدفعة وتحديث الرصيد", Toast.LENGTH_SHORT).show()
                                 },
                                 onError = { error -> Toast.makeText(context, error, Toast.LENGTH_LONG).show() }
                             )

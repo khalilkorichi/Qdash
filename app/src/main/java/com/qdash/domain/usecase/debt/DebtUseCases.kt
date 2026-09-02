@@ -109,30 +109,32 @@ class GetDebtInsightsUseCase(
     private val debtRepository: DebtRepository
 ) {
     operator fun invoke(): Flow<List<String>> = flow {
-        val debts = debtRepository.getAllDebts().first().filter { !it.isClosed }
+        val allDebts = debtRepository.getAllDebts().first().filter { !it.isClosed }
+        val myDebts = allDebts.filter { it.direction == DebtDirection.OWED_BY_ME }
+        val lentDebts = allDebts.filter { it.direction == DebtDirection.OWED_TO_ME }
         val list = mutableListOf<String>()
-        
-        if (debts.isEmpty()) {
+
+        if (allDebts.isEmpty()) {
             list.add("الحمد لله، لا توجد ديون معلقة أو التزامات متأخرة حالياً.")
         } else {
-            val regulars = debts.filterIsInstance<RegularDebt>()
-            val installments = debts.filterIsInstance<InstallmentDebt>()
-            val totalRemaining = debts.sumOf { it.remainingAmount }
-            list.add("إجمالي المبالغ المطلوبة للسداد: ${String.format(Locale.getDefault(), "%,.1f", totalRemaining)} د.ج.")
-            
-            if (regulars.isNotEmpty()) {
-                list.add("لديك ${regulars.size} التزام(ات) دين عادي مستحقة السداد.")
+            if (myDebts.isNotEmpty()) {
+                val totalRemaining = myDebts.sumOf { it.remainingAmount }
+                list.add("إجمالي المبالغ المطلوبة منك للسداد: ${String.format(Locale.getDefault(), "%,.1f", totalRemaining)} د.ج.")
             }
-            if (installments.isNotEmpty()) {
-                list.add("لديك ${installments.size} خطة قروض مقسطة جارية.")
+            if (lentDebts.isNotEmpty()) {
+                val totalLent = lentDebts.sumOf { it.remainingAmount }
+                list.add("لديك ${lentDebts.size} سلفة مستحقة لك عند الغير بإجمالي: ${String.format(Locale.getDefault(), "%,.1f", totalLent)} د.ج.")
             }
+
+            val regulars = myDebts.filterIsInstance<RegularDebt>()
+            val installments = myDebts.filterIsInstance<InstallmentDebt>()
 
             val highPriority = installments.minByOrNull { it.priority }
             if (highPriority != null) {
                 list.add("نوصي بوضع الأولوية لتسوية '${highPriority.title}' للدائن '${highPriority.creditorName}'.")
             }
-            
-            val closest = debts.minByOrNull { it.remainingAmount }
+
+            val closest = myDebts.minByOrNull { it.remainingAmount }
             if (closest != null && (highPriority == null || closest.id != highPriority.id)) {
                 list.add("يمكنك تصفية وغلق '${closest.title}' سريعاً لتقليص عدد الدائنين وتصفية ذهنك.")
             }

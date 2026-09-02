@@ -49,8 +49,9 @@ fun DebtPaymentsBottomSheet(
                 .navigationBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            val titlePrefix = if (debt.direction == com.qdash.domain.model.DebtDirection.OWED_TO_ME) "سجل استرداد:" else "سجل دفعات:"
             Text(
-                text = "سجل دفعات: ${debt.title}",
+                text = "$titlePrefix ${debt.title}",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 20.sp
@@ -58,8 +59,10 @@ fun DebtPaymentsBottomSheet(
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
+            val totalCollected = debt.totalAmount.toInt() - debt.remainingAmount.toInt()
+            val totalLabel = if (debt.direction == com.qdash.domain.model.DebtDirection.OWED_TO_ME) "إجمالي ما تم استرداده:" else "إجمالي ما تم سداده:"
             Text(
-                text = "إجمالي ما تم سداده: ${debt.totalAmount.toInt() - debt.remainingAmount.toInt()} د.ج",
+                text = "$totalLabel $totalCollected د.ج",
                 style = MaterialTheme.typography.labelMedium,
                 color = TextGray,
                 modifier = Modifier.padding(top = 4.dp)
@@ -74,8 +77,13 @@ fun DebtPaymentsBottomSheet(
                         .padding(vertical = 32.dp),
                     contentAlignment = Alignment.Center
                 ) {
+                    val emptyMsg = if (debt.direction == com.qdash.domain.model.DebtDirection.OWED_TO_ME) {
+                        "لم تسجل أي دفعات استرداد لهذه السلفة بعد."
+                    } else {
+                        "لم تسجل أي دفعات سداد لهذا الالتزام بعد."
+                    }
                     Text(
-                        text = "لم تسجل أي دفعات سداد لهذا الالتزام بعد.",
+                        text = emptyMsg,
                         textAlign = TextAlign.Center,
                         color = TextGray,
                         style = MaterialTheme.typography.bodyMedium
@@ -122,8 +130,9 @@ fun DebtPaymentsBottomSheet(
                                     Column {
                                         val sdf = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.getDefault())
                                         val dateStr = sdf.format(Date(payment.paymentDate))
+                                        val defaultNote = if (debt.direction == com.qdash.domain.model.DebtDirection.OWED_TO_ME) "استرداد سلفة" else "تسديد قسط دين منتظم"
                                         Text(
-                                            text = payment.note ?: "تسديد قسط دين منتظم",
+                                            text = payment.note ?: defaultNote,
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -140,8 +149,9 @@ fun DebtPaymentsBottomSheet(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
+                                    val sign = if (debt.direction == com.qdash.domain.model.DebtDirection.OWED_TO_ME) "+" else "-"
                                     Text(
-                                        text = "- ${payment.amount.toInt()} د.ج",
+                                        text = "$sign ${payment.amount.toInt()} د.ج",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = IncomeGreen

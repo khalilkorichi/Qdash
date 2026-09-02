@@ -22,6 +22,11 @@ class DeleteDebtUseCase(
             }
         }
 
+        // 2.5. If debt has an initial transaction (e.g. money lent from wallet), delete it to restore balance
+        debt.initialTransactionId?.let { txId ->
+            transactionRepository.deleteTransactionById(txId)
+        }
+
         // 3. Delete all payment records of this debt
         debtRepository.deletePaymentsForDebt(debtId)
 

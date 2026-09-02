@@ -33,6 +33,8 @@ class DebtUseCaseTest {
     private lateinit var deleteDebtUseCase: DeleteDebtUseCase
     private lateinit var forgiveDebtUseCase: ForgiveDebtUseCase
     private lateinit var cancelDebtPaymentUseCase: CancelDebtPaymentUseCase
+    private lateinit var addLentDebtUseCase: AddLentDebtUseCase
+    private lateinit var recordLentDebtRepaymentUseCase: RecordLentDebtRepaymentUseCase
 
     @Before
     fun setup() {
@@ -41,13 +43,22 @@ class DebtUseCaseTest {
             .allowMainThreadQueries()
             .build()
 
-        // Insert category entity to satisfy foreign key constraints
+        // Insert category entities to satisfy foreign key constraints
         runBlocking {
             db.categoryDao().insertCategory(
                 com.qdash.data.local.entities.CategoryEntity(
                     id = DebtConstants.DEBT_EXPENSE_CATEGORY_ID,
                     name = "Debt Expense",
                     type = "EXPENSE",
+                    icon = "",
+                    color = ""
+                )
+            )
+            db.categoryDao().insertCategory(
+                com.qdash.data.local.entities.CategoryEntity(
+                    id = 15L,
+                    name = "Other Income",
+                    type = "INCOME",
                     icon = "",
                     color = ""
                 )
@@ -74,6 +85,8 @@ class DebtUseCaseTest {
         deleteDebtUseCase = DeleteDebtUseCase(debtRepo, transactionRepo)
         forgiveDebtUseCase = ForgiveDebtUseCase(debtRepo)
         cancelDebtPaymentUseCase = CancelDebtPaymentUseCase(debtRepo, transactionRepo)
+        addLentDebtUseCase = AddLentDebtUseCase(debtRepo, transactionRepo)
+        recordLentDebtRepaymentUseCase = RecordLentDebtRepaymentUseCase(debtRepo, transactionRepo)
     }
 
     @After
@@ -288,5 +301,161 @@ class DebtUseCaseTest {
         // Verify account balance is rolled back to 5000.0
         val acc = db.accountDao().getAccountById(accountId)!!
         assertEquals(5000.0, acc.balance, 0.001)
+    }
+
+    @Test
+    fun testAddLentDebt_deductsWalletBalance_createsDebtWithOwedToMeDirectionAndInitialTransactionId() = runBlocking {
+        // 1. Setup account with 10,000 DZD
+        val accountId = db.accountDao().insertAccount(
+            AccountEntity(name = "محفظة السيولة", type = "CASH", balance = 10000.0, color = "#10B981", icon = "")
+        )
+
+        // 2. Lend 3,000 DZD to Karim
+        val debtId = addLentDebtUseCase(
+            title = "سلفة شراء حاسوب",
+            debtorName = "كريم",
+            totalAmount = 3000.0,
+            linkedAccountId = accountId,
+            dueDate = System.currentTimeMillis() + 86400000L * 30,
+            notes = "اتفاق سداد خلال شهر",
+            color = "#10B981"
+        )
+
+        // 3. Verify Account balance was deducted: 10,000 - 3,000 = 7,000
+        val accAfterLend = db.accountDao().getAccountById(accountId)!!
+        assertEquals(7000.0, accAfterLend.balance, 0.001)
+
+        // 4. Verify Debt entity properties
+        val debt = debtRepo.getDebtById(debtId)!!
+        assertEquals("سلفة شراء حاسوب", debt.title)
+        assertEquals("كريم", debt.creditorName)
+        assertEquals(3000.0, debt.totalAmount, 0.001)
+        assertEquals(3000.0, debt.remainingAmount, 0.001)
+        assertEquals(DebtDirection.OWED_TO_ME, debt.direction)
+        assertNotNull(debt.initialTransactionId)
+
+        // 5. Verify transaction created in repository
+        val tx = transactionRepo.getTransactionById(debt.initialTransactionId!!)!!
+        assertEquals(3000.0, tx.amount, 0.001)
+        assertEquals(TransactionType.EXPENSE, tx.type)
+        assertEquals(accountId, tx.accountId)
+        assertEquals("اتفاق سداد خلال شهر [سلفة: سلفة شراء حاسوب]", tx.note)
+    }
+
+    @Test
+    fun testRecordLentDebtRepayment_depositsToWallet_decreasesRemainingAmount_andClosesWhenZero() = runBlocking {
+        // 1. Setup account and lend 4,000 DZD
+        val accountId = db.accountDao().insertAccount(
+            AccountEntity(name = "الحساب الجاري", type = "BANK", balance = 10000.0, color = "#10B981", icon = "")
+        )
+        val debtId = addLentDebtUseCase(
+            title = "سلفة سفر",
+            debtorName = "سامي",
+            totalAmount = 4000.0,
+            linkedAccountId = accountId
+        )
+        // Balance is now 6000.0
+
+        // 2. Receive first partial repayment of 1500 DZD
+        val payment1Result = recordLentDebtRepaymentUseCase(
+            debtId = debtId,
+            receivingAccountId = accountId,
+            amount = 1500.0,
+            note = "الدفعة الأولى"
+        )
+        assertTrue(payment1Result > 0)
+
+        // Verify wallet received 1500 DZD -> balance is 7500.0
+        val accAfterPayment1 = db.accountDao().getAccountById(accountId)!!
+        assertEquals(7500.0, accAfterPayment1.balance, 0.001)
+
+        val debtAfterPayment1 = debtRepo.getDebtById(debtId)!!
+        assertEquals(2500.0, debtAfterPayment1.remainingAmount, 0.001)
+        assertFalse(debtAfterPayment1.isClosed)
+
+        // 3. Receive final repayment of 2500 DZD
+        val payment2Result = recordLentDebtRepaymentUseCase(
+            debtId = debtId,
+            receivingAccountId = accountId,
+            amount = 2500.0,
+            note = "الدفعة الأخيرة وإغلاق السلفة"
+        )
+        assertTrue(payment2Result > 0)
+
+        // Wallet balance is back to 10,000.0
+        val accFinal = db.accountDao().getAccountById(accountId)!!
+        assertEquals(10000.0, accFinal.balance, 0.001)
+
+        val debtFinal = debtRepo.getDebtById(debtId)!!
+        assertEquals(0.0, debtFinal.remainingAmount, 0.001)
+        assertTrue(debtFinal.isClosed)
+
+        // Verify payments tracked
+        val payments = debtRepo.getPaymentsForDebt(debtId).first()
+        assertEquals(2, payments.size)
+    }
+
+    @Test
+    fun testDeleteLentDebt_refundsInitialLentAmountToWallet_andRollsBackRepayments() = runBlocking {
+        // 1. Setup account with 10,000 DZD
+        val accountId = db.accountDao().insertAccount(
+            AccountEntity(name = "محفظة السيولة", type = "CASH", balance = 10000.0, color = "#10B981", icon = "")
+        )
+
+        // 2. Lend 5,000 DZD -> balance becomes 5000.0
+        val debtId = addLentDebtUseCase(
+            title = "سلفة شراء دراجة",
+            debtorName = "عمر",
+            totalAmount = 5000.0,
+            linkedAccountId = accountId
+        )
+        assertEquals(5000.0, db.accountDao().getAccountById(accountId)!!.balance, 0.001)
+
+        // 3. Receive repayment of 2,000 DZD -> balance becomes 7000.0
+        recordLentDebtRepaymentUseCase(
+            debtId = debtId,
+            receivingAccountId = accountId,
+            amount = 2000.0,
+            note = "استرداد جزء"
+        )
+        assertEquals(7000.0, db.accountDao().getAccountById(accountId)!!.balance, 0.001)
+
+        // 4. Delete the lent debt completely
+        val delResult = deleteDebtUseCase(debtId)
+        assertTrue(delResult.isSuccess)
+
+        // 5. Verification:
+        // - The repayment of 2000 was undone (-2000)
+        // - The initial expense of 5000 was refunded (+5000)
+        // Net wallet balance should return exactly to 10,000.0!
+        val accAfterDelete = db.accountDao().getAccountById(accountId)!!
+        assertEquals(10000.0, accAfterDelete.balance, 0.001)
+
+        // Debt and payments removed
+        assertNull(debtRepo.getDebtById(debtId))
+        assertTrue(debtRepo.getPaymentsForDebt(debtId).first().isEmpty())
+    }
+
+    @Test
+    fun testForgiveLentDebt_customizesForgivenessNoteForDebtor() = runBlocking {
+        // 1. Setup account and lend 3,000 DZD
+        val accountId = db.accountDao().insertAccount(
+            AccountEntity(name = "البنك", type = "REGULAR", balance = 5000.0, color = "#FFF", icon = "")
+        )
+        val debtId = addLentDebtUseCase(
+            title = "سلفة مساعدة",
+            debtorName = "بلال",
+            totalAmount = 3000.0,
+            linkedAccountId = accountId
+        )
+
+        // 2. Forgive the debtor
+        val forgiveResult = forgiveDebtUseCase(debtId)
+        assertTrue(forgiveResult.isSuccess)
+
+        val forgivenDebt = debtRepo.getDebtById(debtId)!!
+        assertEquals(0.0, forgivenDebt.remainingAmount, 0.001)
+        assertTrue(forgivenDebt.isClosed)
+        assertTrue(forgivenDebt.notes?.contains("تم الإعفاء من السلفة / مسامحة المدين") == true)
     }
 }

@@ -34,7 +34,7 @@ import com.qdash.data.local.entities.*
         AmanaEntity::class,
         ExchangeRateEntity::class
     ],
-    version = 32,
+    version = 33,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {

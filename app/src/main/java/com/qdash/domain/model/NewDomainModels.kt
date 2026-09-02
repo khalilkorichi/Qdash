@@ -29,6 +29,11 @@ enum class DebtType {
     INSTALLMENT, REGULAR
 }
 
+enum class DebtDirection {
+    OWED_BY_ME, // دين عليّ (التزام)
+    OWED_TO_ME  // دين لي (سلفة للغير)
+}
+
 sealed interface Debt : Identifiable, Titled, NotesHolder, ColorTagged, IconTagged, Timestamped, RemainingAmountTrackable {
     override val id: Long
     override val title: String
@@ -43,6 +48,8 @@ sealed interface Debt : Identifiable, Titled, NotesHolder, ColorTagged, IconTagg
     override val createdAt: Long
     val isClosed: Boolean
     val debtType: DebtType
+    val direction: DebtDirection
+    val initialTransactionId: Long?
 }
 
 data class RegularDebt(
@@ -57,7 +64,9 @@ data class RegularDebt(
     override val color: String,
     override val icon: String,
     override val createdAt: Long = System.currentTimeMillis(),
-    override val isClosed: Boolean = false
+    override val isClosed: Boolean = false,
+    override val direction: DebtDirection = DebtDirection.OWED_BY_ME,
+    override val initialTransactionId: Long? = null
 ) : Debt {
     override val debtType: DebtType = DebtType.REGULAR
 }
@@ -79,7 +88,9 @@ data class InstallmentDebt(
     val minimumPayment: Double,
     val recommendedPayment: Double? = null,
     val paymentFrequency: String,
-    val priority: Int
+    val priority: Int,
+    override val direction: DebtDirection = DebtDirection.OWED_BY_ME,
+    override val initialTransactionId: Long? = null
 ) : Debt {
     override val debtType: DebtType = DebtType.INSTALLMENT
 }
@@ -87,11 +98,13 @@ data class InstallmentDebt(
 fun Debt.copyDebt(
     remainingAmount: Double = this.remainingAmount,
     isClosed: Boolean = this.isClosed,
-    notes: String? = this.notes
+    notes: String? = this.notes,
+    direction: DebtDirection = this.direction,
+    initialTransactionId: Long? = this.initialTransactionId
 ): Debt {
     return when (this) {
-        is RegularDebt -> this.copy(remainingAmount = remainingAmount, isClosed = isClosed, notes = notes)
-        is InstallmentDebt -> this.copy(remainingAmount = remainingAmount, isClosed = isClosed, notes = notes)
+        is RegularDebt -> this.copy(remainingAmount = remainingAmount, isClosed = isClosed, notes = notes, direction = direction, initialTransactionId = initialTransactionId)
+        is InstallmentDebt -> this.copy(remainingAmount = remainingAmount, isClosed = isClosed, notes = notes, direction = direction, initialTransactionId = initialTransactionId)
     }
 }
 
@@ -217,6 +230,7 @@ fun SavingsContribution.toEntity() = SavingsContributionEntity(
 )
 
 fun DebtWithInstallmentDetails.toDomain(): Debt {
+    val dir = try { DebtDirection.valueOf(debt.direction) } catch (e: Exception) { DebtDirection.OWED_BY_ME }
     return if (debt.debtType == "REGULAR") {
         RegularDebt(
             id = debt.id,
@@ -230,7 +244,9 @@ fun DebtWithInstallmentDetails.toDomain(): Debt {
             color = debt.color,
             icon = debt.icon,
             createdAt = debt.createdAt,
-            isClosed = debt.isClosed
+            isClosed = debt.isClosed,
+            direction = dir,
+            initialTransactionId = debt.initialTransactionId
         )
     } else {
         val details = installmentDetails ?: throw IllegalStateException("Installment details missing for debt ID: ${debt.id}")
@@ -251,7 +267,9 @@ fun DebtWithInstallmentDetails.toDomain(): Debt {
             minimumPayment = details.minimumPayment,
             recommendedPayment = details.recommendedPayment,
             paymentFrequency = details.paymentFrequency,
-            priority = details.priority
+            priority = details.priority,
+            direction = dir,
+            initialTransactionId = debt.initialTransactionId
         )
     }
 }
@@ -269,7 +287,9 @@ fun Debt.toEntity() = DebtEntity(
     icon = icon,
     createdAt = createdAt,
     isClosed = isClosed,
-    debtType = debtType.name
+    debtType = debtType.name,
+    direction = direction.name,
+    initialTransactionId = initialTransactionId
 )
 
 fun Debt.toInstallmentDetailsEntity(): DebtInstallmentDetailsEntity? {
