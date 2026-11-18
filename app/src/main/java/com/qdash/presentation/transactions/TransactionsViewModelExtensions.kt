@@ -14,6 +14,30 @@ import kotlinx.coroutines.launch
  * and bulk transaction editing. Extracted to keep TransactionsViewModel.kt under the SIZE-001 500-line threshold.
  */
 
+internal fun TransactionsViewModel.preloadFormEssentials() {
+    viewModelScope.launch {
+        try {
+            kotlinx.coroutines.flow.combine(
+                categoryRepository.getAllCategories(),
+                accountRepository.getAllAccounts(),
+                budgetGoalRepository.getActiveBudgetGoals()
+            ) { cats, accs, budgets ->
+                Triple(cats, accs, budgets)
+            }.collect { (cats, accs, budgets) ->
+                _uiState.update { state ->
+                    state.copy(
+                        categories = cats,
+                        accounts = accs,
+                        budgetGoals = budgets
+                    )
+                }
+            }
+        } catch (_: Exception) {
+            // Handled by main loadTransactions collector
+        }
+    }
+}
+
 internal fun findLocalCategorySuggestion(
     note: String,
     stateSnapshot: TransactionsUiState,

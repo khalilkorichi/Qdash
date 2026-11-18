@@ -23,12 +23,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun AddTransactionScreen(
     viewModel: TransactionsViewModel,
-    addTxViewModel: AddTransactionViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
-        factory = com.qdash.presentation.ViewModelFactory(
-            (LocalContext.current.applicationContext as com.qdash.FinTrackApp).container,
-            LocalContext.current
-        )
-    ),
+    addTxViewModel: AddTransactionViewModel = run {
+        val ctx = LocalContext.current
+        val rememberedFactory = remember(ctx) {
+            com.qdash.presentation.ViewModelFactory(
+                (ctx.applicationContext as com.qdash.FinTrackApp).container,
+                ctx
+            )
+        }
+        androidx.lifecycle.viewmodel.compose.viewModel(factory = rememberedFactory)
+    },
     initialType: String = "EXPENSE",
     transactionId: Long? = null,
     initialDate: Long? = null,
@@ -49,32 +53,8 @@ fun AddTransactionScreen(
     val rawAmount = rawAmountValue.text
     var showAddCategoryDialog by rememberSaveable { mutableStateOf(false) }
     var isAddingSubcategory by rememberSaveable { mutableStateOf(false) }
-    var newCategoryName by rememberSaveable { mutableStateOf("") }
-    var newCategoryIcon by rememberSaveable { mutableStateOf("📁") }
-    var newCategoryColor by rememberSaveable { mutableStateOf("#8B5CF6") }
-
     var selectedCategoryId by rememberSaveable { mutableStateOf<Long?>(null) }
     var subcategoryId by rememberSaveable { mutableStateOf<Long?>(null) }
-
-    // Auto-select newly created category or subcategory
-    var previousCategories by remember { mutableStateOf<List<com.qdash.domain.model.Category>>(emptyList()) }
-    LaunchedEffect(uiState.categories) {
-        if (previousCategories.isNotEmpty() && uiState.categories.size > previousCategories.size) {
-            val newlyAdded = uiState.categories.filter { newCat ->
-                previousCategories.none { oldCat -> oldCat.id == newCat.id }
-            }
-            newlyAdded.firstOrNull()?.let { newCat ->
-                if (newCat.parentId != null) {
-                    selectedCategoryId = newCat.parentId
-                    subcategoryId = newCat.id
-                } else {
-                    selectedCategoryId = newCat.id
-                    subcategoryId = null
-                }
-            }
-        }
-        previousCategories = uiState.categories
-    }
 
     var note by rememberSaveable { mutableStateOf("") }
     var isRecurring by rememberSaveable { mutableStateOf(false) }
@@ -205,6 +185,12 @@ fun AddTransactionScreen(
 
     val scrollState = rememberScrollState()
 
+    LaunchedEffect(scrollState.isScrollInProgress, scrollState.value) {
+        if (scrollState.isScrollInProgress && scrollState.value > 36 && isKeypadExpanded) {
+            isKeypadExpanded = false
+        }
+    }
+
     val onSaveClick = {
         performSaveTransaction(
             rawAmount = rawAmount,
@@ -303,28 +289,30 @@ fun AddTransactionScreen(
             isSalaryAutomation = isSalaryAutomation,
             onSalaryAutomationChange = { isSalaryAutomation = it },
             onAddMainCategory = {
-                newCategoryName = ""
-                newCategoryIcon = "📁"
-                newCategoryColor = "#8B5CF6"
                 isAddingSubcategory = false
                 showAddCategoryDialog = true
             },
             onAddSubCategory = {
-                newCategoryName = ""
-                newCategoryIcon = "📁"
-                newCategoryColor = "#8B5CF6"
                 isAddingSubcategory = true
                 showAddCategoryDialog = true
             },
             onSmartSortToggle = { viewModel.toggleSmartCategorySort() },
             onAiSuggest = {
-                viewModel.onNoteChanged(
-                    note = note,
-                    amount = parsedAmount,
-                    accountId = effectiveAccountId,
-                    forceAi = true,
-                    transactionType = type
-                )
+                if (note.isBlank() && parsedAmount <= 0.0) {
+                    android.widget.Toast.makeText(
+                        context,
+                        "أدخل ملاحظة أو مبلغاً أولاً ليقترح المساعد الذكي الفئة الأنسب",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    viewModel.onNoteChanged(
+                        note = note,
+                        amount = parsedAmount,
+                        accountId = effectiveAccountId,
+                        forceAi = true,
+                        transactionType = type
+                    )
+                }
             },
             onAcceptSuggestion = { catId ->
                 val cat = uiState.categories.find { it.id == catId }
@@ -362,6 +350,7 @@ fun AddTransactionScreen(
             primaryColor = primaryColor,
             onNoteFocused = { isKeypadExpanded = false },
             onAmountTap = { isKeypadExpanded = true },
+            onCategoryPickerOpened = { isKeypadExpanded = false },
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(scrollState)
@@ -376,7 +365,7 @@ fun AddTransactionScreen(
             onAmountValueChange = { rawAmountValue = it },
             type = type,
             transactionId = transactionId,
-            rawAmount = rawAmount,
+            hasPositiveAmount = parsedAmount > 0.0,
             canSaveTransaction = canSaveTransaction,
             typeAccentColor = typeAccentColor,
             onSaveClick = onSaveClick,
@@ -408,39 +397,21 @@ fun AddTransactionScreen(
             uiState = uiState,
             viewModel = viewModel,
             onConfirmSavingsAction = { kind ->
-                val parsedAmountVal = com.qdash.core.utils.CalculatorParser.evaluate(rawAmount)
-                if (transactionId != null) {
-                    viewModel.updateTransaction(
-                        id = transactionId,
-                        amount = parsedAmountVal,
-                        type = type,
-                        categoryId = effectiveCategoryId ?: 1L,
-                        accountId = effectiveAccountId ?: 1L,
-                        toAccountId = null,
-                        note = note.ifBlank { null },
-                        date = transactionDate,
-                        isRecurring = isRecurring,
-                        recurringPeriod = if (isRecurring) recurringPeriod else null,
-                        tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
-                        kind = kind,
-                        occurredAt = occurredAt
-                    )
-                } else {
-                    viewModel.addTransaction(
-                        amount = parsedAmountVal,
-                        type = type,
-                        categoryId = effectiveCategoryId ?: 1L,
-                        accountId = effectiveAccountId ?: 1L,
-                        toAccountId = null,
-                        note = note.ifBlank { null },
-                        date = transactionDate,
-                        isRecurring = isRecurring,
-                        recurringPeriod = if (isRecurring) recurringPeriod else null,
-                        tags = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null,
-                        kind = kind,
-                        occurredAt = occurredAt
-                    )
-                }
+                performConfirmedSavingsTransaction(
+                    rawAmount = rawAmount,
+                    transactionId = transactionId,
+                    type = type,
+                    effectiveCategoryId = effectiveCategoryId,
+                    effectiveAccountId = effectiveAccountId,
+                    note = note,
+                    transactionDate = transactionDate,
+                    isRecurring = isRecurring,
+                    recurringPeriod = recurringPeriod,
+                    selectedTags = selectedTags,
+                    kind = kind,
+                    occurredAt = occurredAt,
+                    viewModel = viewModel
+                )
             }
         )
     }

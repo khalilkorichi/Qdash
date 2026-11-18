@@ -1,34 +1,25 @@
 package com.qdash.presentation.transactions
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.qdash.domain.model.BudgetGoal
 import com.qdash.domain.model.TransactionType
-import com.qdash.ui.theme.TransferBlue
+import com.qdash.presentation.transactions.components.UnifiedCategorySelectorCard
 import com.qdash.ui.theme.TextGray
+import com.qdash.ui.theme.TransferBlue
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AddTransactionFormContent(
     type: TransactionType,
@@ -75,9 +66,9 @@ fun AddTransactionFormContent(
     primaryColor: Color,
     modifier: Modifier = Modifier,
     onNoteFocused: () -> Unit = {},
-    onAmountTap: () -> Unit = {}
+    onAmountTap: () -> Unit = {},
+    onCategoryPickerOpened: () -> Unit = {}
 ) {
-    val haptic = LocalHapticFeedback.current
     val nonArchivedAccounts = remember(uiState.accounts) {
         uiState.accounts.filter { !it.isArchived }
     }
@@ -89,17 +80,17 @@ fun AddTransactionFormContent(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Spacer(modifier = Modifier.height(2.dp))
 
-        // Transaction type selector chip bar
+        // 1. Transaction Type Selector
         TypeSelectorBar(
             selected = type,
             onSelect = onTypeChange
         )
 
-        // Amount display card
+        // 2. Amount Display Card
         AmountDisplayCard(
             rawAmountValue = rawAmountValue,
             onValueChange = onAmountValueChange,
@@ -110,7 +101,7 @@ fun AddTransactionFormContent(
             onTap = onAmountTap
         )
 
-        // Note input (Moved to the top)
+        // 3. Note Input (directly above Unified Category Card so Smart Suggestions appear right beneath)
         OutlinedTextField(
             value = note,
             onValueChange = onNoteChange,
@@ -124,7 +115,7 @@ fun AddTransactionFormContent(
                 .testTag("note_input"),
             placeholder = {
                 Text(
-                    text = "أضف ملاحظة أو سبب المعاملة…",
+                    text = "أضف ملاحظة أو سبب المعاملة (مثلاً: قهوة، فليكسي، قضيان…)",
                     color = TextGray,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -132,122 +123,70 @@ fun AddTransactionFormContent(
             leadingIcon = {
                 Icon(Icons.Default.Edit, contentDescription = null, tint = TextGray)
             },
+            trailingIcon = if (note.isNotEmpty()) {
+                {
+                    IconButton(onClick = { onNoteChange("") }) {
+                        Icon(
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = "مسح الملاحظة",
+                            tint = TextGray
+                        )
+                    }
+                }
+            } else null,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = typeAccentColor,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                 cursorColor = typeAccentColor
             ),
             shape = RoundedCornerShape(14.dp),
             singleLine = true
         )
 
-        // Single consolidated real-time non-blocking smart category suggestion row
+        // 4. Unified Category Selector + Integrated Smart Suggestion Box (Expense / Income)
         if (type != TransactionType.TRANSFER) {
-            com.qdash.presentation.transactions.components.SmartCategorySuggestionRow(
+            UnifiedCategorySelectorCard(
+                categories = uiState.categories,
+                transactions = uiState.transactions,
+                type = type,
+                selectedCategoryId = selectedCategoryId,
+                subcategoryId = subcategoryId,
+                typeAccentColor = typeAccentColor,
+                smartSortEnabled = uiState.smartCategorySortEnabled,
                 suggestion = uiState.currentSuggestion,
                 matchedCategory = uiState.suggestedCategory,
-                onAcceptSuggestion = { categoryId ->
-                    onAcceptSuggestion(categoryId)
+                isSuggestingCategory = uiState.isSuggestingCategory,
+                onToggleSmartSort = onSmartSortToggle,
+                onCategorySelected = { parentCatId, subCatId ->
+                    onSelectedCategoryIdChange(parentCatId)
+                    onSubcategoryIdChange(subCatId)
                 },
-                onAcceptNewCategory = onAcceptAndCreateSuggestion,
+                onAddMainCategory = onAddMainCategory,
+                onAddSubCategory = onAddSubCategory,
+                onAiSuggest = onAiSuggest,
+                onAcceptSuggestion = onAcceptSuggestion,
+                onAcceptAndCreateSuggestion = onAcceptAndCreateSuggestion,
                 onDismissSuggestion = onDismissSuggestion,
-                allCategories = uiState.categories
+                onPickerOpened = onCategoryPickerOpened
+            )
+
+            BudgetWarningCard(
+                activeBudget = activeBudget,
+                inputAmount = parsedAmount
             )
         }
 
-        TagsSection(
-            selectedTags = selectedTags,
-            onTagsChanged = onTagsChange,
-            typeAccentColor = typeAccentColor
-        )
-
-        BudgetWarningCard(
-            activeBudget = activeBudget,
-            inputAmount = parsedAmount
-        )
-
-        // Category dropdown (not for Transfer)
-        if (type != TransactionType.TRANSFER) {
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    SectionLabel(text = "الفئة")
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .border(
-                                BorderStroke(1.dp, TransferBlue),
-                                RoundedCornerShape(8.dp)
-                            )
-                            .background(TransferBlue.copy(alpha = 0.08f))
-                            .clickable {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onAiSuggest()
-                            }
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            if (uiState.isSuggestingCategory) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(13.dp),
-                                    strokeWidth = 1.8.dp,
-                                    color = TransferBlue
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                    tint = TransferBlue,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                            Text(
-                                text = if (uiState.isSuggestingCategory) "جاري التحليل…" else "اقتراح ذكي",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = TransferBlue,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(6.dp))
-                CategoryDropdownSelector(
-                    categories = uiState.categories,
-                    transactions = uiState.transactions,
-                    type = type,
-                    selectedCategoryId = selectedCategoryId,
-                    subcategoryId = subcategoryId,
-                    typeAccentColor = typeAccentColor,
-                    smartSortEnabled = uiState.smartCategorySortEnabled,
-                    onToggleSmartSort = onSmartSortToggle,
-                    onCategorySelected = { parentCatId, subCatId ->
-                        onSelectedCategoryIdChange(parentCatId)
-                        onSubcategoryIdChange(subCatId)
-                    },
-                    onAddMainCategory = onAddMainCategory,
-                    onAddSubCategory = onAddSubCategory,
-                    suggestionData = null,
-                    onAcceptSuggestion = onAcceptSuggestion,
-                    onAcceptAndCreateSuggestion = onAcceptAndCreateSuggestion,
-                    onDismissSuggestion = onDismissSuggestion
-                )
-            }
-        }
-
+        // 5. Source Account Selector
         if (nonArchivedAccounts.isNotEmpty()) {
             Column {
                 SectionLabel(
                     text = when (type) {
-                        TransactionType.INCOME   -> "الإيداع في حِساب"
-                        TransactionType.EXPENSE  -> "الدفع من حِساب"
+                        TransactionType.INCOME   -> "الإيداع في حساب"
+                        TransactionType.EXPENSE  -> "الدفع من حساب"
                         TransactionType.TRANSFER -> "من حساب"
                     }
                 )
@@ -270,7 +209,7 @@ fun AddTransactionFormContent(
             }
         }
 
-        // Destination account (Transfer only)
+        // 6. Destination Account Selector (Transfer only)
         if (type == TransactionType.TRANSFER && nonArchivedAccounts.isNotEmpty()) {
             Column {
                 SectionLabel(text = "إلى حساب")
@@ -287,12 +226,20 @@ fun AddTransactionFormContent(
             }
         }
 
+        // 7. Compact Date & Time Selector
         TransactionDateSelector(
             transactionDate = transactionDate,
             onDateChanged = onTransactionDateChange,
             typeAccentColor = typeAccentColor,
             occurredAt = occurredAt,
             onOccurredAtChanged = onOccurredAtChange
+        )
+
+        // 8. Tags & Recurring / Automation Options
+        TagsSection(
+            selectedTags = selectedTags,
+            onTagsChanged = onTagsChange,
+            typeAccentColor = typeAccentColor
         )
 
         RecurringOptionsSection(
@@ -307,6 +254,6 @@ fun AddTransactionFormContent(
             primaryColor = primaryColor
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
     }
 }

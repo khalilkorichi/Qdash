@@ -85,21 +85,25 @@ private data class CalendarState(
 
 class TransactionsViewModel(
     internal val transactionRepository: TransactionRepository,
-    private val accountRepository: AccountRepository,
+    internal val accountRepository: AccountRepository,
     internal val categoryRepository: CategoryRepository,
     internal val incomeRepository: IncomeRepository,
     private val getCategorySuggestionUseCase: GetCategorySuggestionUseCase,
     internal val learnCategoryMappingUseCase: LearnCategoryMappingUseCase,
-    private val budgetGoalRepository: com.qdash.domain.repository.BudgetGoalRepository,
+    internal val budgetGoalRepository: com.qdash.domain.repository.BudgetGoalRepository,
     internal val templateRepository: TransactionTemplateRepository,
     internal val preferencesManager: com.qdash.core.preferences.PreferencesManager,
     internal val bulkEditTransactionsUseCase: BulkEditTransactionsUseCase
 ) : ViewModel() {
 
-
     private val filterTransactionsUseCase = FilterTransactionsUseCase()
 
-    internal val _uiState = MutableStateFlow(TransactionsUiState())
+    internal val _uiState = MutableStateFlow(
+        TransactionsUiState(
+            isAmountWordsEnabled = runCatching { preferencesManager.amountWordsEnabled }.getOrDefault(true),
+            smartCategorySortEnabled = runCatching { preferencesManager.smartCategorySortEnabled }.getOrDefault(false)
+        )
+    )
     val uiState: StateFlow<TransactionsUiState> = _uiState.asStateFlow()
 
     internal val _bulkEditEvent = MutableSharedFlow<BulkEditEvent>()
@@ -131,6 +135,7 @@ class TransactionsViewModel(
     private val _visibleYear = MutableStateFlow(java.util.Calendar.getInstance().get(java.util.Calendar.YEAR))
 
     init {
+        preloadFormEssentials()
         loadTransactions()
     }
 
@@ -368,9 +373,6 @@ class TransactionsViewModel(
     fun clearSuggestion() {
         _uiState.update { it.copy(currentSuggestion = null, suggestedCategory = null) }
     }
-
-
-
 
     fun onSearchQueryChanged(query: String) {
         _uiState.update { it.copy(searchQuery = query) }

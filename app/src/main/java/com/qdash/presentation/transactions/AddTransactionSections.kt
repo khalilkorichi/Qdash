@@ -1,12 +1,13 @@
 package com.qdash.presentation.transactions
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -16,18 +17,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.qdash.core.utils.FormatterUtils
 import com.qdash.domain.model.BudgetGoal
 import com.qdash.domain.model.TransactionType
-import com.qdash.ui.theme.*
-import com.qdash.ui.designsystem.components.*
-import com.qdash.ui.designsystem.tokens.*
-import com.qdash.core.utils.FormatterUtils
+import com.qdash.ui.designsystem.components.AppDatePickerDialog
+import com.qdash.ui.designsystem.components.AppTimePickerDialog
+import com.qdash.ui.theme.SavingsAmber
+import com.qdash.ui.theme.TextGray
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -37,105 +39,112 @@ fun TagsSection(
     typeAccentColor: Color,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        SectionLabel(text = "الوسوم (Tags)")
-        Spacer(modifier = Modifier.height(4.dp))
-        
-        if (selectedTags.isNotEmpty()) {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+    var showCustomTagInput by remember { mutableStateOf(false) }
+    var customTagText by remember { mutableStateOf("") }
+
+    val presetTags = remember {
+        listOf("غذاء", "بنزين", "فاتورة", "سفر", "هدايا", "صحة", "ملابس", "إنترنت")
+    }
+    val availablePresets = remember(selectedTags) {
+        presetTags.filter { it !in selectedTags }
+    }
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 10.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                selectedTags.forEach { tag ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Tag,
+                        contentDescription = null,
+                        tint = if (selectedTags.isNotEmpty()) typeAccentColor else TextGray,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "الوسوم",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (selectedTags.isNotEmpty()) {
+                        Text(
+                            text = "(${selectedTags.size})",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = typeAccentColor,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                if (!showCustomTagInput) {
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(typeAccentColor.copy(alpha = 0.12f))
-                            .border(
-                                width = 0.5.dp,
-                                color = typeAccentColor.copy(alpha = 0.3f),
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .clickable { onTagsChanged(selectedTags - tag) }
+                            .background(typeAccentColor.copy(alpha = 0.10f))
+                            .clickable { showCustomTagInput = true }
                             .padding(horizontal = 8.dp, vertical = 4.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "#$tag",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = typeAccentColor,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "حذف",
-                                tint = typeAccentColor,
-                                modifier = Modifier.size(10.dp)
-                            )
-                        }
+                        Text(
+                            text = "+ وسم مخصص",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = typeAccentColor,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
-        }
 
-        val presetTags = listOf("غذاء", "بنزين", "فاتورة", "سفر", "هدايا", "صحة", "ملابس", "إنترنت")
-        val availablePresets = presetTags.filter { it !in selectedTags }
-        
-        Text(
-            text = "وسوم مقترحة:",
-            style = MaterialTheme.typography.labelSmall,
-            color = TextGray
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            availablePresets.forEach { tag ->
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                        .clickable { onTagsChanged(selectedTags + tag) }
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "#$tag",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            
-            var showCustomTagInput by remember { mutableStateOf(false) }
-            var customTagText by remember { mutableStateOf("") }
-            
             if (showCustomTagInput) {
+                Spacer(modifier = Modifier.height(8.dp))
                 Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     BasicTextField(
                         value = customTagText,
                         onValueChange = { customTagText = it },
-                        textStyle = MaterialTheme.typography.labelSmall.copy(
+                        textStyle = MaterialTheme.typography.bodySmall.copy(
                             color = MaterialTheme.colorScheme.onSurface
                         ),
                         modifier = Modifier
-                            .width(80.dp)
+                            .weight(1f)
                             .background(
-                                MaterialTheme.colorScheme.surfaceVariant,
-                                RoundedCornerShape(4.dp)
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                RoundedCornerShape(8.dp)
                             )
-                            .padding(horizontal = 6.dp, vertical = 4.dp),
-                        singleLine = true
+                            .padding(horizontal = 10.dp, vertical = 7.dp),
+                        singleLine = true,
+                        decorationBox = { innerTextField ->
+                            if (customTagText.isEmpty()) {
+                                Text(
+                                    text = "اكتب اسم الوسم…",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextGray
+                                )
+                            }
+                            innerTextField()
+                        }
                     )
                     IconButton(
                         onClick = {
@@ -146,13 +155,13 @@ fun TagsSection(
                             customTagText = ""
                             showCustomTagInput = false
                         },
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(30.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = "إضافة",
                             tint = typeAccentColor,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                     IconButton(
@@ -160,31 +169,84 @@ fun TagsSection(
                             customTagText = ""
                             showCustomTagInput = false
                         },
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(30.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "إلغاء",
                             tint = TextGray,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
-            } else {
-                Box(
+            }
+
+            if (selectedTags.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                FlowRow(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(typeAccentColor.copy(alpha = 0.08f))
-                        .clickable { showCustomTagInput = true }
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(
-                        text = "+ وسم مخصص",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = typeAccentColor,
-                        fontWeight = FontWeight.Bold
-                    )
+                    selectedTags.forEach { tag ->
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(typeAccentColor.copy(alpha = 0.14f))
+                                .border(
+                                    width = 0.8.dp,
+                                    color = typeAccentColor.copy(alpha = 0.35f),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .clickable { onTagsChanged(selectedTags - tag) }
+                                .padding(horizontal = 9.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "#$tag",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = typeAccentColor,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "حذف",
+                                    tint = typeAccentColor,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (availablePresets.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(availablePresets, key = { it }) { tag ->
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+                                .clickable { onTagsChanged(selectedTags + tag) }
+                                .padding(horizontal = 9.dp, vertical = 5.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "#$tag",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -203,7 +265,7 @@ fun BudgetWarningCard(
             val remaining = budget.amountLimit - budget.spentAmount
             val isExceeded = newSpent > budget.amountLimit
             val isWarning = !isExceeded && newSpent >= (budget.amountLimit * 0.90)
-            
+
             if (isExceeded || isWarning) {
                 val remainingFormatted = FormatterUtils.formatCurrency(remaining.coerceAtLeast(0.0))
                 val limitFormatted = FormatterUtils.formatCurrency(budget.amountLimit)
@@ -211,17 +273,17 @@ fun BudgetWarningCard(
                     modifier = modifier
                         .fillMaxWidth()
                         .animateContentSize(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = if (isExceeded) {
-                            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f)
+                            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.16f)
                         } else {
                             SavingsAmber.copy(alpha = 0.15f)
                         }
                     ),
                     border = BorderStroke(
                         1.dp,
-                        if (isExceeded) MaterialTheme.colorScheme.error.copy(alpha = 0.4f) else SavingsAmber.copy(alpha = 0.4f)
+                        if (isExceeded) MaterialTheme.colorScheme.error.copy(alpha = 0.45f) else SavingsAmber.copy(alpha = 0.45f)
                     )
                 ) {
                     Row(
@@ -237,7 +299,11 @@ fun BudgetWarningCard(
                         )
                         Column {
                             Text(
-                                text = if (isExceeded) "تنبيه: هذا المبلغ يتجاوز الميزانية المحددة للفئة!" else "انتبه: الميزانية المحددة لهذه الفئة أوشكت على النفاد!",
+                                text = if (isExceeded) {
+                                    "تنبيه: هذا المبلغ يتجاوز الميزانية المحددة للفئة!"
+                                } else {
+                                    "انتبه: الميزانية المحددة لهذه الفئة أوشكت على النفاد!"
+                                },
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                 color = if (isExceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground
                             )
@@ -265,7 +331,6 @@ fun TransactionDateSelector(
     transactionDate: Long,
     onDateChanged: (Long) -> Unit,
     typeAccentColor: Color,
-    // Precise execution timestamp — null for legacy records or when user hasn't set a time yet.
     occurredAt: Long? = null,
     onOccurredAtChanged: ((Long?) -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -273,7 +338,6 @@ fun TransactionDateSelector(
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
-    // Extract hour/minute from occurredAt (or current time as default for the picker)
     val cal = remember(occurredAt) {
         java.util.Calendar.getInstance().apply {
             timeInMillis = occurredAt ?: System.currentTimeMillis()
@@ -282,57 +346,139 @@ fun TransactionDateSelector(
     val pickerHour = cal.get(java.util.Calendar.HOUR_OF_DAY)
     val pickerMinute = cal.get(java.util.Calendar.MINUTE)
 
-    Column(modifier = modifier) {
-        SectionLabel(text = "تاريخ العملية")
+    Column(modifier = modifier.fillMaxWidth()) {
+        SectionLabel(text = "التاريخ والوقت")
         Spacer(modifier = Modifier.height(6.dp))
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(
-                    elevation = 1.dp,
-                    shape = RoundedCornerShape(14.dp)
-                )
-                .clickable { showDatePicker = true },
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            border = BorderStroke(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-            )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Date Card
+            Surface(
+                onClick = { showDatePicker = true },
+                modifier = Modifier.weight(if (onOccurredAtChanged != null) 1.15f else 1f),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f)
+                )
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = null,
+                            tint = typeAccentColor,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = FormatterUtils.formatDate(transactionDate),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                     Icon(
-                        imageVector = Icons.Default.DateRange,
-                        contentDescription = null,
-                        tint = typeAccentColor,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = FormatterUtils.formatDate(transactionDate),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.SemiBold
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "تعديل التاريخ",
+                        tint = TextGray,
+                        modifier = Modifier.size(15.dp)
                     )
                 }
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "تعديل التاريخ",
-                    tint = TextGray,
-                    modifier = Modifier.size(16.dp)
-                )
+            }
+
+            // Time Card (preserved testTag "time_selector")
+            if (onOccurredAtChanged != null) {
+                Surface(
+                    onClick = { showTimePicker = true },
+                    modifier = Modifier
+                        .weight(0.95f)
+                        .testTag("time_selector"),
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = if (occurredAt != null) {
+                            typeAccentColor.copy(alpha = 0.45f)
+                        } else {
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f)
+                        }
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccessTime,
+                                contentDescription = null,
+                                tint = if (occurredAt != null) typeAccentColor else TextGray,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(7.dp))
+                            Text(
+                                text = if (occurredAt != null) {
+                                    FormatterUtils.formatTime(occurredAt)
+                                } else {
+                                    "إضافة وقت"
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (occurredAt != null) {
+                                    MaterialTheme.colorScheme.onSurface
+                                } else {
+                                    TextGray
+                                },
+                                fontWeight = if (occurredAt != null) FontWeight.SemiBold else FontWeight.Normal,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        if (occurredAt != null) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "إزالة الوقت",
+                                tint = TextGray,
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .clickable { onOccurredAtChanged(null) }
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "تعديل الوقت",
+                                tint = TextGray,
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
+
         Spacer(modifier = Modifier.height(6.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -347,7 +493,6 @@ fun TransactionDateSelector(
                 text = "اليوم",
                 isSelected = isToday,
                 accentColor = typeAccentColor,
-                // Preserve day of transactionDate but keep time in occurredAt unchanged
                 onClick = { onDateChanged(mergeDateTime(System.currentTimeMillis(), occurredAt)) }
             )
 
@@ -359,82 +504,11 @@ fun TransactionDateSelector(
             )
 
             QuickDateButton(
-                text = "تاريخ آخر...",
+                text = "تاريخ آخر…",
                 isSelected = isOther,
                 accentColor = typeAccentColor,
                 onClick = { showDatePicker = true }
             )
-        }
-
-        // Time picker section (only shown if callback provided)
-        if (onOccurredAtChanged != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(elevation = 1.dp, shape = RoundedCornerShape(14.dp))
-                    .clickable { showTimePicker = true }
-                    .testTag("time_selector"),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = if (occurredAt != null)
-                        typeAccentColor.copy(alpha = 0.4f)
-                    else
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-                )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.AccessTime,
-                            contentDescription = null,
-                            tint = if (occurredAt != null) typeAccentColor else TextGray,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = if (occurredAt != null)
-                                FormatterUtils.formatTime(occurredAt)
-                            else
-                                "إضافة وقت (اختياري)",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (occurredAt != null)
-                                MaterialTheme.colorScheme.onSurface
-                            else
-                                TextGray,
-                            fontWeight = if (occurredAt != null) FontWeight.SemiBold else FontWeight.Normal
-                        )
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (occurredAt != null) {
-                            // Allow removing the time
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "إزالة الوقت",
-                                tint = TextGray,
-                                modifier = Modifier
-                                    .size(16.dp)
-                                    .clickable { onOccurredAtChanged(null) }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                        }
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "تعديل الوقت",
-                            tint = TextGray,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            }
         }
     }
 
@@ -443,7 +517,6 @@ fun TransactionDateSelector(
             initialSelectedDateMillis = transactionDate,
             onDismissRequest = { showDatePicker = false },
             onDateSelected = { selectedDate ->
-                // Preserve time component from occurredAt when date changes
                 onDateChanged(mergeDateTime(selectedDate, occurredAt))
             },
             confirmButtonColor = typeAccentColor
@@ -456,7 +529,6 @@ fun TransactionDateSelector(
             initialMinute = pickerMinute,
             onDismissRequest = { showTimePicker = false },
             onTimeSelected = { hour, minute ->
-                // Merge selected time into transactionDate to produce occurredAt epoch
                 val newOccurredAt = buildOccurredAt(transactionDate, hour, minute)
                 onOccurredAtChanged(newOccurredAt)
             },
@@ -465,11 +537,6 @@ fun TransactionDateSelector(
     }
 }
 
-/**
- * Merges the day from [dateMills] with the time-of-day from [timeMills].
- * If [timeMills] is null, returns [dateMills] unchanged.
- * Used to update transactionDate quick-buttons without resetting the user's chosen time.
- */
 private fun mergeDateTime(dateMills: Long, timeMills: Long?): Long {
     if (timeMills == null) return dateMills
     val dateCal = java.util.Calendar.getInstance().apply { timeInMillis = dateMills }
@@ -481,10 +548,6 @@ private fun mergeDateTime(dateMills: Long, timeMills: Long?): Long {
     return dateCal.timeInMillis
 }
 
-/**
- * Produces an occurredAt epoch by combining the date component of [dateMills] with
- * the explicit [hour] and [minute] chosen by the user via the time picker.
- */
 private fun buildOccurredAt(dateMills: Long, hour: Int, minute: Int): Long {
     val cal = java.util.Calendar.getInstance().apply { timeInMillis = dateMills }
     cal.set(java.util.Calendar.HOUR_OF_DAY, hour)
@@ -493,8 +556,6 @@ private fun buildOccurredAt(dateMills: Long, hour: Int, minute: Int): Long {
     cal.set(java.util.Calendar.MILLISECOND, 0)
     return cal.timeInMillis
 }
-
-
 
 @Composable
 fun RecurringOptionsSection(
@@ -509,38 +570,17 @@ fun RecurringOptionsSection(
     primaryColor: Color,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 6.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Repeat,
-                    contentDescription = null,
-                    tint = if (isRecurring) primaryColor else TextGray,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "عملية متكررة دورياً؟",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-            Switch(
-                checked = isRecurring,
-                onCheckedChange = onRecurringChanged,
-                colors = SwitchDefaults.colors(
-                    checkedTrackColor = primaryColor,
-                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        }
-
-        if (type == TransactionType.INCOME) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -548,72 +588,111 @@ fun RecurringOptionsSection(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.AutoAwesome,
+                        imageVector = Icons.Default.Repeat,
                         contentDescription = null,
-                        tint = if (isSalaryAutomation) primaryColor else TextGray,
-                        modifier = Modifier.size(20.dp)
+                        tint = if (isRecurring) primaryColor else TextGray,
+                        modifier = Modifier.size(19.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "تسجيل كراتب تلقائي (أتمتة الراتب)؟",
+                        text = "عملية متكررة دورياً",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Medium
                     )
                 }
                 Switch(
-                    checked = isSalaryAutomation,
-                    onCheckedChange = onSalaryAutomationChanged,
+                    checked = isRecurring,
+                    onCheckedChange = onRecurringChanged,
                     colors = SwitchDefaults.colors(
                         checkedTrackColor = primaryColor,
                         checkedThumbColor = MaterialTheme.colorScheme.onPrimary
                     )
                 )
             }
-        }
 
-        AnimatedVisibility(visible = isRecurring) {
-            Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                Text(
-                    text = "وتيرة التكرار",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextGray
+            if (type == TransactionType.INCOME) {
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
                 )
-                Spacer(modifier = Modifier.height(4.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    listOf(
-                        "DAILY" to "يومياً",
-                        "WEEKLY" to "أسبوعياً",
-                        "MONTHLY" to "شهرياً",
-                        "YEARLY" to "سنوياً"
-                    ).forEach { (period, label) ->
-                        val isSelected = recurringPeriod == period
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(34.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    if (isSelected) typeAccentColor.copy(alpha = 0.15f)
-                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = if (isSalaryAutomation) primaryColor else TextGray,
+                            modifier = Modifier.size(19.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "تسجيل كراتب تلقائي (أتمتة الراتب)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Switch(
+                        checked = isSalaryAutomation,
+                        onCheckedChange = onSalaryAutomationChanged,
+                        colors = SwitchDefaults.colors(
+                            checkedTrackColor = primaryColor,
+                            checkedThumbColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    )
+                }
+            }
+
+            AnimatedVisibility(visible = isRecurring) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp, bottom = 6.dp)
+                ) {
+                    Text(
+                        text = "وتيرة التكرار",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextGray
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(
+                            "DAILY" to "يومياً",
+                            "WEEKLY" to "أسبوعياً",
+                            "MONTHLY" to "شهرياً",
+                            "YEARLY" to "سنوياً"
+                        ).forEach { (period, label) ->
+                            val isSelected = recurringPeriod == period
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(34.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (isSelected) typeAccentColor.copy(alpha = 0.15f)
+                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    )
+                                    .clickable { onPeriodChanged(period) }
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (isSelected) typeAccentColor else Color.Transparent,
+                                        shape = RoundedCornerShape(8.dp)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) typeAccentColor else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                .clickable { onPeriodChanged(period) }
-                                .border(
-                                    width = 1.dp,
-                                    color = if (isSelected) typeAccentColor else Color.Transparent,
-                                    shape = RoundedCornerShape(8.dp)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) typeAccentColor else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            }
                         }
                     }
                 }

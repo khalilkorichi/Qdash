@@ -253,8 +253,10 @@ internal fun FinTrackNavGraph(
             val transactionDate = backStackEntry.arguments?.getString("date")?.toLongOrNull()
             val draftJson = backStackEntry.arguments?.getString("draft")
             val transactionsViewModel: TransactionsViewModel = viewModel(factory = factory)
+            val addTransactionViewModel: com.qdash.presentation.transactions.AddTransactionViewModel = viewModel(factory = factory)
             AddTransactionScreen(
                 viewModel = transactionsViewModel,
+                addTxViewModel = addTransactionViewModel,
                 initialType = transactionType,
                 transactionId = transactionId,
                 initialDate = transactionDate,

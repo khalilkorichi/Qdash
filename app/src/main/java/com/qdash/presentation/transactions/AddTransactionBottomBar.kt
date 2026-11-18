@@ -33,7 +33,7 @@ fun AddTransactionBottomBar(
     onAmountValueChange: (TextFieldValue) -> Unit,
     type: TransactionType,
     transactionId: Long?,
-    rawAmount: String,
+    hasPositiveAmount: Boolean,
     canSaveTransaction: Boolean,
     typeAccentColor: Color,
     onSaveClick: () -> Unit,
@@ -85,7 +85,7 @@ fun AddTransactionBottomBar(
             if (transactionId == null) {
                 OutlinedButton(
                     onClick = onShowSaveTemplateDialog,
-                    enabled = com.qdash.core.utils.CalculatorParser.evaluate(rawAmount) > 0.0,
+                    enabled = hasPositiveAmount,
                     modifier = Modifier.weight(1f),
                     border = BorderStroke(1.dp, typeAccentColor),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = typeAccentColor),

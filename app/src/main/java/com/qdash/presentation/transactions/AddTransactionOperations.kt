@@ -560,5 +560,78 @@ fun AddTransactionEffects(
             }
         }
     }
+
+    var previousCategories = androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf<List<com.qdash.domain.model.Category>>(emptyList())
+    }
+    LaunchedEffect(uiState.categories) {
+        if (previousCategories.value.isNotEmpty() && uiState.categories.size > previousCategories.value.size) {
+            val newlyAdded = uiState.categories.filter { newCat ->
+                previousCategories.value.none { oldCat -> oldCat.id == newCat.id }
+            }
+            newlyAdded.firstOrNull()?.let { newCat ->
+                if (newCat.parentId != null) {
+                    onSelectedCategoryIdChange(newCat.parentId)
+                    onSubcategoryIdChange(newCat.id)
+                } else {
+                    onSelectedCategoryIdChange(newCat.id)
+                    onSubcategoryIdChange(null)
+                }
+            }
+        }
+        previousCategories.value = uiState.categories
+    }
+}
+
+fun performConfirmedSavingsTransaction(
+    rawAmount: String,
+    transactionId: Long?,
+    type: TransactionType,
+    effectiveCategoryId: Long?,
+    effectiveAccountId: Long?,
+    note: String,
+    transactionDate: Long,
+    isRecurring: Boolean,
+    recurringPeriod: String,
+    selectedTags: List<String>,
+    kind: com.qdash.domain.model.TransactionKind,
+    occurredAt: Long?,
+    viewModel: TransactionsViewModel
+) {
+    val parsedAmountVal = com.qdash.core.utils.CalculatorParser.evaluate(rawAmount)
+    val tagsStr = if (selectedTags.isNotEmpty()) selectedTags.joinToString(",") else null
+    val periodStr = if (isRecurring) recurringPeriod else null
+    if (transactionId != null) {
+        viewModel.updateTransaction(
+            id = transactionId,
+            amount = parsedAmountVal,
+            type = type,
+            categoryId = effectiveCategoryId ?: 1L,
+            accountId = effectiveAccountId ?: 1L,
+            toAccountId = null,
+            note = note.ifBlank { null },
+            date = transactionDate,
+            isRecurring = isRecurring,
+            recurringPeriod = periodStr,
+            tags = tagsStr,
+            kind = kind,
+            occurredAt = occurredAt
+        )
+    } else {
+        viewModel.addTransaction(
+            amount = parsedAmountVal,
+            type = type,
+            categoryId = effectiveCategoryId ?: 1L,
+            accountId = effectiveAccountId ?: 1L,
+            toAccountId = null,
+            note = note.ifBlank { null },
+            date = transactionDate,
+            isRecurring = isRecurring,
+            recurringPeriod = periodStr,
+            tags = tagsStr,
+            kind = kind,
+            occurredAt = occurredAt
+        )
+    }
 }
 
