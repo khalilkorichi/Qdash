@@ -41,76 +41,78 @@ fun AnalyticsInsightsTabContent(
     periodEnd: Long,
     onAiChatClick: (CardAiContext) -> Unit
 ) {
-    Spacer(modifier = Modifier.height(8.dp))
-    when {
-        uiState.isLoading -> {
-            Box(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(36.dp),
-                    strokeWidth = 3.dp
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        when {
+            uiState.isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(36.dp),
+                        strokeWidth = 3.dp
+                    )
+                }
+            }
+            uiState.isDatabaseEmpty -> {
+                EmptyStateView(
+                    title = "التحليلات الذكية هادئة حالياً",
+                    description = "أضف بعض المعاملات والمصاريف اليومية لتوليد تحليلات ذكية حول عادات الإنفاق وصندوق الطوارئ الخاص بك.",
+                    icon = Icons.Default.PieChart,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
-        }
-        uiState.isDatabaseEmpty -> {
-            EmptyStateView(
-                title = "التحليلات الذكية هادئة حالياً",
-                description = "أضف بعض المعاملات والمصاريف اليومية لتوليد تحليلات ذكية حول عادات الإنفاق وصندوق الطوارئ الخاص بك.",
-                icon = Icons.Default.PieChart,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
-            )
-        }
-        else -> {
-            EmergencyFundCard(
-                uiState = uiState,
-                onAiChatClick = onAiChatClick,
-                periodStart = periodStart,
-                periodEnd = periodEnd
-            )
-            if (uiState.selectedPeriod == "MONTH" && uiState.spendingsByCategory.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(10.dp))
-                SalaryCycleCard(
+            else -> {
+                EmergencyFundCard(
                     uiState = uiState,
                     onAiChatClick = onAiChatClick,
                     periodStart = periodStart,
                     periodEnd = periodEnd
                 )
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-            WeekendWeekdayCard(
-                uiState = uiState,
-                onAiChatClick = onAiChatClick,
-                periodStart = periodStart,
-                periodEnd = periodEnd
-            )
-            if (uiState.spendingsByCategory.isEmpty()) {
-                AppCard(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    variant = CardVariant.SOLID,
-                    shape = ShapeTokens.Xxl,
-                    backgroundColor = MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                if (uiState.selectedPeriod == "MONTH" && uiState.spendingsByCategory.isNotEmpty()) {
+                    SalaryCycleCard(
+                        uiState = uiState,
+                        onAiChatClick = onAiChatClick,
+                        periodStart = periodStart,
+                        periodEnd = periodEnd
+                    )
+                }
+                WeekendWeekdayCard(
+                    uiState = uiState,
+                    onAiChatClick = onAiChatClick,
+                    periodStart = periodStart,
+                    periodEnd = periodEnd
+                )
+                if (uiState.spendingsByCategory.isEmpty()) {
+                    AppCard(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        variant = CardVariant.SOLID,
+                        shape = ShapeTokens.Xxl,
+                        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
                     ) {
-                        Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-                        Text(
-                            text = "لا توجد مصاريف مسجلة في هذه الفترة الزمنية لتوليد تحليلات الراتب ونهاية الأسبوع.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
-                        Text(
-                            text = "جرب اختيار فترة زمنية أخرى أو إضافة معاملات إنفاق جديدة.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextGray,
-                            textAlign = TextAlign.Center
-                        )
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                            Text(
+                                text = "لا توجد مصاريف مسجلة في هذه الفترة الزمنية لتوليد تحليلات الراتب ونهاية الأسبوع.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "جرب اختيار فترة زمنية أخرى أو إضافة معاملات إنفاق جديدة.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextGray,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
             }
@@ -126,35 +128,39 @@ fun AnalyticsSavingsTabContent(
     uiState: AnalyticsUiState,
     onManageSavingsClick: () -> Unit = {}
 ) {
-    Spacer(modifier = Modifier.height(8.dp))
-    when {
-        uiState.isLoading -> {
-            Box(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(36.dp),
-                    strokeWidth = 3.dp
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        when {
+            uiState.isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(36.dp),
+                        strokeWidth = 3.dp
+                    )
+                }
+            }
+            uiState.isDatabaseEmpty && uiState.savingGoals.isEmpty() -> {
+                EmptyStateView(
+                    title = "لا توجد بيانات ادخار بعد",
+                    description = "أنشئ هدف ادخار جديداً أو سجل دخلك ومصاريفك لمتابعة معدل الادخار الفعلي وتقدم أهدافك المالية.",
+                    icon = Icons.Default.Savings,
+                    actionLabel = "إدارة أهداف الادخار",
+                    onActionClick = onManageSavingsClick,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
-        }
-        uiState.isDatabaseEmpty && uiState.savingGoals.isEmpty() -> {
-            EmptyStateView(
-                title = "لا توجد بيانات ادخار بعد",
-                description = "أنشئ هدف ادخار جديداً أو سجل دخلك ومصاريفك لمتابعة معدل الادخار الفعلي وتقدم أهدافك المالية.",
-                icon = Icons.Default.Savings,
-                actionLabel = "إدارة أهداف الادخار",
-                onActionClick = onManageSavingsClick,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
-            )
-        }
-        else -> {
-            RealSavingsAnalyticsSection(
-                uiState = uiState,
-                onManageSavingsClick = onManageSavingsClick
-            )
+            else -> {
+                RealSavingsAnalyticsSection(
+                    uiState = uiState,
+                    onManageSavingsClick = onManageSavingsClick
+                )
+            }
         }
     }
 }

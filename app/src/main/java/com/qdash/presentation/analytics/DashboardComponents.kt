@@ -198,57 +198,90 @@ fun DashboardOverviewCard(
                     }
                 }
 
-                // Summary details list
+                // Summary details list in structured inner boxes
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Box(modifier = Modifier.size(8.dp).background(IncomeGreen, CircleShape))
-                            Text("إجمالي الدخل", style = MaterialTheme.typography.labelMedium, color = TextGray)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 7.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Box(modifier = Modifier.size(8.dp).background(IncomeGreen, CircleShape))
+                                Text("إجمالي الدخل", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = FormatterUtils.formatCurrency(totalIncome),
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.ExtraBold),
+                                color = IncomeGreen,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
-                        Text(
-                            text = FormatterUtils.formatCurrency(totalIncome),
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                            color = IncomeGreen
-                        )
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Box(modifier = Modifier.size(8.dp).background(ExpenseRed, CircleShape))
-                            Text("إجمالي المصاريف", style = MaterialTheme.typography.labelMedium, color = TextGray)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 7.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Box(modifier = Modifier.size(8.dp).background(ExpenseRed, CircleShape))
+                                Text("إجمالي المصاريف", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = FormatterUtils.formatCurrency(totalExpenses),
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.ExtraBold),
+                                color = ExpenseRed,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
-                        Text(
-                            text = FormatterUtils.formatCurrency(totalExpenses),
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                            color = ExpenseRed
-                        )
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
-                            Text("صافي التوفير", style = MaterialTheme.typography.labelMedium, color = TextGray)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 7.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+                                Text("صافي التوفير", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = FormatterUtils.formatCurrency(savings),
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.ExtraBold),
+                                color = if (savings > 0) IncomeGreen else MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
-                        Text(
-                            text = FormatterUtils.formatCurrency(savings),
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                            color = if (savings > 0) IncomeGreen else MaterialTheme.colorScheme.onSurface
-                        )
                     }
                 }
             }
@@ -1013,132 +1046,233 @@ fun MonthComparisonCard(
                 )
             }
 
-            // Selectors side-by-side
+            // Selectors side-by-side with matched height & unclipped padding
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 // Selector Month A (Base Month)
-                Button(
-                    onClick = { showPickerA = true },
-                    modifier = Modifier.weight(1f).height(44.dp),
+                Surface(
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { showPickerA = true }
                 ) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.DateRange, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.DateRange, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(15.dp))
                         Text(
-                            text = "${arabicMonths[compareMonthA]} ${compareYearA}",
+                            text = "${arabicMonths[compareMonthA]} $compareYearA",
                             color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
 
-                // Centered "VS" label
-                Box(
-                    modifier = Modifier.size(44.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f), CircleShape),
-                    contentAlignment = Alignment.Center
+                // Centered "VS" badge
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f),
+                    modifier = Modifier.height(34.dp)
                 ) {
-                    Text("مقابل", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold), color = TextGray)
+                    Box(
+                        modifier = Modifier.padding(horizontal = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "مقابل",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 // Selector Month B (Comparison Month)
-                Button(
-                    onClick = { showPickerB = true },
-                    modifier = Modifier.weight(1f).height(44.dp),
+                Surface(
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { showPickerB = true }
                 ) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.DateRange, contentDescription = null, tint = SavingsAmber, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.DateRange, contentDescription = null, tint = SavingsAmber, modifier = Modifier.size(15.dp))
                         Text(
-                            text = "${arabicMonths[compareMonthB]} ${compareYearB}",
+                            text = "${arabicMonths[compareMonthB]} $compareYearB",
                             color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
             }
 
-            // Compare summary stats card
-            AppCard(
+            // Symmetrical Compare Summary Boxes (2 equal period boxes + full-width net difference box)
+            val isIncrease = diff > 0
+            val resColor = when {
+                diff > 0 -> ExpenseRed
+                diff < 0 -> IncomeGreen
+                else -> MaterialTheme.colorScheme.onSurfaceVariant
+            }
+            val pctBadgeText = when {
+                totalExpA <= 0.0 && totalExpB <= 0.0 -> "0%"
+                totalExpA <= 0.0 && totalExpB > 0.0 -> "جديد"
+                else -> (if (diff > 0) "+" else "") + "${(pctDiff * 100).toInt()}%"
+            }
+
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                variant = CardVariant.SOLID,
-                shape = ShapeTokens.Xl,
-                backgroundColor = MaterialTheme.colorScheme.surface
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("مجموع الصرف الأول", style = MaterialTheme.typography.labelSmall, color = TextGray)
-                        Text(FormatterUtils.formatCurrency(totalExpA), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface)
-                    }
-
-                    Box(modifier = Modifier.width(1.dp).height(32.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)))
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("مجموع الصرف الثاني", style = MaterialTheme.typography.labelSmall, color = TextGray)
-                        Text(FormatterUtils.formatCurrency(totalExpB), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface)
-                    }
-
-                    Box(modifier = Modifier.width(1.dp).height(32.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)))
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    // Comparison Result
-                    Column(
-                        modifier = Modifier.weight(1.2f),
-                        horizontalAlignment = Alignment.End
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+                        modifier = Modifier.weight(1f)
                     ) {
-                        val isIncrease = diff > 0
-                        val resColor = when {
-                            diff > 0 -> ExpenseRed
-                            diff < 0 -> IncomeGreen
-                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                        val pctBadgeText = when {
-                            totalExpA <= 0.0 && totalExpB <= 0.0 -> "0%"
-                            totalExpA <= 0.0 && totalExpB > 0.0 -> "جديد"
-                            else -> (if (diff > 0) "+" else "") + "${(pctDiff * 100).toInt()}%"
-                        }
-                        Text("الفارق الكلي", style = MaterialTheme.typography.labelSmall, color = TextGray)
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Icon(
-                                imageVector = when {
-                                    isIncrease -> Icons.Default.TrendingUp
-                                    diff < 0 -> Icons.Default.TrendingDown
-                                    else -> Icons.Default.TrendingFlat
-                                },
-                                contentDescription = null,
-                                tint = resColor,
-                                modifier = Modifier.size(16.dp)
-                            )
+                        Column(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Box(modifier = Modifier.size(7.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+                                Text(
+                                    text = "مجموع الصرف الأول",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                             Text(
-                                text = pctBadgeText,
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 14.sp),
+                                text = FormatterUtils.formatCurrency(totalExpA),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.ExtraBold),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Box(modifier = Modifier.size(7.dp).background(SavingsAmber, CircleShape))
+                                Text(
+                                    text = "مجموع الصرف الثاني",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            Text(
+                                text = FormatterUtils.formatCurrency(totalExpB),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.ExtraBold),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, resColor.copy(alpha = 0.28f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "الفارق الكلي بين الشهرين",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = (if (diff > 0) "+" else "") + FormatterUtils.formatCurrency(diff),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.ExtraBold),
                                 color = resColor
                             )
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = resColor.copy(alpha = 0.12f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = when {
+                                            isIncrease -> Icons.Default.TrendingUp
+                                            diff < 0 -> Icons.Default.TrendingDown
+                                            else -> Icons.Default.TrendingFlat
+                                        },
+                                        contentDescription = null,
+                                        tint = resColor,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = pctBadgeText,
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
+                                        color = resColor
+                                    )
+                                }
+                            }
                         }
-                        Text(
-                            text = (if (diff > 0) "+" else "") + FormatterUtils.formatCurrency(diff),
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = resColor
-                        )
                     }
                 }
             }
@@ -1149,36 +1283,42 @@ fun MonthComparisonCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextGray,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp)
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 28.dp)
                 )
             } else {
-                // Grouped Bar Chart
-                Text(
-                    text = "مخطط المقارنة بالفئات (أزرق: الشهر الأول | برتقالي: الشهر الثاني)",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = TextGray
-                )
+                // Grouped Bar Chart Section (tight 8.dp title-to-chart spacing)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "مخطط المقارنة بالفئات (أزرق: الشهر الأول | برتقالي: الشهر الثاني)",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
 
-                GroupedBarChart(
-                    comparisonList = comparisonList,
-                    labelA = "${arabicMonths[compareMonthA]}",
-                    labelB = "${arabicMonths[compareMonthB]}"
-                )
+                    GroupedBarChart(
+                        comparisonList = comparisonList,
+                        labelA = "${arabicMonths[compareMonthA]}",
+                        labelB = "${arabicMonths[compareMonthB]}"
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                // Category Breakdown Section (tight 10.dp title-to-list & uniform card spacing)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "تفصيل مقارنة النفقات بالفئات",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
 
-                // Breakdown list
-                Text(
-                    text = "تفصيل مقارنة النفقات بالفئات",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     comparisonList.forEach { item ->
                         val itemColor = try { Color(android.graphics.Color.parseColor(item.color)) } catch (e: Exception) { MaterialTheme.colorScheme.primary }
-                        val isIncrease = item.diff > 0
-                        val resColor = when {
+                        val itemIncrease = item.diff > 0
+                        val itemResColor = when {
                             item.diff > 0 -> ExpenseRed
                             item.diff < 0 -> IncomeGreen
                             else -> MaterialTheme.colorScheme.onSurfaceVariant
@@ -1190,72 +1330,118 @@ fun MonthComparisonCard(
                         }
 
                         AppCard(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(
+                                    width = 0.8.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                    shape = ShapeTokens.Lg
+                                ),
                             variant = CardVariant.SOLID,
-                            shape = ShapeTokens.Xl,
-                            backgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+                            shape = ShapeTokens.Lg,
+                            backgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)
                         ) {
-                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
                                         Box(modifier = Modifier.size(12.dp).clip(RoundedCornerShape(4.dp)).background(itemColor))
-                                        Text(item.name, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                                        Text(
+                                            text = item.name,
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
                                     }
-                                    
-                                    // Change Tag
+                                    Spacer(modifier = Modifier.width(8.dp))
+
                                     Surface(
                                         shape = RoundedCornerShape(8.dp),
-                                        color = resColor.copy(alpha = 0.08f)
+                                        color = itemResColor.copy(alpha = 0.1f)
                                     ) {
                                         Row(
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
                                             Icon(
                                                 imageVector = when {
-                                                    isIncrease -> Icons.Default.TrendingUp
+                                                    itemIncrease -> Icons.Default.TrendingUp
                                                     item.diff < 0 -> Icons.Default.TrendingDown
                                                     else -> Icons.Default.TrendingFlat
                                                 },
                                                 contentDescription = null,
-                                                tint = resColor,
+                                                tint = itemResColor,
                                                 modifier = Modifier.size(12.dp)
                                             )
                                             Text(
                                                 text = itemPctLabel,
                                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                                color = resColor
+                                                color = itemResColor
                                             )
                                         }
                                     }
                                 }
 
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                // Equal-width 3-column metrics strip
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Column {
-                                        Text("الشهر الأول", style = MaterialTheme.typography.labelSmall, color = TextGray)
-                                        Text(FormatterUtils.formatCurrency(item.amountA), style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold))
-                                    }
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text("الشهر الأول", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Text(
+                                                text = FormatterUtils.formatCurrency(item.amountA),
+                                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
 
-                                    Column {
-                                        Text("الشهر الثاني", style = MaterialTheme.typography.labelSmall, color = TextGray)
-                                        Text(FormatterUtils.formatCurrency(item.amountB), style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold))
-                                    }
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text("الشهر الثاني", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Text(
+                                                text = FormatterUtils.formatCurrency(item.amountB),
+                                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
 
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        Text("التغير الفعلي", style = MaterialTheme.typography.labelSmall, color = TextGray)
-                                        Text(
-                                            text = (if (isIncrease) "+" else "") + FormatterUtils.formatCurrency(item.diff),
-                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                            color = resColor
-                                        )
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            horizontalAlignment = Alignment.End
+                                        ) {
+                                            Text("التغير الفعلي", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Text(
+                                                text = (if (itemIncrease) "+" else "") + FormatterUtils.formatCurrency(item.diff),
+                                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                                color = itemResColor,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
                                     }
                                 }
                             }
