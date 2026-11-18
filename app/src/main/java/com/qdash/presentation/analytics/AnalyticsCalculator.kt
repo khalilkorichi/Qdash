@@ -79,7 +79,8 @@ object AnalyticsCalculator {
                 categoryName = cat?.name ?: "أخرى",
                 amount = sum,
                 percentage = if (totalExpensesSum > 0) (sum / totalExpensesSum).toFloat() else 0f,
-                color = cat?.color ?: "#6C63FF"
+                color = cat?.color ?: "#6C63FF",
+                transactionCount = txList.size
             )
         }
         .sortedByDescending { it.amount }

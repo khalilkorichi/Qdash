@@ -35,6 +35,7 @@ data class TransactionsUiState(
     // Smart Suggestions state
     val currentSuggestion: CategorySuggestion? = null,
     val suggestedCategory: Category? = null,
+    val isSuggestingCategory: Boolean = false,
     
     val filterLargeOnly: Boolean = false,
     val filterBaridiMobOnly: Boolean = false,
@@ -309,45 +310,43 @@ class TransactionsViewModel(
     private var suggestionJob: kotlinx.coroutines.Job? = null
     private val keywordMatcher = com.qdash.data.categorization.KeywordMatcher()
 
-    fun onNoteChanged(note: String, amount: Double?, accountId: Long?, forceAi: Boolean = false) {
+    fun onNoteChanged(
+        note: String,
+        amount: Double?,
+        accountId: Long?,
+        forceAi: Boolean = false,
+        transactionType: TransactionType? = null
+    ) {
         suggestionJob?.cancel()
-        if (note.trim().isEmpty()) {
-            _uiState.update { it.copy(currentSuggestion = null, suggestedCategory = null) }
+        if (note.trim().isEmpty() && !forceAi) {
+            _uiState.update { it.copy(currentSuggestion = null, suggestedCategory = null, isSuggestingCategory = false) }
             return
         }
         suggestionJob = viewModelScope.launch {
             try {
-                if (!forceAi) {
-                    kotlinx.coroutines.delay(300L)
-                }
-                val stateSnapshot = _uiState.value
+                if (!forceAi) kotlinx.coroutines.delay(180L)
                 val localResult = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
-                    findLocalCategorySuggestion(note, stateSnapshot, keywordMatcher)
+                    findLocalCategorySuggestion(note, _uiState.value, keywordMatcher, transactionType)
                 }
-
                 if (localResult != null && !forceAi) {
-                    _uiState.update {
-                        it.copy(
-                            currentSuggestion = localResult.first,
-                            suggestedCategory = localResult.second
-                        )
-                    }
-                } else if (forceAi) {
-                    val suggestion = getCategorySuggestionUseCase(note, amount, accountId)
-                    val matchedCategory = _uiState.value.categories.find { it.id == suggestion.suggestedCategoryId }
-                    _uiState.update {
-                        it.copy(
-                            currentSuggestion = suggestion,
-                            suggestedCategory = matchedCategory
-                        )
-                    }
-                } else {
-                    _uiState.update { it.copy(currentSuggestion = null, suggestedCategory = null) }
+                    _uiState.update { it.copy(currentSuggestion = localResult.first, suggestedCategory = localResult.second, isSuggestingCategory = false) }
+                    return@launch
                 }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                // Ignore cancelations
+                if (!forceAi && note.trim().length < 3) {
+                    _uiState.update { it.copy(currentSuggestion = null, suggestedCategory = null, isSuggestingCategory = false) }
+                    return@launch
+                }
+                if (!forceAi) kotlinx.coroutines.delay(500L)
+                _uiState.update { it.copy(isSuggestingCategory = true) }
+                val suggestion = getCategorySuggestionUseCase(note, amount, accountId, transactionType?.name, forceAi)
+                val matched = _uiState.value.categories.find {
+                    it.id == suggestion.suggestedCategoryId && (transactionType == null || it.type.name == transactionType.name)
+                }
+                _uiState.update { it.copy(currentSuggestion = suggestion, suggestedCategory = matched, isSuggestingCategory = false) }
+            } catch (_: kotlinx.coroutines.CancellationException) {
+                _uiState.update { it.copy(isSuggestingCategory = false) }
             } catch (e: Exception) {
-                e.printStackTrace()
+                _uiState.update { it.copy(isSuggestingCategory = false) }
             }
         }
     }

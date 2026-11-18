@@ -34,7 +34,13 @@ object CategoryIconRegistry {
         IconResourceToken("work", "عمل وراتب"),
         IconResourceToken("sports_esports", "ترفيه"),
         IconResourceToken("celebration", "مناسبات"),
-        IconResourceToken("account_balance", "البريد وCCP")
+        IconResourceToken("account_balance", "البريد وCCP"),
+        IconResourceToken("volunteer_activism", "صدقة وزكاة"),
+        IconResourceToken("storefront", "تجارة ومشاريع"),
+        IconResourceToken("trending_up", "استثمار وكراء"),
+        IconResourceToken("fitness_center", "رياضة"),
+        IconResourceToken("smartphone", "هواتف وإلكترونيات"),
+        IconResourceToken("local_shipping", "شحن وتوصيل")
     )
 
     val DEFAULT_ICON_KEY = "ic_cat_default"

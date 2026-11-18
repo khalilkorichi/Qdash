@@ -45,7 +45,8 @@ fun SmartCategorySuggestionRow(
     onAcceptSuggestion: (Long) -> Unit,
     onDismissSuggestion: () -> Unit,
     modifier: Modifier = Modifier,
-    onAcceptNewCategory: (() -> Unit)? = null
+    onAcceptNewCategory: (() -> Unit)? = null,
+    allCategories: List<Category> = emptyList()
 ) {
     val isVisible = suggestion != null && (matchedCategory != null || !suggestion.newCategoryName.isNullOrBlank())
 
@@ -56,7 +57,11 @@ fun SmartCategorySuggestionRow(
         modifier = modifier
     ) {
         if (suggestion == null) return@AnimatedVisibility
-        val categoryName = matchedCategory?.name ?: suggestion.newCategoryName?.takeIf { it.isNotBlank() } ?: return@AnimatedVisibility
+        val parentName = matchedCategory?.parentId?.let { pid ->
+            allCategories.firstOrNull { it.id == pid }?.name
+        }
+        val baseCategoryName = matchedCategory?.name ?: suggestion.newCategoryName?.takeIf { it.isNotBlank() } ?: return@AnimatedVisibility
+        val categoryName = if (parentName != null) "$parentName ← $baseCategoryName" else baseCategoryName
         val categoryId = matchedCategory?.id
         val isNewCategory = categoryId == null && !suggestion.newCategoryName.isNullOrBlank()
         val catColor = safeParseColor(

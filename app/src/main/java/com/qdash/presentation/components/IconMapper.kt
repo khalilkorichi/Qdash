@@ -122,9 +122,21 @@ fun getIconByName(name: String): ImageVector {
         "checkroom" -> Icons.Default.Checkroom
         "spa" -> Icons.Default.Spa
         "child_care" -> Icons.Default.ChildCare
-        "build", "ic_cat_bricolage" -> Icons.Default.Build
+        "build", "ic_cat_bricolage", "handyman" -> Icons.Default.Build
         "trending_up", "insights" -> Icons.Default.TrendingUp
         "sync_alt", "swap_horiz", "transfer" -> Icons.Default.SyncAlt
+        "volunteer_activism", "charity", "favorite" -> Icons.Default.VolunteerActivism
+        "fitness_center", "sports", "gym" -> Icons.Default.FitnessCenter
+        "local_shipping", "delivery" -> Icons.Default.LocalShipping
+        "smartphone", "devices", "phone_android" -> Icons.Default.Smartphone
+        "bakery_dining", "bakery" -> Icons.Default.BakeryDining
+        "content_cut", "salon" -> Icons.Default.ContentCut
+        "verified_user", "security", "shield" -> Icons.Default.VerifiedUser
+        "description", "gavel", "tax" -> Icons.Default.Description
+        "campaign", "ads" -> Icons.Default.Campaign
+        "kitchen", "appliances" -> Icons.Default.Kitchen
+        "apartment", "real_estate" -> Icons.Default.Apartment
+        "Subscriptions", "subscriptions" -> Icons.Default.Subscriptions
         else -> Icons.Default.Category
     }
 }

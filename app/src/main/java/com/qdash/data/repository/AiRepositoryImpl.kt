@@ -152,17 +152,34 @@ class AiRepositoryImpl(
 
     override suspend fun generateResponse(prompt: String, modelId: String): AiResponse {
         val normalized = prompt.trim().lowercase()
+        val isStructuredCategorizerPrompt = normalized.contains("suggestnewcategory") || normalized.contains("\"categoryid\"")
         // Check if the user is asking to add or record a transaction to create a draft transaction.
-        if (normalized.contains("add") || normalized.contains("insert") || normalized.contains("إضافة") || normalized.contains("سجل")) {
-            val amountRegex = "\\d+".toRegex()
+        if (!isStructuredCategorizerPrompt && (normalized.contains("add") || normalized.contains("insert") || normalized.contains("إضافة") || normalized.contains("أضف") || normalized.contains("سجل"))) {
+            val amountRegex = "\\d+(?:[.,]\\d+)?".toRegex()
             val match = amountRegex.find(normalized)
-            val amount = match?.value?.toDoubleOrNull() ?: 150.0
+            val amount = match?.value?.replace(',', '.')?.toDoubleOrNull() ?: 150.0
+
+            val isIncome = normalized.contains("دخل") || normalized.contains("مدخول") || normalized.contains("راتب") || normalized.contains("شهرية") || normalized.contains("income")
+            val txType = if (isIncome) TransactionType.INCOME else TransactionType.EXPENSE
 
             val accounts = accountRepository.getAllAccounts().first()
             val categories = categoryRepository.getAllCategories().first()
+            val typedCategories = categories.filter { it.type.name == txType.name }
 
-            val account = accounts.firstOrNull()
-            val category = categories.firstOrNull()
+            val account = accounts.firstOrNull { !it.isArchived && it.isDefault }
+                ?: accounts.firstOrNull { !it.isArchived }
+                ?: accounts.firstOrNull()
+            val matcher = com.qdash.data.categorization.KeywordMatcher()
+            val kwMatch = com.qdash.data.categorization.AlgerianKeywordDictionary.findMatchingCategory(
+                matcher.normalize(prompt),
+                txType.name
+            )
+            val category = if (kwMatch != null) {
+                val targetNames = listOfNotNull(kwMatch.seededSubcategoryTarget, kwMatch.subcategoryName, kwMatch.seededCategoryTarget, kwMatch.categoryName)
+                typedCategories.firstOrNull { cat -> targetNames.any { t -> cat.name.equals(t, ignoreCase = true) || cat.name.contains(t) } }
+            } else null
+            val finalCategory = category ?: typedCategories.firstOrNull() ?: categories.firstOrNull()
+
             if (account == null) {
                 return AiResponse(
                     replyText = "ليس لديك أي حسابات مسجلة حالياً لإضافة المعاملة إليها. يرجى إنشاء حساب أولاً."
@@ -171,17 +188,17 @@ class AiRepositoryImpl(
 
             val draft = Transaction(
                 amount = amount,
-                type = TransactionType.EXPENSE,
-                categoryId = category?.id,
+                type = txType,
+                categoryId = finalCategory?.id,
                 accountId = account.id,
-                note = "AI generated transaction from: $prompt",
+                note = prompt.trim(),
                 date = System.currentTimeMillis()
             )
 
             return AiResponse(
                 replyText = "لقد قمت بإنشاء مسودة لمعاملة بقيمة **$amount دج**. هل تريد تأكيد تسجيلها؟",
                 draftTransaction = draft,
-                categoryName = category?.name ?: "غير محدد",
+                categoryName = finalCategory?.name ?: "غير محدد",
                 accountName = account.name
             )
         }
@@ -1135,12 +1152,17 @@ class AiRepositoryImpl(
                 }
                 "get_categories" -> {
                     val categories = categoryRepository.getAllCategories().first()
+                    val catMap = categories.associateBy { it.id }
                     val catArray = JSONArray()
                     for (cat in categories) {
                         catArray.put(JSONObject().apply {
                             put("id", cat.id)
                             put("name", cat.name)
                             put("type", cat.type.name)
+                            if (cat.parentId != null) {
+                                put("parentId", cat.parentId)
+                                put("parentName", catMap[cat.parentId]?.name ?: "")
+                            }
                         })
                     }
                     result.put("categories", catArray)
@@ -1156,8 +1178,21 @@ class AiRepositoryImpl(
 
                     val accounts = accountRepository.getAllAccounts().first()
                     val categories = categoryRepository.getAllCategories().first()
-                    val resolvedAccountId = (accounts.firstOrNull { it.id == rawAccountId } ?: accounts.firstOrNull())?.id
-                    val resolvedCategoryId = categories.firstOrNull { it.id == rawCategoryId }?.id
+                    val typedCategories = categories.filter { it.type.name == txType.name }
+                    val resolvedAccountId = (accounts.firstOrNull { it.id == rawAccountId } ?: accounts.firstOrNull { !it.isArchived } ?: accounts.firstOrNull())?.id
+                    val resolvedCategoryId = typedCategories.firstOrNull { it.id == rawCategoryId }?.id
+                        ?: run {
+                            val matcher = com.qdash.data.categorization.KeywordMatcher()
+                            val kwMatch = com.qdash.data.categorization.AlgerianKeywordDictionary.findMatchingCategory(
+                                matcher.normalize(note),
+                                txType.name
+                            )
+                            if (kwMatch != null) {
+                                val targets = listOfNotNull(kwMatch.seededSubcategoryTarget, kwMatch.subcategoryName, kwMatch.seededCategoryTarget, kwMatch.categoryName)
+                                typedCategories.firstOrNull { cat -> targets.any { t -> cat.name.equals(t, ignoreCase = true) || cat.name.contains(t) } }?.id
+                            } else null
+                        }
+                        ?: categories.firstOrNull { it.id == rawCategoryId }?.id
 
                     if (resolvedAccountId == null) {
                         result.put("status", "error")
@@ -1448,7 +1483,9 @@ class AiRepositoryImpl(
             }
 
             val categoriesStr = categories.joinToString("\n") { cat ->
-                "- ${cat.name} (نوع: ${cat.type.name}, ID: ${cat.id}${if (cat.parentId != null) ", أب: ${cat.parentId}" else ""})"
+                val parentName = cat.parentId?.let { categoryMap[it]?.name }
+                val label = if (parentName != null) "$parentName > ${cat.name}" else cat.name
+                "- $label (نوع: ${cat.type.name}, ID: ${cat.id})"
             }
 
             val now = System.currentTimeMillis()

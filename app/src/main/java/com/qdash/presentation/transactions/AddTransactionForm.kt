@@ -152,7 +152,8 @@ fun AddTransactionFormContent(
                     onAcceptSuggestion(categoryId)
                 },
                 onAcceptNewCategory = onAcceptAndCreateSuggestion,
-                onDismissSuggestion = onDismissSuggestion
+                onDismissSuggestion = onDismissSuggestion,
+                allCategories = uiState.categories
             )
         }
 
@@ -194,14 +195,22 @@ fun AddTransactionFormContent(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = TransferBlue,
-                                modifier = Modifier.size(14.dp)
-                            )
+                            if (uiState.isSuggestingCategory) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(13.dp),
+                                    strokeWidth = 1.8.dp,
+                                    color = TransferBlue
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = TransferBlue,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
                             Text(
-                                text = "اقتراح ذكي",
+                                text = if (uiState.isSuggestingCategory) "جاري التحليل…" else "اقتراح ذكي",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = TransferBlue,
                                 fontWeight = FontWeight.Bold

@@ -17,60 +17,73 @@ import kotlinx.coroutines.launch
 internal fun findLocalCategorySuggestion(
     note: String,
     stateSnapshot: TransactionsUiState,
-    keywordMatcher: com.qdash.data.categorization.KeywordMatcher
+    keywordMatcher: com.qdash.data.categorization.KeywordMatcher,
+    transactionType: TransactionType? = null
 ): Pair<CategorySuggestion, Category>? {
     val normalized = keywordMatcher.normalize(note)
     if (normalized.isEmpty()) return null
 
-    // 1. Fast local history check from loaded transactions
+    val expectedType = transactionType?.takeIf { it == TransactionType.EXPENSE || it == TransactionType.INCOME }
+    val candidateCategories = if (expectedType != null) {
+        stateSnapshot.categories.filter { it.type.name == expectedType.name }
+    } else {
+        stateSnapshot.categories
+    }
+    val candidateIds = candidateCategories.map { it.id }.toSet()
+
+    // 1. Fast local history check from loaded transactions (strictly matching transaction type)
     val historyMatchCatId = stateSnapshot.transactions
         .asSequence()
-        .filter { it.categoryId != null && !it.note.isNullOrBlank() }
+        .filter { tx ->
+            tx.categoryId != null &&
+                tx.categoryId in candidateIds &&
+                (expectedType == null || tx.type == expectedType) &&
+                !tx.note.isNullOrBlank()
+        }
         .firstOrNull { tx ->
             val txNorm = keywordMatcher.normalize(tx.note.orEmpty())
-            txNorm == normalized || (normalized.length >= 3 && txNorm.contains(normalized))
+            txNorm == normalized || (normalized.length >= 4 && keywordMatcher.scoreKeywordMatch(txNorm, normalized) >= 400)
         }?.categoryId
 
     if (historyMatchCatId != null) {
-        val cat = stateSnapshot.categories.find { it.id == historyMatchCatId }
+        val cat = candidateCategories.find { it.id == historyMatchCatId }
         if (cat != null) {
             return Pair(
                 CategorySuggestion(
                     suggestedCategoryId = cat.id,
                     suggestionSource = SuggestionSource.HISTORY,
-                    confidenceScore = 0.92f
+                    confidenceScore = 0.94f
                 ),
                 cat
             )
         }
     }
 
-    // 2. Fast Algerian dialect keyword dictionary check
-    val kwMatch = com.qdash.data.categorization.AlgerianKeywordDictionary.findMatchingCategory(normalized)
+    // 2. Fast Algerian Darja & Franco-Algerian keyword dictionary check (strictly matching transaction type)
+    val kwMatch = com.qdash.data.categorization.AlgerianKeywordDictionary.findMatchingCategory(
+        normalizedTitle = normalized,
+        transactionType = expectedType?.name
+    )
     if (kwMatch != null) {
-        fun findFlexible(targetName: String): Category? {
-            val aliases = when (targetName) {
-                "خردوات وعتاد" -> listOf("خردوات ودروغري", "خردوات")
-                "خدمات محلية" -> listOf("خدمات محلية وتصليح")
-                "عناية شخصية" -> listOf("كوسميتيك وعناية")
-                "عائلي" -> listOf("عائلي وكفالة")
-                else -> emptyList()
-            }
-            return stateSnapshot.categories.find { it.name == targetName }
-                ?: stateSnapshot.categories.find { it.name.contains(targetName) || targetName.contains(it.name) }
-                ?: stateSnapshot.categories.find { cat -> aliases.any { cat.name.contains(it) } }
+        fun findFlexible(targetName: String?, requireSub: Boolean): Category? {
+            if (targetName.isNullOrBlank()) return null
+            val aliases = com.qdash.data.categorization.RuleBasedCategorizationEngine.getCategoryAliases(targetName)
+            val pool = if (requireSub) candidateCategories.filter { it.parentId != null } else candidateCategories
+            return pool.find { it.name.equals(targetName, ignoreCase = true) }
+                ?: pool.find { it.name.contains(targetName) || targetName.contains(it.name) }
+                ?: pool.find { cat -> aliases.any { cat.name.contains(it) } }
         }
-        val targetCat = if (kwMatch.subcategoryName != null) {
-            findFlexible(kwMatch.subcategoryName) ?: findFlexible(kwMatch.categoryName)
-        } else {
-            findFlexible(kwMatch.categoryName)
-        }
+        val targetCat = findFlexible(kwMatch.seededSubcategoryTarget, requireSub = true)
+            ?: findFlexible(kwMatch.subcategoryName, requireSub = true)
+            ?: findFlexible(kwMatch.seededCategoryTarget, requireSub = false)
+            ?: findFlexible(kwMatch.categoryName, requireSub = false)
+
         if (targetCat != null) {
             return Pair(
                 CategorySuggestion(
                     suggestedCategoryId = targetCat.id,
                     suggestionSource = SuggestionSource.KEYWORD,
-                    confidenceScore = 0.90f
+                    confidenceScore = 0.92f
                 ),
                 targetCat
             )

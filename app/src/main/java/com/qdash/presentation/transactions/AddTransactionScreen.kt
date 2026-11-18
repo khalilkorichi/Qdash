@@ -252,6 +252,18 @@ fun AddTransactionScreen(
                     if (toAccountId == null || toAccountId == effectiveAccountId) {
                         toAccountId = nonArchivedAccounts.firstOrNull { it.id != effectiveAccountId }?.id
                     }
+                } else {
+                    val currentCat = uiState.categories.find { it.id == (subcategoryId ?: selectedCategoryId) }
+                    if (currentCat != null && currentCat.type.name != newType.name) {
+                        val firstForType = uiState.categories.firstOrNull { it.parentId == null && it.type.name == newType.name }
+                        selectedCategoryId = firstForType?.id
+                        subcategoryId = null
+                    }
+                    if (note.isNotBlank()) {
+                        viewModel.onNoteChanged(note, parsedAmount, effectiveAccountId, forceAi = false, transactionType = newType)
+                    } else {
+                        viewModel.clearSuggestion()
+                    }
                 }
             },
             rawAmountValue = rawAmountValue,
@@ -263,7 +275,7 @@ fun AddTransactionScreen(
             onNoteChange = { newNote ->
                 note = newNote
                 if (type != TransactionType.TRANSFER) {
-                    viewModel.onNoteChanged(newNote, parsedAmount, effectiveAccountId)
+                    viewModel.onNoteChanged(newNote, parsedAmount, effectiveAccountId, forceAi = false, transactionType = type)
                 } else {
                     viewModel.clearSuggestion()
                 }
@@ -307,10 +319,11 @@ fun AddTransactionScreen(
             onSmartSortToggle = { viewModel.toggleSmartCategorySort() },
             onAiSuggest = {
                 viewModel.onNoteChanged(
-                    note.ifBlank { "auto" },
-                    parsedAmount,
-                    effectiveAccountId,
-                    forceAi = true
+                    note = note,
+                    amount = parsedAmount,
+                    accountId = effectiveAccountId,
+                    forceAi = true,
+                    transactionType = type
                 )
             },
             onAcceptSuggestion = { catId ->

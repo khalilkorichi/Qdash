@@ -96,7 +96,8 @@ class AppContainerImpl(private val context: Context) : AppContainer {
             database.categoryDao(),
             database.categoryRuleDao(),
             database.userCategoryMappingDao(),
-            aiRepository
+            aiRepository,
+            preferencesManager
         )
     }
 

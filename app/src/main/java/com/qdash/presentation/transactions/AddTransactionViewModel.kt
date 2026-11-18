@@ -70,7 +70,12 @@ class AddTransactionViewModel(
         )
     }
 
-    fun onTitleOrNoteChanged(text: String, amount: Double? = null, accountId: Long? = null) {
+    fun onTitleOrNoteChanged(
+        text: String,
+        amount: Double? = null,
+        accountId: Long? = null,
+        transactionType: String? = null
+    ) {
         suggestionJob?.cancel()
         if (text.trim().isEmpty()) {
             _suggestion.value = null
@@ -81,7 +86,7 @@ class AddTransactionViewModel(
             try {
                 // Non-blocking 200ms input debouncing
                 delay(200L)
-                val result = getSmartCategorySuggestionUseCase(text, amount, accountId)
+                val result = getSmartCategorySuggestionUseCase(text, amount, accountId, transactionType)
                 _suggestion.value = result
             } catch (e: Exception) {
                 // Silently ignore cancellation or error

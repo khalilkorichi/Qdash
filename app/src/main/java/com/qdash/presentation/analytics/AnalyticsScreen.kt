@@ -87,38 +87,42 @@ fun AnalyticsScreen(
         modifier = modifier.fillMaxSize().testTag("analytics_screen")
     ) { innerPadding ->
 
-        // ── Category detail dialog (long-press) ──
+        // ── Category & Subcategory transactions detail modal ──
         longClickedCategory?.let { category ->
             val categoryTxs by remember(category, uiState.periodTransactions, uiState.categories) {
                 derivedStateOf {
-                    val catId = if (category.categoryId != 0L) {
-                        category.categoryId
+                    val expensesInPeriod = uiState.periodTransactions.filter { it.type == TransactionType.EXPENSE }
+                    if (category.categoryId == 0L) {
+                        val knownIds = uiState.categories.map { it.id }.toSet()
+                        expensesInPeriod
+                            .filter { it.categoryId == null || it.categoryId == 0L || it.categoryId !in knownIds }
+                            .sortedByDescending { it.date }
                     } else {
-                        uiState.categories.firstOrNull { it.name == category.categoryName }?.id
-                    }
-                    val catModel = uiState.categories.firstOrNull { it.id == catId }
-                        ?: uiState.categories.firstOrNull { it.name == category.categoryName }
+                        val catId = category.categoryId
+                        val catModel = uiState.categories.firstOrNull { it.id == catId }
+                            ?: uiState.categories.firstOrNull { it.name == category.categoryName }
 
-                    val targetIds = if (catModel != null) {
-                        if (catModel.parentId == null) {
-                            val subIds = uiState.categories.filter { it.parentId == catModel.id }.map { it.id }.toSet()
-                            setOf(catModel.id) + subIds
+                        val targetIds = if (catModel != null) {
+                            if (catModel.parentId == null && !category.directOnly) {
+                                val subIds = uiState.categories.filter { it.parentId == catModel.id }.map { it.id }.toSet()
+                                setOf(catModel.id) + subIds
+                            } else {
+                                setOf(catModel.id)
+                            }
                         } else {
-                            setOf(catModel.id)
+                            setOf(catId)
                         }
-                    } else if (catId != null) {
-                        setOf(catId)
-                    } else {
-                        emptySet()
-                    }
 
-                    uiState.periodTransactions.filter { it.categoryId in targetIds }.sortedByDescending { it.date }
+                        expensesInPeriod.filter { it.categoryId in targetIds }.sortedByDescending { it.date }
+                    }
                 }
             }
             CategoryColorPickerDialog(
                 category = category,
                 categoryTxs = categoryTxs,
                 allCategories = uiState.categories,
+                accounts = uiState.accounts,
+                periodLabel = periodLabel,
                 onDismiss = { longClickedCategory = null },
                 onColorChange = { id, color -> viewModel.updateCategoryColor(id, color) },
                 onMoveCategory = { id, parentId -> viewModel.moveCategory(id, parentId) }

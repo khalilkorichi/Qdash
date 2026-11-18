@@ -17,7 +17,9 @@ data class CategoryShare(
     val categoryName: String,
     val amount: Double,
     val percentage: Float,
-    val color: String
+    val color: String,
+    val transactionCount: Int = 0,
+    val directOnly: Boolean = false
 )
 
 data class CashFlowTrend(
@@ -83,6 +85,7 @@ data class AnalyticsUiState(
     val transactions: List<Transaction> = emptyList(),
     val periodTransactions: List<Transaction> = emptyList(),
     val categories: List<Category> = emptyList(),
+    val accounts: List<Account> = emptyList(),
 
     // Dashboard & Comparison State
     val dashboardTab: Int = 0,
@@ -143,7 +146,8 @@ class AnalyticsViewModel(
         val isDatabaseEmpty: Boolean,
         val transactions: List<Transaction>,
         val periodTransactions: List<Transaction>,
-        val categories: List<Category>
+        val categories: List<Category>,
+        val accounts: List<Account>
     )
 
     private var loadJob: Job? = null
@@ -333,7 +337,8 @@ class AnalyticsViewModel(
                         isDatabaseEmpty = transactions.isEmpty() && savingGoals.isEmpty(),
                         transactions = transactions,
                         periodTransactions = periodTransactions,
-                        categories = categories
+                        categories = categories,
+                        accounts = accounts
                     )
                 }
                     .flowOn(Dispatchers.Default)
@@ -376,7 +381,8 @@ class AnalyticsViewModel(
                                 isDatabaseEmpty = payload.isDatabaseEmpty,
                                 transactions = payload.transactions,
                                 periodTransactions = payload.periodTransactions,
-                                categories = payload.categories
+                                categories = payload.categories,
+                                accounts = payload.accounts
                             )
                         }
                     }
