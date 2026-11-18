@@ -41,7 +41,9 @@ fun EmptyStateView(
     title: String,
     description: String,
     icon: ImageVector = Icons.Default.Info,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    actionLabel: String? = null,
+    onActionClick: (() -> Unit)? = null
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     Box(
@@ -117,10 +119,17 @@ fun EmptyStateView(
                         fontSize = 13.sp,
                         lineHeight = 20.sp
                     ),
-                    color = TextGray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 12.dp)
                 )
+
+                if (actionLabel != null && onActionClick != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    AppButton(onClick = onActionClick) {
+                        Text(text = actionLabel, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
     }

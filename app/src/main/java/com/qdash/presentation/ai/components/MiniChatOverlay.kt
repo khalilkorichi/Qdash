@@ -129,12 +129,6 @@ fun MiniChatOverlay(
         }
     )
 
-    DisposableEffect(Unit) {
-        onDispose {
-            speechHelper.destroy()
-        }
-    }
-
     // Scroll to bottom when new messages arrive
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
@@ -146,13 +140,14 @@ fun MiniChatOverlay(
 
     Card(
         modifier = modifier
-            .width(360.dp)
+            .widthIn(max = 380.dp)
+            .fillMaxWidth()
             .height(500.dp)
             .shadow(16.dp, shape = RoundedCornerShape(24.dp))
             .border(
                 BorderStroke(
                     1.dp,
-                    MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                    MaterialTheme.colorScheme.outline
                 ),
                 shape = RoundedCornerShape(24.dp)
             ),
@@ -166,27 +161,20 @@ fun MiniChatOverlay(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.secondary
-                            )
-                        )
-                    )
+                    .background(MaterialTheme.colorScheme.primary)
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "مساعدك المالي الذكي",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.weight(1f)
                 )
@@ -195,7 +183,7 @@ fun MiniChatOverlay(
                     Icon(
                         imageVector = Icons.Default.OpenInNew,
                         contentDescription = "ملء الشاشة",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onPrimary
                     )
                 }
 
@@ -203,7 +191,7 @@ fun MiniChatOverlay(
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "إغلاق",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -211,6 +199,19 @@ fun MiniChatOverlay(
             // Model Selector Pill Row for Overlay
             var isModelDropdownExpanded by remember { mutableStateOf(false) }
             val selectedModel = models.find { it.id == selectedModelId } ?: models.firstOrNull()
+            val groupedModels = remember(models) { models.groupBy { it.provider } }
+            val sortedProviders = remember(groupedModels) {
+                groupedModels.keys.sortedWith { a, b ->
+                    when {
+                        a == "Google" && b != "Google" -> -1
+                        b == "Google" && a != "Google" -> 1
+                        a == "Z.ai" && b != "Z.ai" -> -1
+                        b == "Z.ai" && a != "Z.ai" -> 1
+                        else -> a.compareTo(b)
+                    }
+                }
+            }
+            var expandedProviders by remember { mutableStateOf(setOf("Google")) }
 
             if (selectedModel != null) {
                 Row(
@@ -224,7 +225,7 @@ fun MiniChatOverlay(
                     Text(
                         text = "النموذج النشط:",
                         fontSize = 11.sp,
-                        color = TextGray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     
                     Box {
@@ -259,100 +260,78 @@ fun MiniChatOverlay(
                                 )
                             }
                         }
-                        
-                        var isGoogleExpanded by remember { mutableStateOf(true) }
-                        var isZaiExpanded by remember { mutableStateOf(true) }
 
                         DropdownMenu(
                             expanded = isModelDropdownExpanded,
                             onDismissRequest = { isModelDropdownExpanded = false },
-                            modifier = Modifier.width(260.dp).background(MaterialTheme.colorScheme.surface)
+                            modifier = Modifier
+                                .widthIn(min = 240.dp, max = 280.dp)
+                                .heightIn(max = 320.dp)
+                                .background(MaterialTheme.colorScheme.surface)
                         ) {
-                            // Google Header
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text("جوجل (Google)", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, fontSize = 13.sp)
-                                        Icon(
-                                            imageVector = if (isGoogleExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(16.dp)
+                            sortedProviders.forEachIndexed { index, provider ->
+                                val isProviderExpanded = expandedProviders.contains(provider)
+                                val providerModels = groupedModels[provider].orEmpty()
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "$provider (${providerModels.size})",
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                fontSize = 13.sp
+                                            )
+                                            Icon(
+                                                imageVector = if (isProviderExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        expandedProviders = if (isProviderExpanded) {
+                                            expandedProviders - provider
+                                        } else {
+                                            expandedProviders + provider
+                                        }
+                                    }
+                                )
+
+                                if (isProviderExpanded) {
+                                    providerModels.forEach { model ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    text = model.name,
+                                                    fontSize = 12.sp,
+                                                    fontWeight = if (model.id == selectedModelId) FontWeight.Bold else FontWeight.Normal,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            },
+                                            onClick = {
+                                                onModelSelected(model.id)
+                                                isModelDropdownExpanded = false
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Default.AutoAwesome,
+                                                    contentDescription = null,
+                                                    tint = if (model.id == selectedModelId) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                            },
+                                            modifier = Modifier.padding(start = 8.dp)
                                         )
                                     }
-                                },
-                                onClick = { isGoogleExpanded = !isGoogleExpanded }
-                            )
-                            
-                            if (isGoogleExpanded) {
-                                models.filter { it.provider == "Google" }.forEach { model ->
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(text = model.name, fontSize = 12.sp)
-                                        },
-                                        onClick = {
-                                            onModelSelected(model.id)
-                                            isModelDropdownExpanded = false
-                                        },
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = Icons.Default.AutoAwesome,
-                                                contentDescription = null,
-                                                tint = if (model.id == selectedModelId) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                        },
-                                        modifier = Modifier.padding(start = 8.dp)
-                                    )
                                 }
-                            }
-                            
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                            
-                            // Z.ai Header
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text("Z.ai (Agent Router)", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary, fontSize = 13.sp)
-                                        Icon(
-                                            imageVector = if (isZaiExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.secondary,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                },
-                                onClick = { isZaiExpanded = !isZaiExpanded }
-                            )
-                            
-                            if (isZaiExpanded) {
-                                models.filter { it.provider == "Z.ai" }.forEach { model ->
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(text = model.name, fontSize = 12.sp)
-                                        },
-                                        onClick = {
-                                            onModelSelected(model.id)
-                                            isModelDropdownExpanded = false
-                                        },
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = Icons.Default.AutoAwesome,
-                                                contentDescription = null,
-                                                tint = if (model.id == selectedModelId) MaterialTheme.colorScheme.secondary else Color.Transparent,
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                        },
-                                        modifier = Modifier.padding(start = 8.dp)
-                                    )
+
+                                if (index < sortedProviders.lastIndex) {
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                                 }
                             }
                         }

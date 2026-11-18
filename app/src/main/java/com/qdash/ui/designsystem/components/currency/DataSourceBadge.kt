@@ -79,8 +79,8 @@ fun DataSourceBadge(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 val subtitleText = if (lastUpdatedAt != null && lastUpdatedAt > 0L) {
-                    com.qdash.core.utils.FormatterUtils.useWesternNumerals = useWesternNumerals
-                    "آخر تحديث: ${com.qdash.core.utils.FormatterUtils.formatDateTime(lastUpdatedAt)}"
+                    val formatted = com.qdash.core.utils.FormatterUtils.formatDateTime(lastUpdatedAt)
+                    com.qdash.core.utils.FormatterUtils.convertNumerals("آخر تحديث: $formatted", useWesternNumerals)
                 } else {
                     "بيانات مخزنة محلياً"
                 }

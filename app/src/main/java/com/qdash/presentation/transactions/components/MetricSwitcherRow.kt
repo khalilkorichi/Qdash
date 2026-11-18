@@ -70,7 +70,11 @@ fun MetricSwitcherRow(
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold, fontSize = 11.sp
                         ),
-                        color = if (isModeSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (isModeSelected) {
+                            if (modeCode == "COUNT") MaterialTheme.colorScheme.onPrimary else Color.White
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                     )
                 }

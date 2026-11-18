@@ -116,6 +116,7 @@ class AiRepositoryTest {
         override fun getMessagesBySession(sessionTitle: String): Flow<List<AiChatMessageEntity>> = flowOf(emptyList())
         override fun getAllSessionTitles(): Flow<List<String>> = flowOf(emptyList())
         override suspend fun insertMessage(message: AiChatMessageEntity): Long = 0
+        override suspend fun updateDraftStatus(id: Long, status: String) {}
         override suspend fun clearHistory(sessionTitle: String) {}
         override suspend fun deleteSession(sessionTitle: String) {}
         override suspend fun getAllMessagesOnce(): List<AiChatMessageEntity> = emptyList()
@@ -247,6 +248,7 @@ class AiRepositoryTest {
                 list.add(message)
                 return list.size.toLong()
             }
+            override suspend fun updateDraftStatus(id: Long, status: String) {}
             override suspend fun clearHistory(sessionTitle: String) { list.clear() }
             override suspend fun deleteSession(sessionTitle: String) { list.clear() }
             override suspend fun getAllMessagesOnce(): List<AiChatMessageEntity> = list

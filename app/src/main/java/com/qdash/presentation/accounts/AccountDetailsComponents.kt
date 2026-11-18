@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.qdash.core.utils.AmountConversionEngine
 import com.qdash.core.utils.FormatterUtils
 import com.qdash.domain.model.Account
 import com.qdash.domain.model.Amana
@@ -47,7 +48,6 @@ import com.qdash.ui.designsystem.components.CardVariant
 import com.qdash.ui.designsystem.tokens.ShapeTokens
 import com.qdash.ui.theme.ExpenseRed
 import com.qdash.ui.theme.IncomeGreen
-import com.qdash.ui.theme.Primary
 import com.qdash.ui.theme.TextGray
 
 // ---------------------------------------------------------------------------
@@ -65,7 +65,8 @@ internal fun AccountBalanceCard(
     totalAmana: Double,
     realBalance: Double,
     isAmanaEnabled: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    currencyCode: String = "DZD"
 ) {
     Card(
         modifier = modifier
@@ -76,7 +77,7 @@ internal fun AccountBalanceCard(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
         ),
         border = androidx.compose.foundation.BorderStroke(
-            1.dp, MaterialTheme.colorScheme.outlineVariant
+            1.dp, MaterialTheme.colorScheme.outline
         )
     ) {
         Column(
@@ -95,11 +96,11 @@ internal fun AccountBalanceCard(
                         color = TextGray
                     )
                     Text(
-                        text = FormatterUtils.formatCurrency(balance),
+                        text = FormatterUtils.formatCurrency(balance, currencyCode = currencyCode),
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.ExtraBold
                         ),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = if (balance < 0.0) ExpenseRed else MaterialTheme.colorScheme.onSurface
                     )
                 }
                 if (!isActive) {
@@ -119,7 +120,7 @@ internal fun AccountBalanceCard(
 
             if (isAmanaEnabled) {
                 HorizontalDivider(
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -132,7 +133,7 @@ internal fun AccountBalanceCard(
                             color = TextGray
                         )
                         Text(
-                            text = FormatterUtils.formatCurrency(totalAmana, "-"),
+                            text = FormatterUtils.formatCurrency(totalAmana, "-", currencyCode = currencyCode),
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                             color = ExpenseRed
                         )
@@ -144,9 +145,9 @@ internal fun AccountBalanceCard(
                             color = TextGray
                         )
                         Text(
-                            text = FormatterUtils.formatCurrency(realBalance),
+                            text = FormatterUtils.formatCurrency(realBalance, currencyCode = currencyCode),
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                            color = IncomeGreen
+                            color = if (realBalance < 0.0) ExpenseRed else IncomeGreen
                         )
                     }
                 }
@@ -166,6 +167,7 @@ internal fun AccountDetailsTabSelector(
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -184,7 +186,7 @@ internal fun AccountDetailsTabSelector(
                 label = "tab_bg"
             )
             val contentColor by animateColorAsState(
-                targetValue = if (isSelected) Primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                targetValue = if (isSelected) primaryColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 label = "tab_fg"
             )
             
@@ -238,7 +240,7 @@ internal fun TransactionsTab(
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(transactions, key = { it.id }, contentType = { "transaction" }) { tx ->
@@ -292,7 +294,7 @@ internal fun AmanasTab(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(amanas, key = { it.id }, contentType = { "amana" }) { amana ->
@@ -587,7 +589,7 @@ internal fun AddAmanaBottomSheet(
 
                 AppButton(
                     onClick = {
-                        val amount = amountText.toDoubleOrNull() ?: 0.0
+                        val amount = AmountConversionEngine.parseFlexibleAmount(amountText) ?: 0.0
                         onConfirm(name, ownerName, amount, notes.ifBlank { null })
                     },
                     isLoading = isSaving,

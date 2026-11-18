@@ -51,7 +51,6 @@ fun CurrencyConverterCard(
         availableCurrencies.forEach { put(it.currencyCode, it.countryFlagEmoji) }
     }
 
-    val displayAmount = com.qdash.core.utils.FormatterUtils.convertNumerals(amount, useWesternNumerals)
     val rawResult = if (result > 0.0) formatter.format(result) else ""
     val displayResult = com.qdash.core.utils.FormatterUtils.convertNumerals(rawResult, useWesternNumerals)
 
@@ -64,15 +63,19 @@ fun CurrencyConverterCard(
             modifier = Modifier.padding(SpacingTokens.Lg),
             verticalArrangement = Arrangement.spacedBy(SpacingTokens.Md)
         ) {
-            // ── From field ───────────────────────────────────────────────────
+            // ── From field (keep raw ASCII in editable input; normalize Eastern numerals on change) ──
             CurrencyInputField(
                 label = "من",
-                value = displayAmount,
+                value = amount,
                 currencyCode = fromCurrency,
                 flagEmoji = flagMap[fromCurrency] ?: "🏳",
                 allCodes = allCodes,
                 flagMap = flagMap,
-                onValueChange = onAmountChange,
+                onValueChange = { raw ->
+                    val ascii = com.qdash.core.utils.FormatterUtils.convertNumerals(raw, useWestern = true)
+                        .filter { it.isDigit() || it == '.' || it == ',' }
+                    onAmountChange(ascii)
+                },
                 onCurrencyChange = onFromCurrencyChange,
                 readOnly = false
             )

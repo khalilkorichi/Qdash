@@ -21,7 +21,8 @@ class TransactionRepositoryImpl(
     private val budgetGoalRepositoryProvider: () -> BudgetGoalRepository,
     private val notificationRepositoryProvider: () -> NotificationRepository,
     private val getBudgetAlertsUseCaseProvider: () -> GetBudgetAlertsUseCase,
-    private val getBudgetGoalsUseCaseProvider: () -> GetBudgetGoalsUseCase
+    private val getBudgetGoalsUseCaseProvider: () -> GetBudgetGoalsUseCase,
+    private val context: android.content.Context? = null
 ) : TransactionRepository {
 
     override fun getAllTransactions(): Flow<List<Transaction>> {
@@ -53,20 +54,27 @@ class TransactionRepositoryImpl(
             if (transaction.type == TransactionType.TRANSFER) {
                 if (transaction.transferId != null) {
                     // Mirrored transfer branch
-                    val account = accountDao.getAccountById(transaction.accountId)
+                    accountDao.getAccountById(transaction.accountId)
                         ?: throw IllegalArgumentException("الحساب المالي المحدد غير موجود!")
                     val offset = if (transaction.isDebit) -transaction.amount else transaction.amount
-                    accountDao.updateAccount(account.copy(balance = account.balance + offset))
+                    accountDao.adjustBalance(transaction.accountId, offset)
                     
                     val resultId = transactionDao.insertTransaction(transaction.toEntity())
                     syncAggregateForDate(transaction.date)
                     resultId
                 } else {
                     // Initial transfer request: create two mirrored transactions with a shared transferId
+                    val destAccountId = transaction.toAccountId
+                        ?: throw IllegalArgumentException("حساب الوجهة مطلوب للتحويل!")
+                    accountDao.getAccountById(transaction.accountId)
+                        ?: throw IllegalArgumentException("الحساب المصدر غير موجود!")
+                    accountDao.getAccountById(destAccountId)
+                        ?: throw IllegalArgumentException("حساب الوجهة غير موجود!")
+
                     val sharedId = "TRF-" + java.util.UUID.randomUUID().toString().take(6).uppercase()
                     val debitTx = transaction.copy(transferId = sharedId, isDebit = true, kind = TransactionKind.TRANSFER)
                     val creditTx = transaction.copy(
-                        accountId = transaction.toAccountId ?: throw IllegalArgumentException("حساب الوجهة مطلوب للتحويل!"),
+                        accountId = destAccountId,
                         toAccountId = transaction.accountId,
                         transferId = sharedId,
                         isDebit = false,
@@ -76,21 +84,15 @@ class TransactionRepositoryImpl(
                     val resultId = transactionDao.insertTransaction(debitTx.toEntity())
                     transactionDao.insertTransaction(creditTx.toEntity())
                     
-                    val sourceAccount = accountDao.getAccountById(debitTx.accountId)
-                    if (sourceAccount != null) {
-                        accountDao.updateAccount(sourceAccount.copy(balance = sourceAccount.balance - debitTx.amount))
-                    }
-                    val destAccount = accountDao.getAccountById(creditTx.accountId)
-                    if (destAccount != null) {
-                        accountDao.updateAccount(destAccount.copy(balance = destAccount.balance + creditTx.amount))
-                    }
+                    accountDao.adjustBalance(debitTx.accountId, -debitTx.amount)
+                    accountDao.adjustBalance(creditTx.accountId, creditTx.amount)
                     
                     syncAggregateForDate(transaction.date)
                     resultId
                 }
             } else {
                 // Normal transaction branch: INCOME, EXPENSE, SALARY, SAVINGS_CONTRIBUTION, SAVINGS_WITHDRAWAL
-                val account = accountDao.getAccountById(transaction.accountId)
+                accountDao.getAccountById(transaction.accountId)
                     ?: throw IllegalArgumentException("الحساب المالي المحدد غير موجود في قاعدة البيانات!")
 
                 val offset = when (transaction.kind) {
@@ -98,7 +100,7 @@ class TransactionRepositoryImpl(
                     TransactionKind.INCOME, TransactionKind.SALARY, TransactionKind.SAVINGS_CONTRIBUTION -> transaction.amount
                     TransactionKind.TRANSFER -> -transaction.amount
                 }
-                accountDao.updateAccount(account.copy(balance = account.balance + offset))
+                accountDao.adjustBalance(transaction.accountId, offset)
 
                 val resultId = transactionDao.insertTransaction(transaction.toEntity())
                 syncAggregateForDate(transaction.date)
@@ -114,9 +116,13 @@ class TransactionRepositoryImpl(
     private suspend fun checkAndTriggerNotifications(transaction: Transaction, transactionId: Long) {
         try {
             val notificationRepository = notificationRepositoryProvider()
+            val prefs = context?.let { com.qdash.core.preferences.PreferencesManager(it) }
+            val allowSalaryReminder = prefs?.notifSalaryReminder ?: true
+            val allowBudgetAlert = prefs?.notifBudgetAlert ?: true
+            val now = System.currentTimeMillis()
 
             // 1. Check for Salary Added
-            if (transaction.type == TransactionType.INCOME && transaction.categoryId != null) {
+            if (allowSalaryReminder && transaction.type == TransactionType.INCOME && transaction.categoryId != null) {
                 val category = database.categoryDao().getCategoryById(transaction.categoryId)
                 if (category != null && (category.name.contains("راتب") || category.name.contains("الراتب"))) {
                     val notification = AppNotification(
@@ -133,11 +139,10 @@ class TransactionRepositoryImpl(
             val isExpense = transaction.type == TransactionType.EXPENSE ||
                     transaction.kind == TransactionKind.EXPENSE ||
                     transaction.kind == TransactionKind.SAVINGS_WITHDRAWAL
-            if (isExpense) {
+            if (allowBudgetAlert && isExpense) {
                 val budgetGoals = getBudgetGoalsUseCaseProvider()().first()
                 val alerts = getBudgetAlertsUseCaseProvider()(budgetGoals)
                 val existingNotifications = notificationRepository.getAllNotifications().first()
-                val now = System.currentTimeMillis()
 
                 for (alert in alerts) {
                     if (alert.status == BudgetStatus.EXCEEDED || alert.status == BudgetStatus.CRITICAL) {
@@ -167,42 +172,51 @@ class TransactionRepositoryImpl(
                 }
             }
 
-            // 3. Check for Salary Envelope Overspending and update spentAmount
+            // 3. Check for Salary Envelope Overspending and update spentAmount (scoped to last 30 days)
             if (transaction.type == TransactionType.EXPENSE && transaction.categoryId != null) {
                 val categoryId = transaction.categoryId
                 val envelopes = database.salaryDistributionDao().getAllEnvelopesOnce()
-                
-                envelopes.forEach { env ->
-                    val linkedIds = if (env.linkedCategoryIds.isBlank()) emptyList() else env.linkedCategoryIds.split(",").mapNotNull { it.trim().toLongOrNull() }
-                    if (categoryId in linkedIds) {
-                        // Recalculate spentAmount for this envelope
-                        val allTxList = database.transactionDao().getTransactionsByDateRangeList(0L, System.currentTimeMillis() + 86400000L)
-                        val envelopeSpent = allTxList.filter { 
+                val matchingEnvelopes = envelopes.filter { env ->
+                    val linkedIds = if (env.linkedCategoryIds.isBlank()) emptyList()
+                    else env.linkedCategoryIds.split(",").mapNotNull { it.trim().toLongOrNull() }
+                    categoryId in linkedIds
+                }
+
+                if (matchingEnvelopes.isNotEmpty()) {
+                    val windowStart = now - 30L * 86_400_000L
+                    val windowEnd = now + 86_400_000L
+                    val recentTxList = database.transactionDao().getTransactionsByDateRangeList(windowStart, windowEnd)
+                    val existingNotifications = if (allowBudgetAlert) {
+                        notificationRepository.getAllNotifications().first()
+                    } else {
+                        emptyList()
+                    }
+
+                    matchingEnvelopes.forEach { env ->
+                        val linkedIds = env.linkedCategoryIds.split(",").mapNotNull { it.trim().toLongOrNull() }
+                        val envelopeSpent = recentTxList.filter {
                             it.type == "EXPENSE" && it.categoryId in linkedIds
                         }.sumOf { it.amount }
-                        
+
                         val updatedEnv = env.copy(spentAmount = envelopeSpent)
                         database.salaryDistributionDao().updateEnvelope(updatedEnv)
-                        
-                        // Check if overspent and notify
-                        if (env.allocatedAmount > 0) {
+
+                        // Check if overspent and notify if budget alerts are enabled
+                        if (allowBudgetAlert && env.allocatedAmount > 0) {
                             val oldProgress = env.spentAmount / env.allocatedAmount
                             val newProgress = envelopeSpent / env.allocatedAmount
-                            
-                            val now = System.currentTimeMillis()
-                            val existingNotifications = notificationRepository.getAllNotifications().first()
-                            
+
                             val alreadyNotified = existingNotifications.any {
                                 it.type == NotificationType.BUDGET_ALERT &&
                                         it.message.contains(env.label) &&
                                         (now - it.timestamp) < 12L * 60 * 60 * 1000
                             }
-                            
+
                             if (!alreadyNotified) {
                                 if (newProgress >= 1.0 && oldProgress < 1.0) {
-                                    val alertMsg = "تنبيه 🚨: لقد استهلكت 100% من ميزانية ظرف \"${env.label}\" (${env.allocatedAmount.toInt()} د.ج)." + 
+                                    val alertMsg = "تنبيه 🚨: لقد استهلكت 100% من ميزانية ظرف \"${env.label}\" (${env.allocatedAmount.toInt()} د.ج)." +
                                             if (env.type == "WANTS") " نقترح إيقاف الإنفاق الترفيهي أو نقل جزء من ميزانية الاحتياجات." else ""
-                                    
+
                                     val notification = AppNotification(
                                         title = "تجاوز حد الظرف! ⚠️",
                                         message = alertMsg,
@@ -310,28 +324,19 @@ class TransactionRepositoryImpl(
         if (transaction.transferId != null) {
             val mirroredEntities = transactionDao.getTransactionsByTransferId(transaction.transferId)
             mirroredEntities.forEach { entity ->
-                val acc = accountDao.getAccountById(entity.accountId)
-                if (acc != null) {
-                    val revertOffset = if (entity.isDebit) entity.amount else -entity.amount
-                    accountDao.updateAccount(acc.copy(balance = acc.balance + revertOffset))
-                }
+                val revertOffset = if (entity.isDebit) entity.amount else -entity.amount
+                accountDao.adjustBalance(entity.accountId, revertOffset)
             }
             transactionDao.deleteTransactionsByTransferId(transaction.transferId)
         } else {
-            val account = accountDao.getAccountById(transaction.accountId)
-            if (account != null) {
-                val revertOffset = when (transaction.kind) {
-                    TransactionKind.EXPENSE, TransactionKind.SAVINGS_WITHDRAWAL -> transaction.amount
-                    TransactionKind.INCOME, TransactionKind.SALARY, TransactionKind.SAVINGS_CONTRIBUTION -> -transaction.amount
-                    TransactionKind.TRANSFER -> transaction.amount
-                }
-                accountDao.updateAccount(account.copy(balance = account.balance + revertOffset))
+            val revertOffset = when (transaction.kind) {
+                TransactionKind.EXPENSE, TransactionKind.SAVINGS_WITHDRAWAL -> transaction.amount
+                TransactionKind.INCOME, TransactionKind.SALARY, TransactionKind.SAVINGS_CONTRIBUTION -> -transaction.amount
+                TransactionKind.TRANSFER -> transaction.amount
             }
+            accountDao.adjustBalance(transaction.accountId, revertOffset)
             if (transaction.type == TransactionType.TRANSFER && transaction.toAccountId != null) {
-                val destAccount = accountDao.getAccountById(transaction.toAccountId)
-                if (destAccount != null) {
-                    accountDao.updateAccount(destAccount.copy(balance = destAccount.balance - transaction.amount))
-                }
+                accountDao.adjustBalance(transaction.toAccountId, -transaction.amount)
             }
             transactionDao.deleteTransaction(transaction.toEntity())
         }
@@ -775,19 +780,21 @@ class IncomeRepositoryImpl(
         )
         val notificationId = notificationDao.insertNotification(notification)
 
-        com.qdash.core.utils.SystemNotificationHelper.showNotification(
-            context = context,
-            appNotification = com.qdash.domain.model.AppNotification(
-                id = notificationId,
-                title = notification.title,
-                message = notification.message,
-                type = com.qdash.domain.model.NotificationType.SMART_REMINDER,
-                isRead = false,
-                timestamp = notification.timestamp,
-                deepLinkRoute = notification.deepLinkRoute,
-                relatedEntityId = notification.relatedEntityId
+        if (com.qdash.core.preferences.PreferencesManager(context).notifSalaryReminder) {
+            com.qdash.core.utils.SystemNotificationHelper.showNotification(
+                context = context,
+                appNotification = com.qdash.domain.model.AppNotification(
+                    id = notificationId,
+                    title = notification.title,
+                    message = notification.message,
+                    type = com.qdash.domain.model.NotificationType.SMART_REMINDER,
+                    isRead = false,
+                    timestamp = notification.timestamp,
+                    deepLinkRoute = notification.deepLinkRoute,
+                    relatedEntityId = notification.relatedEntityId
+                )
             )
-        )
+        }
     }
 
     override suspend fun deleteSalaryDelay(delayId: Long) = database.withTransaction {
@@ -824,19 +831,21 @@ class IncomeRepositoryImpl(
         )
         val notificationId = notificationDao.insertNotification(notification)
 
-        com.qdash.core.utils.SystemNotificationHelper.showNotification(
-            context = context,
-            appNotification = com.qdash.domain.model.AppNotification(
-                id = notificationId,
-                title = notification.title,
-                message = notification.message,
-                type = com.qdash.domain.model.NotificationType.SMART_REMINDER,
-                isRead = false,
-                timestamp = notification.timestamp,
-                deepLinkRoute = notification.deepLinkRoute,
-                relatedEntityId = notification.relatedEntityId
+        if (com.qdash.core.preferences.PreferencesManager(context).notifSalaryReminder) {
+            com.qdash.core.utils.SystemNotificationHelper.showNotification(
+                context = context,
+                appNotification = com.qdash.domain.model.AppNotification(
+                    id = notificationId,
+                    title = notification.title,
+                    message = notification.message,
+                    type = com.qdash.domain.model.NotificationType.SMART_REMINDER,
+                    isRead = false,
+                    timestamp = notification.timestamp,
+                    deepLinkRoute = notification.deepLinkRoute,
+                    relatedEntityId = notification.relatedEntityId
+                )
             )
-        )
+        }
     }
 
     override suspend fun updateSalaryDelay(
@@ -888,19 +897,21 @@ class IncomeRepositoryImpl(
         )
         val notificationId = notificationDao.insertNotification(notification)
 
-        com.qdash.core.utils.SystemNotificationHelper.showNotification(
-            context = context,
-            appNotification = com.qdash.domain.model.AppNotification(
-                id = notificationId,
-                title = notification.title,
-                message = notification.message,
-                type = com.qdash.domain.model.NotificationType.SMART_REMINDER,
-                isRead = false,
-                timestamp = notification.timestamp,
-                deepLinkRoute = notification.deepLinkRoute,
-                relatedEntityId = notification.relatedEntityId
+        if (com.qdash.core.preferences.PreferencesManager(context).notifSalaryReminder) {
+            com.qdash.core.utils.SystemNotificationHelper.showNotification(
+                context = context,
+                appNotification = com.qdash.domain.model.AppNotification(
+                    id = notificationId,
+                    title = notification.title,
+                    message = notification.message,
+                    type = com.qdash.domain.model.NotificationType.SMART_REMINDER,
+                    isRead = false,
+                    timestamp = notification.timestamp,
+                    deepLinkRoute = notification.deepLinkRoute,
+                    relatedEntityId = notification.relatedEntityId
+                )
             )
-        )
+        }
     }
 }
 

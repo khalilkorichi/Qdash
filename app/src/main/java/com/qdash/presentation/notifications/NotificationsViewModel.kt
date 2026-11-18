@@ -16,8 +16,11 @@ import java.util.TimeZone
 @Immutable
 data class NotificationsUiState(
     val notifications: List<AppNotification> = emptyList(),
+    val totalCount: Int = 0,
     val unreadCount: Int = 0,
     val selectedFilter: NotificationType? = null,
+    val selectedFilterLabel: String = "الكل",
+    val selectedFilterTypes: Set<NotificationType> = emptySet(),
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false
 )
@@ -26,7 +29,7 @@ class NotificationsViewModel(
     private val notificationRepository: NotificationRepository
 ) : ViewModel() {
 
-    private val _selectedFilter = MutableStateFlow<NotificationType?>(null)
+    private val _selectedFilterGroup = MutableStateFlow<Pair<String, Set<NotificationType>>>("الكل" to emptySet())
     private val _isRefreshing = MutableStateFlow(false)
 
     init {
@@ -37,19 +40,23 @@ class NotificationsViewModel(
 
     val uiState: StateFlow<NotificationsUiState> = combine(
         notificationRepository.getAllNotifications().distinctUntilChanged(),
-        _selectedFilter,
+        _selectedFilterGroup,
         _isRefreshing
-    ) { allNotifications, filter, isRefreshing ->
+    ) { allNotifications, filterGroup, isRefreshing ->
+        val (filterLabel, filterTypes) = filterGroup
         val unreadCount = allNotifications.count { !it.isRead }
-        val filtered = if (filter != null) {
-            allNotifications.filter { it.type == filter }
+        val filtered = if (filterTypes.isNotEmpty()) {
+            allNotifications.filter { it.type in filterTypes }
         } else {
             allNotifications
         }
         NotificationsUiState(
             notifications = filtered,
+            totalCount = allNotifications.size,
             unreadCount = unreadCount,
-            selectedFilter = filter,
+            selectedFilter = filterTypes.singleOrNull(),
+            selectedFilterLabel = filterLabel,
+            selectedFilterTypes = filterTypes,
             isLoading = false,
             isRefreshing = isRefreshing
         )
@@ -125,6 +132,12 @@ class NotificationsViewModel(
         }
     }
 
+    fun restoreNotification(notification: AppNotification) {
+        viewModelScope.launch(Dispatchers.IO) {
+            notificationRepository.insertNotification(notification)
+        }
+    }
+
     fun clearAll() {
         viewModelScope.launch(Dispatchers.IO) {
             notificationRepository.clearAll()
@@ -132,6 +145,15 @@ class NotificationsViewModel(
     }
 
     fun setFilter(type: NotificationType?) {
-        _selectedFilter.value = type
+        if (type == null) {
+            _selectedFilterGroup.value = "الكل" to emptySet()
+        } else {
+            val matchingChip = FILTER_CHIPS.firstOrNull { type in it.types }
+            _selectedFilterGroup.value = (matchingChip?.label ?: type.name) to setOf(type)
+        }
+    }
+
+    fun setFilterGroup(label: String, types: Set<NotificationType>) {
+        _selectedFilterGroup.value = label to types
     }
 }

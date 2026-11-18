@@ -71,6 +71,17 @@ interface TransactionDao {
 
     @Query("DELETE FROM transactions WHERE transferId = :transferId")
     suspend fun deleteTransactionsByTransferId(transferId: String)
+
+    @Query("""
+        SELECT COALESCE(SUM(t.amount), 0.0)
+        FROM transactions t
+        LEFT JOIN categories c ON t.categoryId = c.id
+        WHERE t.type = 'EXPENSE'
+          AND t.kind = 'EXPENSE'
+          AND t.date BETWEEN :startDate AND :endDate
+          AND (:categoryId IS NULL OR t.categoryId = :categoryId OR c.parentId = :categoryId)
+    """)
+    suspend fun calculateExpenseSum(startDate: Long, endDate: Long, categoryId: Long?): Double
 }
 
 @Dao
@@ -111,7 +122,7 @@ interface AccountDao {
     @Query("UPDATE accounts SET isActive = 1 WHERE id = :id")
     suspend fun activateAccount(id: Long)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertAccount(account: AccountEntity): Long
 
     @Update
@@ -145,13 +156,13 @@ interface CategoryDao {
     @Query("SELECT COUNT(*) FROM transactions WHERE categoryId = :categoryId")
     suspend fun getTransactionCountForCategory(categoryId: Long): Int
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertCategory(category: CategoryEntity): Long
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertCategoryIgnoreConflict(category: CategoryEntity): Long
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertCategories(categories: List<CategoryEntity>)
 
     @Update
@@ -181,7 +192,7 @@ interface IncomeSourceDao {
     @Query("SELECT * FROM income_sources WHERE id = :id")
     suspend fun getIncomeSourceById(id: Long): IncomeSourceEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertIncomeSource(incomeSource: IncomeSourceEntity): Long
 
     @Update
@@ -199,7 +210,7 @@ interface SavingGoalDao {
     @Query("SELECT * FROM saving_goals WHERE id = :id")
     suspend fun getSavingGoalById(id: Long): SavingGoalEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertSavingGoal(savingGoal: SavingGoalEntity): Long
 
     @Update

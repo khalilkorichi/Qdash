@@ -54,8 +54,7 @@ fun RestoreBackupPromptDialog(
             text = stringResource(id = R.string.restore_backup_message, formattedDate),
             confirmButtonText = stringResource(id = R.string.restore_confirm),
             dismissButtonText = stringResource(id = R.string.restore_skip),
-            onConfirm = onConfirm,
-            onDismiss = onDismiss
+            onConfirm = onConfirm
         )
     }
 }

@@ -93,7 +93,14 @@ class AccountsViewModel(
                 }
                 .flowOn(kotlinx.coroutines.Dispatchers.Default)
                 .collect { newState ->
-                    _uiState.value = newState
+                    _uiState.update { prev ->
+                        newState.copy(
+                            error = prev.error,
+                            deleteError = prev.deleteError,
+                            editingAccount = prev.editingAccount,
+                            isRefreshing = prev.isRefreshing
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = e.localizedMessage) }

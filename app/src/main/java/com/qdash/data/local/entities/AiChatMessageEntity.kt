@@ -13,5 +13,6 @@ data class AiChatMessageEntity(
     val sender: String, // "USER" or "AI"
     val message: String,
     val timestamp: Long,
-    val sessionTitle: String
+    val sessionTitle: String,
+    val draftStatus: String? = null
 )

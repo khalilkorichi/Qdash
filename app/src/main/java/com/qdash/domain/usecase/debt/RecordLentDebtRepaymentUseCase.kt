@@ -26,10 +26,11 @@ class RecordLentDebtRepaymentUseCase(
             Transaction(
                 amount = amount,
                 type = TransactionType.INCOME,
-                categoryId = 15L, // Category "أخرى" (INCOME)
+                categoryId = null,
                 accountId = receivingAccountId,
                 note = repaymentNote,
-                date = paymentDate
+                date = paymentDate,
+                occurredAt = System.currentTimeMillis()
             )
         )
 

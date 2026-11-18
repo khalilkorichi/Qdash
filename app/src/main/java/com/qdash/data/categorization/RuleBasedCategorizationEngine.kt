@@ -42,12 +42,23 @@ class RuleBasedCategorizationEngine(
             val systemCategories = categoryDao.getAllCategories().first()
             val kwMatch = AlgerianKeywordDictionary.findMatchingCategory(normalized)
             if (kwMatch != null) {
-                // Try finding by subcategory name first if provided, else category name
+                fun findFlexible(targetName: String): com.qdash.data.local.entities.CategoryEntity? {
+                    val aliases = when (targetName) {
+                        "خردوات وعتاد" -> listOf("خردوات ودروغري", "خردوات")
+                        "خدمات محلية" -> listOf("خدمات محلية وتصليح")
+                        "عناية شخصية" -> listOf("كوسميتيك وعناية")
+                        "عائلي" -> listOf("عائلي وكفالة")
+                        else -> emptyList()
+                    }
+                    return systemCategories.find { it.name == targetName }
+                        ?: systemCategories.find { it.name.contains(targetName) || targetName.contains(it.name) }
+                        ?: systemCategories.find { cat -> aliases.any { cat.name.contains(it) } }
+                }
+
                 val targetCategory = if (kwMatch.subcategoryName != null) {
-                    systemCategories.find { it.name == kwMatch.subcategoryName }
-                        ?: systemCategories.find { it.name == kwMatch.categoryName }
+                    findFlexible(kwMatch.subcategoryName) ?: findFlexible(kwMatch.categoryName)
                 } else {
-                    systemCategories.find { it.name == kwMatch.categoryName }
+                    findFlexible(kwMatch.categoryName)
                 }
 
                 if (targetCategory != null) {
@@ -113,7 +124,7 @@ class RuleBasedCategorizationEngine(
                         suggestionSource = SuggestionSource.AI,
                         confidenceScore = confidence,
                         userAcceptedSuggestion = false,
-                        newCategoryName = json.optString("newCategoryName", null),
+                        newCategoryName = json.optString("newCategoryName", "").takeIf { it.isNotBlank() },
                         newCategoryType = json.optString("newCategoryType", "EXPENSE"),
                         newCategoryColor = json.optString("newCategoryColor", "#E0E0E0"),
                         newCategoryIcon = json.optString("newCategoryIcon", "category")

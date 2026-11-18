@@ -1,15 +1,16 @@
 package com.qdash.presentation.salary
 
 import androidx.compose.runtime.Immutable
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qdash.domain.model.*
 import com.qdash.domain.repository.*
 import com.qdash.domain.usecase.salary.*
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 @Immutable
 data class SalaryUiState(
@@ -17,14 +18,14 @@ data class SalaryUiState(
     val overview: SalaryManagementOverview? = null,
     val accounts: List<Account> = emptyList(),
     val showAddDialog: Boolean = false,
-    
+
     // Form fields for adding/editing
     val editingId: Long? = null,
     val name: String = "راتبي الأساسي",
     val amount: String = "",
     val dayOfMonth: Int = 1,
     val selectedAccountId: Long? = null,
-    
+
     // Distribution config
     val distributionEnabled: Boolean = false,
     val needsPercentage: Int = 50,
@@ -33,10 +34,9 @@ data class SalaryUiState(
     val envelopes: List<SalaryEnvelope> = emptyList(),
     val isDistributionSaving: Boolean = false,
 
-    // Category linking
+    // Category linking (non-null envelopeId when picker is open)
     val categories: List<Category> = emptyList(),
-    val showCategoryPicker: Boolean = false,
-    val categoryPickerEnvelopeId: Long? = null,
+    val showCategoryPicker: Long? = null,
 
     // Delay Salary Form
     val showDelayDialog: Boolean = false,
@@ -49,7 +49,7 @@ data class SalaryUiState(
     val originalDelayDays: Int = 0,
     val userMessage: String? = null
 ) {
-    // Keep legacy support for IncomeSource list
+    val categoryPickerEnvelopeId: Long? get() = showCategoryPicker
     val incomeSources: List<IncomeSource>
         get() = overview?.salary?.let { listOf(it) } ?: emptyList()
 }
@@ -68,14 +68,17 @@ class SalaryViewModel(
     private val getSalaryDistributionUseCase: GetSalaryDistributionUseCase,
     private val saveSalaryDistributionUseCase: SaveSalaryDistributionUseCase,
     private val categoryRepository: CategoryRepository,
-    private val salaryDistributionRepository: com.qdash.domain.repository.SalaryDistributionRepository,
-    private val transferBetweenAccountsUseCase: com.qdash.domain.usecase.transfer.TransferBetweenAccountsUseCase
+    private val salaryDistributionRepository: SalaryDistributionRepository,
+    private val transferBetweenAccountsUseCase: com.qdash.domain.usecase.transfer.TransferBetweenAccountsUseCase,
+    private val transactionRepository: TransactionRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SalaryUiState(isLoading = true))
     val uiState = _uiState.asStateFlow()
 
     private val _delayDaysFlow = MutableStateFlow("")
+    private var mainLoadJob: Job? = null
+    private var distributionJob: Job? = null
 
     init {
         loadData()
@@ -83,7 +86,8 @@ class SalaryViewModel(
     }
 
     private fun loadData() {
-        viewModelScope.launch {
+        mainLoadJob?.cancel()
+        mainLoadJob = viewModelScope.launch {
             combine(
                 getSalaryManagementOverviewUseCase(),
                 accountRepository.getAllAccounts(),
@@ -100,16 +104,20 @@ class SalaryViewModel(
                         selectedAccountId = if (state.selectedAccountId == null) accounts.firstOrNull()?.id else state.selectedAccountId
                     )
                 }
-                // Load distribution data when salary is available
-                overview.salary?.let { salary ->
+                val salary = overview.salary
+                if (salary != null) {
                     loadDistributionData(salary.id)
+                } else {
+                    distributionJob?.cancel()
+                    distributionJob = null
                 }
             }
         }
     }
 
     private fun loadDistributionData(salaryId: Long) {
-        viewModelScope.launch {
+        distributionJob?.cancel()
+        distributionJob = viewModelScope.launch {
             getSalaryDistributionUseCase.forSalary(salaryId).collect { (distribution, envelopes) ->
                 _uiState.update { state ->
                     state.copy(
@@ -131,13 +139,14 @@ class SalaryViewModel(
     private fun observeDelayDaysChanges() {
         viewModelScope.launch {
             _delayDaysFlow
-                .debounce(300)
+                .debounce(250)
                 .collect { daysStr ->
                     val state = _uiState.value
                     val salary = state.overview?.salary ?: return@collect
-                    val subscriptions = state.overview?.activeSubscriptions ?: emptyList()
-                    val debts = state.overview?.activeDebts ?: emptyList()
-                    
+                    val subscriptions = state.overview.activeSubscriptions
+                    // Only consider debts owed BY the user (exclude lent money OWED_TO_ME)
+                    val debts = state.overview.activeDebts.filter { it.direction == DebtDirection.OWED_BY_ME }
+
                     val days = daysStr.toIntOrNull()
                     if (days == null || days <= 0) {
                         _uiState.update { it.copy(delayImpact = null, isAnalyzingDelay = false) }
@@ -145,7 +154,7 @@ class SalaryViewModel(
                     }
 
                     _uiState.update { it.copy(isAnalyzingDelay = true) }
-                    
+
                     val originalDateOverride = if (state.isEditMode) {
                         salary.nextExpectedDate - (state.originalDelayDays * 86400000L)
                     } else {
@@ -168,7 +177,7 @@ class SalaryViewModel(
 
     fun setShowAddDialog(show: Boolean, sourceToEdit: IncomeSource? = null) {
         if (show) {
-            _uiState.update { 
+            _uiState.update {
                 it.copy(
                     showAddDialog = true,
                     editingId = sourceToEdit?.id,
@@ -202,13 +211,13 @@ class SalaryViewModel(
     }
 
     fun onDayOfMonthChange(day: Int) {
-        _uiState.update { it.copy(dayOfMonth = day) }
+        _uiState.update { it.copy(dayOfMonth = day.coerceIn(1, 31)) }
     }
 
     fun onAccountSelected(accountId: Long) {
         _uiState.update { it.copy(selectedAccountId = accountId) }
     }
-    
+
     // --- Distribution Methods ---
 
     fun toggleDistribution(enabled: Boolean) {
@@ -225,15 +234,14 @@ class SalaryViewModel(
             currentWants = state.wantsPercentage,
             currentSavings = state.savingsPercentage
         )
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 needsPercentage = result.needs,
                 wantsPercentage = result.wants,
                 savingsPercentage = result.savings
-            ) 
+            )
         }
     }
-
 
     fun commitDistributionPercentages() {
         saveDistribution()
@@ -242,7 +250,7 @@ class SalaryViewModel(
     private fun saveDistribution() {
         val state = _uiState.value
         val salary = state.overview?.salary ?: return
-        
+
         _uiState.update { it.copy(isDistributionSaving = true) }
         viewModelScope.launch {
             try {
@@ -263,11 +271,11 @@ class SalaryViewModel(
     }
 
     fun showCategoryPickerFor(envelopeId: Long) {
-        _uiState.update { it.copy(showCategoryPicker = true, categoryPickerEnvelopeId = envelopeId) }
+        _uiState.update { it.copy(showCategoryPicker = envelopeId) }
     }
 
     fun dismissCategoryPicker() {
-        _uiState.update { it.copy(showCategoryPicker = false, categoryPickerEnvelopeId = null) }
+        _uiState.update { it.copy(showCategoryPicker = null) }
     }
 
     fun toggleCategoryForEnvelope(envelopeId: Long, categoryId: Long) {
@@ -278,67 +286,120 @@ class SalaryViewModel(
         } else {
             envelope.linkedCategoryIds + categoryId
         }
+        _uiState.update { s ->
+            s.copy(envelopes = s.envelopes.map { env ->
+                if (env.id == envelopeId) env.copy(linkedCategoryIds = updatedIds) else env
+            })
+        }
         viewModelScope.launch {
             try {
-                val repo = getSalaryDistributionUseCase // Access repository indirectly
-                // We need the repository directly — use saveSalaryDistributionUseCase's parent
-                // For simplicity, update via the current state and re-save
-                _uiState.update { s ->
-                    s.copy(envelopes = s.envelopes.map { env ->
-                        if (env.id == envelopeId) env.copy(linkedCategoryIds = updatedIds) else env
-                    })
-                }
+                salaryDistributionRepository.updateLinkedCategories(envelopeId, updatedIds)
             } catch (e: Exception) {
-                _uiState.update { it.copy(userMessage = "خطأ في ربط الفئة") }
+                _uiState.update { it.copy(userMessage = "خطأ في حفظ الفئات المرتبطة: ${e.message}") }
             }
         }
     }
 
     fun saveSalary() {
         val state = _uiState.value
-        val amountDouble = state.amount.toDoubleOrNull() ?: return
-        val accountId = state.selectedAccountId ?: return
+        val amountDouble = state.amount.toDoubleOrNull()
+        if (state.name.isBlank()) {
+            _uiState.update { it.copy(userMessage = "الرجاء إدخال اسم الراتب") }
+            return
+        }
+        if (amountDouble == null || amountDouble <= 0.0) {
+            _uiState.update { it.copy(userMessage = "الرجاء إدخال قيمة راتب صحيحة أكبر من الصفر") }
+            return
+        }
+        val accountId = state.selectedAccountId
+        if (accountId == null) {
+            _uiState.update { it.copy(userMessage = "الرجاء اختيار الحساب المستلم للراتب") }
+            return
+        }
+
+        val clampedDay = state.dayOfMonth.coerceIn(1, 31)
+        val expectedDate = computeNextExpectedPayday(clampedDay)
 
         viewModelScope.launch {
             val source = IncomeSource(
                 id = state.editingId ?: 0,
-                name = state.name,
+                name = state.name.trim(),
                 amount = amountDouble,
                 type = "SALARY",
                 accountId = accountId,
-                dayOfMonth = state.dayOfMonth,
+                dayOfMonth = clampedDay,
                 isActive = true,
-                nextExpectedDate = System.currentTimeMillis()
+                nextExpectedDate = expectedDate
             )
-            
+
             if (state.editingId == null) {
                 val insertedId = incomeRepository.insertIncomeSource(source)
-                
-                // Automatic transfers to sub-accounts (Sub-account Auto-Transfer)
-                if (state.distributionEnabled) {
-                    state.envelopes.forEach { env ->
-                        if (env.linkedAccountId != null && env.linkedAccountId != accountId && env.allocatedAmount > 0) {
-                            transferBetweenAccountsUseCase(
-                                com.qdash.domain.model.TransferRequest(
-                                    fromAccountId = accountId,
-                                    toAccountId = env.linkedAccountId,
-                                    amount = env.allocatedAmount,
-                                    note = "توزيع تلقائي للراتب: ${env.label}",
-                                    date = System.currentTimeMillis()
-                                )
-                            )
-                        }
-                    }
+                if (state.distributionEnabled && insertedId > 0) {
+                    saveSalaryDistributionUseCase(
+                        salaryId = insertedId,
+                        isEnabled = true,
+                        needsPercentage = state.needsPercentage,
+                        wantsPercentage = state.wantsPercentage,
+                        savingsPercentage = state.savingsPercentage,
+                        salaryAmount = amountDouble
+                    )
                 }
+                _uiState.update { it.copy(userMessage = "تم حفظ إعدادات الراتب بنجاح") }
             } else {
                 incomeRepository.updateIncomeSource(source)
-                // Recalculate envelopes if distribution is enabled and amount changed
                 if (state.distributionEnabled) {
-                    saveDistribution()
+                    saveSalaryDistributionUseCase(
+                        salaryId = source.id,
+                        isEnabled = true,
+                        needsPercentage = state.needsPercentage,
+                        wantsPercentage = state.wantsPercentage,
+                        savingsPercentage = state.savingsPercentage,
+                        salaryAmount = amountDouble
+                    )
                 }
+                _uiState.update { it.copy(userMessage = "تم تحديث إعدادات الراتب بنجاح") }
             }
             setShowAddDialog(false)
         }
+    }
+
+    private fun computeNextExpectedPayday(dayOfMonth: Int, referenceMillis: Long = System.currentTimeMillis()): Long {
+        val todayStart = Calendar.getInstance().apply {
+            timeInMillis = referenceMillis
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+
+        val candidate = (todayStart.clone() as Calendar).apply {
+            val maxDay = getActualMaximum(Calendar.DAY_OF_MONTH)
+            set(Calendar.DAY_OF_MONTH, dayOfMonth.coerceIn(1, maxDay))
+            set(Calendar.HOUR_OF_DAY, 9)
+        }
+
+        if (candidate.timeInMillis < todayStart.timeInMillis) {
+            candidate.set(Calendar.DAY_OF_MONTH, 1)
+            candidate.add(Calendar.MONTH, 1)
+            val nextMaxDay = candidate.getActualMaximum(Calendar.DAY_OF_MONTH)
+            candidate.set(Calendar.DAY_OF_MONTH, dayOfMonth.coerceIn(1, nextMaxDay))
+        }
+        return candidate.timeInMillis
+    }
+
+    private fun advancePaydayByOneMonth(anchorMillis: Long, dayOfMonth: Int): Long {
+        val nextCal = Calendar.getInstance().apply {
+            timeInMillis = anchorMillis
+            set(Calendar.DAY_OF_MONTH, 1)
+            add(Calendar.MONTH, 1)
+            val maxDay = getActualMaximum(Calendar.DAY_OF_MONTH)
+            set(Calendar.DAY_OF_MONTH, dayOfMonth.coerceIn(1, maxDay))
+            set(Calendar.HOUR_OF_DAY, 9)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        return nextCal.timeInMillis
     }
 
     fun linkAccountToEnvelope(envelopeId: Long, accountId: Long?) {
@@ -346,11 +407,11 @@ class SalaryViewModel(
             if (env.id == envelopeId) env.copy(linkedAccountId = accountId) else env
         }
         _uiState.update { it.copy(envelopes = updatedEnvelopes) }
-        
+
         viewModelScope.launch {
             try {
                 salaryDistributionRepository.saveEnvelopes(updatedEnvelopes)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _uiState.update { it.copy(userMessage = "خطأ في ربط الحساب بالظرف") }
             }
         }
@@ -364,7 +425,7 @@ class SalaryViewModel(
 
     // Delay Dialog Methods
     fun setShowDelayDialog(show: Boolean) {
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 showDelayDialog = show,
                 delayDaysInput = "",
@@ -373,7 +434,7 @@ class SalaryViewModel(
                 editingDelayId = null,
                 originalDelayDays = 0,
                 userMessage = null
-            ) 
+            )
         }
         _delayDaysFlow.value = ""
     }
@@ -395,16 +456,15 @@ class SalaryViewModel(
         setShowDelayDialog(true)
     }
 
-
     fun startEditSalaryDelay(delay: SalaryDelay) {
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 showDelayDialog = true,
                 isEditMode = true,
                 editingDelayId = delay.id,
                 originalDelayDays = delay.delayDays,
                 delayDaysInput = delay.delayDays.toString()
-            ) 
+            )
         }
         _delayDaysFlow.value = delay.delayDays.toString()
     }
@@ -413,28 +473,87 @@ class SalaryViewModel(
         viewModelScope.launch {
             try {
                 deleteSalaryDelayUseCase(delayId)
-                _uiState.update { 
-                    it.copy(userMessage = "تم إلغاء تأجيل الراتب وإعادة الالتزامات لمواعيدها بنجاح!") 
+                _uiState.update {
+                    it.copy(userMessage = "تم إلغاء تأجيل الراتب وإعادة الالتزامات لمواعيدها بنجاح!")
                 }
             } catch (e: Exception) {
-                _uiState.update { 
-                    it.copy(userMessage = "حدث خطأ أثناء إلغاء التأجيل: ${e.message}") 
+                _uiState.update {
+                    it.copy(userMessage = "حدث خطأ أثناء إلغاء التأجيل: ${e.message}")
                 }
             }
         }
     }
 
-    fun depositSalaryNow(delayId: Long) {
-        val salary = _uiState.value.overview?.salary ?: return
+    fun depositSalaryNow(
+        delayId: Long? = null,
+        fallbackTransactionRepo: TransactionRepository? = null
+    ) {
+        val state = _uiState.value
+        val salary = state.overview?.salary ?: return
+        val activeDelayId = delayId ?: state.overview.delays.firstOrNull()?.id
+
         viewModelScope.launch {
             try {
-                depositSalaryNowUseCase(salaryId = salary.id, delayId = delayId)
-                _uiState.update { 
-                    it.copy(userMessage = "تم إيداع الراتب وإعادة جدولة الالتزامات بنجاح!") 
+                if (activeDelayId != null) {
+                    depositSalaryNowUseCase(salaryId = salary.id, delayId = activeDelayId)
+                } else {
+                    val txRepo = transactionRepository ?: fallbackTransactionRepo
+                    val allCategories = categoryRepository.getAllCategories().first()
+                    val salaryCatId = allCategories
+                        .firstOrNull { it.type == CategoryType.INCOME && it.name.contains("راتب") }?.id
+                        ?: allCategories.firstOrNull { it.type == CategoryType.INCOME }?.id
+
+                    if (txRepo != null) {
+                        txRepo.insertTransaction(
+                            Transaction(
+                                amount = salary.amount,
+                                type = TransactionType.INCOME,
+                                kind = TransactionKind.SALARY,
+                                categoryId = salaryCatId,
+                                accountId = salary.accountId,
+                                note = "إيداع راتب: ${salary.name}",
+                                date = System.currentTimeMillis(),
+                                occurredAt = System.currentTimeMillis()
+                            )
+                        )
+                    } else {
+                        val account = accountRepository.getAccountById(salary.accountId)
+                        if (account != null) {
+                            accountRepository.updateAccount(account.copy(balance = account.balance + salary.amount))
+                        }
+                    }
+
+                    val nextExpected = advancePaydayByOneMonth(salary.nextExpectedDate, salary.dayOfMonth)
+                    incomeRepository.updateIncomeSource(salary.copy(nextExpectedDate = nextExpected))
+                }
+
+                // Run automatic sub-account envelope transfers on actual salary deposit
+                if (state.distributionEnabled) {
+                    state.envelopes.forEach { env ->
+                        if (env.linkedAccountId != null &&
+                            env.linkedAccountId != salary.accountId &&
+                            env.allocatedAmount > 0.0
+                        ) {
+                            transferBetweenAccountsUseCase(
+                                TransferRequest(
+                                    fromAccountId = salary.accountId,
+                                    toAccountId = env.linkedAccountId,
+                                    amount = env.allocatedAmount,
+                                    note = "توزيع تلقائي للراتب: ${env.label}",
+                                    date = System.currentTimeMillis(),
+                                    occurredAt = System.currentTimeMillis()
+                                )
+                            )
+                        }
+                    }
+                }
+
+                _uiState.update {
+                    it.copy(userMessage = "تم استلام وإيداع الراتب في الحساب وتحديث الموعد القادم بنجاح!")
                 }
             } catch (e: Exception) {
-                _uiState.update { 
-                    it.copy(userMessage = "حدث خطأ أثناء إيداع الراتب: ${e.message}") 
+                _uiState.update {
+                    it.copy(userMessage = "حدث خطأ أثناء إيداع الراتب: ${e.message}")
                 }
             }
         }
@@ -459,12 +578,12 @@ class SalaryViewModel(
                         newSeverityScore = impact.severityScore,
                         affectedObligations = impact.affectedObligations
                     )
-                    _uiState.update { 
+                    _uiState.update {
                         it.copy(
                             isConfirmingDelay = false,
                             showDelayDialog = false,
                             userMessage = "تم تعديل تأجيل الراتب وتحديث الالتزامات بنجاح!"
-                        ) 
+                        )
                     }
                 } else {
                     confirmSalaryDelayUseCase(
@@ -475,20 +594,20 @@ class SalaryViewModel(
                         severityScore = impact.severityScore,
                         affectedObligations = impact.affectedObligations
                     )
-                    _uiState.update { 
+                    _uiState.update {
                         it.copy(
                             isConfirmingDelay = false,
                             showDelayDialog = false,
                             userMessage = "تم تأجيل موعد الراتب وتحديث الالتزامات بنجاح!"
-                        ) 
+                        )
                     }
                 }
             } catch (e: Exception) {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isConfirmingDelay = false,
                         userMessage = "حدث خطأ: ${e.message}"
-                    ) 
+                    )
                 }
             }
         }

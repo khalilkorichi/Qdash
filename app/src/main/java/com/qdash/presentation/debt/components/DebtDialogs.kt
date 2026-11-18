@@ -488,15 +488,21 @@ fun RecordRegularPaymentDialog(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
 
-    var paymentAmount by remember { mutableStateOf(debt.remainingAmount.toInt().toString()) }
-    var paymentNote by remember { mutableStateOf("") }
-    var sourceAccountId by remember { mutableStateOf<Long?>(null) }
-    var paymentDate by remember { mutableStateOf(System.currentTimeMillis()) }
+    var paymentAmount by remember(debt.id) { mutableStateOf(debt.remainingAmount.toInt().toString()) }
+    var paymentNote by remember(debt.id) { mutableStateOf("") }
+    var sourceAccountId by remember(debt.id) {
+        mutableStateOf<Long?>(
+            debt.linkedAccountId?.takeIf { linkedId -> accounts.any { it.id == linkedId } }
+                ?: accounts.firstOrNull()?.id
+        )
+    }
+    var paymentDate by remember(debt.id) { mutableStateOf(System.currentTimeMillis()) }
     var showPaymentDatePicker by remember { mutableStateOf(false) }
 
-    LaunchedEffect(accounts) {
-        if (accounts.isNotEmpty() && sourceAccountId == null) {
-            sourceAccountId = accounts.first().id
+    LaunchedEffect(accounts, debt.linkedAccountId) {
+        if (accounts.isNotEmpty() && (sourceAccountId == null || accounts.none { it.id == sourceAccountId })) {
+            sourceAccountId = debt.linkedAccountId?.takeIf { linkedId -> accounts.any { it.id == linkedId } }
+                ?: accounts.first().id
         }
     }
 
@@ -637,16 +643,24 @@ fun RecordInstallmentPaymentDialog(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
 
-    var paymentAmount by remember { mutableStateOf(debt.minimumPayment.toInt().toString()) }
-    var paymentType by remember { mutableStateOf(DebtPaymentType.MINIMUM) }
-    var paymentNote by remember { mutableStateOf("") }
-    var sourceAccountId by remember { mutableStateOf<Long?>(null) }
-    var paymentDate by remember { mutableStateOf(System.currentTimeMillis()) }
+    var paymentAmount by remember(debt.id) {
+        mutableStateOf(minOf(debt.minimumPayment, debt.remainingAmount).toInt().toString())
+    }
+    var paymentType by remember(debt.id) { mutableStateOf(DebtPaymentType.MINIMUM) }
+    var paymentNote by remember(debt.id) { mutableStateOf("") }
+    var sourceAccountId by remember(debt.id) {
+        mutableStateOf<Long?>(
+            debt.linkedAccountId?.takeIf { linkedId -> accounts.any { it.id == linkedId } }
+                ?: accounts.firstOrNull()?.id
+        )
+    }
+    var paymentDate by remember(debt.id) { mutableStateOf(System.currentTimeMillis()) }
     var showPaymentDatePicker by remember { mutableStateOf(false) }
 
-    LaunchedEffect(accounts) {
-        if (accounts.isNotEmpty() && sourceAccountId == null) {
-            sourceAccountId = accounts.first().id
+    LaunchedEffect(accounts, debt.linkedAccountId) {
+        if (accounts.isNotEmpty() && (sourceAccountId == null || accounts.none { it.id == sourceAccountId })) {
+            sourceAccountId = debt.linkedAccountId?.takeIf { linkedId -> accounts.any { it.id == linkedId } }
+                ?: accounts.first().id
         }
     }
 

@@ -16,7 +16,7 @@ interface SalaryDistributionDao {
     @Query("SELECT * FROM salary_distributions WHERE salaryId = :salaryId LIMIT 1")
     suspend fun getDistributionForSalaryOnce(salaryId: Long): SalaryDistributionEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertDistribution(distribution: SalaryDistributionEntity): Long
 
     @Update

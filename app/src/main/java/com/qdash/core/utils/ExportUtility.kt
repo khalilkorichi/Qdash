@@ -12,6 +12,25 @@ import java.io.OutputStreamWriter
 
 object ExportUtility {
 
+    private val FORMULA_PREFIXES = charArrayOf('=', '+', '-', '@', '\t', '\r')
+
+    /**
+     * Formats a CSV cell per RFC-4180:
+     * - Prefixes formula-triggering leading characters (=, +, -, @) with a single quote when [sanitizeFormula] is true.
+     * - Doubles embedded double-quotes and wraps the field in double-quotes.
+     */
+    private fun escapeCsvField(rawValue: String?, sanitizeFormula: Boolean = false): String {
+        var value = rawValue ?: ""
+        if (sanitizeFormula && value.isNotEmpty()) {
+            val firstNonSpace = value.trimStart().firstOrNull()
+            if (firstNonSpace != null && firstNonSpace in FORMULA_PREFIXES) {
+                value = "'$value"
+            }
+        }
+        val escaped = value.replace("\"", "\"\"")
+        return "\"$escaped\""
+    }
+
     // Export list of transactions to CSV format for external reports (e.g. Excel)
     fun exportTransactionsToCsv(
         context: Context,
@@ -21,19 +40,43 @@ object ExportUtility {
         accounts: List<Account>
     ): Boolean {
         return try {
-            context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                BufferedWriter(OutputStreamWriter(outputStream, "UTF-8")).use { writer ->
+            val stream = context.contentResolver.openOutputStream(uri) ?: return false
+            stream.use { outputStream ->
+                BufferedWriter(OutputStreamWriter(outputStream, Charsets.UTF_8)).use { writer ->
                     // Write UTF-8 BOM to ensure Arabic text renders correctly in Microsoft Excel
-                    writer.write('\ufeff'.code)
-                    writer.write("المعرف,المبلغ (دج),النوع,القسم,الحساب,التاريخ,الملاحظات\n")
+                    writer.write("\uFEFF")
+                    val headers = listOf(
+                        "المعرف",
+                        "المبلغ (دج)",
+                        "النوع",
+                        "القسم",
+                        "الحساب",
+                        "التاريخ",
+                        "الملاحظات"
+                    ).joinToString(",") { escapeCsvField(it) }
+                    writer.write("$headers\r\n")
 
                     transactions.forEach { tx ->
                         val catName = categories.firstOrNull { it.id == tx.categoryId }?.name ?: "غير محدد"
                         val accName = accounts.firstOrNull { it.id == tx.accountId }?.name ?: "غير محدد"
+                        val typeLabel = when (tx.type.name) {
+                            "EXPENSE" -> "مصروف"
+                            "INCOME" -> "دخل"
+                            "TRANSFER" -> "تحويل"
+                            else -> tx.type.name
+                        }
                         val formattedDate = FormatterUtils.formatDate(tx.date)
-                        val noteText = tx.note?.replace(",", " ") ?: ""
+                        val row = listOf(
+                            tx.id.toString(),
+                            tx.amount.toString(),
+                            escapeCsvField(typeLabel),
+                            escapeCsvField(catName, sanitizeFormula = true),
+                            escapeCsvField(accName, sanitizeFormula = true),
+                            escapeCsvField(formattedDate),
+                            escapeCsvField(tx.note ?: "", sanitizeFormula = true)
+                        ).joinToString(",")
 
-                        writer.write("${tx.id},${tx.amount},${tx.type},$catName,$accName,$formattedDate,$noteText\n")
+                        writer.write("$row\r\n")
                     }
                 }
             }
@@ -51,13 +94,34 @@ object ExportUtility {
         categories: List<Category>
     ): Boolean {
         return try {
-            context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                BufferedWriter(OutputStreamWriter(outputStream, "UTF-8")).use { writer ->
-                    writer.write('\ufeff'.code)
-                    writer.write("المعرف,الاسم,النوع,اللون,الحد الأقصى للميزانية\n")
+            val stream = context.contentResolver.openOutputStream(uri) ?: return false
+            stream.use { outputStream ->
+                BufferedWriter(OutputStreamWriter(outputStream, Charsets.UTF_8)).use { writer ->
+                    writer.write("\uFEFF")
+                    val headers = listOf(
+                        "المعرف",
+                        "الاسم",
+                        "النوع",
+                        "اللون",
+                        "الحد الأقصى للميزانية"
+                    ).joinToString(",") { escapeCsvField(it) }
+                    writer.write("$headers\r\n")
 
                     categories.forEach { cat ->
-                        writer.write("${cat.id},${cat.name},${cat.type},${cat.color},${cat.budgetLimit ?: 0.0}\n")
+                        val typeLabel = when (cat.type.name) {
+                            "EXPENSE" -> "مصروف"
+                            "INCOME" -> "دخل"
+                            else -> cat.type.name
+                        }
+                        val row = listOf(
+                            cat.id.toString(),
+                            escapeCsvField(cat.name, sanitizeFormula = true),
+                            escapeCsvField(typeLabel),
+                            escapeCsvField(cat.color),
+                            (cat.budgetLimit ?: 0.0).toString()
+                        ).joinToString(",")
+
+                        writer.write("$row\r\n")
                     }
                 }
             }
@@ -75,20 +139,22 @@ object ExportUtility {
         transactions: List<Transaction>
     ): Boolean {
         return try {
-            context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+            val stream = context.contentResolver.openOutputStream(uri) ?: return false
+            stream.use { outputStream ->
                 val jsonArray = JSONArray()
                 transactions.forEach { tx ->
                     val obj = JSONObject().apply {
+                        put("id", tx.id)
                         put("amount", tx.amount)
-                        put("type", tx.type)
+                        put("type", tx.type.name)
                         put("date", tx.date)
-                        put("note", tx.note)
-                        put("categoryId", tx.categoryId)
+                        put("note", tx.note ?: JSONObject.NULL)
+                        put("categoryId", tx.categoryId ?: JSONObject.NULL)
                         put("accountId", tx.accountId)
                     }
                     jsonArray.put(obj)
                 }
-                outputStream.write(jsonArray.toString(4).toByteArray())
+                outputStream.write(jsonArray.toString(4).toByteArray(Charsets.UTF_8))
             }
             true
         } catch (e: Exception) {

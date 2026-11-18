@@ -27,10 +27,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.core.utils.FormatterUtils
 import com.qdash.domain.model.Account
+import com.qdash.domain.model.AccountType
 import com.qdash.domain.model.Category
 import com.qdash.domain.model.CategoryType
 import com.qdash.domain.model.Transaction
 import com.qdash.domain.model.TransactionType
+import com.qdash.presentation.components.UnifiedCategoryIcon
+import com.qdash.presentation.components.safeParseColor
 import com.qdash.ui.theme.ExpenseRed
 import com.qdash.ui.theme.IncomeGreen
 import com.qdash.ui.theme.TextGray
@@ -51,6 +54,16 @@ fun formatDate(timestamp: Long): String {
 fun categoryTypeLabel(type: CategoryType) = when (type) {
     CategoryType.EXPENSE -> "مصاريف"
     CategoryType.INCOME  -> "دخل"
+}
+
+fun accountTypeLabel(type: AccountType): String = when (type) {
+    AccountType.BARIDIMOB -> "بريدي موب"
+    AccountType.CCP -> "حساب بريدي جاري (CCP)"
+    AccountType.BANK -> "حساب بنكي"
+    AccountType.CASH -> "نقدي / كاش"
+    AccountType.SAVINGS -> "حساب ادخار"
+    AccountType.WALLET -> "محفظة إلكترونية"
+    AccountType.OTHER -> "حساب آخر"
 }
 
 fun transactionTypeColor(type: TransactionType) = when (type) {
@@ -142,15 +155,15 @@ fun TransactionResultItem(transaction: Transaction, onClick: () -> Unit) {
 }
 
 @Composable
-fun AccountResultItem(account: Account) {
-    val bgColor = try {
-        Color(android.graphics.Color.parseColor(account.color))
-    } catch (e: Exception) {
-        MaterialTheme.colorScheme.primary
-    }
+fun AccountResultItem(
+    account: Account,
+    onClick: () -> Unit = {}
+) {
+    val bgColor = safeParseColor(account.color, MaterialTheme.colorScheme.primary)
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -181,7 +194,7 @@ fun AccountResultItem(account: Account) {
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = account.type.name,
+                text = accountTypeLabel(account.type),
                 fontSize = 11.sp,
                 color = TextGray
             )
@@ -202,15 +215,15 @@ fun AccountResultItem(account: Account) {
 }
 
 @Composable
-fun CategoryResultItem(category: Category) {
-    val bgColor = try {
-        Color(android.graphics.Color.parseColor(category.color))
-    } catch (e: Exception) {
-        MaterialTheme.colorScheme.primary
-    }
+fun CategoryResultItem(
+    category: Category,
+    onClick: () -> Unit = {}
+) {
+    val bgColor = safeParseColor(category.color, MaterialTheme.colorScheme.primary)
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -222,11 +235,11 @@ fun CategoryResultItem(category: Category) {
                 .background(bgColor.copy(alpha = 0.15f), shape = CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.Category,
-                contentDescription = null,
+            UnifiedCategoryIcon(
+                iconKey = category.icon,
                 tint = bgColor,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(20.dp),
+                emojiFontSize = 18.sp
             )
         }
 

@@ -15,12 +15,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 fun SearchScreen(
     viewModel: SearchViewModel,
     onTransactionClick: (Long) -> Unit,
+    onAccountClick: (Long) -> Unit = {},
+    onCategoryClick: (Long) -> Unit = {},
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
-    var selectedFilters by remember { mutableStateOf(setOf<String>()) }
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -50,14 +51,8 @@ fun SearchScreen(
                 .padding(padding)
         ) {
             AdvancedFiltersRow(
-                selectedFilters = selectedFilters,
-                onToggle = { filter ->
-                    selectedFilters = if (selectedFilters.contains(filter)) {
-                        selectedFilters - filter
-                    } else {
-                        selectedFilters + filter
-                    }
-                }
+                selectedFilters = uiState.selectedFilters,
+                onToggle = { filter -> viewModel.toggleFilter(filter) }
             )
 
             when {
@@ -99,6 +94,14 @@ fun SearchScreen(
                         onTransactionClick = { t ->
                             viewModel.saveRecentSearch(uiState.query)
                             onTransactionClick(t.id)
+                        },
+                        onAccountClick = { acc ->
+                            viewModel.saveRecentSearch(uiState.query)
+                            onAccountClick(acc.id)
+                        },
+                        onCategoryClick = { cat ->
+                            viewModel.saveRecentSearch(uiState.query)
+                            onCategoryClick(cat.id)
                         }
                     )
                 }

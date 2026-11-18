@@ -38,6 +38,7 @@ data class DocumentSimulatorUiState(
     val sfpBeneficiaryPhone: String = "",
     val sfpPlace: String = "",
     val sfpDate: String = "",
+    val sfpMotif: String = "",
     val sfpIdDescription: String = "",
     val sfpJustificatifCcp: Boolean = false,
     val sfpAvisCredit: Boolean = false,
@@ -232,6 +233,11 @@ class DocumentSimulatorViewModel(
         validateCurrentDocument()
     }
 
+    fun updateSfpMotif(value: String) {
+        _uiState.update { it.copy(sfpMotif = value) }
+        validateCurrentDocument()
+    }
+
     fun updateSfpIdDescription(value: String) {
         _uiState.update { it.copy(sfpIdDescription = value) }
         validateCurrentDocument()
@@ -336,6 +342,7 @@ class DocumentSimulatorViewModel(
 
     // --- Profile Autofill Logic ---
     fun autofillFromProfile(profile: PostalProfile, role: PostalProfileRole) {
+        val profileCity = profile.city?.trim()?.takeIf { it.isNotEmpty() }
         if (_uiState.value.selectedDocType == DocumentType.CHEQUE) {
             when (role) {
                 PostalProfileRole.SELF -> {
@@ -343,14 +350,16 @@ class DocumentSimulatorViewModel(
                         it.copy(
                             chequeCcp = profile.accountNumber,
                             chequeKey = profile.accountKey,
-                            chequeBeneficiary = "لنفسي"
+                            chequeBeneficiary = "لنفسي",
+                            chequePlace = profileCity ?: it.chequePlace
                         )
                     }
                 }
                 PostalProfileRole.BENEFICIARY -> {
                     _uiState.update {
                         it.copy(
-                            chequeBeneficiary = "${profile.lastName} ${profile.firstName} ccp ${profile.accountNumber} clé ${profile.accountKey}"
+                            chequeBeneficiary = "${profile.lastName} ${profile.firstName} ccp ${profile.accountNumber} clé ${profile.accountKey}",
+                            chequePlace = if (it.chequePlace.isBlank() && profileCity != null) profileCity else it.chequePlace
                         )
                     }
                 }
@@ -366,8 +375,9 @@ class DocumentSimulatorViewModel(
                             sfpSenderPrenom = profile.firstName,
                             sfpSenderAddress = profile.address ?: "",
                             sfpSenderPhone = profile.phone ?: "",
-                            sfpCcp = if (it.sfpOperation != SfpOperationType.VERSEMENT) profile.accountNumber else it.sfpCcp,
-                            sfpKey = if (it.sfpOperation != SfpOperationType.VERSEMENT) profile.accountKey else it.sfpKey
+                            sfpPlace = profileCity ?: it.sfpPlace,
+                            sfpCcp = if (it.sfpOperation == SfpOperationType.RETRAIT) profile.accountNumber else it.sfpCcp,
+                            sfpKey = if (it.sfpOperation == SfpOperationType.RETRAIT) profile.accountKey else it.sfpKey
                         )
                     }
                 }
@@ -378,8 +388,9 @@ class DocumentSimulatorViewModel(
                             sfpBeneficiaryPrenom = profile.firstName,
                             sfpBeneficiaryAddress = profile.address ?: "",
                             sfpBeneficiaryPhone = profile.phone ?: "",
-                            sfpCcp = if (it.sfpOperation == SfpOperationType.VERSEMENT) profile.accountNumber else it.sfpCcp,
-                            sfpKey = if (it.sfpOperation == SfpOperationType.VERSEMENT) profile.accountKey else it.sfpKey
+                            sfpPlace = if (it.sfpPlace.isBlank() && profileCity != null) profileCity else it.sfpPlace,
+                            sfpCcp = if (it.sfpOperation == SfpOperationType.VERSEMENT || it.sfpOperation == SfpOperationType.VIREMENT) profile.accountNumber else it.sfpCcp,
+                            sfpKey = if (it.sfpOperation == SfpOperationType.VERSEMENT || it.sfpOperation == SfpOperationType.VIREMENT) profile.accountKey else it.sfpKey
                         )
                     }
                 }
@@ -470,7 +481,7 @@ class DocumentSimulatorViewModel(
                 "sfpSenderAddress", "sfpSenderPhone" -> 4
                 "sfpBeneficiaryNom", "sfpBeneficiaryPrenom", "sfpBeneficiaryName" -> 5
                 "sfpBeneficiaryAddress", "sfpBeneficiaryPhone" -> 6
-                "sfpPlace", "sfpDate" -> 7
+                "sfpPlace", "sfpDate", "sfpMotif" -> 7
                 "sfpSignature", "sfpIdDescription" -> 8
                 else -> -1
             }

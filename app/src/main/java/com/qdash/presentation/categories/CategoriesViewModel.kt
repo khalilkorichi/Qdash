@@ -12,7 +12,9 @@ import kotlinx.coroutines.launch
 
 @Immutable
 data class CategoriesUiState(
+    val allCategories: List<Category> = emptyList(),
     val rootCategories: List<Category> = emptyList(),
+    val subcategoryCounts: Map<Long, Int> = emptyMap(),
     val selectedParent: Category? = null,
     val subcategories: List<Category> = emptyList(),
     val isLoading: Boolean = false,
@@ -26,18 +28,45 @@ class CategoriesViewModel(
     private val _uiState = MutableStateFlow(CategoriesUiState())
     val uiState: StateFlow<CategoriesUiState> = _uiState.asStateFlow()
 
-    private var subcategoriesJob: kotlinx.coroutines.Job? = null
+    private val _selectedParentId = MutableStateFlow<Long?>(null)
 
     init {
-        loadRootCategories()
+        observeCategories()
     }
 
-    private fun loadRootCategories() {
+    private fun observeCategories() {
         _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
             try {
-                categoryRepository.getRootCategories().collect { list ->
-                    _uiState.update { it.copy(rootCategories = list, isLoading = false) }
+                combine(
+                    categoryRepository.getAllCategories(),
+                    _selectedParentId
+                ) { allCats, selectedParentId ->
+                    val roots = allCats.filter { it.parentId == null }.sortedBy { it.sortOrder }
+                    val counts = allCats
+                        .filter { it.parentId != null }
+                        .groupingBy { it.parentId!! }
+                        .eachCount()
+                    val selectedParent = selectedParentId?.let { id -> roots.find { it.id == id } }
+                    val subs = if (selectedParentId != null) {
+                        allCats.filter { it.parentId == selectedParentId }.sortedBy { it.sortOrder }
+                    } else {
+                        emptyList()
+                    }
+                    Triple(Pair(allCats, roots), Pair(counts, selectedParent), subs)
+                }.collect { (catsPair, metaPair, subs) ->
+                    val (allCats, roots) = catsPair
+                    val (counts, selectedParent) = metaPair
+                    _uiState.update {
+                        it.copy(
+                            allCategories = allCats,
+                            rootCategories = roots,
+                            subcategoryCounts = counts,
+                            selectedParent = selectedParent,
+                            subcategories = subs,
+                            isLoading = false
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = e.localizedMessage) }
@@ -46,20 +75,14 @@ class CategoriesViewModel(
     }
 
     fun selectParent(category: Category?) {
-        subcategoriesJob?.cancel()
+        _selectedParentId.value = category?.id
         if (category == null) {
             _uiState.update { it.copy(selectedParent = null, subcategories = emptyList()) }
-            return
-        }
-        _uiState.update { it.copy(selectedParent = category) }
-        subcategoriesJob = viewModelScope.launch {
-            try {
-                categoryRepository.getSubcategories(category.id).collect { subs ->
-                    _uiState.update { it.copy(subcategories = subs) }
-                }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(errorMessage = e.localizedMessage) }
-            }
+        } else {
+            val subs = _uiState.value.allCategories
+                .filter { it.parentId == category.id }
+                .sortedBy { it.sortOrder }
+            _uiState.update { it.copy(selectedParent = category, subcategories = subs) }
         }
     }
 

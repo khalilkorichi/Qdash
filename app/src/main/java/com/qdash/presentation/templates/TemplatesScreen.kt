@@ -19,7 +19,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.core.ui.components.FinTrackTopBar
 import com.qdash.domain.model.*
+import com.qdash.presentation.navigation.LocalNavController
+import com.qdash.presentation.navigation.Screen
 import com.qdash.presentation.templates.components.*
+import com.qdash.ui.designsystem.components.AppDialog
+import com.qdash.ui.designsystem.tokens.ColorTokens
 import com.qdash.ui.theme.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -36,6 +40,7 @@ fun TemplatesScreen(
     modifier: Modifier = Modifier
 ) {
     val Primary = MaterialTheme.colorScheme.primary
+    val navController = LocalNavController.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isRefreshing = uiState.isRefreshing
     val pullRefreshState = rememberPullToRefreshState()
@@ -44,28 +49,49 @@ fun TemplatesScreen(
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
-                is TemplatesEvent.NavigateToPreFill -> onNavigateToPreFill(event.draftJson)
+                is TemplatesEvent.NavigateToPreFill -> {
+                    if (navController != null) {
+                        navController.navigate(
+                            Screen.AddTransaction.createRoute(
+                                type = event.transactionType,
+                                draft = event.draftJson
+                            )
+                        )
+                    } else {
+                        onNavigateToPreFill(event.draftJson)
+                    }
+                }
                 TemplatesEvent.NavigateBack -> onBack()
             }
         }
     }
 
-    var selectedSortMode by remember { mutableStateOf("usage") } // "usage", "name", "recent"
+    var selectedSortMode by remember { mutableStateOf("usage") } // "usage", "recent", "name"
     var selectedTypeFilter by remember { mutableStateOf<TransactionType?>(null) } // null = all
 
-    // Process lists dynamically
+    val filteredPinnedTemplates = remember(uiState.pinnedTemplates, selectedTypeFilter) {
+        if (selectedTypeFilter != null) {
+            uiState.pinnedTemplates.filter { it.transactionType == selectedTypeFilter }
+        } else {
+            uiState.pinnedTemplates
+        }
+    }
+
+    val showPinnedSection = filteredPinnedTemplates.isNotEmpty() && !uiState.isSearching
+
+    // Process lists dynamically (deduplicating pinned templates when the Pinned section is shown)
     val displayedTemplates = remember(
         uiState.templates,
         uiState.searchResults,
         uiState.isSearching,
         selectedSortMode,
-        selectedTypeFilter
+        selectedTypeFilter,
+        showPinnedSection
     ) {
         val baseList = if (uiState.isSearching) uiState.searchResults else uiState.templates
-        val filtered = if (selectedTypeFilter != null) {
-            baseList.filter { it.transactionType == selectedTypeFilter }
-        } else {
-            baseList
+        val filtered = baseList.filter { tpl ->
+            (selectedTypeFilter == null || tpl.transactionType == selectedTypeFilter) &&
+                (!showPinnedSection || !tpl.isPinned)
         }
         when (selectedSortMode) {
             "name" -> filtered.sortedBy { it.name }
@@ -92,7 +118,7 @@ fun TemplatesScreen(
             FloatingActionButton(
                 onClick = onNavigateToCreate,
                 containerColor = Primary,
-                contentColor = Color.White,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = CircleShape
             ) {
                 Icon(Icons.Default.Add, contentDescription = "إضافة قالب")
@@ -123,32 +149,80 @@ fun TemplatesScreen(
                     shape = RoundedCornerShape(14.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
                     )
                 )
 
                 // Filtering Chips Row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    listOf(
+                    val typeFilters = listOf(
                         null to "الكل",
                         TransactionType.EXPENSE to "مصاريف",
                         TransactionType.INCOME to "مداخيل",
                         TransactionType.TRANSFER to "تحويلات"
-                    ).forEach { (type, label) ->
+                    )
+                    items(typeFilters) { (type, label) ->
                         val isSelected = selectedTypeFilter == type
                         FilterChip(
                             selected = isSelected,
                             onClick = { selectedTypeFilter = type },
-                            label = { Text(label, fontSize = 12.sp) },
+                            label = { Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = Primary,
-                                selectedLabelColor = Color.White
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        )
+                    }
+                }
+
+                // Sort Chips Row
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 4.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    item {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Sort,
+                                contentDescription = null,
+                                tint = TextGray,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Text("ترتيب:", fontSize = 11.sp, color = TextGray, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    val sortOptions = listOf(
+                        "usage" to "الأكثر استخداماً",
+                        "recent" to "الأحدث",
+                        "name" to "الأبجدي"
+                    )
+                    items(sortOptions, key = { it.first }) { (mode, label) ->
+                        val isSelected = selectedSortMode == mode
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedSortMode = mode },
+                            label = { Text(label, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Primary.copy(alpha = 0.15f),
+                                selectedLabelColor = Primary
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = isSelected,
+                                borderColor = MaterialTheme.colorScheme.outline,
+                                selectedBorderColor = Primary
                             )
                         )
                     }
@@ -158,12 +232,12 @@ fun TemplatesScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .weight(1f),
-                    contentPadding = PaddingValues(bottom = 80.dp),
+                    contentPadding = PaddingValues(bottom = 88.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     // Smart suggestion strip (if any frequent templates exist and not searching)
                     if (uiState.frequentTemplates.isNotEmpty() && !uiState.isSearching) {
-                        item {
+                        item(key = "frequent_strip") {
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 Text(
                                     text = "القوالب الأكثر استخداماً",
@@ -176,7 +250,7 @@ fun TemplatesScreen(
                                     contentPadding = PaddingValues(horizontal = 16.dp),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    items(uiState.frequentTemplates) { template ->
+                                    items(uiState.frequentTemplates, key = { "freq_${it.id}" }) { template ->
                                         FrequentTemplateChip(
                                             template = template,
                                             onClick = { viewModel.onUseTemplate(template.id) }
@@ -188,8 +262,8 @@ fun TemplatesScreen(
                     }
 
                     // Pinned templates group (only when not searching)
-                    if (uiState.pinnedTemplates.isNotEmpty() && !uiState.isSearching) {
-                        item {
+                    if (showPinnedSection) {
+                        item(key = "pinned_header") {
                             Text(
                                 text = "القوالب المثبتة",
                                 fontWeight = FontWeight.Bold,
@@ -197,7 +271,7 @@ fun TemplatesScreen(
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                             )
                         }
-                        items(uiState.pinnedTemplates) { template ->
+                        items(filteredPinnedTemplates, key = { "pinned_${it.id}" }) { template ->
                             Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                                 TemplateItemCard(
                                     template = template,
@@ -213,17 +287,23 @@ fun TemplatesScreen(
                     }
 
                     // All templates section
-                    item {
-                        Text(
-                            text = if (uiState.isSearching) "نتائج البحث" else "جميع القوالب المتاحة",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                        )
+                    if (displayedTemplates.isNotEmpty() || !showPinnedSection) {
+                        item(key = "all_header") {
+                            Text(
+                                text = when {
+                                    uiState.isSearching -> "نتائج البحث"
+                                    showPinnedSection -> "بقية القوالب المتاحة"
+                                    else -> "جميع القوالب المتاحة"
+                                },
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                            )
+                        }
                     }
 
-                    if (displayedTemplates.isEmpty()) {
-                        item {
+                    if (displayedTemplates.isEmpty() && !showPinnedSection) {
+                        item(key = "empty_state") {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -238,7 +318,7 @@ fun TemplatesScreen(
                             }
                         }
                     } else {
-                        items(displayedTemplates) { template ->
+                        items(displayedTemplates, key = { it.id }) { template ->
                             Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                                 TemplateItemCard(
                                     template = template,
@@ -260,19 +340,16 @@ fun TemplatesScreen(
     // Delete Confirmation Dialog
     val deleteConfirm = uiState.showDeleteConfirmation
     if (deleteConfirm != null) {
-        AlertDialog(
+        AppDialog(
             onDismissRequest = { viewModel.showDeleteConfirmation(null) },
-            title = { Text("حذف قالب المعاملة", fontWeight = FontWeight.Bold) },
-            text = { Text("هل أنت متأكد من رغبتك في حذف قالب \"${deleteConfirm.name}\"؟ لا يمكن التراجع عن هذا الإجراء.") },
-            confirmButton = {
-                TextButton(onClick = { viewModel.onDeleteTemplate(deleteConfirm.id) }) {
-                    Text("حذف نهائي", color = ExpenseRed, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.showDeleteConfirmation(null) }) {
-                    Text("إلغاء")
-                }
+            title = "حذف قالب المعاملة",
+            text = "هل أنت متأكد من رغبتك في حذف قالب \"${deleteConfirm.name}\"؟ لا يمكن التراجع عن هذا الإجراء.",
+            confirmButtonText = "حذف نهائي",
+            onConfirm = { viewModel.onDeleteTemplate(deleteConfirm.id) },
+            dismissButtonText = "إلغاء",
+            isDestructive = true,
+            icon = {
+                Icon(Icons.Default.Delete, contentDescription = null, tint = ColorTokens.Danger)
             }
         )
     }

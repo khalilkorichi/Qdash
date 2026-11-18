@@ -3,6 +3,7 @@ package com.qdash.presentation.currency
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qdash.core.utils.AmountConversionEngine
+import com.qdash.core.utils.FormatterUtils
 import com.qdash.domain.model.ExchangeRate
 import com.qdash.domain.model.MarketType
 import com.qdash.domain.model.TradeDirection
@@ -40,7 +41,8 @@ data class ConverterUiState(
     val useManualRate: Boolean = false,
     val availableRates: List<ExchangeRate> = emptyList(),
     val isRefreshing: Boolean = false,
-    val isRefreshingParallel: Boolean = false
+    val isRefreshingParallel: Boolean = false,
+    val refreshError: String? = null
 )
 
 // ── ViewModel ─────────────────────────────────────────────────────────────────
@@ -65,8 +67,10 @@ class CurrencyExchangeViewModel(
     val officialRatesState: StateFlow<OfficialRatesUiState> = _officialRatesState.asStateFlow()
 
     private var officialRatesLoaded = false
+    private var converterRatesLoaded = false
+    private var autoParallelRefreshTriggered = false
 
-    /** Called by LaunchedEffect when the Official Market tab becomes active. */
+    /** Called by LaunchedEffect when the Official Market or Parallel Market tab becomes active. */
     fun loadOfficialRates() {
         if (officialRatesLoaded) return
         officialRatesLoaded = true
@@ -81,29 +85,57 @@ class CurrencyExchangeViewModel(
                         rates = rates,
                         lastUpdated = rates.maxOfOrNull { it.lastUpdatedAt }?.takeIf { it > 0L }
                     )
+                    maybeTriggerInitialParallelRefresh(rates)
                 }
+        }
+    }
+
+    private fun maybeTriggerInitialParallelRefresh(rates: List<ExchangeRate>) {
+        if (!autoParallelRefreshTriggered && rates.isNotEmpty() && rates.all { it.parallelBuyRate == null }) {
+            autoParallelRefreshTriggered = true
+            refreshParallelRatesManually()
         }
     }
 
     /** Manual refresh from the UI button in the official market tab. */
     fun refreshOfficialRates() {
+        if (_converterState.value.isRefreshing) return
         viewModelScope.launch {
             val current = _officialRatesState.value
-            _officialRatesState.value = OfficialRatesUiState.Loading
+            if (current !is OfficialRatesUiState.Success) {
+                _officialRatesState.value = OfficialRatesUiState.Loading
+            }
+            _converterState.update { it.copy(isRefreshing = true, refreshError = null) }
             refreshOfficialRatesUseCase()
-                .onFailure {
-                    _officialRatesState.value = current
+                .onFailure { e ->
+                    if (current !is OfficialRatesUiState.Success) {
+                        _officialRatesState.value = current
+                    }
+                    _converterState.update {
+                        it.copy(refreshError = e.localizedMessage ?: "تعذّر تحديث الأسعار الرسمية. تحقق من اتصال الإنترنت.")
+                    }
                 }
+            _converterState.update { it.copy(isRefreshing = false) }
         }
     }
 
     /** Manual refresh from the UI button in the parallel market tab. */
     fun refreshParallelRatesManually() {
+        if (_converterState.value.isRefreshingParallel) return
         viewModelScope.launch {
-            _converterState.update { it.copy(isRefreshingParallel = true) }
+            _converterState.update { it.copy(isRefreshingParallel = true, refreshError = null) }
             refreshParallelRatesUseCase()
+                .onFailure { e ->
+                    _converterState.update {
+                        it.copy(refreshError = e.localizedMessage ?: "تعذّر تحديث أسعار السوق الموازي. تحقق من اتصال الإنترنت.")
+                    }
+                }
             _converterState.update { it.copy(isRefreshingParallel = false) }
         }
+    }
+
+    fun clearRefreshError() {
+        _converterState.update { it.copy(refreshError = null) }
     }
 
     // ── Converter State ───────────────────────────────────────────────────────
@@ -113,18 +145,23 @@ class CurrencyExchangeViewModel(
 
     /** Called by LaunchedEffect when the Converter tab becomes active. */
     fun loadConverterRates() {
+        if (converterRatesLoaded) return
+        converterRatesLoaded = true
         viewModelScope.launch {
             getExchangeRatesUseCase()
                 .catch { /* ignore — rates may be empty on first launch */ }
                 .collect { rates ->
                     _converterState.update { it.copy(availableRates = rates) }
+                    maybeTriggerInitialParallelRefresh(rates)
                     recalculate()
                 }
         }
     }
 
     fun onAmountChange(amount: String) {
-        _converterState.update { it.copy(amount = amount) }
+        val normalized = FormatterUtils.convertNumerals(amount, useWestern = true)
+            .filter { it.isDigit() || it == '.' || it == ',' }
+        _converterState.update { it.copy(amount = normalized) }
         recalculate()
     }
 
@@ -160,21 +197,37 @@ class CurrencyExchangeViewModel(
     }
 
     fun onManualRateChange(rate: String) {
-        val parsed = rate.toDoubleOrNull()
-        val valid = rate.isNotEmpty() && parsed != null && parsed > 0.0
+        val normalized = FormatterUtils.convertNumerals(rate, useWestern = true)
+        val parsed = AmountConversionEngine.parseFlexibleAmount(normalized)
+        val valid = normalized.isNotEmpty() && parsed != null && parsed > 0.0
         _converterState.update {
             it.copy(
-                manualRate = rate,
+                manualRate = normalized,
                 useManualRate = valid
             )
         }
         recalculate()
     }
 
+    private fun isSelectedParallelRateMissing(state: ConverterUiState): Boolean {
+        if (state.selectedMarketType != MarketType.PARALLEL || state.useManualRate) return false
+        if (state.fromCurrency == state.toCurrency) return false
+        val codesToCheck = listOf(state.fromCurrency, state.toCurrency).filter { it != "DZD" }
+        return codesToCheck.any { code ->
+            val rateObj = state.availableRates.find { it.currencyCode == code }
+            rateObj == null || rateObj.parallelBuyRate == null
+        }
+    }
+
     private fun recalculate() {
         val state = _converterState.value
-        val amountDouble = state.amount.replace(",", "").toDoubleOrNull() ?: 0.0
-        val manualRate = if (state.useManualRate) state.manualRate.toDoubleOrNull() else null
+        val amountDouble = AmountConversionEngine.parseFlexibleAmount(state.amount) ?: 0.0
+        val manualRate = if (state.useManualRate) AmountConversionEngine.parseFlexibleAmount(state.manualRate) else null
+
+        if (isSelectedParallelRateMissing(state)) {
+            _converterState.update { it.copy(result = 0.0, amountInWords = null) }
+            return
+        }
 
         val result = convertCurrencyUseCase(
             amount = amountDouble,

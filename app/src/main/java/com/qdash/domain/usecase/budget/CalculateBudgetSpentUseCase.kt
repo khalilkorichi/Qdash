@@ -9,15 +9,16 @@ import kotlinx.coroutines.flow.first
 
 class CalculateBudgetSpentUseCase(
     private val transactionRepository: TransactionRepository,
-    private val budgetGoalRepository: BudgetGoalRepository
+    @Suppress("unused") private val budgetGoalRepository: BudgetGoalRepository
 ) {
     suspend operator fun invoke(budgetGoal: BudgetGoal): Double {
-        val allTx = transactionRepository.getAllTransactions().first()
-        val expenseTx = allTx.filter { tx ->
-            tx.type == TransactionType.EXPENSE &&
-            tx.date in budgetGoal.startDate..budgetGoal.endDate
+        val txs = transactionRepository.getTransactionsByDateRange(
+            budgetGoal.startDate,
+            budgetGoal.endDate
+        ).first()
+        val expenseTx = txs.filter { tx ->
+            tx.type == TransactionType.EXPENSE && tx.kind == com.qdash.domain.model.TransactionKind.EXPENSE
         }
-
         val filteredTx = when (budgetGoal.budgetType) {
             BudgetType.CATEGORY -> {
                 if (budgetGoal.linkedCategoryId != null) {
@@ -26,13 +27,8 @@ class CalculateBudgetSpentUseCase(
                     expenseTx
                 }
             }
-            else -> expenseTx // GLOBAL or CUSTOM
+            else -> expenseTx
         }
-
-        val sum = filteredTx.sumOf { it.amount }
-        if (sum != budgetGoal.spentAmount) {
-            budgetGoalRepository.updateSpentAmount(budgetGoal.id, sum)
-        }
-        return sum
+        return filteredTx.sumOf { it.amount }
     }
 }

@@ -27,9 +27,11 @@ fun parseGeminiModelConfig(modelId: String): Pair<String, Int?> {
 }
 
 class GeminiProvider(
-    private val apiKey: String,
+    private val apiKeyProvider: () -> String,
     private val parentClient: OkHttpClient
 ) : AiProvider {
+    constructor(apiKey: String, parentClient: OkHttpClient) : this({ apiKey }, parentClient)
+
     override val name = "Gemini"
 
     private val client = parentClient.newBuilder()
@@ -45,7 +47,8 @@ class GeminiProvider(
         history: List<AiChatMessage>,
         userMessage: String
     ): Result<String> = withContext(Dispatchers.IO) {
-        if (apiKey.isBlank()) {
+        val currentApiKey = apiKeyProvider()
+        if (currentApiKey.isBlank()) {
             return@withContext Result.failure(IllegalArgumentException("Gemini API key is empty"))
         }
 
@@ -65,7 +68,7 @@ class GeminiProvider(
         val errors = mutableListOf<String>()
         for (modelId in models) {
             try {
-                val reply = callGeminiApiForCard(systemPrompt, history, userMessage, modelId)
+                val reply = callGeminiApiForCard(currentApiKey, systemPrompt, history, userMessage, modelId)
                 return@withContext Result.success(reply)
             } catch (e: Exception) {
                 errors.add("Model $modelId failed: ${e.localizedMessage}")
@@ -75,13 +78,14 @@ class GeminiProvider(
     }
 
     private fun callGeminiApiForCard(
+        apiKey: String,
         systemPrompt: String,
         history: List<AiChatMessage>,
         userMessage: String,
         modelId: String
     ): String {
         val (apiModelId, thinkingBudget) = parseGeminiModelConfig(modelId)
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/$apiModelId:generateContent?key=$apiKey"
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/$apiModelId:generateContent"
         
         val contentsArray = JSONArray()
         for (msg in history) {
@@ -119,22 +123,23 @@ class GeminiProvider(
         
         val request = Request.Builder()
             .url(url)
+            .addHeader("x-goog-api-key", apiKey)
             .addHeader("Content-Type", "application/json")
             .post(requestBodyJson.toString().toRequestBody(jsonMediaType))
             .build()
             
-        val response = try {
-            client.newCall(request).execute()
+        val responseBody = try {
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    val errorBody = response.body?.string() ?: ""
+                    throw AiFailureException.AiServiceFailure("Gemini API call failed with code: ${response.code}. Details: $errorBody")
+                }
+                response.body?.string() ?: throw AiFailureException.AiServiceFailure("Empty response body")
+            }
         } catch (e: java.io.IOException) {
             throw AiFailureException.NetworkFailure("Network call failed: ${e.localizedMessage}", e)
         }
         
-        if (!response.isSuccessful) {
-            val errorBody = response.body?.string() ?: ""
-            throw AiFailureException.AiServiceFailure("Gemini API call failed with code: ${response.code}. Details: $errorBody")
-        }
-        
-        val responseBody = response.body?.string() ?: throw AiFailureException.AiServiceFailure("Empty response body")
         val responseJson = JSONObject(responseBody)
         val candidates = responseJson.optJSONArray("candidates")
         if (candidates == null || candidates.length() == 0) {

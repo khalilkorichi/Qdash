@@ -69,7 +69,7 @@ fun ExpenseAnalysisChartCard(
                         ).forEach { (p, label) ->
                             val isSelected = chartPeriod == p
                             val bg = if (isSelected) primary else MaterialTheme.colorScheme.background
-                            val tc = if (isSelected) Color.White else TextGray
+                            val tc = if (isSelected) MaterialTheme.colorScheme.onPrimary else TextGray
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(12.dp))

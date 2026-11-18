@@ -26,6 +26,9 @@ class SpeechRecognizerHelper(private val context: Context) {
             return
         }
 
+        speechRecognizer?.destroy()
+        speechRecognizer = null
+
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
             setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) {

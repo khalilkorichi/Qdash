@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import com.qdash.core.ui.components.EmptyStateView
 import com.qdash.core.ui.components.TransactionItem
 import com.qdash.presentation.home.TransactionListSkeleton
+import com.qdash.presentation.navigation.LocalNavController
+import com.qdash.presentation.navigation.Screen
 import com.qdash.domain.model.Transaction
 import com.qdash.domain.model.Category
 import com.qdash.domain.model.Account
@@ -34,7 +36,8 @@ fun LazyListScope.homeRecentTransactionsSection(
     accounts: List<Account>,
     isLoading: Boolean,
     onViewAllTransactionsClick: () -> Unit,
-    primaryColor: Color
+    primaryColor: Color,
+    onTransactionClick: ((Transaction) -> Unit)? = null
 ) {
     item {
         Row(
@@ -77,53 +80,50 @@ fun LazyListScope.homeRecentTransactionsSection(
     } else {
         val displayedTxs = recentTransactions.take(4)
         itemsIndexed(displayedTxs, key = { _, tx -> tx.id }) { index, tx ->
+            val navController = LocalNavController.current
             val cat = categories.firstOrNull { it.id == tx.categoryId }
             val accName = accounts.firstOrNull { it.id == tx.accountId }?.name ?: "غير معروف"
             val toAccName = accounts.firstOrNull { it.id == tx.toAccountId }?.name
             val isLast = index == displayedTxs.lastIndex
-
-            if (isLast) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    TransactionItem(
-                        transaction = tx,
-                        category = cat,
-                        accountName = accName,
-                        onClick = onViewAllTransactionsClick,
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp)
-                            .padding(bottom = 8.dp),
-                        toAccountName = toAccName
-                    )
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .padding(horizontal = 16.dp)
-                            .padding(bottom = 8.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        MaterialTheme.colorScheme.background.copy(alpha = 0.3f),
-                                        MaterialTheme.colorScheme.background.copy(alpha = 0.8f),
-                                        MaterialTheme.colorScheme.background
-                                    )
-                                )
-                            )
-                            .clickable { onViewAllTransactionsClick() }
-                    )
+            val handleTxClick = {
+                if (onTransactionClick != null) {
+                    onTransactionClick(tx)
+                } else {
+                    navController?.navigate(Screen.AddTransaction.createRoute(tx.type.name, tx.id))
                 }
-            } else {
+                Unit
+            }
+
+            Box(modifier = Modifier.fillMaxWidth()) {
                 TransactionItem(
                     transaction = tx,
                     category = cat,
                     accountName = accName,
-                    onClick = onViewAllTransactionsClick,
+                    onClick = handleTxClick,
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .padding(bottom = 8.dp),
                     toAccountName = toAccName
                 )
+                if (isLast && displayedTxs.size >= 4) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .height(22.dp)
+                            .padding(horizontal = 16.dp)
+                            .padding(bottom = 8.dp)
+                            .clip(RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        MaterialTheme.colorScheme.background.copy(alpha = 0.35f)
+                                    )
+                                )
+                            )
+                    )
+                }
             }
         }
 

@@ -1,12 +1,12 @@
 package com.qdash.presentation.analytics
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -20,22 +20,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qdash.domain.model.AiChatMessage
 import com.qdash.domain.model.ChatSender
 import com.qdash.presentation.ai.components.MarkdownMessageText
 import com.qdash.presentation.analytics.components.CardAiThinkingPanel
 import com.qdash.ui.designsystem.components.AppBottomSheet
-import com.qdash.ui.designsystem.components.AppCard
-import com.qdash.ui.designsystem.components.CardVariant
 import com.qdash.ui.designsystem.tokens.ShapeTokens
-import kotlinx.coroutines.launch
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,10 +43,15 @@ fun CardAiChatSheet(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
-    
+
     if (uiState.isSheetOpen) {
         var showHelpDialog by remember { mutableStateOf(false) }
+        val cleanCardTitle = remember(uiState.cardTitle) {
+            uiState.cardTitle.replace("**", "").replace("*", "").trim()
+        }
+        val cleanTooltip = remember(uiState.tooltipContent) {
+            uiState.tooltipContent.replace("**", "").trim()
+        }
 
         if (showHelpDialog) {
             AlertDialog(
@@ -60,13 +63,13 @@ fun CardAiChatSheet(
                 },
                 title = {
                     Text(
-                        text = uiState.cardTitle,
+                        text = cleanCardTitle,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                 },
                 text = {
                     Text(
-                        text = uiState.tooltipContent,
+                        text = cleanTooltip,
                         style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp)
                     )
                 }
@@ -74,6 +77,14 @@ fun CardAiChatSheet(
         }
 
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val quickQuestions = remember {
+            listOf(
+                "كيفاش ننقص المصاريف هاد الشهر؟",
+                "واش هي الفئة لي راهي تستهلك بزاف؟",
+                "أعطيني خطة توفير عملية",
+                "لخّص وضعيتي المالية في 3 نقاط"
+            )
+        }
 
         AppBottomSheet(
             onDismissRequest = {
@@ -87,8 +98,10 @@ fun CardAiChatSheet(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(0.80f)
+                        .fillMaxHeight(0.82f)
                         .background(MaterialTheme.colorScheme.surface)
+                        .navigationBarsPadding()
+                        .imePadding()
                 ) {
                     // Header Bar
                     Row(
@@ -97,45 +110,52 @@ fun CardAiChatSheet(
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                             .border(
                                 width = 1.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                                shape = RoundedCornerShape(8.dp)
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                                shape = RoundedCornerShape(10.dp)
                             )
-                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.weight(1f)
                         ) {
                             Surface(
                                 shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                modifier = Modifier.size(32.dp)
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                modifier = Modifier.size(34.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Text("AI", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black, fontSize = 12.sp)
+                                    Text(
+                                        text = "AI",
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 12.sp
+                                    )
                                 }
                             }
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "مساعد بطاقة: ${uiState.cardTitle}",
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    text = "مساعد بطاقة: $cleanCardTitle",
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
-                                    text = "مستشار مالي بالدارجة الجزائرية 🇩🇿",
+                                    text = "مستشار مالي بالدارجة والعربية 🇩🇿",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
-                        
+
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Tooltip Info Button
                             IconButton(onClick = { showHelpDialog = true }) {
                                 Icon(
                                     imageVector = Icons.Default.HelpOutline,
@@ -143,7 +163,6 @@ fun CardAiChatSheet(
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            // Close Button
                             IconButton(onClick = {
                                 viewModel.closeSheet()
                                 onDismiss()
@@ -186,21 +205,21 @@ fun CardAiChatSheet(
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "أنا مساعدك الذكي الخاص ببطاقة **${uiState.cardTitle}**.\nاسألني أي سؤال بالدارجة أو العربية حول هذه الأرقام والرسومات!",
+                                    text = "أنا مساعدك الذكي الخاص ببطاقة «$cleanCardTitle».\nاسألني أي سؤال بالدارجة أو العربية حول هذه الأرقام والرسومات!",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    textAlign = TextAlign.Center
                                 )
                             }
                         } else {
                             val listState = rememberLazyListState()
-                            
+
                             LaunchedEffect(uiState.messages.size, uiState.isLoading) {
                                 if (uiState.messages.isNotEmpty()) {
                                     listState.animateScrollToItem(uiState.messages.size - 1)
                                 }
                             }
-                            
+
                             LazyColumn(
                                 state = listState,
                                 modifier = Modifier.fillMaxSize(),
@@ -210,11 +229,41 @@ fun CardAiChatSheet(
                                 items(uiState.messages) { message ->
                                     CardChatMessageBubble(message = message)
                                 }
-                                
+
                                 if (uiState.isLoading) {
                                     item {
                                         CardChatLoadingBubble()
                                     }
+                                }
+                            }
+                        }
+                    }
+
+                    // Quick-Question Suggestion Chips
+                    if (uiState.isContextReady && !uiState.isLoading && uiState.thinkingStep >= 3) {
+                        LazyRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(quickQuestions) { promptChip ->
+                                Surface(
+                                    onClick = {
+                                        viewModel.updateInput(promptChip)
+                                        viewModel.sendMessage()
+                                    },
+                                    shape = ShapeTokens.Full,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+                                ) {
+                                    Text(
+                                        text = promptChip,
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                                    )
                                 }
                             }
                         }
@@ -233,28 +282,28 @@ fun CardAiChatSheet(
                         OutlinedTextField(
                             value = uiState.inputText,
                             onValueChange = { viewModel.updateInput(it) },
-                            placeholder = { Text("اسألني عن هذه البطاقة...", fontSize = 12.sp) },
+                            placeholder = { Text("اسألني عن هذه البطاقة...", fontSize = 13.sp) },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(48.dp),
-                            shape = RoundedCornerShape(12.dp),
+                                .heightIn(min = 52.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            textStyle = MaterialTheme.typography.bodyMedium,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                                 unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
                             ),
-                            singleLine = true,
-                            maxLines = 1
+                            maxLines = 3
                         )
 
                         val isSendEnabled = uiState.inputText.isNotBlank() && !uiState.isLoading && uiState.isContextReady
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(44.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    if (isSendEnabled) MaterialTheme.colorScheme.primary 
+                                    if (isSendEnabled) MaterialTheme.colorScheme.primary
                                     else MaterialTheme.colorScheme.surfaceVariant
-                                  )
+                                )
                                 .clickable(enabled = isSendEnabled) {
                                     viewModel.sendMessage()
                                 },

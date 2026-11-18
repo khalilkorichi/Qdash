@@ -124,6 +124,7 @@ fun ManualBackupTabContent(
     onSelectFolderClick: () -> Unit,
     onScheduleIntervalChange: (String) -> Unit,
     onImmediateBackupClick: () -> Unit,
+    onExportStandaloneZipClick: () -> Unit = {},
     onImportZipClick: () -> Unit,
     onExportCsvTransactionsClick: () -> Unit,
     onExportCsvCategoriesClick: () -> Unit,
@@ -181,6 +182,12 @@ fun ManualBackupTabContent(
                         )
                     }
                 } else {
+                    val cleanFolderName = remember(backupFolderUri) {
+                        Uri.decode(backupFolderUri)
+                            .substringAfterLast(':')
+                            .ifBlank { Uri.decode(backupFolderUri).substringAfterLast('/') }
+                            .ifBlank { Uri.decode(backupFolderUri) }
+                    }
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -194,12 +201,23 @@ fun ManualBackupTabContent(
                             color = textSecondaryColor
                         )
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = backupFolderUri,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Folder,
+                                contentDescription = null,
+                                tint = primaryColor,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = cleanFolderName,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
 
@@ -288,7 +306,7 @@ fun ManualBackupTabContent(
                             imageVector = Icons.Default.CloudUpload,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp),
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 ) {
@@ -296,7 +314,7 @@ fun ManualBackupTabContent(
                         text = "بدء نسخ فوري الآن",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
 
@@ -332,6 +350,31 @@ fun ManualBackupTabContent(
                     }
                 }
             }
+        }
+
+        AppButton(
+            onClick = onExportStandaloneZipClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(54.dp),
+            variant = ButtonVariant.BORDERED,
+            intent = ButtonIntent.PRIMARY,
+            shape = ShapeTokens.Lg,
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Archive,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = primaryColor
+                )
+            }
+        ) {
+            Text(
+                text = "تصدير ملف نسخة احتياطية (ZIP)",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = primaryColor
+            )
         }
 
         Box(
@@ -604,7 +647,7 @@ fun CloudBackupTabContent(
                                 Icon(
                                     imageVector = Icons.Default.CloudUpload,
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -612,7 +655,7 @@ fun CloudBackupTabContent(
                             Text(
                                 text = "مزامنة الآن",
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 style = MaterialTheme.typography.bodyMedium.copy(fontSize = 11.sp),
                                 maxLines = 1
                             )

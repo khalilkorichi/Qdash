@@ -24,10 +24,11 @@ class AddLentDebtUseCase(
             Transaction(
                 amount = totalAmount,
                 type = TransactionType.EXPENSE,
-                categoryId = DebtConstants.DEBT_EXPENSE_CATEGORY_ID,
+                categoryId = null,
                 accountId = linkedAccountId,
                 note = noteText,
-                date = createdAt
+                date = createdAt,
+                occurredAt = System.currentTimeMillis()
             )
         )
 

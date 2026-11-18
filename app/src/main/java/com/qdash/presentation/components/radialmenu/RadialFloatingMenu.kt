@@ -57,6 +57,10 @@ fun AddActionFabContainer(
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
+    androidx.activity.compose.BackHandler(enabled = isExpanded) {
+        isExpanded = false
+    }
+
     val menuItems = remember(onAddExpense, onAddIncome, onTransfer, onAddSaving, onDebtPayment) {
         listOf(
             RadialMenuItem("إضافة مصروف", Icons.Default.Remove, ExpenseRed) {
@@ -214,8 +218,8 @@ fun AddActionFabContainer(
                         .size(60.dp)
                         .shadow(elevation = 12.dp, shape = CircleShape)
                         .clip(CircleShape)
-                        .background(Primary)
-                        .border(3.dp, Color.White, CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                        .border(3.dp, MaterialTheme.colorScheme.surface, CircleShape)
                         .clickable { isExpanded = !isExpanded }
                         .testTag("main_add_radial_fab"),
                     contentAlignment = Alignment.Center
@@ -223,7 +227,7 @@ fun AddActionFabContainer(
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = if (isExpanded) "إغلاق القائمة" else "إضافة عملية مالية",
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier
                             .size(28.dp)
                             .rotate(fabRotation)

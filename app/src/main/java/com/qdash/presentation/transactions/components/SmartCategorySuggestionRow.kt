@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -24,6 +25,8 @@ import androidx.compose.ui.unit.sp
 import com.qdash.domain.model.Category
 import com.qdash.domain.model.CategorySuggestion
 import com.qdash.domain.model.SuggestionSource
+import com.qdash.presentation.components.UnifiedCategoryIcon
+import com.qdash.presentation.components.safeParseColor
 
 @Immutable
 data class SmartSuggestionUiState(
@@ -33,7 +36,7 @@ data class SmartSuggestionUiState(
 
 /**
  * Isolated, non-blocking Composable for real-time category suggestions below transaction input.
- * Displays high-confidence auto-apply vs soft suggestion chips.
+ * Displays high-confidence auto-apply vs soft suggestion chips, supporting both existing and AI-proposed categories.
  */
 @Composable
 fun SmartCategorySuggestionRow(
@@ -41,9 +44,10 @@ fun SmartCategorySuggestionRow(
     matchedCategory: Category?,
     onAcceptSuggestion: (Long) -> Unit,
     onDismissSuggestion: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onAcceptNewCategory: (() -> Unit)? = null
 ) {
-    val isVisible = suggestion != null && (matchedCategory != null || suggestion.newCategoryName != null)
+    val isVisible = suggestion != null && (matchedCategory != null || !suggestion.newCategoryName.isNullOrBlank())
 
     AnimatedVisibility(
         visible = isVisible,
@@ -52,8 +56,14 @@ fun SmartCategorySuggestionRow(
         modifier = modifier
     ) {
         if (suggestion == null) return@AnimatedVisibility
-        val categoryName = matchedCategory?.name ?: suggestion.newCategoryName ?: return@AnimatedVisibility
+        val categoryName = matchedCategory?.name ?: suggestion.newCategoryName?.takeIf { it.isNotBlank() } ?: return@AnimatedVisibility
         val categoryId = matchedCategory?.id
+        val isNewCategory = categoryId == null && !suggestion.newCategoryName.isNullOrBlank()
+        val catColor = safeParseColor(
+            matchedCategory?.color ?: suggestion.newCategoryColor,
+            MaterialTheme.colorScheme.primary
+        )
+        val catIcon = matchedCategory?.icon ?: suggestion.newCategoryIcon
         val confidence = suggestion.confidenceScore
         val isHighConfidence = confidence >= 0.85f
         val sourceLabel = when (suggestion.suggestionSource) {
@@ -74,7 +84,7 @@ fun SmartCategorySuggestionRow(
             border = androidx.compose.foundation.BorderStroke(
                 width = 1.dp,
                 color = if (isHighConfidence) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
             ),
             modifier = Modifier
                 .fillMaxWidth()
@@ -92,12 +102,29 @@ fun SmartCategorySuggestionRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.AutoAwesome,
-                        contentDescription = null,
-                        tint = if (isHighConfidence) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(18.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clip(CircleShape)
+                            .background(catColor.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (!catIcon.isNullOrBlank()) {
+                            UnifiedCategoryIcon(
+                                iconKey = catIcon,
+                                tint = catColor,
+                                modifier = Modifier.size(16.dp),
+                                emojiFontSize = 14.sp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = if (isHighConfidence) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
 
                     Column {
                         Row(
@@ -110,7 +137,21 @@ fun SmartCategorySuggestionRow(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
 
-                            if (isHighConfidence) {
+                            if (isNewCategory) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.16f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = "فئة جديدة",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            } else if (isHighConfidence) {
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(6.dp))
@@ -118,7 +159,7 @@ fun SmartCategorySuggestionRow(
                                         .padding(horizontal = 6.dp, vertical = 2.dp)
                                 ) {
                                     Text(
-                                        text = "تطبيق تلقائي",
+                                        text = "تطبيق سريع",
                                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                         color = MaterialTheme.colorScheme.onPrimary,
                                         fontWeight = FontWeight.Bold
@@ -141,9 +182,15 @@ fun SmartCategorySuggestionRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (categoryId != null) {
+                    if (categoryId != null || (isNewCategory && onAcceptNewCategory != null)) {
                         IconButton(
-                            onClick = { onAcceptSuggestion(categoryId) },
+                            onClick = {
+                                if (categoryId != null) {
+                                    onAcceptSuggestion(categoryId)
+                                } else {
+                                    onAcceptNewCategory?.invoke()
+                                }
+                            },
                             modifier = Modifier
                                 .size(32.dp)
                                 .clip(RoundedCornerShape(8.dp))
@@ -151,7 +198,7 @@ fun SmartCategorySuggestionRow(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Check,
-                                contentDescription = "تأكيد",
+                                contentDescription = if (isNewCategory) "إنشاء وتأكيد" else "تأكيد",
                                 tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(18.dp)
                             )

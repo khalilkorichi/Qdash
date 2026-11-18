@@ -46,7 +46,15 @@ class ExchangeRateRepositoryImpl(
                         updatedAt = now
                     )
                 } else {
-                    dao.upsertRates(listOf(entity))
+                    val seedFallback = DEFAULT_EXCHANGE_RATES.find { it.currencyCode == entity.currencyCode }
+                    dao.upsertRates(
+                        listOf(
+                            entity.copy(
+                                parallelBuyRate = entity.parallelBuyRate ?: seedFallback?.parallelBuyRate,
+                                parallelSellRate = entity.parallelSellRate ?: seedFallback?.parallelSellRate
+                            )
+                        )
+                    )
                 }
             }
         }
@@ -57,16 +65,36 @@ class ExchangeRateRepositoryImpl(
         parallelScraper.scrapeRates().map { scrapedRates ->
             val toUpsert = mutableListOf<ExchangeRateEntity>()
             scrapedRates.forEach { scraped ->
+                val buy = minOf(scraped.buyRate, scraped.sellRate)
+                val sell = maxOf(scraped.buyRate, scraped.sellRate)
+                if (buy !in 20.0..600.0 || sell !in 20.0..600.0) return@forEach
+
                 val existing = dao.getRateByCodeDirect(scraped.currencyCode)
                 if (existing != null) {
                     val updated = existing.copy(
                         previousParallelBuyRate = existing.parallelBuyRate ?: existing.previousParallelBuyRate,
                         previousParallelSellRate = existing.parallelSellRate ?: existing.previousParallelSellRate,
-                        parallelBuyRate = scraped.buyRate,
-                        parallelSellRate = scraped.sellRate,
+                        parallelBuyRate = buy,
+                        parallelSellRate = sell,
                         lastUpdatedAt = now
                     )
                     toUpsert.add(updated)
+                } else {
+                    val seedFallback = DEFAULT_EXCHANGE_RATES.find { it.currencyCode == scraped.currencyCode }
+                    if (seedFallback != null) {
+                        toUpsert.add(
+                            ExchangeRateEntity(
+                                currencyCode = scraped.currencyCode,
+                                countryFlagEmoji = seedFallback.countryFlagEmoji,
+                                officialBuyRate = seedFallback.officialBuyRate,
+                                officialSellRate = seedFallback.officialSellRate,
+                                parallelBuyRate = buy,
+                                parallelSellRate = sell,
+                                source = "SCRAPER",
+                                lastUpdatedAt = now
+                            )
+                        )
+                    }
                 }
             }
             if (toUpsert.isNotEmpty()) {

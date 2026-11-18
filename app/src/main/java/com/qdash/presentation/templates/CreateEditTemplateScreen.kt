@@ -19,11 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.core.ui.components.FinTrackTopBar
+import com.qdash.core.utils.AmountConversionEngine
 import com.qdash.domain.model.*
 import com.qdash.presentation.templates.components.*
 import com.qdash.ui.theme.*
@@ -53,10 +55,15 @@ fun CreateEditTemplateScreen(
     var toAccountId         by remember { mutableStateOf<Long?>(null) }
 
     var showEmojiPicker by remember { mutableStateOf(false) }
+    var hasLoadedTemplate by remember(templateId) { mutableStateOf(false) }
+
+    val nonArchivedAccounts = remember(uiState.accounts) {
+        uiState.accounts.filter { !it.isArchived }
+    }
 
     // Load template details if in edit mode
-    LaunchedEffect(uiState.templates, templateId) {
-        if (templateId != null && uiState.templates.isNotEmpty()) {
+    LaunchedEffect(uiState.templates, uiState.categories, templateId) {
+        if (!hasLoadedTemplate && templateId != null && uiState.templates.isNotEmpty()) {
             val template = uiState.templates.find { it.id == templateId }
             if (template != null) {
                 name = template.name
@@ -66,30 +73,40 @@ fun CreateEditTemplateScreen(
                 isPinned = template.isPinned
                 type = template.transactionType
 
-                selectedCategoryId = template.categoryId
-                subcategoryId = template.subcategoryId
+                val matchedCat = template.categoryId?.let { id -> uiState.categories.find { it.id == id } }
+                if (template.subcategoryId != null) {
+                    selectedCategoryId = if (matchedCat?.parentId != null) matchedCat.parentId else template.categoryId
+                    subcategoryId = template.subcategoryId
+                } else if (matchedCat?.parentId != null) {
+                    selectedCategoryId = matchedCat.parentId
+                    subcategoryId = matchedCat.id
+                } else {
+                    selectedCategoryId = template.categoryId
+                    subcategoryId = null
+                }
                 selectedAccountId = template.accountId
                 toAccountId = template.targetAccountId
+                hasLoadedTemplate = true
             }
         }
     }
 
     // Auto-select defaults
-    LaunchedEffect(uiState.categories, uiState.accounts, type) {
+    LaunchedEffect(uiState.categories, nonArchivedAccounts, type) {
         if (templateId != null) return@LaunchedEffect
         if (selectedCategoryId == null && uiState.categories.isNotEmpty()) {
             selectedCategoryId = uiState.categories.firstOrNull {
-                when (type) {
+                it.parentId == null && when (type) {
                     TransactionType.INCOME -> it.type == CategoryType.INCOME
                     else -> it.type == CategoryType.EXPENSE
                 }
             }?.id
         }
-        if (selectedAccountId == null && uiState.accounts.isNotEmpty()) {
-            selectedAccountId = uiState.accounts.find { it.isDefault }?.id ?: uiState.accounts.first().id
+        if (selectedAccountId == null && nonArchivedAccounts.isNotEmpty()) {
+            selectedAccountId = nonArchivedAccounts.find { it.isDefault }?.id ?: nonArchivedAccounts.first().id
         }
-        if (toAccountId == null && uiState.accounts.size > 1) {
-            toAccountId = uiState.accounts.lastOrNull { it.id != selectedAccountId }?.id ?: uiState.accounts.first().id
+        if (toAccountId == null && nonArchivedAccounts.size > 1) {
+            toAccountId = nonArchivedAccounts.lastOrNull { it.id != selectedAccountId }?.id ?: nonArchivedAccounts.first().id
         }
     }
 
@@ -283,41 +300,47 @@ fun CreateEditTemplateScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Save Action Button
+            val parsedFormAmount = AmountConversionEngine.parseFlexibleAmount(amountText) ?: 0.0
+            val isTransferValid = type != TransactionType.TRANSFER || (toAccountId != null && toAccountId != selectedAccountId)
             Button(
                 onClick = {
-                    val parsedAmt = amountText.toDoubleOrNull() ?: 0.0
-                    if (name.isNotBlank() && parsedAmt > 0) {
+                    val parsedAmt = AmountConversionEngine.parseFlexibleAmount(amountText) ?: 0.0
+                    if (name.isNotBlank() && parsedAmt > 0 && isTransferValid) {
+                        val existingTemplate = templateId?.let { id -> uiState.templates.find { it.id == id } }
+                        val now = System.currentTimeMillis()
                         val template = TransactionTemplate(
                             id = templateId ?: 0L,
-                            name = name,
+                            name = name.trim(),
                             amount = parsedAmt,
                             transactionType = type,
-                            accountId = selectedAccountId ?: 1L,
+                            accountId = selectedAccountId ?: nonArchivedAccounts.firstOrNull()?.id ?: 1L,
                             targetAccountId = if (type == TransactionType.TRANSFER) toAccountId else null,
-                            categoryId = if (type == TransactionType.TRANSFER) null else (subcategoryId ?: selectedCategoryId),
+                            categoryId = if (type == TransactionType.TRANSFER) null else selectedCategoryId,
+                            subcategoryId = if (type == TransactionType.TRANSFER) null else subcategoryId,
                             notes = note.ifBlank { null },
                             iconEmoji = iconEmoji,
-                            colorHex = String.format("#%06X", (0xFFFFFF and typeAccentColor.value.toInt())),
+                            colorHex = String.format("#%06X", 0xFFFFFF and typeAccentColor.toArgb()),
                             isPinned = isPinned,
-                            createdAt = System.currentTimeMillis(),
-                            updatedAt = System.currentTimeMillis()
+                            usageCount = existingTemplate?.usageCount ?: 0,
+                            lastUsedAt = existingTemplate?.lastUsedAt,
+                            createdAt = existingTemplate?.createdAt ?: now,
+                            updatedAt = now
                         )
                         if (templateId == null) {
-                            viewModel.onCreateTemplate(template)
+                            viewModel.onCreateTemplate(template, onSaved = onBack)
                         } else {
-                            viewModel.onUpdateTemplate(template)
+                            viewModel.onUpdateTemplate(template, onSaved = onBack)
                         }
-                        onBack()
                     }
                 },
-                enabled = name.isNotBlank() && (amountText.toDoubleOrNull() ?: 0.0) > 0.0,
+                enabled = name.isNotBlank() && parsedFormAmount > 0.0 && isTransferValid,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
                 shape = RoundedCornerShape(25.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Primary)
             ) {
-                Text("حفظ القالب", fontWeight = FontWeight.Bold, color = Color.White)
+                Text("حفظ القالب", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
             }
         }
     }
@@ -332,8 +355,7 @@ fun CreateEditTemplateScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.forceCreateTemplate(dupWarning)
-                        onBack()
+                        viewModel.forceCreateTemplate(dupWarning, onSaved = onBack)
                     }
                 ) {
                     Text("نعم، حفظ", color = Primary, fontWeight = FontWeight.Bold)

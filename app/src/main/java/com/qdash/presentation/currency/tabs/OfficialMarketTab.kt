@@ -5,7 +5,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,11 +13,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qdash.presentation.currency.CurrencyExchangeViewModel
 import com.qdash.presentation.currency.OfficialRatesUiState
-import com.qdash.ui.designsystem.components.AppLoadingState
 import com.qdash.ui.designsystem.components.currency.DataSourceBadge
 import com.qdash.ui.designsystem.components.currency.ExchangeRateListItem
 import com.qdash.ui.designsystem.components.currency.ExchangeRateSkeleton
-import com.qdash.ui.designsystem.tokens.ColorTokens
 import com.qdash.ui.designsystem.tokens.SpacingTokens
 
 /**
@@ -31,6 +28,7 @@ fun OfficialMarketTab(
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.officialRatesState.collectAsStateWithLifecycle()
+    val converterState by viewModel.converterState.collectAsStateWithLifecycle()
     val useWesternNumerals by viewModel.useWesternNumerals.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
@@ -63,7 +61,7 @@ fun OfficialMarketTab(
                     DataSourceBadge(
                         sourceText = "أسعار البنك المركزي الرسمي",
                         lastUpdatedAt = s.lastUpdated,
-                        isRefreshing = false,
+                        isRefreshing = converterState.isRefreshing,
                         onRefreshClick = { viewModel.refreshOfficialRates() },
                         badgeIcon = Icons.Default.AccountBalance,
                         useWesternNumerals = useWesternNumerals

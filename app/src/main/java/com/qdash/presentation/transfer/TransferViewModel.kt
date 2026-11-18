@@ -60,6 +60,17 @@ class TransferViewModel(
 
     fun executeTransfer(fromAccountId: Long, toAccountId: Long, amount: Double, feeAmount: Double?, note: String?, date: Long = System.currentTimeMillis(), occurredAt: Long? = null, onComplete: (Boolean) -> Unit) {
         viewModelScope.launch {
+            if (fromAccountId == toAccountId) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        success = false,
+                        error = "لا يمكن التحويل إلى نفس الحساب! يرجى اختيار حساب مستقبل مختلف."
+                    )
+                }
+                onComplete(false)
+                return@launch
+            }
             _uiState.update { it.copy(isLoading = true, success = false, error = null) }
             val isValid = validateTransferUseCase(fromAccountId, amount, feeAmount)
             if (!isValid) {

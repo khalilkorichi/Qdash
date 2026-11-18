@@ -21,7 +21,7 @@ import com.qdash.core.utils.FormatterUtils
 import com.qdash.domain.model.Category
 import com.qdash.domain.model.Transaction
 import com.qdash.domain.model.TransactionType
-import com.qdash.presentation.components.getIconByName
+import com.qdash.presentation.components.UnifiedCategoryIcon
 import com.qdash.ui.theme.ExpenseRed
 import com.qdash.ui.theme.IncomeGreen
 import com.qdash.ui.theme.TextGray
@@ -122,11 +122,11 @@ private fun AccountTransactionRow(
                     .background(catColor.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = getIconByName(category?.icon ?: "receipt_long"),
-                    contentDescription = null,
+                UnifiedCategoryIcon(
+                    iconKey = category?.icon ?: "receipt_long",
                     tint = catColor,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(16.dp),
+                    emojiFontSize = 14.sp
                 )
             }
 

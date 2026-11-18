@@ -25,6 +25,12 @@ class FilterTransactionsUseCase {
         params: TransactionFilterParams
     ): List<Transaction> {
         return transactions.filter { tx ->
+            val isDuplicateTransferLeg = params.accountId == null &&
+                tx.type == TransactionType.TRANSFER &&
+                tx.transferId != null &&
+                !tx.isDebit
+            if (isDuplicateTransferLeg) return@filter false
+
             val matchesQuery = params.query.isBlank() || tx.note?.contains(params.query, ignoreCase = true) == true
             val matchesType = params.type == null || tx.type == params.type
             val matchesCat = params.categoryId == null || tx.categoryId == params.categoryId

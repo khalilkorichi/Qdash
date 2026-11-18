@@ -17,7 +17,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.qdash.ui.theme.Primary
 
 private val DEFAULT_EMOJIS = listOf(
     "☕", "🍔", "🍕", "🚗", "⛽", "🚌", "🛒", "🛍️",
@@ -59,14 +58,15 @@ fun EmojiIconPicker(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.height(240.dp)
                 ) {
-                    items(DEFAULT_EMOJIS) { emoji ->
+                    items(DEFAULT_EMOJIS, key = { it }) { emoji ->
                         val isSelected = emoji == selectedEmoji
+                        val primaryColor = MaterialTheme.colorScheme.primary
                         Box(
                             modifier = Modifier
                                 .size(54.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    if (isSelected) Primary.copy(alpha = 0.12f)
+                                    if (isSelected) primaryColor.copy(alpha = 0.16f)
                                     else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                                 )
                                 .clickable {

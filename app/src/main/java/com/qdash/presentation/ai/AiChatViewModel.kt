@@ -70,7 +70,7 @@ data class AiChatUiState(
     val inputText: String = "",
     val currentSessionTitle: String = "محادثة جديدة",
     val sessions: List<String> = emptyList(),
-    val selectedModelId: String = "gemini-3.6-flash-high",
+    val selectedModelId: String = "gemini-2.5-flash",
     val proactiveInsights: List<String> = emptyList(),
     val models: List<AiModelInfo> = listOf(
         AiModelInfo("gemini-3.6-flash-high", "Gemini Flash 3.6 (High)", "Google"),
@@ -124,7 +124,7 @@ data class AiChatUiState(
 )
 
 class AiChatViewModel(
-    private val aiRepository: AiRepository,
+    internal val aiRepository: AiRepository,
     internal val transactionRepository: TransactionRepository,
     private val accountRepository: AccountRepository,
     private val categoryRepository: CategoryRepository,
@@ -186,11 +186,14 @@ class AiChatViewModel(
         // Initialize by loading default session messages
         loadSessionMessages(_uiState.value.currentSessionTitle)
 
-        // Load saved model preference
+        // Load saved model preference and mark all models as AVAILABLE by default (0 startup LLM calls)
         val savedModelId = preferencesManager.selectedAiModel
-        _uiState.update { it.copy(selectedModelId = savedModelId) }
-
-        checkModelAvailability()
+        _uiState.update { state ->
+            state.copy(
+                selectedModelId = savedModelId,
+                modelAvailability = state.models.associate { model -> model.id to AiModelAvailability.AVAILABLE }
+            )
+        }
 
         // Generate proactive insights
         generateProactiveInsights()
@@ -348,6 +351,9 @@ class AiChatViewModel(
                         parser.getQuickImpactPreview(draftTx.amount, draftTx.type, draftTx.categoryId, draftTx.accountId)
                     } else null
 
+                    val isDraftConfirmed = msg.draftStatus == "CONFIRMED"
+                    val isDraftCancelled = msg.draftStatus == "CANCELLED"
+
                     AiChatMessage(
                         id = msg.id.toString(),
                         text = msg.message,
@@ -356,6 +362,8 @@ class AiChatViewModel(
                         draftTransaction = draftTx,
                         categoryName = categories.find { it.id == draftTx?.categoryId }?.name ?: "غير محدد",
                         accountName = accounts.firstOrNull { it.id == draftTx?.accountId }?.name ?: "غير محدد",
+                        isConfirmed = isDraftConfirmed,
+                        isCancelled = isDraftCancelled,
                         walletSnapshot = walletSnapshot,
                         recentActivitySummary = recentActivity,
                         walletDistributionSuggestion = walletDistribution,
@@ -364,7 +372,9 @@ class AiChatViewModel(
                         selectedAccountDetailsState = selectedAccountDetails,
                         quickImpactPreviewState = quickImpactPreview,
                         transferFromAccountName = accounts.find { it.id == (transferDraft?.fromAccountId ?: 0L) }?.name ?: "غير محدد",
-                        transferToAccountName = accounts.find { it.id == (transferDraft?.toAccountId ?: 0L) }?.name ?: "غير محدد"
+                        transferToAccountName = accounts.find { it.id == (transferDraft?.toAccountId ?: 0L) }?.name ?: "غير محدد",
+                        isTransferConfirmed = isDraftConfirmed,
+                        isTransferCancelled = isDraftCancelled
                     )
                 }
                 _uiState.update { it.copy(messages = uiMessages) }
@@ -446,12 +456,21 @@ class AiChatViewModel(
                     AiErrorType.NETWORK_ERROR -> "فشل في الاتصال بالشبكة. يرجى التحقق من اتصال الإنترنت وإعادة المحاولة."
                     AiErrorType.AI_ERROR -> "حدث خطأ في استجابة المساعد الذكي: ${e.localizedMessage ?: "فشل في الاتصال بالخادم"}"
                 }
-                _uiState.update { it.copy(
-                    isLoading = false,
-                    isAiTyping = false,
-                    error = AiErrorState(type = errorType, message = friendlyMessage),
-                    lastFailedText = trimmedText
-                ) }
+                val activeModelId = _uiState.value.selectedModelId
+                _uiState.update { state ->
+                    val updatedAvailability = if (errorType == AiErrorType.AI_ERROR) {
+                        state.modelAvailability + (activeModelId to AiModelAvailability.UNAVAILABLE)
+                    } else {
+                        state.modelAvailability
+                    }
+                    state.copy(
+                        isLoading = false,
+                        isAiTyping = false,
+                        modelAvailability = updatedAvailability,
+                        error = AiErrorState(type = errorType, message = friendlyMessage),
+                        lastFailedText = trimmedText
+                    )
+                }
             }
         }
     }

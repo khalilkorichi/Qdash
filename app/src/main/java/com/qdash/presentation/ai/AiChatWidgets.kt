@@ -465,11 +465,6 @@ internal fun AiChatTopBar(
                         onClearChat()
                     }
                 )
-                DropdownMenuItem(
-                    text = { Text("تصدير قريباً") },
-                    enabled = false,
-                    onClick = {}
-                )
             }
         },
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(

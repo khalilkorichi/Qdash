@@ -1,14 +1,21 @@
 package com.qdash.presentation.accounts
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -18,16 +25,19 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qdash.core.ui.asStable
 import com.qdash.core.ui.components.UnifiedScreenHeader
+import com.qdash.core.utils.FormatterUtils
 import com.qdash.domain.model.Account
+import com.qdash.presentation.navigation.LocalBottomBarPadding
 import com.qdash.ui.designsystem.components.*
 import com.qdash.ui.designsystem.tokens.*
 import com.qdash.ui.theme.ExpenseRed
 import com.qdash.ui.theme.IncomeGreen
-import com.qdash.ui.theme.Primary
 import com.qdash.ui.theme.TextGray
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -62,13 +72,15 @@ fun AccountsScreen(
     }
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val bottomBarPadding = LocalBottomBarPadding.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
     val isRefreshing = uiState.isRefreshing
     val pullRefreshState = rememberPullToRefreshState()
 
-    var showTotalBalance by remember { mutableStateOf(true) }
+    val showTotalBalance = uiState.showBalances
+    var showArchivedSection by rememberSaveable { mutableStateOf(false) }
     var activeAccounts by remember(uiState.accounts) {
         mutableStateOf(uiState.accounts.filter { !it.isArchived }.sortedBy { it.sortOrder })
     }
@@ -152,7 +164,7 @@ fun AccountsScreen(
                 UnifiedScreenHeader(
                     title = "الحسابات المالية",
                     subtitle = "تتبع أرصدتك وقم بإجراء تحويلات بين حساباتك",
-                    showBackButton = true,
+                    showBackButton = false,
                     onBackClick = onBack
                 )
 
@@ -160,19 +172,27 @@ fun AccountsScreen(
                     state = lazyListState,
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 80.dp)
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 8.dp,
+                        bottom = bottomBarPadding + 16.dp
+                    )
                 ) {
 
                 item {
                     if (uiState.isLoading) {
                         NetWealthCardSkeleton()
                     } else {
-                        val total = uiState.accounts.sumOf { it.balance }
+                        val netWorthAccounts = remember(uiState.accounts) {
+                            uiState.accounts.filter { !it.isArchived && it.isActive }
+                        }
+                        val total = netWorthAccounts.sumOf { it.balance }
                         NetWealthCard(
                             total = total,
                             showTotalBalance = showTotalBalance,
-                            onToggleTotalBalance = { showTotalBalance = !showTotalBalance },
-                            activeAccountsCount = uiState.accounts.size,
+                            onToggleTotalBalance = { viewModel.toggleTotalBalanceVisibility() },
+                            activeAccountsCount = netWorthAccounts.size,
                             isDark = isDark,
                             Primary = Primary,
                             PrimaryDark = PrimaryDark
@@ -286,16 +306,132 @@ fun AccountsScreen(
                     }
 
 
-                    if (uiState.accounts.isEmpty()) {
+                    if (activeAccounts.isEmpty() && uiState.archivedAccounts.isEmpty()) {
                         item {
                             EmptyAccountsState(
                                 onAddAccountClick = { onNavigateToAddAccount(null) }
                             )
                         }
                     }
+
+                    if (uiState.archivedAccounts.isNotEmpty()) {
+                        item(key = "archived_accounts_section_header") {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { showArchivedSection = !showArchivedSection }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Archive,
+                                            contentDescription = null,
+                                            tint = TextGray,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            text = "الحسابات المؤرشفة (${uiState.archivedAccounts.size})",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                    Icon(
+                                        imageVector = if (showArchivedSection) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                        contentDescription = null,
+                                        tint = TextGray
+                                    )
+                                }
+                            }
+                        }
+
+                        if (showArchivedSection) {
+                            items(uiState.archivedAccounts, key = { "archived_${it.id}" }) { archivedAcc ->
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = MaterialTheme.colorScheme.surface,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onNavigateToAccountDetails(archivedAcc.id) }
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = archivedAcc.name,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = FormatterUtils.formatCurrency(archivedAcc.balance, currencyCode = archivedAcc.currency),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = TextGray
+                                            )
+                                        }
+                                        OutlinedButton(
+                                            onClick = { viewModel.unarchiveAccount(archivedAcc.id) },
+                                            shape = RoundedCornerShape(10.dp),
+                                            border = BorderStroke(1.dp, Primary),
+                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Unarchive,
+                                                contentDescription = null,
+                                                tint = Primary,
+                                                modifier = Modifier.size(15.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "إلغاء الأرشفة",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Primary
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         } // end PullToRefreshBox
+    }
+
+    uiState.deleteError?.let { deleteErr ->
+        AppDialog(
+            onDismissRequest = { viewModel.clearDeleteError() },
+            title = "تعذر حذف الحساب",
+            text = deleteErr,
+            confirmButtonText = "حسناً، فهمت",
+            onConfirm = { viewModel.clearDeleteError() },
+            icon = {
+                Icon(Icons.Default.Info, contentDescription = null, tint = Primary, modifier = Modifier.size(20.dp))
+            }
+        )
     }
 
     AccountsDialogs(

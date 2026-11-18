@@ -139,19 +139,46 @@ class BackupManager(
             mkdirs()
         }
         try {
-            // 1. Extract ZIP to Staging
+            // 1. Extract ZIP to Staging with Zip Slip, entry-count, and size limits
+            val canonicalRoot = stagingDir.canonicalFile
+            val maxEntries = 50
+            val maxUncompressedBytes = 200L * 1024L * 1024L // 200 MB
+            var entryCount = 0
+            var totalExtractedBytes = 0L
+
             val resolver = context.contentResolver
             resolver.openInputStream(inputUri)?.use { inputStream ->
                 ZipInputStream(BufferedInputStream(inputStream)).use { zis ->
                     var entry = zis.nextEntry
                     while (entry != null) {
-                        val destFile = File(stagingDir, entry.name)
-                        if (entry.isDirectory) {
-                            destFile.mkdirs()
-                        } else {
-                            destFile.parentFile?.mkdirs()
-                            destFile.outputStream().use { output -> zis.copyTo(output) }
+                        entryCount++
+                        if (entryCount > maxEntries) {
+                            throw SecurityException("تجاوز أرشيف النسخة الاحتياطية الحد الأقصى المسموح لعدد الملفات ($maxEntries).")
                         }
+
+                        val destFile = File(stagingDir, entry.name)
+                        val canonicalDest = destFile.canonicalFile
+                        if (!canonicalDest.path.startsWith(canonicalRoot.path + File.separator)) {
+                            throw SecurityException("Zip Slip detected")
+                        }
+
+                        if (entry.isDirectory) {
+                            canonicalDest.mkdirs()
+                        } else {
+                            canonicalDest.parentFile?.mkdirs()
+                            canonicalDest.outputStream().use { output ->
+                                val buffer = ByteArray(8192)
+                                var bytesRead: Int
+                                while (zis.read(buffer).also { bytesRead = it } != -1) {
+                                    totalExtractedBytes += bytesRead
+                                    if (totalExtractedBytes > maxUncompressedBytes) {
+                                        throw SecurityException("تجاوز حجم النسخة الاحتياطية المستخرجة الحد الآمن (200 MB).")
+                                    }
+                                    output.write(buffer, 0, bytesRead)
+                                }
+                            }
+                        }
+                        zis.closeEntry()
                         entry = zis.nextEntry
                     }
                 }
@@ -557,9 +584,19 @@ class BackupManager(
     }
 
     private fun gzipDecompress(source: File, target: File) {
+        val maxUncompressedBytes = 200L * 1024L * 1024L // 200 MB
+        var totalBytes = 0L
         java.util.zip.GZIPInputStream(FileInputStream(source)).use { gzip ->
             target.outputStream().use { output ->
-                gzip.copyTo(output)
+                val buffer = ByteArray(8192)
+                var bytesRead: Int
+                while (gzip.read(buffer).also { bytesRead = it } != -1) {
+                    totalBytes += bytesRead
+                    if (totalBytes > maxUncompressedBytes) {
+                        throw SecurityException("تجاوز حجم ملف JSON المفكوك الحد الآمن (200 MB).")
+                    }
+                    output.write(buffer, 0, bytesRead)
+                }
             }
         }
     }
@@ -651,6 +688,7 @@ class BackupManager(
         val counts = mutableMapOf<String, Int>()
         try {
             counts["accounts"] = database.accountDao().getAllAccountsIncludingArchived().first().size
+            counts["amanas"] = database.amanaDao().getAllAmanas().first().size
             counts["categories"] = database.categoryDao().getAllCategories().first().filter { !it.isSystem }.size
             counts["transactions"] = database.transactionDao().getAllTransactions().first().size
             counts["income_sources"] = database.incomeSourceDao().getAllIncomeSources().first().size

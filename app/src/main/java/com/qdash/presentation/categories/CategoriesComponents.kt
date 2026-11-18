@@ -19,6 +19,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.domain.model.Category
 import com.qdash.domain.model.CategoryType
+import com.qdash.presentation.components.UnifiedCategoryIcon
+import com.qdash.presentation.components.getIconByName
+import com.qdash.presentation.components.safeParseColor
 import com.qdash.ui.theme.ExpenseRed
 import com.qdash.ui.theme.TextGray
 import com.qdash.ui.designsystem.components.shimmerEffect
@@ -35,10 +38,7 @@ val colorOptions = listOf(
 )
 
 fun parseHex(hex: String): Color {
-    return try {
-        val clean = hex.trimStart('#')
-        Color(android.graphics.Color.parseColor("#$clean"))
-    } catch (e: Exception) { Color(0xFF6C63FF) }
+    return safeParseColor(hex, Color(0xFF6C63FF))
 }
 
 fun categoryTypeLabel(type: CategoryType) = when (type) {
@@ -46,27 +46,7 @@ fun categoryTypeLabel(type: CategoryType) = when (type) {
     CategoryType.INCOME -> "دخل"
 }
 
-fun getIconVector(iconName: String): ImageVector {
-    return when (iconName) {
-        "restaurant" -> Icons.Default.Restaurant
-        "shopping_bag" -> Icons.Default.ShoppingBag
-        "home" -> Icons.Default.Home
-        "directions_car" -> Icons.Default.DirectionsCar
-        "bolt" -> Icons.Default.Bolt
-        "school" -> Icons.Default.School
-        "medical_services" -> Icons.Default.MedicalServices
-        "sports_esports" -> Icons.Default.SportsEsports
-        "coffee" -> Icons.Default.Coffee
-        "shopping_cart" -> Icons.Default.ShoppingCart
-        "local_taxi" -> Icons.Default.LocalTaxi
-        "work" -> Icons.Default.Work
-        "savings" -> Icons.Default.Savings
-        "star" -> Icons.Default.Star
-        "flag" -> Icons.Default.Flag
-        "favorite" -> Icons.Default.Favorite
-        else -> Icons.Default.Category
-    }
-}
+fun getIconVector(iconName: String): ImageVector = getIconByName(iconName)
 
 @Composable
 fun CategoryCard(
@@ -106,11 +86,11 @@ fun CategoryCard(
                     .background(color.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = getIconVector(category.icon),
-                    contentDescription = null,
+                UnifiedCategoryIcon(
+                    iconKey = category.icon,
                     tint = color,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(22.dp),
+                    emojiFontSize = 20.sp
                 )
             }
 
@@ -214,7 +194,12 @@ fun SubcategoryItem(
                 .background(color.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(getIconVector(subcategory.icon), null, tint = color, modifier = Modifier.size(16.dp))
+            UnifiedCategoryIcon(
+                iconKey = subcategory.icon,
+                tint = color,
+                modifier = Modifier.size(16.dp),
+                emojiFontSize = 14.sp
+            )
         }
 
         Text(

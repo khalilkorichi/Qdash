@@ -18,7 +18,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qdash.core.ui.components.UnifiedScreenHeader
 import com.qdash.domain.model.Transaction
 import com.qdash.presentation.transactions.DeleteTransactionDialog
-import com.qdash.ui.theme.Primary
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,6 +29,7 @@ fun AccountDetailsScreen(
     onEditTransaction: (String, Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -62,16 +62,16 @@ fun AccountDetailsScreen(
                     if (account.isAmanaEnabled && activeTab == 1) { // Amana tab
                         ExtendedFloatingActionButton(
                             onClick = { showAddAmanaSheet = true },
-                            containerColor = Primary,
-                            contentColor = Color.White,
+                            containerColor = primaryColor,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
                             icon = { Icon(Icons.Default.Add, contentDescription = null) },
                             text = { Text("إضافة أمانة") }
                         )
                     } else {
                         FloatingActionButton(
                             onClick = { onEditAccount(account.id) },
-                            containerColor = Primary,
-                            contentColor = Color.White
+                            containerColor = primaryColor,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         ) {
                             Icon(Icons.Default.Edit, contentDescription = "تعديل الحساب")
                         }
@@ -94,7 +94,7 @@ fun AccountDetailsScreen(
 
                 if (uiState.isLoading) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = Primary)
+                        CircularProgressIndicator(color = primaryColor)
                     }
                     return@Scaffold
                 }
@@ -107,7 +107,8 @@ fun AccountDetailsScreen(
                     isActive = account.isActive,
                     totalAmana = if (account.isAmanaEnabled) uiState.totalAmanaForAccount else 0.0,
                     realBalance = if (account.isAmanaEnabled) uiState.realBalance else account.balance,
-                    isAmanaEnabled = account.isAmanaEnabled
+                    isAmanaEnabled = account.isAmanaEnabled,
+                    currencyCode = account.currency
                 )
 
                 if (account.isAmanaEnabled) {

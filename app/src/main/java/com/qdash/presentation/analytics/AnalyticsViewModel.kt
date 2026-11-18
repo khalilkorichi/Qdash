@@ -1,14 +1,16 @@
 package com.qdash.presentation.analytics
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qdash.domain.model.*
 import com.qdash.domain.repository.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
 import java.util.Calendar
-import androidx.compose.runtime.Immutable
 
 data class CategoryShare(
     val categoryId: Long,
@@ -32,14 +34,17 @@ data class AnalyticsUiState(
     val largestExpense: Double = 0.0,
     val largestExpenseName: String = "لايوجد",
     val savingsRate: Float = 0f,
+    val hasIncomeInPeriod: Boolean = false,
+    val periodIncomeSum: Double = 0.0,
+    val periodExpensesSum: Double = 0.0,
     val budgetConsumptionPercent: Float = 0f,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val error: String? = null,
     val selectedDayOffset: Int = 0, // 0 = today, 1 = yesterday, ...
     val selectedWeekOffset: Int = 0, // 0 = this week, 1 = last week, ...
-    val selectedMonth: Int = java.util.Calendar.getInstance().get(java.util.Calendar.MONTH),
-    val selectedYear: Int = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR),
+    val selectedMonth: Int = Calendar.getInstance().get(Calendar.MONTH),
+    val selectedYear: Int = Calendar.getInstance().get(Calendar.YEAR),
 
     // Spend Projection & Salary Cycle
     val hasSalarySource: Boolean = false,
@@ -63,11 +68,12 @@ data class AnalyticsUiState(
     val weekdayPercentage: Float = 0f,
     val hasWeekendData: Boolean = false,
 
-    // Emergency Fund Runway
+    // Emergency Fund Runway & Savings Goals
     val totalSavingsAmount: Double = 0.0,
     val averageMonthlyExpense: Double = 0.0,
     val emergencyFundRunwayMonths: Float = 0f,
     val emergencyFundStatus: String = "SAFE", // "CRITICAL", "ACCEPTABLE", "SAFE", "EXCELLENT"
+    val savingGoals: List<SavingGoal> = emptyList(),
 
     // PDF Export status
     val exportingProgressText: String? = null,
@@ -75,24 +81,25 @@ data class AnalyticsUiState(
     val exportError: String? = null,
     val isDatabaseEmpty: Boolean = false,
     val transactions: List<Transaction> = emptyList(),
+    val periodTransactions: List<Transaction> = emptyList(),
     val categories: List<Category> = emptyList(),
 
     // Dashboard & Comparison State
-    val dashboardTab: Int = 0, // 0 = General Analytics, 1 = Dashboard & Comparison
+    val dashboardTab: Int = 0,
     val dashboardPeriod: String = "MONTHLY", // "MONTHLY", "ANNUALLY"
-    val dashboardMonth: Int = java.util.Calendar.getInstance().get(java.util.Calendar.MONTH),
-    val dashboardYear: Int = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR),
-    val compareMonthA: Int = java.util.Calendar.getInstance().get(java.util.Calendar.MONTH),
-    val compareYearA: Int = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR),
+    val dashboardMonth: Int = Calendar.getInstance().get(Calendar.MONTH),
+    val dashboardYear: Int = Calendar.getInstance().get(Calendar.YEAR),
+    val compareMonthA: Int = Calendar.getInstance().get(Calendar.MONTH),
+    val compareYearA: Int = Calendar.getInstance().get(Calendar.YEAR),
     val compareMonthB: Int = run {
-        val cal = java.util.Calendar.getInstance()
-        cal.add(java.util.Calendar.MONTH, -1)
-        cal.get(java.util.Calendar.MONTH)
+        val cal = Calendar.getInstance()
+        cal.add(Calendar.MONTH, -1)
+        cal.get(Calendar.MONTH)
     },
     val compareYearB: Int = run {
-        val cal = java.util.Calendar.getInstance()
-        cal.add(java.util.Calendar.MONTH, -1)
-        cal.get(java.util.Calendar.YEAR)
+        val cal = Calendar.getInstance()
+        cal.add(Calendar.MONTH, -1)
+        cal.get(Calendar.YEAR)
     }
 )
 
@@ -108,33 +115,61 @@ class AnalyticsViewModel(
     private val _uiState = MutableStateFlow(AnalyticsUiState())
     val uiState: StateFlow<AnalyticsUiState> = _uiState.asStateFlow()
 
+    private data class PeriodFilterParams(
+        val selectedPeriod: String,
+        val selectedDayOffset: Int,
+        val selectedWeekOffset: Int,
+        val selectedMonth: Int,
+        val selectedYear: Int
+    )
+
+    private data class ComputedAnalyticsPayload(
+        val spendingsByCategory: List<CategoryShare>,
+        val trendData: List<CashFlowTrend>,
+        val largestExpense: Double,
+        val largestExpenseName: String,
+        val savingsRate: Float,
+        val hasIncomeInPeriod: Boolean,
+        val periodIncomeSum: Double,
+        val periodExpensesSum: Double,
+        val budgetConsumptionPercent: Float,
+        val hasSalarySource: Boolean,
+        val salaryDayOfMonth: Int,
+        val salaryAmount: Double,
+        val projection: AnalyticsCalculator.SpendProjection,
+        val wkStats: AnalyticsCalculator.WeekendWeekdayStats,
+        val efStats: AnalyticsCalculator.EmergencyFundStats,
+        val savingGoals: List<SavingGoal>,
+        val isDatabaseEmpty: Boolean,
+        val transactions: List<Transaction>,
+        val periodTransactions: List<Transaction>,
+        val categories: List<Category>
+    )
+
+    private var loadJob: Job? = null
+
     init {
         loadAnalytics()
     }
 
     fun setPeriod(period: String) {
         _uiState.update { it.copy(selectedPeriod = period) }
-        loadAnalytics()
     }
 
     fun setMonth(month: Int, year: Int) {
         _uiState.update { it.copy(selectedMonth = month, selectedYear = year) }
-        loadAnalytics()
     }
 
     fun setDayOffset(offset: Int) {
         _uiState.update { it.copy(selectedDayOffset = offset) }
-        loadAnalytics()
     }
 
     fun setWeekOffset(offset: Int) {
         _uiState.update { it.copy(selectedWeekOffset = offset) }
-        loadAnalytics()
     }
 
     fun setYear(year: Int) {
         _uiState.update { it.copy(selectedYear = year) }
-        loadAnalytics()
     }
 
     fun setDashboardTab(tab: Int) {
@@ -162,89 +197,101 @@ class AnalyticsViewModel(
     }
 
     fun navigatePrev() {
-        val s = _uiState.value
-        when (s.selectedPeriod) {
-            "DAY" -> if (s.selectedDayOffset < 6) {
-                _uiState.update { it.copy(selectedDayOffset = s.selectedDayOffset + 1) }
-            }
-            "WEEK" -> if (s.selectedWeekOffset < 3) {
-                _uiState.update { it.copy(selectedWeekOffset = s.selectedWeekOffset + 1) }
-            }
-            "MONTH" -> {
-                val newMonth = if (s.selectedMonth == 0) 11 else s.selectedMonth - 1
-                val newYear = if (s.selectedMonth == 0) s.selectedYear - 1 else s.selectedYear
-                _uiState.update { it.copy(selectedMonth = newMonth, selectedYear = newYear) }
-            }
-            "YEAR" -> {
-                val minYear = Calendar.getInstance().get(Calendar.YEAR) - 4
-                if (s.selectedYear > minYear) {
-                    _uiState.update { it.copy(selectedYear = s.selectedYear - 1) }
+        _uiState.update { s ->
+            when (s.selectedPeriod) {
+                "DAY" -> if (s.selectedDayOffset < 6) s.copy(selectedDayOffset = s.selectedDayOffset + 1) else s
+                "WEEK" -> if (s.selectedWeekOffset < 3) s.copy(selectedWeekOffset = s.selectedWeekOffset + 1) else s
+                "MONTH" -> {
+                    val newMonth = if (s.selectedMonth == 0) 11 else s.selectedMonth - 1
+                    val newYear = if (s.selectedMonth == 0) s.selectedYear - 1 else s.selectedYear
+                    s.copy(selectedMonth = newMonth, selectedYear = newYear)
                 }
+                "YEAR" -> {
+                    val minYear = Calendar.getInstance().get(Calendar.YEAR) - 4
+                    if (s.selectedYear > minYear) s.copy(selectedYear = s.selectedYear - 1) else s
+                }
+                else -> s
             }
         }
-        loadAnalytics()
     }
 
     fun navigateNext() {
-        val s = _uiState.value
-        when (s.selectedPeriod) {
-            "DAY" -> if (s.selectedDayOffset > 0) {
-                _uiState.update { it.copy(selectedDayOffset = s.selectedDayOffset - 1) }
-            }
-            "WEEK" -> if (s.selectedWeekOffset > 0) {
-                _uiState.update { it.copy(selectedWeekOffset = s.selectedWeekOffset - 1) }
-            }
-            "MONTH" -> {
-                val now = Calendar.getInstance()
-                val maxMonth = now.get(Calendar.MONTH)
-                val maxYear = now.get(Calendar.YEAR)
-                if (s.selectedYear < maxYear || (s.selectedYear == maxYear && s.selectedMonth < maxMonth)) {
-                    val newMonth = if (s.selectedMonth == 11) 0 else s.selectedMonth + 1
-                    val newYear = if (s.selectedMonth == 11) s.selectedYear + 1 else s.selectedYear
-                    _uiState.update { it.copy(selectedMonth = newMonth, selectedYear = newYear) }
+        _uiState.update { s ->
+            when (s.selectedPeriod) {
+                "DAY" -> if (s.selectedDayOffset > 0) s.copy(selectedDayOffset = s.selectedDayOffset - 1) else s
+                "WEEK" -> if (s.selectedWeekOffset > 0) s.copy(selectedWeekOffset = s.selectedWeekOffset - 1) else s
+                "MONTH" -> {
+                    val now = Calendar.getInstance()
+                    val maxMonth = now.get(Calendar.MONTH)
+                    val maxYear = now.get(Calendar.YEAR)
+                    if (s.selectedYear < maxYear || (s.selectedYear == maxYear && s.selectedMonth < maxMonth)) {
+                        val newMonth = if (s.selectedMonth == 11) 0 else s.selectedMonth + 1
+                        val newYear = if (s.selectedMonth == 11) s.selectedYear + 1 else s.selectedYear
+                        s.copy(selectedMonth = newMonth, selectedYear = newYear)
+                    } else s
                 }
-            }
-            "YEAR" -> {
-                val maxYear = Calendar.getInstance().get(Calendar.YEAR)
-                if (s.selectedYear < maxYear) {
-                    _uiState.update { it.copy(selectedYear = s.selectedYear + 1) }
+                "YEAR" -> {
+                    val maxYear = Calendar.getInstance().get(Calendar.YEAR)
+                    if (s.selectedYear < maxYear) s.copy(selectedYear = s.selectedYear + 1) else s
                 }
+                else -> s
             }
         }
-        loadAnalytics()
     }
 
     fun refresh() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
-            loadAnalytics()
-            kotlinx.coroutines.delay(600)
+            loadAnalytics(showInitialLoading = false)
+            delay(500)
             _uiState.update { it.copy(isRefreshing = false) }
         }
     }
 
-    private var loadJob: kotlinx.coroutines.Job? = null
-
-    private fun loadAnalytics() {
+    private fun loadAnalytics(showInitialLoading: Boolean = true) {
         loadJob?.cancel()
-        _uiState.update { it.copy(isLoading = true) }
+        if (showInitialLoading && _uiState.value.transactions.isEmpty()) {
+            _uiState.update { it.copy(isLoading = true) }
+        }
+        val filterFlow = _uiState
+            .map {
+                PeriodFilterParams(
+                    selectedPeriod = it.selectedPeriod,
+                    selectedDayOffset = it.selectedDayOffset,
+                    selectedWeekOffset = it.selectedWeekOffset,
+                    selectedMonth = it.selectedMonth,
+                    selectedYear = it.selectedYear
+                )
+            }
+            .distinctUntilChanged()
+
+        val repoFlow = combine(
+            transactionRepository.getAllTransactions(),
+            categoryRepository.getAllCategories(),
+            accountRepository.getAllAccounts(),
+            incomeRepository.getAllIncomeSources(),
+            savingRepository.getAllSavingGoals()
+        ) { transactions, categories, accounts, incomeSources, savingGoals ->
+             Quintuple(transactions, categories, accounts, incomeSources, savingGoals)
+        }
+
         loadJob = viewModelScope.launch {
             try {
-                combine(
-                    transactionRepository.getAllTransactions(),
-                    categoryRepository.getAllCategories(),
-                    accountRepository.getAllAccounts(),
-                    incomeRepository.getAllIncomeSources(),
-                    savingRepository.getAllSavingGoals()
-                ) { transactions, categories, accounts, incomeSources, savingGoals ->
-                    val state = _uiState.value
+                combine(repoFlow, filterFlow) { (transactions, categories, accounts, incomeSources, savingGoals), filter ->
+                    val filterStateSnapshot = AnalyticsUiState(
+                        selectedPeriod = filter.selectedPeriod,
+                        selectedDayOffset = filter.selectedDayOffset,
+                        selectedWeekOffset = filter.selectedWeekOffset,
+                        selectedMonth = filter.selectedMonth,
+                        selectedYear = filter.selectedYear
+                    )
 
                     val salarySource = incomeSources.firstOrNull { it.type == "SALARY" && it.isActive }
                     val hasSalary = salarySource != null
                     val salaryDay = salarySource?.dayOfMonth ?: 1
                     val salaryAmt = salarySource?.amount ?: 0.0
 
-                    val periodTransactions = AnalyticsCalculator.filterByPeriod(transactions, state, hasSalary, salaryDay)
+                    val periodTransactions = AnalyticsCalculator.filterByPeriod(transactions, filterStateSnapshot, hasSalary, salaryDay)
                     val expensesOnly = periodTransactions.filter { it.type == TransactionType.EXPENSE }
                     val totalExpensesSum = expensesOnly.sumOf { it.amount }
 
@@ -256,57 +303,83 @@ class AnalyticsViewModel(
                     val maxExpenseCategory = categories.firstOrNull { it.id == maxExpense?.categoryId }?.name ?: "لايوجد"
 
                     val incomeSum = periodTransactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
-                    val rate = if (incomeSum > 0) ((incomeSum - totalExpensesSum) / incomeSum).toFloat() else 0f
+                    val hasIncome = incomeSum > 0.0
+                    val rate = if (hasIncome) ((incomeSum - totalExpensesSum) / incomeSum).toFloat() else 0f
 
                     val limitTotal = categories.filter { it.type == CategoryType.EXPENSE && it.budgetLimit != null }.sumOf { it.budgetLimit ?: 0.0 }
                     val consumption = if (limitTotal > 0) (totalExpensesSum / limitTotal).toFloat() else 0f
 
-                    val projection = AnalyticsCalculator.computeSpendProjection(state, totalExpensesSum, hasSalary, salaryDay, salaryAmt, limitTotal)
-                    val wkStats = AnalyticsCalculator.computeWeekendWeekdayStats(expensesOnly, transactions, state, hasSalary, salaryDay)
+                    val projection = AnalyticsCalculator.computeSpendProjection(filterStateSnapshot, totalExpensesSum, hasSalary, salaryDay, salaryAmt, limitTotal)
+                    val wkStats = AnalyticsCalculator.computeWeekendWeekdayStats(expensesOnly, transactions, filterStateSnapshot, hasSalary, salaryDay)
                     val efStats = AnalyticsCalculator.computeEmergencyFundStats(accounts, savingGoals, transactions)
 
-                    state.copy(
+                    ComputedAnalyticsPayload(
                         spendingsByCategory = shares,
                         trendData = realTrend,
                         largestExpense = maxExpenseAmount,
                         largestExpenseName = maxExpenseCategory,
                         savingsRate = rate,
+                        hasIncomeInPeriod = hasIncome,
+                        periodIncomeSum = incomeSum,
+                        periodExpensesSum = totalExpensesSum,
                         budgetConsumptionPercent = consumption.coerceIn(0f, 1f),
-                        isLoading = false,
-
                         hasSalarySource = hasSalary,
                         salaryDayOfMonth = salaryDay,
                         salaryAmount = salaryAmt,
-                        salaryCycleStartLabel = projection.cycleStartLabel,
-                        salaryCycleEndLabel = projection.cycleEndLabel,
-                        daysRemainingInCycle = projection.daysRemaining,
-                        totalDaysInCycle = projection.totalDays,
-                        salaryCyclePercentageElapsed = projection.cyclePercentageElapsed,
-                        projectedEndMonthSpending = projection.projectedSpend,
-                        isProjectedToExceedBudget = projection.isProjectedToExceed,
-                        referenceBudget = projection.refBudget,
-
-                        weekendExpensesSum = wkStats.weekendSum,
-                        weekdayExpensesSum = wkStats.weekdaySum,
-                        weekendDailyAverage = wkStats.weekendAvg,
-                        weekdayDailyAverage = wkStats.weekdayAvg,
-                        weekendPercentage = wkStats.weekendPct,
-                        weekdayPercentage = wkStats.weekdayPct,
-                        hasWeekendData = wkStats.hasData,
-
-                        totalSavingsAmount = efStats.totalSavings,
-                        averageMonthlyExpense = efStats.avgMonthlyExpense,
-                        emergencyFundRunwayMonths = efStats.runway,
-                        emergencyFundStatus = efStats.runwayStatus,
-                        isDatabaseEmpty = transactions.isEmpty(),
+                        projection = projection,
+                        wkStats = wkStats,
+                        efStats = efStats,
+                        savingGoals = savingGoals,
+                        isDatabaseEmpty = transactions.isEmpty() && savingGoals.isEmpty(),
                         transactions = transactions,
+                        periodTransactions = periodTransactions,
                         categories = categories
                     )
                 }
-                .flowOn(kotlinx.coroutines.Dispatchers.Default)
-                .collect { calculatedState ->
-                    _uiState.value = calculatedState
-                }
+                    .flowOn(Dispatchers.Default)
+                    .collect { payload ->
+                        _uiState.update { current ->
+                            current.copy(
+                                spendingsByCategory = payload.spendingsByCategory,
+                                trendData = payload.trendData,
+                                largestExpense = payload.largestExpense,
+                                largestExpenseName = payload.largestExpenseName,
+                                savingsRate = payload.savingsRate,
+                                hasIncomeInPeriod = payload.hasIncomeInPeriod,
+                                periodIncomeSum = payload.periodIncomeSum,
+                                periodExpensesSum = payload.periodExpensesSum,
+                                budgetConsumptionPercent = payload.budgetConsumptionPercent,
+                                isLoading = false,
+                                hasSalarySource = payload.hasSalarySource,
+                                salaryDayOfMonth = payload.salaryDayOfMonth,
+                                salaryAmount = payload.salaryAmount,
+                                salaryCycleStartLabel = payload.projection.cycleStartLabel,
+                                salaryCycleEndLabel = payload.projection.cycleEndLabel,
+                                daysRemainingInCycle = payload.projection.daysRemaining,
+                                totalDaysInCycle = payload.projection.totalDays,
+                                salaryCyclePercentageElapsed = payload.projection.cyclePercentageElapsed,
+                                projectedEndMonthSpending = payload.projection.projectedSpend,
+                                isProjectedToExceedBudget = payload.projection.isProjectedToExceed,
+                                referenceBudget = payload.projection.refBudget,
+                                weekendExpensesSum = payload.wkStats.weekendSum,
+                                weekdayExpensesSum = payload.wkStats.weekdaySum,
+                                weekendDailyAverage = payload.wkStats.weekendAvg,
+                                weekdayDailyAverage = payload.wkStats.weekdayAvg,
+                                weekendPercentage = payload.wkStats.weekendPct,
+                                weekdayPercentage = payload.wkStats.weekdayPct,
+                                hasWeekendData = payload.wkStats.hasData,
+                                totalSavingsAmount = payload.efStats.totalSavings,
+                                averageMonthlyExpense = payload.efStats.avgMonthlyExpense,
+                                emergencyFundRunwayMonths = payload.efStats.runway,
+                                emergencyFundStatus = payload.efStats.runwayStatus,
+                                savingGoals = payload.savingGoals,
+                                isDatabaseEmpty = payload.isDatabaseEmpty,
+                                transactions = payload.transactions,
+                                periodTransactions = payload.periodTransactions,
+                                categories = payload.categories
+                            )
+                        }
+                    }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = e.localizedMessage) }
             }
@@ -350,8 +423,7 @@ class AnalyticsViewModel(
                     val updatedCategory = category.copy(color = hexColor)
                     categoryRepository.updateCategory(updatedCategory)
                 }
-            } catch (e: Exception) {
-                // Ignore or log
+            } catch (_: Exception) {
             }
         }
     }
@@ -366,5 +438,12 @@ class AnalyticsViewModel(
             }
         }
     }
-}
 
+    private data class Quintuple<A, B, C, D, E>(
+        val first: A,
+        val second: B,
+        val third: C,
+        val fourth: D,
+        val fifth: E
+    )
+}

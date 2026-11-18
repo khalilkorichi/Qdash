@@ -86,9 +86,17 @@ object CryptoUtils {
 
     fun deriveKey(password: CharArray, salt: ByteArray): SecretKeySpec {
         val spec = PBEKeySpec(password, salt, PBKDF2_ITERATIONS, PBKDF2_KEY_LENGTH_BITS)
-        val factory = SecretKeyFactory.getInstance(PBKDF2_ALGORITHM)
-        val keyBytes = factory.generateSecret(spec).encoded
-        return SecretKeySpec(keyBytes, KEY_ALGORITHM)
+        return try {
+            val factory = SecretKeyFactory.getInstance(PBKDF2_ALGORITHM)
+            val keyBytes = factory.generateSecret(spec).encoded
+            try {
+                SecretKeySpec(keyBytes, KEY_ALGORITHM)
+            } finally {
+                keyBytes.fill(0)
+            }
+        } finally {
+            spec.clearPassword()
+        }
     }
 
     fun encryptBytes(plainBytes: ByteArray, key: SecretKeySpec): EncryptedPayload {

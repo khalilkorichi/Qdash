@@ -14,6 +14,7 @@ class UpdateCheckWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
+        if (runAttemptCount >= 3) return Result.failure()
         val app = applicationContext as? FinTrackApp ?: return Result.failure()
         val container = app.container
         val updateRepository = container.updateRepository
@@ -42,12 +43,11 @@ class UpdateCheckWorker(
                 }
                 return Result.success()
             } else {
-                // If it fails (e.g. timeout or server error), retry later
-                return Result.retry()
+                return if (runAttemptCount >= 3) Result.failure() else Result.retry()
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            return Result.retry()
+            return if (runAttemptCount >= 3) Result.failure() else Result.retry()
         }
     }
 

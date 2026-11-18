@@ -4,22 +4,25 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.qdash.domain.model.MarketType
 import com.qdash.presentation.currency.CurrencyExchangeViewModel
 import com.qdash.ui.designsystem.components.currency.CurrencyConverterCard
 import com.qdash.ui.designsystem.components.currency.ManualRateInputField
 import com.qdash.ui.designsystem.components.currency.MarketAndDirectionSelector
+import com.qdash.ui.designsystem.tokens.ColorTokens
+import com.qdash.ui.designsystem.tokens.ShapeTokens
 import com.qdash.ui.designsystem.tokens.SpacingTokens
 
 /**
@@ -39,6 +42,26 @@ fun ConverterTab(
         viewModel.loadConverterRates()
     }
 
+    val isParallelRateMissing = remember(
+        state.selectedMarketType,
+        state.useManualRate,
+        state.fromCurrency,
+        state.toCurrency,
+        state.availableRates
+    ) {
+        if (state.selectedMarketType != MarketType.PARALLEL || state.useManualRate) {
+            false
+        } else if (state.fromCurrency == state.toCurrency) {
+            false
+        } else {
+            val codesToCheck = listOf(state.fromCurrency, state.toCurrency).filter { it != "DZD" }
+            codesToCheck.any { code ->
+                val rateObj = state.availableRates.find { it.currencyCode == code }
+                rateObj == null || rateObj.parallelBuyRate == null
+            }
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -54,6 +77,48 @@ fun ConverterTab(
             onTradeDirectionSelected = viewModel::onTradeDirectionSelected,
             enabled = !state.useManualRate
         )
+
+        // ── Inline warning when Parallel Market rate is not yet available ────
+        AnimatedVisibility(
+            visible = isParallelRateMissing,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Surface(
+                onClick = viewModel::refreshParallelRatesManually,
+                shape = ShapeTokens.Lg,
+                color = ColorTokens.Warning.copy(alpha = 0.12f),
+                border = BorderStroke(1.dp, ColorTokens.Warning.copy(alpha = 0.45f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(SpacingTokens.Md),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(SpacingTokens.Sm)
+                ) {
+                    if (state.isRefreshingParallel) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = ColorTokens.Warning
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = ColorTokens.Warning,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Text(
+                        text = "سعر السوق الموازي غير محدّث بعد — اضغط لتحديث الأسعار أو أدخل السعر يدوياً",
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
 
         // ── Converter card ────────────────────────────────────────────────────
         CurrencyConverterCard(
@@ -86,7 +151,7 @@ fun ConverterTab(
                 contentAlignment = Alignment.Center
             ) {
                 Surface(
-                    shape = com.qdash.ui.designsystem.tokens.ShapeTokens.Lg,
+                    shape = ShapeTokens.Lg,
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
                     shadowElevation = 0.dp,

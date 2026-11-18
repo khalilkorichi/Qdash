@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -91,19 +92,19 @@ internal fun FinTrackNavGraph(
         enterTransition = {
             val initial = initialState.destination.route
             val target = targetState.destination.route
-            if (isBottomNavRoute(initial) && isBottomNavRoute(target)) {
+            if ((isBottomNavRoute(initial) && isBottomNavRoute(target)) || isLaunchRoute(initial)) {
                 NavTransitions.fadeEnter
             } else {
-                NavTransitions.enterFromRight
+                NavTransitions.pushEnterRtl
             }
         },
         exitTransition = {
             val initial = initialState.destination.route
             val target = targetState.destination.route
-            if (isBottomNavRoute(initial) && isBottomNavRoute(target)) {
+            if ((isBottomNavRoute(initial) && isBottomNavRoute(target)) || isLaunchRoute(initial)) {
                 NavTransitions.fadeExit
             } else {
-                NavTransitions.exitToRight
+                NavTransitions.pushExitRtl
             }
         },
         popEnterTransition = {
@@ -112,7 +113,7 @@ internal fun FinTrackNavGraph(
             if (isBottomNavRoute(initial) && isBottomNavRoute(target)) {
                 NavTransitions.fadeEnter
             } else {
-                NavTransitions.popEnterFromLeft
+                NavTransitions.popEnterRtl
             }
         },
         popExitTransition = {
@@ -121,7 +122,7 @@ internal fun FinTrackNavGraph(
             if (isBottomNavRoute(initial) && isBottomNavRoute(target)) {
                 NavTransitions.fadeExit
             } else {
-                NavTransitions.popExitToLeft
+                NavTransitions.popExitRtl
             }
         }
     ) {
@@ -169,8 +170,11 @@ internal fun FinTrackNavGraph(
 
         composable(Screen.Home.route) {
             val homeViewModel: HomeViewModel = viewModel(factory = factory)
+            val unreadCount by container.notificationRepository.getUnreadCount()
+                .collectAsStateWithLifecycle(initialValue = 0)
             HomeScreen(
                 viewModel = homeViewModel,
+                unreadCount = unreadCount,
                 onAddTransactionClick = {
                     navController.navigate(Screen.AddTransaction.createRoute("EXPENSE"))
                 },
@@ -180,8 +184,8 @@ internal fun FinTrackNavGraph(
                 onViewAllIncomeClick = {
                     navController.navigate(Screen.IncomeHistory.route)
                 },
-                onAccountClick = {
-                    navController.navigate(Screen.Accounts.route)
+                onAccountClick = { accountId ->
+                    navController.navigate(Screen.AccountDetails.createRoute(accountId))
                 },
                 onSavingsClick = {
                     navController.navigate(Screen.Savings.route)
@@ -398,17 +402,26 @@ internal fun FinTrackNavGraph(
 
         composable(Screen.Debts.route) {
             val debtViewModel: DebtViewModel = viewModel(factory = factory)
-            DebtsScreen(viewModel = debtViewModel)
+            DebtsScreen(
+                viewModel = debtViewModel,
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable(Screen.Transfer.route) {
             val transferViewModel: TransferViewModel = viewModel(factory = factory)
-            TransferScreen(viewModel = transferViewModel)
+            TransferScreen(
+                viewModel = transferViewModel,
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable(Screen.Export.route) {
             val exportViewModel: ExportViewModel = viewModel(factory = factory)
-            ExportScreen(viewModel = exportViewModel)
+            ExportScreen(
+                viewModel = exportViewModel,
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable(Screen.BudgetGoals.route) {
@@ -464,7 +477,15 @@ internal fun FinTrackNavGraph(
             val notificationsViewModel: NotificationsViewModel = viewModel(factory = factory)
             NotificationsScreen(
                 viewModel = notificationsViewModel,
-                onNavigateTo = { route -> navController.navigate(route) },
+                onNavigateTo = { route ->
+                    runCatching {
+                        if (route == Screen.Home.route) {
+                            navController.popBackStack(Screen.Home.route, inclusive = false)
+                        } else {
+                            navController.navigate(route) { launchSingleTop = true }
+                        }
+                    }
+                },
                 onBack = { navController.popBackStack() }
             )
         }
@@ -477,6 +498,7 @@ internal fun FinTrackNavGraph(
                 viewModel = aiChatViewModel,
                 onBack = { navController.popBackStack() },
                 onVoiceInput = { navController.navigate(Screen.AiVoice.route) },
+                onNavigateToTransactions = { navController.navigate(Screen.Transactions.route) },
                 initialMessage = initialMessage
             )
             LaunchedEffect(initialMessage) {
@@ -497,10 +519,12 @@ internal fun FinTrackNavGraph(
                             ?.savedStateHandle
                             ?.set("ai_initial_message", initialText)
                     }
-                    navController.navigate(Screen.AiChat.route)
+                    navController.navigate(Screen.AiChat.route) {
+                        launchSingleTop = true
+                    }
                 },
                 onClose = {
-                    navController.popBackStack(Screen.Home.route, inclusive = false)
+                    navController.popBackStack()
                 }
             )
         }
@@ -509,7 +533,15 @@ internal fun FinTrackNavGraph(
             val searchViewModel: SearchViewModel = viewModel(factory = factory)
             SearchScreen(
                 viewModel = searchViewModel,
-                onTransactionClick = { navController.navigate(Screen.Transactions.route) },
+                onTransactionClick = { txId ->
+                    navController.navigate(Screen.AddTransaction.createRoute("EXPENSE", transactionId = txId))
+                },
+                onAccountClick = { accId ->
+                    navController.navigate(Screen.AccountDetails.createRoute(accId))
+                },
+                onCategoryClick = { _ ->
+                    navController.navigate(Screen.Categories.route)
+                },
                 onBack = { navController.popBackStack() }
             )
         }
@@ -677,4 +709,10 @@ private fun isBottomNavRoute(route: String?): Boolean {
     if (route == null) return false
     val base = route.substringBefore("?").substringBefore("/")
     return base == "home" || base == "analytics" || base == "accounts" || base == "settings"
+}
+
+private fun isLaunchRoute(route: String?): Boolean {
+    if (route == null) return false
+    val base = route.substringBefore("?").substringBefore("/")
+    return base == "splash" || base == "onboarding"
 }

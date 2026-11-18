@@ -7,14 +7,11 @@ import kotlinx.coroutines.flow.map
 
 class GetBudgetGoalsUseCase(
     private val budgetGoalRepository: BudgetGoalRepository,
-    private val calculateBudgetSpentUseCase: CalculateBudgetSpentUseCase
+    @Suppress("unused") private val calculateBudgetSpentUseCase: CalculateBudgetSpentUseCase
 ) {
     operator fun invoke(): Flow<List<BudgetGoal>> {
-        return budgetGoalRepository.getAllBudgetGoals().map { list ->
-            list.map { goal ->
-                val recalculatedSpent = calculateBudgetSpentUseCase(goal)
-                goal.copy(spentAmount = recalculatedSpent)
-            }
-        }
+        // spentAmount is computed reactively inside SQLite (including child subcategories)
+        // without N+1 full-table loads or feedback write-loops.
+        return budgetGoalRepository.getAllBudgetGoals()
     }
 }

@@ -15,6 +15,8 @@ object SystemNotificationHelper {
     private const val CHANNEL_ID = "kdach_alerts"
     private const val CHANNEL_NAME = "تنبيهات قداشّ"
     private const val CHANNEL_DESC = "تنبيهات الميزانية، الديون والمدخرات"
+    const val EXTRA_DEEP_LINK_ROUTE = "extra_deep_link_route"
+    const val EXTRA_NOTIFICATION_ID = "extra_notification_id"
 
     fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -28,9 +30,12 @@ object SystemNotificationHelper {
     }
 
     fun showNotification(context: Context, appNotification: AppNotification) {
-        // Create an intent to launch MainActivity when tapped
         val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            appNotification.deepLinkRoute?.let { putExtra(EXTRA_DEEP_LINK_ROUTE, it) }
+            if (appNotification.id > 0L) {
+                putExtra(EXTRA_NOTIFICATION_ID, appNotification.id)
+            }
         }
         val pendingIntent = PendingIntent.getActivity(
             context,

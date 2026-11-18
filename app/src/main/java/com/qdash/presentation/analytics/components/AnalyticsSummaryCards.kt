@@ -29,7 +29,8 @@ fun AnalyticsSummaryCards(
     largestExpenseName: String,
     largestExpense: Double,
     savingsRate: Float,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hasIncome: Boolean = true
 ) {
     Row(
         modifier = modifier
@@ -105,8 +106,16 @@ fun AnalyticsSummaryCards(
                 )
                 Column(modifier = Modifier.padding(16.dp)) {
                     val savingsRatePercent = (savingsRate * 100).toInt()
-                    val rateColor = if (savingsRatePercent >= 0) IncomeGreen else ExpenseRed
-                    val rateText = if (savingsRatePercent >= 0) "+$savingsRatePercent%" else "$savingsRatePercent%"
+                    val rateColor = when {
+                        !hasIncome -> MaterialTheme.colorScheme.onSurfaceVariant
+                        savingsRatePercent >= 0 -> IncomeGreen
+                        else -> ExpenseRed
+                    }
+                    val rateText = when {
+                        !hasIncome -> "—"
+                        savingsRatePercent > 0 -> "+$savingsRatePercent%"
+                        else -> "$savingsRatePercent%"
+                    }
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(modifier = Modifier.size(8.dp).background(rateColor, CircleShape))
@@ -118,6 +127,7 @@ fun AnalyticsSummaryCards(
                     Spacer(modifier = Modifier.height(2.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         val (msg, icon, iconColor) = when {
+                            !hasIncome         -> Triple("لا يوجد دخل مسجل في الفترة", Icons.Default.TrendingFlat, MaterialTheme.colorScheme.onSurfaceVariant)
                             savingsRate >= 0.2f -> Triple("حالة مالية ممتازة ومستقرة", Icons.Default.TrendingUp, IncomeGreen)
                             savingsRate >= 0.1f -> Triple("حالة جيدة", Icons.Default.TrendingFlat, SavingsAmber)
                             else               -> Triple("تحتاج لتقليل نفقاتك", Icons.Default.TrendingDown, ExpenseRed)

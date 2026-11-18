@@ -116,21 +116,21 @@ fun TransactionActionMenuDialog(
                             .fillMaxWidth()
                             .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.End
+                        horizontalArrangement = Arrangement.Start
                     ) {
-                        Text(
-                            text = "تعديل بيانات العملية",
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f),
-                            textAlign = TextAlign.Right
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = null,
                             tint = primaryColor,
                             modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "تعديل بيانات العملية",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Start
                         )
                     }
                 }
@@ -147,21 +147,21 @@ fun TransactionActionMenuDialog(
                             .fillMaxWidth()
                             .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.End
+                        horizontalArrangement = Arrangement.Start
                     ) {
-                        Text(
-                            text = "حذف العملية نهائياً",
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            color = ExpenseRed,
-                            modifier = Modifier.weight(1f),
-                            textAlign = TextAlign.Right
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = null,
                             tint = ExpenseRed,
                             modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "حذف العملية نهائياً",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = ExpenseRed,
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Start
                         )
                     }
                 }

@@ -284,7 +284,7 @@ fun FinancialActivityCalendar(
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (dayNumber in 1..daysInMonth) {
-                                    val dayTimestamp = remember(dayNumber) {
+                                    val dayTimestamp = remember(dayNumber, uiState.visibleYear, uiState.visibleMonth) {
                                         java.util.Calendar.getInstance().apply {
                                             set(java.util.Calendar.YEAR, uiState.visibleYear)
                                             set(java.util.Calendar.MONTH, uiState.visibleMonth)
@@ -394,11 +394,16 @@ fun FinancialActivityCalendar(
                                             }
                                         }
                                         
+                                        val hasHighOpacityBubble = metricValueForScale > 0.0 && ratio > 0.60
                                         Text(
                                             text = "$dayNumber",
                                             color = when {
-                                                metricValueForScale > 0.0 -> Color.White
-                                                isSelected -> MaterialTheme.colorScheme.onSurface
+                                                hasHighOpacityBubble -> if (cellActiveColor == Primary) {
+                                                    MaterialTheme.colorScheme.onPrimary
+                                                } else {
+                                                    Color.White
+                                                }
+                                                metricValueForScale > 0.0 || isSelected -> MaterialTheme.colorScheme.onSurface
                                                 else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
                                             },
                                             fontSize = 11.sp,
@@ -563,12 +568,9 @@ fun FinancialActivityCalendar(
                                                 )
                                             }
 
-                                            // Eye Button (Button 2)
+                                            // Eye Button (Button 2) -> Opens DailySummaryBottomSheet directly
                                             val currentSelectedTs = uiState.selectedCalendarDate
-                                            val currentDayAggregate = uiState.dailyAggregates.find { it.localDateTimestamp == currentSelectedTs }
-                                            val hasAnyActivity = currentDayAggregate != null && currentDayAggregate.transactionCount > 0
-
-                                            if (hasAnyActivity) {
+                                            if (currentSelectedTs != null) {
                                                 Box(
                                                     modifier = Modifier
                                                         .size(36.dp)
@@ -576,19 +578,17 @@ fun FinancialActivityCalendar(
                                                         .background(Color.White.copy(alpha = 0.15f))
                                                         .combinedClickable(
                                                             onClick = {
-                                                                coroutineScope.launch {
-                                                                    listState.animateScrollToItem(5)
-                                                                }
+                                                                onDayDoubleTapped(currentSelectedTs)
                                                             },
                                                             onLongClick = {
-                                                                android.widget.Toast.makeText(context, "\u0639\u0631\u0636\u0020\u0639\u0645\u0644\u064a\u0627\u062a\u0020\u0627\u0644\u064a\u0648\u0645", android.widget.Toast.LENGTH_SHORT).show()
+                                                                android.widget.Toast.makeText(context, "الملخص المالي اليومي", android.widget.Toast.LENGTH_SHORT).show()
                                                             }
                                                         ),
                                                     contentAlignment = Alignment.Center
                                                 ) {
                                                     Icon(
                                                         imageVector = Icons.Default.Visibility,
-                                                        contentDescription = null,
+                                                        contentDescription = "الملخص المالي اليومي",
                                                         tint = Color.White,
                                                         modifier = Modifier.size(18.dp)
                                                     )

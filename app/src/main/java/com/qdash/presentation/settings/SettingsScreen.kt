@@ -51,7 +51,6 @@ private val settingsTabs = listOf(
     SettingsTab("عام", Icons.Default.Settings),
     SettingsTab("الإشعارات", Icons.Default.Notifications),
     SettingsTab("النسخ الاحتياطي", Icons.Default.Backup),
-    SettingsTab("الفئات", Icons.Default.Category),
     SettingsTab("متقدمة", Icons.Default.Tune)
 )
 
@@ -110,13 +109,6 @@ fun SettingsScreen(
 
     var showConfirmRestoreDialog by remember { mutableStateOf(false) }
     var showDashboardCustomizationDialog by remember { mutableStateOf(false) }
-
-    // Notification toggles
-    var notifBillingReminder by remember { mutableStateOf(true) }
-    var notifSalaryReminder by remember { mutableStateOf(true) }
-    var notifBudgetAlert by remember { mutableStateOf(true) }
-    var notifWeeklyReport by remember { mutableStateOf(false) }
-    var notifGoalProgress by remember { mutableStateOf(true) }
 
     val pagerState = rememberPagerState(initialPage = 0) { settingsTabs.size }
 
@@ -236,30 +228,48 @@ fun SettingsScreen(
                     onNavigateToDebts = onNavigateToDebts,
                     onNavigateToTransfer = onNavigateToTransfer,
                     onNavigateToExport = onNavigateToExport,
+                    onNavigateToCategories = onNavigateToCategories,
                     onNavigateToFinancialPlans = onNavigateToFinancialPlans,
                     onNavigateToSalary = onNavigateToSalary,
                     onNavigateToAccountManagement = onNavigateToAccountManagement,
                     onCustomiseDashboardClick = { showDashboardCustomizationDialog = true }
                 )
                 1 -> NotificationsTab(
-                    billingReminder = notifBillingReminder,
-                    salaryReminder = notifSalaryReminder,
-                    budgetAlert = notifBudgetAlert,
-                    weeklyReport = notifWeeklyReport,
-                    goalProgress = notifGoalProgress,
-                    onBillingToggle = { notifBillingReminder = it },
-                    onSalaryToggle = { notifSalaryReminder = it },
-                    onBudgetToggle = { notifBudgetAlert = it },
-                    onWeeklyToggle = { notifWeeklyReport = it },
-                    onGoalToggle = { notifGoalProgress = it }
+                    billingReminder = uiState.notifBillingReminder,
+                    salaryReminder = uiState.notifSalaryReminder,
+                    budgetAlert = uiState.notifBudgetAlert,
+                    weeklyReport = uiState.notifWeeklyReport,
+                    goalProgress = uiState.notifGoalProgress,
+                    smartReminders = uiState.notifSmartReminders,
+                    onBillingToggle = viewModel::toggleNotifBillingReminder,
+                    onSalaryToggle = viewModel::toggleNotifSalaryReminder,
+                    onBudgetToggle = viewModel::toggleNotifBudgetAlert,
+                    onWeeklyToggle = viewModel::toggleNotifWeeklyReport,
+                    onGoalToggle = viewModel::toggleNotifGoalProgress,
+                    onSmartRemindersToggle = viewModel::toggleNotifSmartReminders
                 )
                 2 -> com.qdash.presentation.backup.BackupScreen(
                     viewModel = backupViewModel,
                     onBack = {},
                     showTopBar = false
                 )
-                3 -> CategoriesTab(onNavigateToCategories = onNavigateToCategories)
-                4 -> AdvancedTab(
+                3 -> AdvancedTab(
+                    customGeminiApiKey = uiState.customGeminiApiKey,
+                    customOpenRouterApiKey = uiState.customOpenRouterApiKey,
+                    onSaveCustomApiKeys = { gemini, openRouter ->
+                        viewModel.saveCustomApiKeys(gemini, openRouter)
+                        Toast.makeText(context, "تم حفظ مفاتيح الذكاء الاصطناعي بنجاح!", Toast.LENGTH_SHORT).show()
+                    },
+                    onClearCustomApiKeys = {
+                        viewModel.clearCustomApiKeys()
+                        Toast.makeText(context, "تم مسح المفاتيح المخصصة.", Toast.LENGTH_SHORT).show()
+                    },
+                    onResetAllData = {
+                        viewModel.resetAllData {
+                            Toast.makeText(context, "تمت إعادة تهيئة البيانات بنجاح!", Toast.LENGTH_LONG).show()
+                            activity?.recreate()
+                        }
+                    },
                     onResetOnboarding = {
                         viewModel.resetOnboardingForDebug()
                         activity?.recreate()

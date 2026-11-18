@@ -42,7 +42,15 @@ fun TemplateItemCard(
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     val accountName = accounts.find { it.id == template.accountId }?.name ?: "حساب محذوف"
-    val categoryName = categories.find { it.id == template.categoryId }?.name ?: "فئة عامة"
+    val targetAccountName = accounts.find { it.id == template.targetAccountId }?.name
+    val mainCatName = categories.find { it.id == template.categoryId }?.name
+    val subCatName = categories.find { it.id == template.subcategoryId }?.name
+    val subtitleLabel = when {
+        template.transactionType == TransactionType.TRANSFER && targetAccountName != null -> "$accountName ← $targetAccountName"
+        subCatName != null && mainCatName != null && subCatName != mainCatName -> "$mainCatName ($subCatName) • $accountName"
+        mainCatName != null -> "$mainCatName • $accountName"
+        else -> accountName
+    }
 
     val typeAccentColor = when (template.transactionType) {
         TransactionType.EXPENSE -> ExpenseRed
@@ -117,7 +125,7 @@ fun TemplateItemCard(
                     }
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "$categoryName • $accountName",
+                        text = subtitleLabel,
                         style = MaterialTheme.typography.bodySmall,
                         color = TextGray
                     )

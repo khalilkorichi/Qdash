@@ -59,12 +59,12 @@ fun DebtPaymentsBottomSheet(
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
-            val totalCollected = debt.totalAmount.toInt() - debt.remainingAmount.toInt()
-            val totalLabel = if (debt.direction == com.qdash.domain.model.DebtDirection.OWED_TO_ME) "إجمالي ما تم استرداده:" else "إجمالي ما تم سداده:"
+            val totalCollected = (debt.totalAmount - debt.remainingAmount).coerceAtLeast(0.0)
+            val totalLabel = if (debt.direction == com.qdash.domain.model.DebtDirection.OWED_TO_ME) "إجمالي ما تم تحصيله:" else "إجمالي ما تم سداده:"
             Text(
-                text = "$totalLabel $totalCollected د.ج",
+                text = "$totalLabel ${com.qdash.core.utils.FormatterUtils.formatCurrency(totalCollected)}",
                 style = MaterialTheme.typography.labelMedium,
-                color = TextGray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
             )
 

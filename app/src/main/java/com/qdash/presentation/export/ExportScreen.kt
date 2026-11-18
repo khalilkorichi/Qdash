@@ -15,6 +15,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun ExportScreen(
     viewModel: ExportViewModel,
+    onBack: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -36,7 +37,11 @@ fun ExportScreen(
             .fillMaxSize()
             .testTag("export_screen"),
         topBar = {
-            FinTrackTopBar(title = "تصدير التقارير المالية وكشوف الحسابات")
+            FinTrackTopBar(
+                title = "تصدير التقارير المالية",
+                showBackButton = true,
+                onBackClick = onBack
+            )
         }
     ) { innerPadding ->
         Box(

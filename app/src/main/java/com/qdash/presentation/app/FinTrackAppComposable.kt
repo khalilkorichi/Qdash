@@ -28,7 +28,9 @@ fun FinTrackApp(
     container: AppContainer,
     factory: ViewModelFactory,
     startDestination: String,
-    isFirstLaunch: Boolean = false
+    isFirstLaunch: Boolean = false,
+    pendingDeepLinkRoute: String? = null,
+    onDeepLinkConsumed: () -> Unit = {}
 ) {
     val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
     val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
@@ -70,7 +72,9 @@ fun FinTrackApp(
                 factory = factory,
                 settingsViewModel = settingsViewModel,
                 startDestination = startDestination,
-                isFirstLaunch = isFirstLaunch
+                isFirstLaunch = isFirstLaunch,
+                pendingDeepLinkRoute = pendingDeepLinkRoute,
+                onDeepLinkConsumed = onDeepLinkConsumed
             )
         }
     }

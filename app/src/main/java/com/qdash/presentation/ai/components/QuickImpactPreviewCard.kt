@@ -25,7 +25,7 @@ fun QuickImpactPreviewCard(
         modifier = modifier
             .widthIn(max = 300.dp)
             .fillMaxWidth()
-            .border(BorderStroke(1.dp, Color(0xFFE9E9E6)), shape = RoundedCornerShape(16.dp)),
+            .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline), shape = RoundedCornerShape(16.dp)),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {

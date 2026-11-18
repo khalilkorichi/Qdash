@@ -19,6 +19,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.qdash.domain.model.Category
 import com.qdash.domain.model.Transaction
+import com.qdash.presentation.components.UnifiedCategoryIcon
+import com.qdash.presentation.components.safeParseColor
 import com.qdash.ui.designsystem.components.AppDialog
 import com.qdash.ui.designsystem.tokens.ColorTokens
 import com.qdash.ui.theme.TextGray
@@ -86,7 +88,7 @@ fun BulkCategoryDialog(
                 text = "تغيير فئة العمليات المحددة",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Right,
+                textAlign = TextAlign.Start,
                 modifier = Modifier.fillMaxWidth()
             )
         },
@@ -99,7 +101,7 @@ fun BulkCategoryDialog(
                     text = "اختر الفئة الجديدة لنقل العمليات المحددة إليها:",
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextGray,
-                    textAlign = TextAlign.Right,
+                    textAlign = TextAlign.Start,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -109,12 +111,8 @@ fun BulkCategoryDialog(
                         .heightIn(max = 240.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(categories) { category ->
-                        val catColor = try {
-                            Color(android.graphics.Color.parseColor(category.color))
-                        } catch (e: Exception) {
-                            MaterialTheme.colorScheme.primary
-                        }
+                    items(categories, key = { it.id }) { category ->
+                        val catColor = safeParseColor(category.color, MaterialTheme.colorScheme.primary)
                         Surface(
                             onClick = { onConfirm(category.id) },
                             shape = RoundedCornerShape(12.dp),
@@ -126,21 +124,28 @@ fun BulkCategoryDialog(
                                     .fillMaxWidth()
                                     .padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.End
+                                horizontalArrangement = Arrangement.Start
                             ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(CircleShape)
+                                        .background(catColor.copy(alpha = 0.14f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    UnifiedCategoryIcon(
+                                        iconKey = category.icon,
+                                        tint = catColor,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
                                 Text(
                                     text = category.name,
                                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.weight(1f),
-                                    textAlign = TextAlign.Right
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .size(16.dp)
-                                        .clip(CircleShape)
-                                        .background(catColor)
+                                    textAlign = TextAlign.Start
                                 )
                             }
                         }

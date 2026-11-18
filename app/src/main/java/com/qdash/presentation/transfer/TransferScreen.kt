@@ -20,6 +20,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun TransferScreen(
     viewModel: TransferViewModel,
+    onBack: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -30,7 +31,11 @@ fun TransferScreen(
             .fillMaxSize()
             .testTag("transfer_screen"),
         topBar = {
-            FinTrackTopBar(title = "تحويل الأرصدة المالية")
+            FinTrackTopBar(
+                title = "تحويل الأرصدة المالية",
+                showBackButton = true,
+                onBackClick = onBack
+            )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->

@@ -158,9 +158,8 @@ fun AiVoiceInputScreen(
                         onClose = onClose,
                         onStartRecording = { permissionLauncher.launch(Manifest.permission.RECORD_AUDIO) },
                         onStopRecording = {
-                            speechHelper.stopListening()
                             viewModel.setVoiceProcessing()
-                            viewModel.stopVoiceListening()
+                            speechHelper.stopListening()
                         },
                         onNavigateToChat = {
                             val text = voiceText.trim()

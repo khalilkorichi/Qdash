@@ -19,6 +19,7 @@ data class AddEditAccountUiState(
     val name: String = "",
     val type: AccountType = AccountType.CASH,
     val balance: Double = 0.0,
+    val currency: String = "DZD",
     val color: String = "#1976D2",
     val icon: String = "account_balance_wallet",
     val iconPath: String? = null, // local gallery image path
@@ -50,6 +51,7 @@ class AddEditAccountViewModel(
                         name = account.name,
                         type = account.type,
                         balance = account.balance,
+                        currency = account.currency,
                         color = account.color,
                         icon = account.icon,
                         iconPath = account.iconPath,
@@ -68,6 +70,7 @@ class AddEditAccountViewModel(
 
     fun onNameChange(value: String) = _uiState.update { it.copy(name = value) }
     fun onBalanceChange(value: Double) = _uiState.update { it.copy(balance = value) }
+    fun onCurrencyChange(value: String) = _uiState.update { it.copy(currency = value) }
     fun onTypeChange(value: AccountType) = _uiState.update { it.copy(type = value) }
     fun onColorChange(value: String) = _uiState.update { it.copy(color = value) }
     fun onIconChange(value: String) = _uiState.update { it.copy(icon = value, iconPath = null) }
@@ -103,6 +106,7 @@ class AddEditAccountViewModel(
                         name = state.name.trim(),
                         type = state.type,
                         balance = state.balance,
+                        currency = state.currency,
                         color = state.color,
                         icon = state.icon,
                         iconPath = state.iconPath,
@@ -120,6 +124,8 @@ class AddEditAccountViewModel(
                     val updated = existing.copy(
                         name = state.name.trim(),
                         type = state.type,
+                        balance = state.balance,
+                        currency = state.currency,
                         color = state.color,
                         icon = state.icon,
                         iconPath = state.iconPath,
@@ -170,6 +176,16 @@ class AddEditAccountViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true) }
             try {
+                val txCount = accountRepository.getTransactionCountForAccount(accountId)
+                if (txCount > 0) {
+                    _uiState.update {
+                        it.copy(
+                            isSaving = false,
+                            error = "لا يمكن حذف الحساب لأنه يحتوي على $txCount معاملة مالية مرتبطة به. يُنصح بأرشفته بدلاً من حذفه."
+                        )
+                    }
+                    return@launch
+                }
                 val account = accountRepository.getAccountById(accountId)
                 if (account != null) {
                     accountRepository.deleteAccount(account)

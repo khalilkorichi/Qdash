@@ -6,6 +6,8 @@ import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.AnnotatedString
 
 class ThousandsSeparatorTransformation : VisualTransformation {
+    private val usSymbols = java.text.DecimalFormatSymbols(java.util.Locale.US)
+
     override fun filter(text: AnnotatedString): TransformedText {
         val originalText = text.text
         if (originalText.isEmpty()) {
@@ -19,7 +21,7 @@ class ThousandsSeparatorTransformation : VisualTransformation {
         val formattedInteger = try {
             val longVal = integerPart.toLongOrNull()
             if (longVal != null) {
-                java.text.DecimalFormat("#,###").format(longVal)
+                java.text.DecimalFormat("#,###", usSymbols).format(longVal)
             } else {
                 integerPart
             }
@@ -51,7 +53,7 @@ class ThousandsSeparatorTransformation : VisualTransformation {
                 val subFormattedInt = try {
                     val longVal = subIntPart.toLongOrNull()
                     if (longVal != null) {
-                        java.text.DecimalFormat("#,###").format(longVal)
+                        java.text.DecimalFormat("#,###", usSymbols).format(longVal)
                     } else {
                         subIntPart
                     }

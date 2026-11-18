@@ -13,19 +13,43 @@ import kotlinx.coroutines.launch
 fun AiChatViewModel.confirmDraft(messageId: String) {
     viewModelScope.launch {
         val targetMsg = _uiState.value.messages.find { it.id == messageId && it.draftTransaction != null }
-        if (targetMsg != null && targetMsg.draftTransaction != null) {
+        if (targetMsg != null && targetMsg.draftTransaction != null && !targetMsg.isConfirmed) {
             val baseDraft = targetMsg.draftTransaction
+            val resolvedType = targetMsg.editedType ?: baseDraft.type
+            val resolvedKind = if (resolvedType != baseDraft.type) {
+                when (resolvedType) {
+                    TransactionType.INCOME -> TransactionKind.INCOME
+                    TransactionType.EXPENSE -> TransactionKind.EXPENSE
+                    TransactionType.TRANSFER -> TransactionKind.TRANSFER
+                }
+            } else {
+                baseDraft.kind
+            }
+            val resolvedIsDebit = if (resolvedType != baseDraft.type) {
+                resolvedType != TransactionType.INCOME
+            } else {
+                baseDraft.isDebit
+            }
             val finalTransaction = baseDraft.copy(
                 amount = targetMsg.editedAmount ?: baseDraft.amount,
-                type = targetMsg.editedType ?: baseDraft.type,
+                type = resolvedType,
+                kind = resolvedKind,
+                isDebit = resolvedIsDebit,
                 note = targetMsg.editedNote ?: baseDraft.note,
                 categoryId = targetMsg.editedCategoryId ?: baseDraft.categoryId,
                 accountId = targetMsg.editedAccountId ?: baseDraft.accountId
             )
-            transactionRepository.insertTransaction(finalTransaction)
+            if (finalTransaction.id != 0L) {
+                transactionRepository.updateTransaction(finalTransaction)
+            } else {
+                transactionRepository.insertTransaction(finalTransaction)
+            }
+            messageId.toLongOrNull()?.let { dbId ->
+                aiRepository.updateDraftStatus(dbId, "CONFIRMED")
+            }
             _uiState.update { state ->
                 state.copy(messages = state.messages.map { msg ->
-                    if (msg.id == messageId) msg.copy(isConfirmed = true) else msg
+                    if (msg.id == messageId) msg.copy(isConfirmed = true, isCancelled = false) else msg
                 })
             }
             generateProactiveInsights()
@@ -34,14 +58,19 @@ fun AiChatViewModel.confirmDraft(messageId: String) {
 }
 
 fun AiChatViewModel.cancelDraft(messageId: String) {
-    val messages = _uiState.value.messages.map { msg ->
-        if (msg.id == messageId) {
-            msg.copy(isCancelled = true)
-        } else {
-            msg
+    viewModelScope.launch {
+        messageId.toLongOrNull()?.let { dbId ->
+            aiRepository.updateDraftStatus(dbId, "CANCELLED")
         }
+        val messages = _uiState.value.messages.map { msg ->
+            if (msg.id == messageId) {
+                msg.copy(isCancelled = true, isConfirmed = false)
+            } else {
+                msg
+            }
+        }
+        _uiState.update { it.copy(messages = messages) }
     }
-    _uiState.update { it.copy(messages = messages) }
 }
 
 fun AiChatViewModel.updateDraftField(messageId: String, field: DraftField, value: Any) {
@@ -99,9 +128,12 @@ fun AiChatViewModel.confirmTransfer(messageId: String) {
             )
             val success = transferBetweenAccountsUseCase(req)
             if (success) {
+                messageId.toLongOrNull()?.let { dbId ->
+                    aiRepository.updateDraftStatus(dbId, "CONFIRMED")
+                }
                 _uiState.update { state ->
                     state.copy(messages = state.messages.map { msg ->
-                        if (msg.id == messageId) msg.copy(isTransferConfirmed = true) else msg
+                        if (msg.id == messageId) msg.copy(isTransferConfirmed = true, isTransferCancelled = false) else msg
                     })
                 }
                 generateProactiveInsights()
@@ -111,10 +143,15 @@ fun AiChatViewModel.confirmTransfer(messageId: String) {
 }
 
 fun AiChatViewModel.cancelTransfer(messageId: String) {
-    _uiState.update { state ->
-        state.copy(messages = state.messages.map { msg ->
-            if (msg.id == messageId) msg.copy(isTransferCancelled = true) else msg
-        })
+    viewModelScope.launch {
+        messageId.toLongOrNull()?.let { dbId ->
+            aiRepository.updateDraftStatus(dbId, "CANCELLED")
+        }
+        _uiState.update { state ->
+            state.copy(messages = state.messages.map { msg ->
+                if (msg.id == messageId) msg.copy(isTransferCancelled = true, isTransferConfirmed = false) else msg
+            })
+        }
     }
 }
 

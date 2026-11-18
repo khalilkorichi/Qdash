@@ -17,6 +17,7 @@ interface AiRepository {
 
     fun getMessagesBySession(sessionTitle: String): Flow<List<AiChatMessage>>
     suspend fun insertMessage(message: AiChatMessage): Long
+    suspend fun updateDraftStatus(id: Long, status: String) {}
     suspend fun clearHistory(sessionTitle: String)
     suspend fun generateAiResponse(sessionTitle: String, userPrompt: String, modelId: String): String
 

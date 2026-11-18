@@ -200,7 +200,11 @@ class UpdateRepositoryImpl(
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .addInterceptor(HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BASIC
+            level = if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BASIC
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
         })
         .build()
 
@@ -330,7 +334,18 @@ class UpdateRepositoryImpl(
     }
 
     override fun verifyApkSha256(file: File, expectedSha256: String): Boolean {
-        // 1. First, check if the downloaded file is a valid Android package (not truncated or corrupted)
+        val trimmedExpected = expectedSha256.trim()
+        if (expectedSha256.isBlank() || !trimmedExpected.matches(Regex("^[a-fA-F0-9]{64}$"))) {
+            android.util.Log.e("UpdateRepository", "Rejected APK: missing or malformed expected SHA-256.")
+            return false
+        }
+
+        if (!file.exists() || file.length() <= 0L) {
+            android.util.Log.e("UpdateRepository", "Downloaded APK file is missing or empty.")
+            return false
+        }
+
+        // 1. Verify downloaded file is a valid Android package (not truncated or corrupted)
         val pm = context.packageManager
         val packageInfo = pm.getPackageArchiveInfo(file.absolutePath, 0)
         if (packageInfo == null) {
@@ -338,12 +353,7 @@ class UpdateRepositoryImpl(
             return false
         }
 
-        if (expectedSha256.isBlank()) {
-            android.util.Log.w("UpdateRepository", "No expected SHA-256 provided; verified package integrity via PackageManager.")
-            return true
-        }
-
-        // 2. Compute SHA-256 hash
+        // 2. Compute and strictly compare SHA-256 hash
         return try {
             val digest = MessageDigest.getInstance("SHA-256")
             file.inputStream().use { input ->
@@ -353,30 +363,12 @@ class UpdateRepositoryImpl(
                     digest.update(buffer, 0, bytesRead)
                 }
             }
-            val hex = digest.digest().joinToString("") { "%02x".format(it) }
-            
-            if (hex.equals(expectedSha256, ignoreCase = true)) {
-                true
-            } else {
-                // If the hash doesn't match, it might be due to a CDN cache race condition 
-                // (e.g. downloaded a newer APK than the cached update.json we read).
-                // If it is a valid package and its version code is newer or equal, we can safely allow it.
-                val localVersionCode = BuildConfig.VERSION_CODE
-                val downloadedVersionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    packageInfo.longVersionCode.toInt()
-                } else {
-                    @Suppress("DEPRECATION")
-                    packageInfo.versionCode
-                }
-                
-                if (downloadedVersionCode >= localVersionCode) {
-                    android.util.Log.w("UpdateRepository", "SHA-256 mismatch (expected: $expectedSha256, calculated: $hex), but downloaded version ($downloadedVersionCode) is newer/equal to local ($localVersionCode). Allowing update.")
-                    true
-                } else {
-                    android.util.Log.e("UpdateRepository", "SHA-256 mismatch and downloaded version ($downloadedVersionCode) is older than local ($localVersionCode).")
-                    false
-                }
+            val actualHash = digest.digest().joinToString("") { "%02x".format(it) }
+            val isMatch = actualHash.equals(trimmedExpected, ignoreCase = true)
+            if (!isMatch) {
+                android.util.Log.e("UpdateRepository", "SHA-256 mismatch (expected: $trimmedExpected, calculated: $actualHash). Rejecting APK.")
             }
+            isMatch
         } catch (e: Exception) {
             android.util.Log.e("UpdateRepository", "Error verifying SHA-256 hash", e)
             false
@@ -416,36 +408,26 @@ class UpdateRepositoryImpl(
 
     override suspend fun backupDataBeforeUpdate(): Result<Uri> = withContext(Dispatchers.IO) {
         try {
+            val backupDir = File(context.noBackupFilesDir, "pre_update_backups")
+            if (!backupDir.exists() && !backupDir.mkdirs()) {
+                return@withContext Result.failure(Exception("تعذر إنشاء مجلد النسخ الاحتياطي الوقائي الخاص."))
+            }
+
+            // Retain only the 2 most recent pre-update backups to prevent internal storage bloat
+            backupDir.listFiles { f -> f.isFile && f.name.startsWith("Qdash_AutoBackup_") && f.name.endsWith(".zip") }
+                ?.sortedByDescending { it.lastModified() }
+                ?.drop(2)
+                ?.forEach { it.delete() }
+
             val filename = "Qdash_AutoBackup_${System.currentTimeMillis()}.zip"
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val values = ContentValues().apply {
-                    put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
-                    put(MediaStore.MediaColumns.MIME_TYPE, "application/zip")
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-                }
-                val resolver = context.contentResolver
-                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-                    ?: return@withContext Result.failure(Exception("تعذر إنشاء ملف النسخة الاحتياطية في مجلد التنزيلات."))
-                
-                val result = backupManager.exportBackup(uri)
-                if (result.isSuccess) {
-                    Result.success(uri)
-                } else {
-                    Result.failure(result.exceptionOrNull() ?: Exception("فشل تصدير النسخة الاحتياطية."))
-                }
+            val destFile = File(backupDir, filename)
+            val uri = Uri.fromFile(destFile)
+            val result = backupManager.exportBackup(uri)
+            if (result.isSuccess) {
+                Result.success(uri)
             } else {
-                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                if (!downloadsDir.exists()) {
-                    downloadsDir.mkdirs()
-                }
-                val destFile = File(downloadsDir, filename)
-                val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", destFile)
-                val result = backupManager.exportBackup(uri)
-                if (result.isSuccess) {
-                    Result.success(uri)
-                } else {
-                    Result.failure(result.exceptionOrNull() ?: Exception("فشل تصدير النسخة الاحتياطية."))
-                }
+                destFile.delete()
+                Result.failure(result.exceptionOrNull() ?: Exception("فشل تصدير النسخة الاحتياطية."))
             }
         } catch (e: Exception) {
             Result.failure(e)

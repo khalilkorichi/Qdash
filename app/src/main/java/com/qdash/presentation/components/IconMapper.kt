@@ -2,26 +2,104 @@ package com.qdash.presentation.components
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
+import com.qdash.ui.designsystem.tokens.CategoryIconRegistry
+
+fun safeParseColor(hex: String?, fallback: Color): Color {
+    if (hex.isNullOrBlank()) return fallback
+    return try {
+        Color(android.graphics.Color.parseColor(hex.trim()))
+    } catch (_: Exception) {
+        fallback
+    }
+}
+
+fun isEmojiToken(token: String?): Boolean {
+    if (token.isNullOrBlank()) return false
+    val trimmed = token.trim()
+    return trimmed.length <= 8 && trimmed.any { it.code > 0x06FF }
+}
+
+@Composable
+fun UnifiedCategoryIcon(
+    iconKey: String?,
+    tint: Color,
+    modifier: Modifier = Modifier,
+    emojiFontSize: TextUnit = 18.sp,
+    contentDescription: String? = null
+) {
+    val key = iconKey?.trim().orEmpty()
+    when {
+        key.isEmpty() -> {
+            Icon(
+                imageVector = Icons.Default.Category,
+                contentDescription = contentDescription,
+                tint = tint,
+                modifier = modifier
+            )
+        }
+        CategoryIconRegistry.isCustomVector(key) -> {
+            val resId = CategoryIconRegistry.getDrawableResId(key)
+            if (resId != null) {
+                Icon(
+                    painter = painterResource(id = resId),
+                    contentDescription = contentDescription,
+                    tint = tint,
+                    modifier = modifier
+                )
+            } else {
+                Icon(
+                    imageVector = getIconByName(key),
+                    contentDescription = contentDescription,
+                    tint = tint,
+                    modifier = modifier
+                )
+            }
+        }
+        isEmojiToken(key) -> {
+            Text(
+                text = key,
+                fontSize = emojiFontSize
+            )
+        }
+        else -> {
+            Icon(
+                imageVector = getIconByName(key),
+                contentDescription = contentDescription,
+                tint = tint,
+                modifier = modifier
+            )
+        }
+    }
+}
 
 fun getIconByName(name: String): ImageVector {
-    return when (name.lowercase()) {
+    return when (name.trim().lowercase()) {
         "person" -> Icons.Default.Person
-        "groups", "family" -> Icons.Default.Groups
+        "groups", "family", "ic_cat_family" -> Icons.Default.Groups
         "home" -> Icons.Default.Home
-        "restaurant", "food" -> Icons.Default.Restaurant
-        "directions_car", "transport", "car" -> Icons.Default.DirectionsCar
-        "receipt_long", "bills", "invoice" -> Icons.Default.ReceiptLong
+        "restaurant", "food", "fastfood", "ic_cat_fastfood" -> Icons.Default.Restaurant
+        "directions_car", "transport", "car", "local_taxi", "ic_cat_transport" -> Icons.Default.DirectionsCar
+        "receipt_long", "bills", "invoice", "receipt" -> Icons.Default.ReceiptLong
         "shopping_bag", "shopping" -> Icons.Default.ShoppingBag
-        "medical_services", "health" -> Icons.Default.MedicalServices
-        "school", "education" -> Icons.Default.School
-        "sports_esports", "entertainment" -> Icons.Default.SportsEsports
+        "medical_services", "health", "local_pharmacy", "ic_cat_health" -> Icons.Default.MedicalServices
+        "school", "education", "ic_cat_education" -> Icons.Default.School
+        "sports_esports", "entertainment", "gamepad" -> Icons.Default.SportsEsports
         "work", "salary" -> Icons.Default.Work
-        "monetization_on", "money", "other" -> Icons.Default.MonetizationOn
+        "monetization_on", "money", "other", "payments" -> Icons.Default.Payments
         "savings" -> Icons.Default.Savings
-        "alarm" -> Icons.Default.Alarm
+        "alarm", "schedule" -> Icons.Default.Schedule
         "star" -> Icons.Default.Star
-        "local_mall" -> Icons.Default.LocalMall
+        "local_mall", "storefront" -> Icons.Default.Storefront
+        "redeem", "card_giftcard" -> Icons.Default.CardGiftcard
         "flight", "travel" -> Icons.Default.Flight
         "celebration" -> Icons.Default.Celebration
         "mail" -> Icons.Default.Mail
@@ -30,29 +108,23 @@ fun getIconByName(name: String): ImageVector {
         "nights_stay" -> Icons.Default.NightsStay
         "cake" -> Icons.Default.Cake
         "account_balance" -> Icons.Default.AccountBalance
+        "account_balance_wallet", "wallet" -> Icons.Default.AccountBalanceWallet
         "credit_card" -> Icons.Default.CreditCard
         "house" -> Icons.Default.House
         "bolt" -> Icons.Default.Bolt
         "water_drop" -> Icons.Default.WaterDrop
-        "wifi" -> Icons.Default.Wifi
+        "wifi", "phone", "ic_cat_flexy" -> Icons.Default.Wifi
         "chair" -> Icons.Default.Chair
-        "shopping_cart" -> Icons.Default.ShoppingCart
+        "shopping_cart", "ic_cat_marche" -> Icons.Default.ShoppingCart
         "coffee" -> Icons.Default.Coffee
         "local_gas_station" -> Icons.Default.LocalGasStation
-        "local_taxi" -> Icons.Default.LocalTaxi
         "directions_bus" -> Icons.Default.DirectionsBus
         "checkroom" -> Icons.Default.Checkroom
         "spa" -> Icons.Default.Spa
         "child_care" -> Icons.Default.ChildCare
-        "ic_cat_marche", "shopping_cart" -> Icons.Default.ShoppingCart
-        "ic_cat_flexy", "phone", "wifi" -> Icons.Default.Wifi
-        "ic_cat_transport", "local_taxi", "transport", "car" -> Icons.Default.DirectionsCar
-        "ic_cat_health", "medical_services", "health", "local_pharmacy" -> Icons.Default.MedicalServices
-        "ic_cat_fastfood", "fastfood", "restaurant", "food" -> Icons.Default.Restaurant
-        "ic_cat_bricolage", "build" -> Icons.Default.Build
-        "ic_cat_education", "school", "education" -> Icons.Default.School
-        "ic_cat_family", "groups", "family" -> Icons.Default.Groups
-        "ic_cat_default", "category", "folder" -> Icons.Default.Category
+        "build", "ic_cat_bricolage" -> Icons.Default.Build
+        "trending_up", "insights" -> Icons.Default.TrendingUp
+        "sync_alt", "swap_horiz", "transfer" -> Icons.Default.SyncAlt
         else -> Icons.Default.Category
     }
 }

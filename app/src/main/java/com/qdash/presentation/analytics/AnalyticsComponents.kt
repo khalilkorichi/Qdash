@@ -98,7 +98,7 @@ import kotlin.math.asin
 import com.qdash.domain.model.CardAiContext
 import com.qdash.domain.model.CardAiContextType
 
-private const val DONUT_SMALL_CATEGORY_THRESHOLD = 2000.0
+private const val DONUT_SMALL_SLICE_PERCENTAGE = 0.04f
 
 @Composable
 fun DonutChartSkeleton(modifier: Modifier = Modifier) {
@@ -502,8 +502,8 @@ fun InteractiveDonutCard(
         hierarchicalShares.map { it.rootShare }
     }
 
-    val smallShares = remember(rootShares) { rootShares.filter { it.amount <= DONUT_SMALL_CATEGORY_THRESHOLD } }
-    val largeShares = remember(rootShares) { rootShares.filter { it.amount > DONUT_SMALL_CATEGORY_THRESHOLD } }
+    val smallShares = remember(rootShares) { rootShares.filter { it.percentage < DONUT_SMALL_SLICE_PERCENTAGE } }
+    val largeShares = remember(rootShares) { rootShares.filter { it.percentage >= DONUT_SMALL_SLICE_PERCENTAGE } }
 
     val chartShares = remember(rootShares, smallShares, largeShares) {
         if (smallShares.size > 1) {
@@ -988,8 +988,8 @@ fun InteractiveDonutCard(
                     
                     // Category percentage labels drawn directly on top of the selected segment
                     var accumulatedAngle = 0f
-                    chartShares.forEach { share ->
-                        val sweep = share.percentage * 360f
+                    chartShares.forEachIndexed { idx, share ->
+                        val sweep = adjustedSweeps[idx]
                         val isSelected = selectedCategory?.categoryName == share.categoryName ||
                                 (share.categoryId == -99L && selectedCategory != null && smallShares.any { it.categoryId == selectedCategory.categoryId })
                         

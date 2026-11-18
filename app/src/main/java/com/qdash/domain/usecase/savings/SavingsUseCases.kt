@@ -15,15 +15,16 @@ class AddSavingsContributionUseCase(
     suspend operator fun invoke(goalId: Long, accountId: Long, amount: Double, note: String?, date: Long = System.currentTimeMillis()): Long {
         val goal = savingRepository.getSavingGoalById(goalId) ?: return -1L
         
-        // 1. Log transaction
+        // 1. Log transaction without magic categoryId (avoids Entertainment category pollution & FK crashes)
         val txId = transactionRepository.insertTransaction(
             Transaction(
                 amount = amount,
                 type = TransactionType.EXPENSE,
-                categoryId = 10L, // "ادخار" / Miscellaneous or other default category
+                categoryId = null,
                 accountId = accountId,
-                note = note ?: "إيداع لهدف الادخار: ${goal.name}",
-                date = date
+                note = note?.takeIf { it.isNotBlank() } ?: "إيداع لهدف الادخار: ${goal.name}",
+                date = date,
+                occurredAt = System.currentTimeMillis()
             )
         )
         
@@ -60,15 +61,16 @@ class WithdrawFromSavingsUseCase(
     suspend operator fun invoke(goalId: Long, accountId: Long, amount: Double, note: String?, date: Long = System.currentTimeMillis()): Long {
         val goal = savingRepository.getSavingGoalById(goalId) ?: return -1L
         
-        // 1. Log income transaction
+        // 1. Log income transaction without magic Salary categoryId (avoids false Salary notifications)
         val txId = transactionRepository.insertTransaction(
             Transaction(
                 amount = amount,
                 type = TransactionType.INCOME,
-                categoryId = 11L, 
+                categoryId = null,
                 accountId = accountId,
-                note = note ?: "سحب من هدف الادخار: ${goal.name}",
-                date = date
+                note = note?.takeIf { it.isNotBlank() } ?: "سحب من هدف الادخار: ${goal.name}",
+                date = date,
+                occurredAt = System.currentTimeMillis()
             )
         )
         
@@ -116,7 +118,7 @@ class GetSavingsInsightsUseCase(
             
             val closest = goals.filter { !it.isCompleted }.maxByOrNull { if (it.targetAmount > 0) it.currentAmount / it.targetAmount else 0.0 }
             if (closest != null) {
-                list.add(SavingsInsight("أنت قريب جداً من تحقيق هدف '${closest.name}' بنسبة ${(closest.currentAmount/closest.targetAmount*100).toInt()}%. El Hamdoulillah!", true, "insights"))
+                list.add(SavingsInsight("أنت قريب جداً من تحقيق هدف '${closest.name}' بنسبة ${(closest.currentAmount/closest.targetAmount*100).toInt()}%. ما شاء الله!", true, "insights"))
             }
             
             goals.forEach { goal ->
@@ -135,16 +137,27 @@ class GetSavingsForecastUseCase(
 ) {
     suspend operator fun invoke(goalId: Long): String {
         val goal = savingRepository.getSavingGoalById(goalId) ?: return "لا توجد توقعات"
-        if (goal.isCompleted) return "الهدف مكتمل بنسبة 100%!"
+        if (goal.isCompleted || goal.currentAmount >= goal.targetAmount) return "الهدف مكتمل بنسبة 100%!"
         
-        val targetRemaining = goal.targetAmount - goal.currentAmount
-        val monthlyPace = if (goal.currentAmount > 0) goal.currentAmount / 2.0 else 2000.0 // basic estimation
+        val targetRemaining = (goal.targetAmount - goal.currentAmount).coerceAtLeast(0.0)
+        val contribs = savingRepository.getContributionsForGoal(goalId).first()
+        val netSaved = contribs.sumOf {
+            if (it.type == SavingsContributionType.DEPOSIT) it.amount else -it.amount
+        }
+        val monthlyPace = if (contribs.isNotEmpty() && netSaved > 0.0) {
+            val earliest = contribs.minOf { it.date }
+            val spanDays = ((System.currentTimeMillis() - earliest).coerceAtLeast(86_400_000L)) / 86_400_000.0
+            val spanMonths = (spanDays / 30.0).coerceAtLeast(1.0)
+            netSaved / spanMonths
+        } else {
+            return "أضف أول إيداع في هذه الحصالة لحساب الموعد المتوقع لإكمال الهدف."
+        }
         
-        val months = targetRemaining / maxOf(500.0, monthlyPace)
-        return if (months <= 1) {
+        val months = targetRemaining / monthlyPace.coerceAtLeast(1.0)
+        return if (months <= 1.0) {
             "بالوتيرة الحالية، يمكنك إكمال هذا الهدف خلال أقل من شهر!"
         } else {
-            "عند نفس الوتيرة، سيكتمل هذا الهدف في غضون ${String.format(Locale.US, "%.1f", months)} شهور تقريبًا."
+            "بالوتيرة الفعلية (${com.qdash.core.utils.FormatterUtils.formatCurrency(monthlyPace)}/شهر)، سيكتمل الهدف خلال ${com.qdash.core.utils.FormatterUtils.convertNumerals(String.format(Locale.US, "%.1f", months))} شهر تقريباً."
         }
     }
 }

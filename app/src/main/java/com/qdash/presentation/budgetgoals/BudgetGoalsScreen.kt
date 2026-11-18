@@ -18,10 +18,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.qdash.core.ui.components.FinTrackTopBar
 import com.qdash.presentation.components.AlertBanner
 import com.qdash.presentation.components.BudgetGoalCard
+import com.qdash.presentation.navigation.LocalBottomBarPadding
 import com.qdash.ui.theme.Primary
 import com.qdash.ui.theme.TextGray
+import com.qdash.ui.theme.TransferBlue
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -48,34 +51,30 @@ fun BudgetGoalsScreen(
     val totalLimit = activeBudgets.sumOf { it.amountLimit }
     val totalSpent = activeBudgets.sumOf { it.spentAmount }
 
+    val bottomPadding = LocalBottomBarPadding.current
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("أهداف الميزانية") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع")
-                    }
-                },
+            FinTrackTopBar(
+                title = "أهداف الميزانية",
+                showBackButton = true,
+                onBackClick = onBack,
                 actions = {
                     IconButton(onClick = { showArchived = !showArchived }) {
                         Icon(
                             imageVector = Icons.Default.Archive,
                             contentDescription = "المؤرشفة",
-                            tint = if (showArchived) Primary else LocalContentColor.current
+                            tint = if (showArchived) Primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                }
             )
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onNavigateToAdd,
                 containerColor = Primary,
-                contentColor = Color.White
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "إضافة ميزانية")
             }
@@ -94,20 +93,21 @@ fun BudgetGoalsScreen(
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(bottom = 80.dp)
+            contentPadding = PaddingValues(top = 8.dp, bottom = bottomPadding + 32.dp)
         ) {
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(
                                 Brush.linearGradient(
-                                    colors = listOf(Primary, Color(0xFF3B82F6))
+                                    colors = listOf(Primary, TransferBlue)
                                 )
                             )
                             .padding(24.dp)

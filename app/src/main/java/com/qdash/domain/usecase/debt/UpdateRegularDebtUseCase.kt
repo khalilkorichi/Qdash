@@ -1,11 +1,14 @@
 package com.qdash.domain.usecase.debt
 
+import com.qdash.domain.model.DebtDirection
 import com.qdash.domain.model.RegularDebt
 import com.qdash.domain.repository.DebtRepository
+import com.qdash.domain.repository.TransactionRepository
 import kotlinx.coroutines.flow.first
 
 class UpdateRegularDebtUseCase(
-    private val debtRepository: DebtRepository
+    private val debtRepository: DebtRepository,
+    private val transactionRepository: TransactionRepository? = null
 ) {
     suspend operator fun invoke(
         debtId: Long,
@@ -25,7 +28,7 @@ class UpdateRegularDebtUseCase(
             return Result.failure(IllegalArgumentException("هذا الالتزام ليس ديناً عادياً!"))
         }
 
-        // Fetch payments to calculate what has already been paid
+        // Fetch payments to calculate what has already been paid / collected
         val payments = debtRepository.getPaymentsForDebt(debtId).first()
         val totalPaid = payments.sumOf { it.amount }
 
@@ -35,18 +38,51 @@ class UpdateRegularDebtUseCase(
             )
         }
 
-        val newRemaining = totalAmount - totalPaid
+        val resolvedAccountId = if (existingDebt.direction == DebtDirection.OWED_TO_ME && existingDebt.initialTransactionId != null) {
+            linkedAccountId ?: existingDebt.linkedAccountId
+        } else {
+            linkedAccountId
+        }
+
+        // Sync initial wallet withdrawal transaction when editing a lent debt (OWED_TO_ME)
+        if (transactionRepository != null &&
+            existingDebt.direction == DebtDirection.OWED_TO_ME &&
+            existingDebt.initialTransactionId != null
+        ) {
+            val initialTx = transactionRepository.getTransactionById(existingDebt.initialTransactionId)
+            if (initialTx != null) {
+                val targetAccountId = resolvedAccountId ?: initialTx.accountId
+                val updatedNote = if (notes.isNullOrBlank()) {
+                    "إقراض / سلفة: $title ($creditorName)"
+                } else {
+                    "$notes [سلفة: $title]"
+                }
+                if (initialTx.amount != totalAmount || initialTx.accountId != targetAccountId || initialTx.note != updatedNote) {
+                    transactionRepository.updateTransaction(
+                        initialTx.copy(
+                            amount = totalAmount,
+                            accountId = targetAccountId,
+                            note = updatedNote
+                        )
+                    )
+                }
+            }
+        }
+
+        val rawRemaining = maxOf(0.0, totalAmount - totalPaid)
+        val isNowClosed = rawRemaining <= 0.005
+        val newRemaining = if (isNowClosed) 0.0 else rawRemaining
         val updatedDebt = existingDebt.copy(
             title = title,
             creditorName = creditorName,
             totalAmount = totalAmount,
             remainingAmount = newRemaining,
             dueDate = dueDate,
-            linkedAccountId = linkedAccountId,
+            linkedAccountId = resolvedAccountId,
             notes = notes,
             color = color,
             icon = icon,
-            isClosed = newRemaining <= 0.0
+            isClosed = isNowClosed
         )
 
         debtRepository.updateDebt(updatedDebt)

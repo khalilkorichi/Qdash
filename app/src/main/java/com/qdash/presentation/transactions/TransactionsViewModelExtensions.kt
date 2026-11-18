@@ -14,6 +14,71 @@ import kotlinx.coroutines.launch
  * and bulk transaction editing. Extracted to keep TransactionsViewModel.kt under the SIZE-001 500-line threshold.
  */
 
+internal fun findLocalCategorySuggestion(
+    note: String,
+    stateSnapshot: TransactionsUiState,
+    keywordMatcher: com.qdash.data.categorization.KeywordMatcher
+): Pair<CategorySuggestion, Category>? {
+    val normalized = keywordMatcher.normalize(note)
+    if (normalized.isEmpty()) return null
+
+    // 1. Fast local history check from loaded transactions
+    val historyMatchCatId = stateSnapshot.transactions
+        .asSequence()
+        .filter { it.categoryId != null && !it.note.isNullOrBlank() }
+        .firstOrNull { tx ->
+            val txNorm = keywordMatcher.normalize(tx.note.orEmpty())
+            txNorm == normalized || (normalized.length >= 3 && txNorm.contains(normalized))
+        }?.categoryId
+
+    if (historyMatchCatId != null) {
+        val cat = stateSnapshot.categories.find { it.id == historyMatchCatId }
+        if (cat != null) {
+            return Pair(
+                CategorySuggestion(
+                    suggestedCategoryId = cat.id,
+                    suggestionSource = SuggestionSource.HISTORY,
+                    confidenceScore = 0.92f
+                ),
+                cat
+            )
+        }
+    }
+
+    // 2. Fast Algerian dialect keyword dictionary check
+    val kwMatch = com.qdash.data.categorization.AlgerianKeywordDictionary.findMatchingCategory(normalized)
+    if (kwMatch != null) {
+        fun findFlexible(targetName: String): Category? {
+            val aliases = when (targetName) {
+                "خردوات وعتاد" -> listOf("خردوات ودروغري", "خردوات")
+                "خدمات محلية" -> listOf("خدمات محلية وتصليح")
+                "عناية شخصية" -> listOf("كوسميتيك وعناية")
+                "عائلي" -> listOf("عائلي وكفالة")
+                else -> emptyList()
+            }
+            return stateSnapshot.categories.find { it.name == targetName }
+                ?: stateSnapshot.categories.find { it.name.contains(targetName) || targetName.contains(it.name) }
+                ?: stateSnapshot.categories.find { cat -> aliases.any { cat.name.contains(it) } }
+        }
+        val targetCat = if (kwMatch.subcategoryName != null) {
+            findFlexible(kwMatch.subcategoryName) ?: findFlexible(kwMatch.categoryName)
+        } else {
+            findFlexible(kwMatch.categoryName)
+        }
+        if (targetCat != null) {
+            return Pair(
+                CategorySuggestion(
+                    suggestedCategoryId = targetCat.id,
+                    suggestionSource = SuggestionSource.KEYWORD,
+                    confidenceScore = 0.90f
+                ),
+                targetCat
+            )
+        }
+    }
+    return null
+}
+
 fun TransactionsViewModel.saveAsTemplate(
     name: String,
     amount: Double,

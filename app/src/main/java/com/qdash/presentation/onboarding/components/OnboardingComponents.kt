@@ -40,7 +40,7 @@ import com.qdash.domain.model.AccountType
 import com.qdash.presentation.onboarding.CustomWalletDraft
 import com.qdash.presentation.onboarding.OnboardingUiState
 import com.qdash.presentation.onboarding.WalletOption
-import com.qdash.ui.theme.Primary
+import com.qdash.ui.theme.IncomeGreen
 import com.qdash.ui.theme.TextGray
 
 @Composable
@@ -49,6 +49,8 @@ fun LanguageSetupScreen(
     onLanguageSelected: (String) -> Unit,
     onNext: () -> Unit
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -62,7 +64,7 @@ fun LanguageSetupScreen(
                 .size(110.dp)
                 .background(
                     brush = Brush.radialGradient(
-                        colors = listOf(Primary.copy(alpha = 0.2f), Color.Transparent)
+                        colors = listOf(primaryColor.copy(alpha = 0.2f), Color.Transparent)
                     ),
                     shape = CircleShape
                 ),
@@ -71,7 +73,7 @@ fun LanguageSetupScreen(
             Icon(
                 imageVector = Icons.Default.Language,
                 contentDescription = null,
-                tint = Primary,
+                tint = primaryColor,
                 modifier = Modifier.size(56.dp)
             )
         }
@@ -102,7 +104,7 @@ fun LanguageSetupScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                .border(2.dp, Primary, RoundedCornerShape(16.dp))
+                .border(2.dp, primaryColor, RoundedCornerShape(16.dp))
                 .clickable { onLanguageSelected("ar") }
                 .padding(20.dp)
         ) {
@@ -135,7 +137,7 @@ fun LanguageSetupScreen(
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = null,
-                    tint = Primary,
+                    tint = primaryColor,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -157,7 +159,7 @@ fun LanguageSetupScreen(
                 Icon(
                     imageVector = Icons.Default.Info,
                     contentDescription = null,
-                    tint = Primary,
+                    tint = primaryColor,
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
@@ -177,12 +179,15 @@ fun LanguageSetupScreen(
                 .fillMaxWidth()
                 .height(56.dp),
             shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Primary)
+            colors = ButtonDefaults.buttonColors(
+                containerColor = primaryColor,
+                contentColor = onPrimaryColor
+            )
         ) {
             Text(
                 text = "التالي",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = Color.White
+                color = onPrimaryColor
             )
         }
     }
@@ -193,6 +198,8 @@ fun NotificationPermissionScreen(
     onEnable: () -> Unit,
     onLater: () -> Unit
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -206,7 +213,7 @@ fun NotificationPermissionScreen(
                 .size(110.dp)
                 .background(
                     brush = Brush.radialGradient(
-                        colors = listOf(Primary.copy(alpha = 0.2f), Color.Transparent)
+                        colors = listOf(primaryColor.copy(alpha = 0.2f), Color.Transparent)
                     ),
                     shape = CircleShape
                 ),
@@ -215,7 +222,7 @@ fun NotificationPermissionScreen(
             Icon(
                 imageVector = Icons.Default.NotificationsActive,
                 contentDescription = null,
-                tint = Primary,
+                tint = primaryColor,
                 modifier = Modifier.size(56.dp)
             )
         }
@@ -281,12 +288,15 @@ fun NotificationPermissionScreen(
                     .fillMaxWidth()
                     .height(56.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = primaryColor,
+                    contentColor = onPrimaryColor
+                )
             ) {
                 Text(
                     text = "تفعيل التنبيهات",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White
+                    color = onPrimaryColor
                 )
             }
 
@@ -311,6 +321,7 @@ fun NotificationFeatureItem(
     title: String,
     description: String
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -323,13 +334,13 @@ fun NotificationFeatureItem(
         Box(
             modifier = Modifier
                 .size(42.dp)
-                .background(Primary.copy(alpha = 0.12f), CircleShape),
+                .background(primaryColor.copy(alpha = 0.12f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = imageVector,
                 contentDescription = null,
-                tint = Primary,
+                tint = primaryColor,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -369,6 +380,8 @@ fun InitialWalletSetupScreen(
     onSkip: () -> Unit
 ) {
     val customColors = listOf("#6C63FF", "#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#EC4899", "#8B5CF6", "#06B6D4")
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
 
     Column(
         modifier = Modifier
@@ -382,12 +395,12 @@ fun InitialWalletSetupScreen(
             modifier = Modifier
                 .size(80.dp)
                 .background(
-                    brush = Brush.radialGradient(colors = listOf(Primary.copy(alpha = 0.18f), Color.Transparent)),
+                    brush = Brush.radialGradient(colors = listOf(primaryColor.copy(alpha = 0.18f), Color.Transparent)),
                     shape = CircleShape
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.AccountBalanceWallet, null, tint = Primary, modifier = Modifier.size(42.dp))
+            Icon(Icons.Default.AccountBalanceWallet, null, tint = primaryColor, modifier = Modifier.size(42.dp))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -463,11 +476,11 @@ fun InitialWalletSetupScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.AddCircleOutline, null, tint = Primary, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.AddCircleOutline, null, tint = primaryColor, modifier = Modifier.size(20.dp))
                         Text(
                             text = "إضافة محفظة مخصصة",
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                            color = Primary
+                            color = primaryColor
                         )
                     }
                 }
@@ -482,16 +495,19 @@ fun InitialWalletSetupScreen(
                 onClick = onNext,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = primaryColor,
+                    contentColor = onPrimaryColor
+                )
             ) {
                 if (uiState.isSaving) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    CircularProgressIndicator(color = onPrimaryColor, modifier = Modifier.size(24.dp))
                 } else {
                     Text(
                         text = if (uiState.walletOptions.any { it.isSelected } || uiState.customWallets.isNotEmpty())
-                            "ابدأ" else "تخطي",
+                            "التالي" else "تخطي",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = Color.White
+                        color = onPrimaryColor
                     )
                 }
             }
@@ -523,12 +539,14 @@ private fun SelectableWalletCard(
     onBalanceChanged: (String) -> Unit,
     balanceError: String?
 ) {
-    val accentColor = remember(option.color) {
-        try { Color(android.graphics.Color.parseColor(option.color)) } catch (e: Exception) { Primary }
+    val fallbackPrimary = MaterialTheme.colorScheme.primary
+    val accentColor = remember(option.color, fallbackPrimary) {
+        try { Color(android.graphics.Color.parseColor(option.color)) } catch (e: Exception) { fallbackPrimary }
     }
 
     val walletIcon = when (option.type) {
         AccountType.BARIDIMOB -> Icons.Default.PhonelinkRing
+        AccountType.CCP -> Icons.Default.CreditCard
         AccountType.CASH -> Icons.Default.Payments
         AccountType.SAVINGS -> Icons.Default.Savings
         else -> Icons.Default.AccountBalanceWallet
@@ -650,8 +668,9 @@ private fun SelectableWalletCard(
 
 @Composable
 private fun AddedCustomWalletCard(draft: CustomWalletDraft, onRemove: () -> Unit) {
-    val accentColor = remember(draft.color) {
-        try { Color(android.graphics.Color.parseColor(draft.color)) } catch (e: Exception) { Primary }
+    val fallbackPrimary = MaterialTheme.colorScheme.primary
+    val accentColor = remember(draft.color, fallbackPrimary) {
+        try { Color(android.graphics.Color.parseColor(draft.color)) } catch (e: Exception) { fallbackPrimary }
     }
     Row(
         modifier = Modifier
@@ -670,14 +689,18 @@ private fun AddedCustomWalletCard(draft: CustomWalletDraft, onRemove: () -> Unit
             Icon(Icons.Default.AccountBalanceWallet, null, tint = accentColor, modifier = Modifier.size(16.dp))
         }
         Column(modifier = Modifier.weight(1f)) {
-            Text(draft.name, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+            Text(
+                draft.name,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onBackground
+            )
             val bal = draft.balance.toDoubleOrNull()
             if (bal != null && bal > 0) {
                 Text("${bal.toInt()} دج", style = MaterialTheme.typography.labelSmall, color = TextGray)
             }
         }
-        IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
-            Icon(Icons.Default.Close, null, tint = TextGray, modifier = Modifier.size(16.dp))
+        IconButton(onClick = onRemove, modifier = Modifier.size(36.dp)) {
+            Icon(Icons.Default.Close, "إزالة", tint = TextGray, modifier = Modifier.size(16.dp))
         }
     }
 }
@@ -696,10 +719,12 @@ private fun CustomWalletForm(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Primary.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
+            .border(1.dp, primaryColor.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -710,7 +735,7 @@ private fun CustomWalletForm(
             Text(
                 text = "محفظة مخصصة جديدة",
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                color = Primary
+                color = primaryColor
             )
 
             TextField(
@@ -722,7 +747,7 @@ private fun CustomWalletForm(
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Primary,
+                    focusedIndicatorColor = primaryColor,
                     unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
                     focusedTextColor = MaterialTheme.colorScheme.onBackground,
                     unfocusedTextColor = MaterialTheme.colorScheme.onBackground
@@ -744,7 +769,7 @@ private fun CustomWalletForm(
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Primary,
+                    focusedIndicatorColor = primaryColor,
                     unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
                     focusedTextColor = MaterialTheme.colorScheme.onBackground,
                     unfocusedTextColor = MaterialTheme.colorScheme.onBackground
@@ -755,8 +780,8 @@ private fun CustomWalletForm(
             Text("اللون:", style = MaterialTheme.typography.labelSmall, color = TextGray)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 colorOptions.forEach { hex ->
-                    val c = remember(hex) {
-                        try { Color(android.graphics.Color.parseColor(hex)) } catch (e: Exception) { Primary }
+                    val c = remember(hex, primaryColor) {
+                        try { Color(android.graphics.Color.parseColor(hex)) } catch (e: Exception) { primaryColor }
                     }
                     val isSelected = draft.color.uppercase() == hex.uppercase()
                     Box(
@@ -782,10 +807,13 @@ private fun CustomWalletForm(
                     onClick = onConfirm,
                     modifier = Modifier.weight(1.5f).height(44.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = primaryColor,
+                        contentColor = onPrimaryColor
+                    ),
                     enabled = draft.name.isNotBlank()
                 ) {
-                    Text("إضافة", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("إضافة", color = onPrimaryColor, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -803,6 +831,7 @@ fun WalletSetupCard(
     value: String,
     onValueChange: (String) -> Unit
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -836,7 +865,7 @@ fun WalletSetupCard(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
                         disabledContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Primary,
+                        focusedIndicatorColor = primaryColor,
                         unfocusedIndicatorColor = MaterialTheme.colorScheme.surfaceVariant,
                         focusedTextColor = MaterialTheme.colorScheme.onBackground,
                         unfocusedTextColor = MaterialTheme.colorScheme.onBackground
@@ -854,6 +883,7 @@ fun AuthSetupScreen(
 ) {
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -882,7 +912,7 @@ fun AuthSetupScreen(
                 .size(110.dp)
                 .background(
                     brush = Brush.radialGradient(
-                        colors = listOf(Primary.copy(alpha = 0.2f), Color.Transparent)
+                        colors = listOf(primaryColor.copy(alpha = 0.2f), Color.Transparent)
                     ),
                     shape = CircleShape
                 ),
@@ -891,7 +921,7 @@ fun AuthSetupScreen(
             Icon(
                 imageVector = Icons.Default.CloudSync,
                 contentDescription = null,
-                tint = Primary,
+                tint = primaryColor,
                 modifier = Modifier.size(56.dp)
             )
         }
@@ -926,10 +956,13 @@ fun AuthSetupScreen(
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
-                .background(if (isConnected) Color(0xFF22C55E).copy(alpha = 0.12f) else Color(0xFF6B7280).copy(alpha = 0.12f))
+                .background(
+                    if (isConnected) IncomeGreen.copy(alpha = 0.12f)
+                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                )
                 .border(
                     width = 1.dp,
-                    color = if (isConnected) Color(0xFF22C55E).copy(alpha = 0.4f) else Color(0xFF6B7280).copy(alpha = 0.4f),
+                    color = if (isConnected) IncomeGreen.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outline,
                     shape = RoundedCornerShape(8.dp)
                 )
                 .padding(horizontal = 14.dp, vertical = 6.dp)
@@ -941,12 +974,12 @@ fun AuthSetupScreen(
                 Box(
                     modifier = Modifier
                         .size(8.dp)
-                        .background(if (isConnected) Color(0xFF22C55E) else Color(0xFF6B7280), CircleShape)
+                        .background(if (isConnected) IncomeGreen else TextGray, CircleShape)
                 )
                 Text(
                     text = if (isConnected) "متصل بخدمات Google" else "غير متصل بالسحابة",
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = if (isConnected) Color(0xFF22C55E) else TextGray
+                    color = if (isConnected) IncomeGreen else TextGray
                 )
             }
         }
@@ -972,7 +1005,7 @@ fun AuthSetupScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp)),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.surface,
@@ -990,7 +1023,7 @@ fun AuthSetupScreen(
                     Icon(
                         imageVector = Icons.Default.AccountCircle,
                         contentDescription = null,
-                        tint = Primary,
+                        tint = primaryColor,
                         modifier = Modifier.size(24.dp)
                     )
                     Text(

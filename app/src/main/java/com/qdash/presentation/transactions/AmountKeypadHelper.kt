@@ -205,10 +205,10 @@ fun handleNumpadKey(value: TextFieldValue, key: String): TextFieldValue {
         }
         "=" -> {
             val eval = com.qdash.core.utils.CalculatorParser.evaluate(text)
-            val evalResult = if (eval % 1 == 0.0) {
-                eval.toInt().toString()
+            val evalResult = if (eval % 1.0 == 0.0) {
+                eval.toLong().toString()
             } else {
-                "%.2f".format(eval).replace(",", ".")
+                "%.2f".format(java.util.Locale.US, eval).replace(",", ".")
             }
             TextFieldValue(evalResult, selection = TextRange(evalResult.length))
         }

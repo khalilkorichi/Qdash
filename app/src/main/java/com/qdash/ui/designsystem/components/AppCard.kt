@@ -75,7 +75,7 @@ fun AppCard(
             if (onClick != null) {
                 clickable(
                     interactionSource = interactionSource,
-                    indication = null,
+                    indication = androidx.compose.material3.ripple(),
                     onClick = onClick
                 )
             } else this

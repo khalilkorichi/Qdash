@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,14 +32,16 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.core.utils.FormatterUtils
+import com.qdash.core.utils.ThousandsSeparatorTransformation
 import com.qdash.domain.model.Account
+import com.qdash.domain.model.DebtDirection
 import com.qdash.domain.model.InstallmentDebt
 import com.qdash.domain.model.RegularDebt
+import com.qdash.presentation.components.safeParseColor
 import com.qdash.ui.designsystem.components.*
-import com.qdash.ui.designsystem.tokens.ColorTokens
 import com.qdash.ui.designsystem.tokens.ShapeTokens
 import com.qdash.ui.theme.ExpenseRed
-import com.qdash.ui.theme.TextGray
+import com.qdash.ui.theme.IncomeGreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,17 +61,17 @@ fun EditRegularDebtBottomSheet(
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     val context = LocalContext.current
-    val isDark = MaterialTheme.colorScheme.background != ColorTokens.BackgroundLight
-    val borderColor = if (isDark) ColorTokens.BorderDark else ColorTokens.BorderLight
-    val fieldBgColor = if (isDark) ColorTokens.CardDark else ColorTokens.SurfaceLight
+    val isLent = debt.direction == DebtDirection.OWED_TO_ME
+    val requiresAccount = isLent && debt.initialTransactionId != null
+    val accentColor = if (isLent) IncomeGreen else MaterialTheme.colorScheme.primary
 
-    var title by remember { mutableStateOf(debt.title) }
-    var creditorName by remember { mutableStateOf(debt.creditorName) }
-    var totalAmount by remember { mutableStateOf(debt.totalAmount.toInt().toString()) }
-    var notes by remember { mutableStateOf(debt.notes ?: "") }
-    var selectedColor by remember { mutableStateOf(debt.color) }
-    var selectedAccountId by remember { mutableStateOf<Long?>(debt.linkedAccountId) }
-    var dueDate by remember { mutableStateOf<Long?>(debt.dueDate) }
+    var title by remember(debt.id) { mutableStateOf(debt.title) }
+    var creditorName by remember(debt.id) { mutableStateOf(debt.creditorName) }
+    var totalAmount by remember(debt.id) { mutableStateOf(debt.totalAmount.toInt().toString()) }
+    var notes by remember(debt.id) { mutableStateOf(debt.notes ?: "") }
+    var selectedColor by remember(debt.id) { mutableStateOf(debt.color) }
+    var selectedAccountId by remember(debt.id) { mutableStateOf<Long?>(debt.linkedAccountId) }
+    var dueDate by remember(debt.id) { mutableStateOf<Long?>(debt.dueDate) }
     var showDueDatePicker by remember { mutableStateOf(false) }
 
     val colorOptions = listOf("#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6", "#EC4899")
@@ -83,12 +87,13 @@ fun EditRegularDebtBottomSheet(
                     .padding(horizontal = 24.dp)
                     .padding(top = 8.dp, bottom = 24.dp)
                     .navigationBarsPadding()
+                    .imePadding()
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.Start,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "تعديل تفاصيل السلفة",
+                    text = if (isLent) "تعديل تفاصيل السلفة" else "تعديل تفاصيل الالتزام المرن",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 20.sp),
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Right
@@ -97,51 +102,60 @@ fun EditRegularDebtBottomSheet(
                 AppInput(
                     value = title,
                     onValueChange = { title = it },
-                    label = "عنوان الدين"
+                    label = if (isLent) "عنوان السلفة" else "عنوان الدين"
                 )
 
                 AppInput(
                     value = creditorName,
                     onValueChange = { creditorName = it },
-                    label = "اسم الدائن / الشخص"
+                    label = if (isLent) "اسم المدين" else "اسم الدائن / الشخص"
                 )
 
                 AppInput(
                     value = totalAmount,
                     onValueChange = { totalAmount = it },
-                    label = "المبلغ المطلوب (د.ج)",
+                    label = if (isLent) "مبلغ السلفة الإجمالي (د.ج)" else "المبلغ المطلوب (د.ج)",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    visualTransformation = com.qdash.core.utils.ThousandsSeparatorTransformation()
+                    visualTransformation = ThousandsSeparatorTransformation()
                 )
 
-                Text("تاريخ الاستحقاق النهائى (اختياري):", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    text = if (isLent) "موعد الاسترداد المتوقع (اختياري):" else "تاريخ الاستحقاق النهائي (اختياري):",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 AppCard(
                     modifier = Modifier.fillMaxWidth(),
                     variant = CardVariant.FLAT,
                     onClick = { showDueDatePicker = true }
                 ) {
                     Row(
-                        modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                        modifier = Modifier
+                            .padding(12.dp)
+                            .fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.DateRange, null, tint = ExpenseRed, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.DateRange, null, tint = accentColor, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = if (dueDate != null) FormatterUtils.formatDate(dueDate!!) else "بدون تاريخ محدد",
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                         if (dueDate != null) {
                             Icon(
                                 imageVector = Icons.Default.Clear,
-                                contentDescription = "Clear",
-                                tint = TextGray,
-                                modifier = Modifier.size(16.dp).clickable { dueDate = null }
+                                contentDescription = "مسح التاريخ",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clickable { dueDate = null }
                             )
                         } else {
-                            Icon(Icons.Default.Edit, null, tint = TextGray, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                         }
                     }
                 }
@@ -150,15 +164,19 @@ fun EditRegularDebtBottomSheet(
                     AppDatePickerDialog(
                         initialSelectedDateMillis = dueDate ?: System.currentTimeMillis(),
                         onDismissRequest = { showDueDatePicker = false },
-                        onDateSelected = { 
+                        onDateSelected = {
                             dueDate = it
                             showDueDatePicker = false
                         },
-                        confirmButtonColor = ExpenseRed
+                        confirmButtonColor = accentColor
                     )
                 }
 
-                Text("الحساب البنكي المرتبط (اختياري):", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    text = if (isLent) "المحفظة المخصوم منها مبلغ السلفة:" else "الحساب المرتبط بالسداد (اختياري):",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Box {
                     var expanded by remember { mutableStateOf(false) }
                     val selectedAccountName = accounts.find { it.id == selectedAccountId }?.name ?: "بدون حساب مرتبط"
@@ -168,25 +186,29 @@ fun EditRegularDebtBottomSheet(
                         onClick = { expanded = true }
                     ) {
                         Row(
-                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                            modifier = Modifier
+                                .padding(12.dp)
+                                .fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(selectedAccountName)
-                            Icon(Icons.Default.ArrowDropDown, null)
+                            Text(selectedAccountName, color = MaterialTheme.colorScheme.onSurface)
+                            Icon(Icons.Default.ArrowDropDown, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                        DropdownMenuItem(
-                            text = { Text("بدون حساب مرتبط") },
-                            onClick = {
-                                selectedAccountId = null
-                                expanded = false
-                            }
-                        )
+                        if (!requiresAccount) {
+                            DropdownMenuItem(
+                                text = { Text("بدون حساب مرتبط") },
+                                onClick = {
+                                    selectedAccountId = null
+                                    expanded = false
+                                }
+                            )
+                        }
                         accounts.forEach { account ->
                             DropdownMenuItem(
-                                text = { Text("${account.name} (رصيد: ${account.balance.toInt()} د.ج)") },
+                                text = { Text("${account.name} (رصيد: ${FormatterUtils.formatCurrency(account.balance)})") },
                                 onClick = {
                                     selectedAccountId = account.id
                                     expanded = false
@@ -200,25 +222,29 @@ fun EditRegularDebtBottomSheet(
                     value = notes,
                     onValueChange = { notes = it },
                     label = "ملاحظات إضافية (اختياري)",
-                    placeholder = "مثال: شروط الدفع، تفاصيل الضمان"
+                    placeholder = if (isLent) "تفاصيل الاتفاق أو طريقة الاسترداد" else "مثال: شروط الاتفاق أو الموعد"
                 )
 
-                Text("اللون المخصص للدين:", style = MaterialTheme.typography.labelSmall)
-                Row(
+                Text(
+                    text = "اللون التمييزي:",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    colorOptions.forEach { colorHex ->
-                        val isSelected = selectedColor == colorHex
+                    items(colorOptions) { colorHex ->
+                        val isSelected = selectedColor.equals(colorHex, ignoreCase = true)
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
-                                .background(Color(android.graphics.Color.parseColor(colorHex)))
+                                .background(safeParseColor(colorHex, accentColor))
                                 .border(
                                     width = if (isSelected) 3.dp else 1.dp,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else borderColor,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                                     shape = CircleShape
                                 )
                                 .clickable { selectedColor = colorHex }
@@ -232,9 +258,10 @@ fun EditRegularDebtBottomSheet(
                     onClick = {
                         val amount = totalAmount.toDoubleOrNull() ?: 0.0
                         if (title.isBlank() || creditorName.isBlank()) {
-                            Toast.makeText(context, "الرجاء ملء اسم الدين والدائن", Toast.LENGTH_SHORT).show()
+                            val errMsg = if (isLent) "الرجاء ملء عنوان السلفة واسم المدين" else "الرجاء ملء عنوان الدين واسم الدائن"
+                            Toast.makeText(context, errMsg, Toast.LENGTH_SHORT).show()
                         } else if (totalAmount.isBlank() || amount <= 0.0) {
-                            Toast.makeText(context, "الرجاء إدخال مبلغ صالح", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "الرجاء إدخال مبلغ صالح أكبر من الصفر", Toast.LENGTH_SHORT).show()
                         } else {
                             onConfirm(
                                 title.trim(),
@@ -249,10 +276,10 @@ fun EditRegularDebtBottomSheet(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     variant = ButtonVariant.SOLID,
-                    intent = ButtonIntent.DANGER,
+                    intent = if (isLent) ButtonIntent.SUCCESS else ButtonIntent.PRIMARY,
                     shape = ShapeTokens.Lg
                 ) {
-                    Text("حفظ التغييرات", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("حفظ التغييرات", fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -281,20 +308,17 @@ fun EditInstallmentDebtBottomSheet(
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     val context = LocalContext.current
-    val isDark = MaterialTheme.colorScheme.background != ColorTokens.BackgroundLight
-    val borderColor = if (isDark) ColorTokens.BorderDark else ColorTokens.BorderLight
-    val fieldBgColor = if (isDark) ColorTokens.CardDark else ColorTokens.SurfaceLight
 
-    var title by remember { mutableStateOf(debt.title) }
-    var creditorName by remember { mutableStateOf(debt.creditorName) }
-    var totalAmount by remember { mutableStateOf(debt.totalAmount.toInt().toString()) }
-    var interestRate by remember { mutableStateOf(debt.interestRate.toString()) }
-    var minimumPayment by remember { mutableStateOf(debt.minimumPayment.toInt().toString()) }
-    var priority by remember { mutableStateOf(debt.priority.toString()) }
-    var notes by remember { mutableStateOf(debt.notes ?: "") }
-    var selectedColor by remember { mutableStateOf(debt.color) }
-    var selectedAccountId by remember { mutableStateOf<Long?>(debt.linkedAccountId) }
-    var dueDate by remember { mutableStateOf<Long?>(debt.dueDate) }
+    var title by remember(debt.id) { mutableStateOf(debt.title) }
+    var creditorName by remember(debt.id) { mutableStateOf(debt.creditorName) }
+    var totalAmount by remember(debt.id) { mutableStateOf(debt.totalAmount.toInt().toString()) }
+    var interestRate by remember(debt.id) { mutableStateOf(debt.interestRate.toString()) }
+    var minimumPayment by remember(debt.id) { mutableStateOf(debt.minimumPayment.toInt().toString()) }
+    var priority by remember(debt.id) { mutableStateOf(debt.priority.toString()) }
+    var notes by remember(debt.id) { mutableStateOf(debt.notes ?: "") }
+    var selectedColor by remember(debt.id) { mutableStateOf(debt.color) }
+    var selectedAccountId by remember(debt.id) { mutableStateOf<Long?>(debt.linkedAccountId) }
+    var dueDate by remember(debt.id) { mutableStateOf<Long?>(debt.dueDate) }
     var showDueDatePicker by remember { mutableStateOf(false) }
 
     val colorOptions = listOf("#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6", "#EC4899")
@@ -310,6 +334,7 @@ fun EditInstallmentDebtBottomSheet(
                     .padding(horizontal = 24.dp)
                     .padding(top = 8.dp, bottom = 24.dp)
                     .navigationBarsPadding()
+                    .imePadding()
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.Start,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -339,7 +364,7 @@ fun EditInstallmentDebtBottomSheet(
                         onValueChange = { totalAmount = it },
                         label = "المبلغ الإجمالي (د.ج)",
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        visualTransformation = com.qdash.core.utils.ThousandsSeparatorTransformation(),
+                        visualTransformation = ThousandsSeparatorTransformation(),
                         modifier = Modifier.weight(1.5f)
                     )
 
@@ -357,29 +382,47 @@ fun EditInstallmentDebtBottomSheet(
                     onValueChange = { minimumPayment = it },
                     label = "القسط الشهري المطلوب (د.ج)",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    visualTransformation = com.qdash.core.utils.ThousandsSeparatorTransformation()
+                    visualTransformation = ThousandsSeparatorTransformation()
                 )
 
-                Text("تاريخ أول قسط / البداية:", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    text = "تاريخ القسط القادم (اختياري):",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 AppCard(
                     modifier = Modifier.fillMaxWidth(),
                     variant = CardVariant.FLAT,
                     onClick = { showDueDatePicker = true }
                 ) {
                     Row(
-                        modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                        modifier = Modifier
+                            .padding(12.dp)
+                            .fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.DateRange, null, tint = ExpenseRed, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.DateRange, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = if (dueDate != null) FormatterUtils.formatDate(dueDate!!) else "اختر التاريخ",
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
-                        Icon(Icons.Default.Edit, null, tint = TextGray, modifier = Modifier.size(16.dp))
+                        if (dueDate != null) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "مسح التاريخ",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clickable { dueDate = null }
+                            )
+                        } else {
+                            Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                        }
                     }
                 }
 
@@ -387,15 +430,18 @@ fun EditInstallmentDebtBottomSheet(
                     AppDatePickerDialog(
                         initialSelectedDateMillis = dueDate ?: System.currentTimeMillis(),
                         onDismissRequest = { showDueDatePicker = false },
-                        onDateSelected = { 
+                        onDateSelected = {
                             dueDate = it
                             showDueDatePicker = false
-                        },
-                        confirmButtonColor = ExpenseRed
+                        }
                     )
                 }
 
-                Text("أولوية الاستعجال:", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    text = "أولوية السداد:",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -406,22 +452,26 @@ fun EditInstallmentDebtBottomSheet(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSelected) ExpenseRed else MaterialTheme.colorScheme.surfaceVariant)
+                                .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
                                 .clickable { priority = id }
-                                .padding(vertical = 8.dp),
+                                .padding(vertical = 9.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = label,
-                                fontSize = 11.sp,
-                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 12.sp,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         }
                     }
                 }
 
-                Text("الحساب البنكي المرتبط (اختياري):", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    text = "الحساب البنكي المرتبط (اختياري):",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Box {
                     var expanded by remember { mutableStateOf(false) }
                     val selectedAccountName = accounts.find { it.id == selectedAccountId }?.name ?: "بدون حساب مرتبط"
@@ -431,12 +481,14 @@ fun EditInstallmentDebtBottomSheet(
                         onClick = { expanded = true }
                     ) {
                         Row(
-                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                            modifier = Modifier
+                                .padding(12.dp)
+                                .fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(selectedAccountName)
-                            Icon(Icons.Default.ArrowDropDown, null)
+                            Text(selectedAccountName, color = MaterialTheme.colorScheme.onSurface)
+                            Icon(Icons.Default.ArrowDropDown, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -449,7 +501,7 @@ fun EditInstallmentDebtBottomSheet(
                         )
                         accounts.forEach { account ->
                             DropdownMenuItem(
-                                text = { Text("${account.name} (رصيد: ${account.balance.toInt()} د.ج)") },
+                                text = { Text("${account.name} (رصيد: ${FormatterUtils.formatCurrency(account.balance)})") },
                                 onClick = {
                                     selectedAccountId = account.id
                                     expanded = false
@@ -463,25 +515,29 @@ fun EditInstallmentDebtBottomSheet(
                     value = notes,
                     onValueChange = { notes = it },
                     label = "شروط الضمان / تفاصيل القرض (اختياري)",
-                    placeholder = "مثال: معدل الفائدة المتغير، جدول الإهلاك"
+                    placeholder = "مثال: معدل الفائدة، شروط السداد المبكر"
                 )
 
-                Text("اللون المخصص للدين:", style = MaterialTheme.typography.labelSmall)
-                Row(
+                Text(
+                    text = "اللون التمييزي:",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    colorOptions.forEach { colorHex ->
-                        val isSelected = selectedColor == colorHex
+                    items(colorOptions) { colorHex ->
+                        val isSelected = selectedColor.equals(colorHex, ignoreCase = true)
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
-                                .background(Color(android.graphics.Color.parseColor(colorHex)))
+                                .background(safeParseColor(colorHex, ExpenseRed))
                                 .border(
                                     width = if (isSelected) 3.dp else 1.dp,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else borderColor,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                                     shape = CircleShape
                                 )
                                 .clickable { selectedColor = colorHex }
@@ -497,7 +553,7 @@ fun EditInstallmentDebtBottomSheet(
                         val minPay = minimumPayment.toDoubleOrNull() ?: 0.0
                         val interest = interestRate.toDoubleOrNull() ?: 0.0
                         if (title.isBlank() || creditorName.isBlank()) {
-                            Toast.makeText(context, "الرجاء ملء اسم الدين والدائن", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "الرجاء ملء عنوان القرض واسم الدائن", Toast.LENGTH_SHORT).show()
                         } else if (totalAmount.isBlank() || amount <= 0.0) {
                             Toast.makeText(context, "الرجاء إدخال مبلغ صالح", Toast.LENGTH_SHORT).show()
                         } else if (minimumPayment.isBlank() || minPay <= 0.0) {
@@ -508,7 +564,7 @@ fun EditInstallmentDebtBottomSheet(
                                 creditorName.trim(),
                                 amount,
                                 minPay,
-                                "Monthly",
+                                debt.paymentFrequency.ifBlank { "MONTHLY" },
                                 selectedAccountId,
                                 priority.toIntOrNull() ?: 3,
                                 notes.ifBlank { null },
@@ -520,10 +576,10 @@ fun EditInstallmentDebtBottomSheet(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     variant = ButtonVariant.SOLID,
-                    intent = ButtonIntent.DANGER,
+                    intent = ButtonIntent.PRIMARY,
                     shape = ShapeTokens.Lg
                 ) {
-                    Text("حفظ التغييرات", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("حفظ التغييرات", fontWeight = FontWeight.Bold)
                 }
             }
         }

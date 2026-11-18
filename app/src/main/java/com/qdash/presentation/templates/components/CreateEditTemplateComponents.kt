@@ -1,12 +1,10 @@
 package com.qdash.presentation.templates.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -17,14 +15,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.qdash.core.ui.components.CategoryChip
+import com.qdash.core.utils.FormatterUtils
 import com.qdash.domain.model.Account
 import com.qdash.domain.model.Category
 import com.qdash.domain.model.CategoryType
 import com.qdash.domain.model.TransactionType
 import com.qdash.ui.theme.ExpenseRed
 import com.qdash.ui.theme.IncomeGreen
+import com.qdash.ui.theme.TextGray
 import com.qdash.ui.theme.TransferBlue
 
 @Composable
@@ -98,16 +100,11 @@ fun CategoryPickerSection(
         if (filteredCats.isNotEmpty()) {
             Column {
                 Text("اختر الفئة", fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 6.dp))
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(4),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 80.dp, max = 160.dp),
-                    userScrollEnabled = false
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(filteredCats) { cat ->
+                    items(filteredCats, key = { it.id }) { cat ->
                         CategoryChip(
                             category = cat,
                             isSelected = selectedCategoryId == cat.id,
@@ -125,7 +122,7 @@ fun CategoryPickerSection(
             Column {
                 Text("الفئة الفرعية (اختياري)", fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 6.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(subcats) { sub ->
+                    items(subcats, key = { it.id }) { sub ->
                         CategoryChip(
                             category = sub,
                             isSelected = subcategoryId == sub.id,
@@ -149,7 +146,10 @@ fun AccountPickerSection(
     typeAccentColor: Color,
     modifier: Modifier = Modifier
 ) {
-    if (accounts.isEmpty()) return
+    val visibleAccounts = remember(accounts) {
+        accounts.filter { !it.isArchived }
+    }
+    if (visibleAccounts.isEmpty()) return
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         // Source Account
@@ -163,29 +163,47 @@ fun AccountPickerSection(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 6.dp)
             )
-            Row(
+            LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                accounts.forEach { acc ->
+                items(visibleAccounts, key = { it.id }) { acc ->
                     val isSelected = selectedAccountId == acc.id
-                    Box(
+                    Column(
                         modifier = Modifier
-                            .weight(1f)
+                            .widthIn(min = 128.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(
-                                if (isSelected) typeAccentColor.copy(alpha = 0.18f)
+                                if (isSelected) typeAccentColor.copy(alpha = 0.16f)
                                 else MaterialTheme.colorScheme.surfaceVariant
                             )
-                            .clickable { onAccountSelected(acc.id) }
-                            .padding(vertical = 10.dp, horizontal = 8.dp),
-                        contentAlignment = Alignment.Center
+                            .border(
+                                width = if (isSelected) 1.5.dp else 1.dp,
+                                color = if (isSelected) typeAccentColor else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .clickable {
+                                onAccountSelected(acc.id)
+                                if (type == TransactionType.TRANSFER && toAccountId == acc.id) {
+                                    visibleAccounts.firstOrNull { it.id != acc.id }?.let { onTargetAccountSelected(it.id) }
+                                }
+                            }
+                            .padding(vertical = 10.dp, horizontal = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = acc.name,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Bold,
                             color = if (isSelected) typeAccentColor else MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1
+                            maxLines = 1,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = FormatterUtils.formatCurrency(acc.balance, currencyCode = acc.currency),
+                            fontSize = 11.sp,
+                            color = if (isSelected) typeAccentColor.copy(alpha = 0.8f) else TextGray,
+                            maxLines = 1,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -196,37 +214,54 @@ fun AccountPickerSection(
         if (type == TransactionType.TRANSFER) {
             Column {
                 Text("الحساب المستلم", fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 6.dp))
-                Row(
+                LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    accounts.forEach { acc ->
+                    items(visibleAccounts, key = { "to_${it.id}" }) { acc ->
                         val isSelected = toAccountId == acc.id
                         val isDisabled = acc.id == selectedAccountId
-                        Box(
+                        Column(
                             modifier = Modifier
-                                .weight(1f)
+                                .widthIn(min = 128.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(
                                     when {
-                                        isSelected -> TransferBlue.copy(alpha = 0.18f)
+                                        isSelected -> TransferBlue.copy(alpha = 0.16f)
                                         isDisabled -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                                         else -> MaterialTheme.colorScheme.surfaceVariant
                                     }
                                 )
+                                .border(
+                                    width = if (isSelected) 1.5.dp else 1.dp,
+                                    color = if (isSelected) TransferBlue else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
                                 .clickable(enabled = !isDisabled) { onTargetAccountSelected(acc.id) }
-                                .padding(vertical = 10.dp, horizontal = 8.dp),
-                            contentAlignment = Alignment.Center
+                                .padding(vertical = 10.dp, horizontal = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
                                 text = acc.name,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Bold,
                                 color = when {
                                     isDisabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.28f)
                                     isSelected -> TransferBlue
                                     else -> MaterialTheme.colorScheme.onSurface
                                 },
-                                maxLines = 1
+                                maxLines = 1,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = FormatterUtils.formatCurrency(acc.balance, currencyCode = acc.currency),
+                                fontSize = 11.sp,
+                                color = when {
+                                    isDisabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                                    isSelected -> TransferBlue.copy(alpha = 0.8f)
+                                    else -> TextGray
+                                },
+                                maxLines = 1,
+                                textAlign = TextAlign.Center
                             )
                         }
                     }

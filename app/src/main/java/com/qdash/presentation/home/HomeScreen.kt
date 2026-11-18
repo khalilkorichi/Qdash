@@ -1,21 +1,27 @@
 package com.qdash.presentation.home
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qdash.presentation.home.components.*
+import com.qdash.presentation.navigation.LocalBottomBarPadding
 import com.qdash.presentation.navigation.LocalNavController
 import com.qdash.presentation.navigation.Screen
+import com.qdash.presentation.settings.components.DashboardCustomizationDialog
 import com.qdash.domain.model.CategoryType
 import androidx.compose.ui.text.font.FontWeight
 import com.qdash.core.ui.components.SubscriptionItem
@@ -47,8 +53,10 @@ fun HomeScreen(
     val isRefreshing = uiState.isRefreshing
     val pullRefreshState = rememberPullToRefreshState()
     val navController = LocalNavController.current
+    val bottomBarPadding = LocalBottomBarPadding.current
 
     var showBalanceDetails by remember { mutableStateOf(false) }
+    var showCustomizeDialog by remember { mutableStateOf(false) }
     val showBalances = uiState.showBalances
     val shouldShowReminder = uiState.showWalletReminder && uiState.accounts.none { it.balance > 0.0 }
 
@@ -95,7 +103,7 @@ fun HomeScreen(
                         .background(MaterialTheme.colorScheme.background)
                         .padding(bottom = innerPadding.calculateBottomPadding()),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(bottom = 100.dp) // Space for radial FAB
+                    contentPadding = PaddingValues(bottom = bottomBarPadding + 24.dp)
                 ) {
 
                     // ── Premium Top Card ──
@@ -120,7 +128,8 @@ fun HomeScreen(
                     if (shouldShowReminder) {
                         item {
                             WalletSetupReminderCard(
-                                onDismiss = onDismissReminder
+                                onDismiss = onDismissReminder,
+                                onSetupClick = { navController?.navigate(Screen.Accounts.route) }
                             )
                         }
                     }
@@ -135,6 +144,7 @@ fun HomeScreen(
                                         monthlyExpense = uiState.monthlyExpense,
                                         incomeChangePercent = uiState.incomeChangePercent,
                                         expenseChangePercent = uiState.expenseChangePercent,
+                                        totalAmana = uiState.totalAmana,
                                         accounts = uiState.accounts,
                                         recentTransactions = uiState.recentTransactions,
                                         onIncomeShowAllClick = onViewAllIncomeClick,
@@ -166,8 +176,8 @@ fun HomeScreen(
                                         PinnedTemplatesSection(
                                             pinnedTemplates = uiState.pinnedTemplates,
                                             onManageTemplatesClick = { navController?.navigate(Screen.Templates.route) },
-                                            onTemplateSelect = { json ->
-                                                navController?.navigate(Screen.AddTransaction.createRoute("EXPENSE", draft = json))
+                                            onTemplateSelect = { type, json ->
+                                                navController?.navigate(Screen.AddTransaction.createRoute(type, draft = json))
                                             }
                                         )
                                     }
@@ -213,9 +223,7 @@ fun HomeScreen(
                                         it.type == CategoryType.EXPENSE && it.budgetLimit != null
                                     }
                                     val matchingSpent = if (budgetCat != null) {
-                                        uiState.recentTransactions
-                                            .filter { it.categoryId == budgetCat.id }
-                                            .sumOf { it.amount }
+                                        uiState.monthlyCategorySpending[budgetCat.id] ?: 0.0
                                     } else 0.0
 
                                     BudgetProgressSection(
@@ -229,7 +237,7 @@ fun HomeScreen(
                                 if (uiState.upcomingSubscriptions.isNotEmpty()) {
                                     item {
                                         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Text(
                                                     text = "تذكيرات الاشتراكات القادمة",
                                                     style = MaterialTheme.typography.titleMedium,
@@ -238,7 +246,7 @@ fun HomeScreen(
                                                 )
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Icon(
-                                                    imageVector = androidx.compose.material.icons.Icons.Default.Notifications,
+                                                    imageVector = Icons.Default.Notifications,
                                                     contentDescription = null,
                                                     tint = primary,
                                                     modifier = Modifier.size(20.dp)
@@ -251,7 +259,9 @@ fun HomeScreen(
                                                         .firstOrNull { it.id == sub.accountId }?.name ?: "غير محدد"
                                                     SubscriptionItem(
                                                         subscription = sub,
-                                                        onToggleActive = {},
+                                                        onToggleActive = { active ->
+                                                            viewModel.toggleSubscription(sub, active)
+                                                        },
                                                         accountName = linkedAcc
                                                     )
                                                 }
@@ -267,15 +277,60 @@ fun HomeScreen(
                                     accounts = uiState.accounts,
                                     isLoading = uiState.isLoading,
                                     onViewAllTransactionsClick = onViewAllTransactionsClick,
-                                    primaryColor = primary
+                                    primaryColor = primary,
+                                    onTransactionClick = { tx ->
+                                        navController?.navigate(Screen.AddTransaction.createRoute(tx.type.name, tx.id))
+                                    }
                                 )
                             }
+                        }
+                    }
+
+                    // ── Customize Dashboard Sections Button ──
+                    item {
+                        OutlinedButton(
+                            onClick = { showCustomizeDialog = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            ),
+                            contentPadding = PaddingValues(vertical = 12.dp, horizontal = 16.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Tune,
+                                contentDescription = null,
+                                tint = primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "تخصيص ترتيب الصفحة الرئيسية",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
             }
         }
     }
+
+        if (showCustomizeDialog) {
+            DashboardCustomizationDialog(
+                initialSectionsOrder = uiState.allSectionsOrder,
+                initialSectionsVisibility = uiState.sectionsVisibility,
+                onDismiss = { showCustomizeDialog = false },
+                onConfirm = { order, visibility ->
+                    viewModel.saveDashboardCustomization(order, visibility)
+                    showCustomizeDialog = false
+                }
+            )
+        }
 
         // ── Available Balance Detailed Modal ──
         BalanceDetailsDialog(

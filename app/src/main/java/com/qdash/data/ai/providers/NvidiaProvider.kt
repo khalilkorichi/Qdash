@@ -48,8 +48,9 @@ class NvidiaProvider(
                     .post(body)
                     .build()
                 
-                val response = client.newCall(request).execute()
-                val reply = parseOpenAiResponse(response)
+                val reply = client.newCall(request).execute().use { response ->
+                    parseOpenAiResponse(response)
+                }
                 return@withContext Result.success(reply)
             } catch (e: Exception) {
                 errors.add("Model $modelId failed: ${e.localizedMessage}")

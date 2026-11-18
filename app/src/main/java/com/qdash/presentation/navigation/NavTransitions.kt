@@ -8,54 +8,46 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.ui.graphics.graphicsLayer
 
-// Durations tuned for RTL Arabic UI:
-// - Enter slightly longer (280ms) than exit (220ms) to feel deliberate without sluggishness.
-private const val ENTER_DURATION = 280
-private const val EXIT_DURATION = 220
+private const val ENTER_DURATION = 220
+private const val EXIT_DURATION = 180
 
 /**
- * Centralised navigation transitions for the app.
- *
- * All transitions use `graphicsLayer`-based translation by overriding the
- * `slideInHorizontally` with a custom [EnterTransition] that offloads the
- * translation delta to the **RenderThread**, preventing main-thread layout
- * recompositions on every animation frame.
- *
- * RTL direction is preserved: entering screens slide in from left (leading edge
- * in RTL), exiting screens slide out to the right (trailing edge in RTL).
- * Slide distance is 1/6 of screen width — subtle, premium, intentional.
+ * Centralised navigation transitions tuned for snappy RTL Arabic UI.
+ * Forward push enters from the RTL leading edge (left, `-width/8`) while previous screen
+ * slides toward the RTL trailing edge (right, `+width/8`).
  */
 object NavTransitions {
 
-    /** Forward navigation: content enters from the left (RTL leading edge). */
-    val enterFromRight: EnterTransition = androidx.compose.animation.slideInHorizontally(
-        initialOffsetX = { -it / 6 },
+    /** Forward navigation: content enters from the RTL leading edge (left). */
+    val pushEnterRtl: EnterTransition = androidx.compose.animation.slideInHorizontally(
+        initialOffsetX = { -it / 8 },
         animationSpec = tween(ENTER_DURATION, easing = FastOutSlowInEasing)
     ) + fadeIn(animationSpec = tween(ENTER_DURATION))
 
-    /** Forward navigation: previous content exits to the right (RTL trailing edge). */
-    val exitToRight: ExitTransition = androidx.compose.animation.slideOutHorizontally(
-        targetOffsetX = { it / 6 },
+    /** Forward navigation: previous content exits toward the RTL trailing edge (right). */
+    val pushExitRtl: ExitTransition = androidx.compose.animation.slideOutHorizontally(
+        targetOffsetX = { it / 8 },
         animationSpec = tween(EXIT_DURATION, easing = FastOutSlowInEasing)
     ) + fadeOut(animationSpec = tween(EXIT_DURATION))
 
-    /** Back navigation (pop): content re-enters from the right (RTL trailing edge). */
-    val popEnterFromLeft: EnterTransition = androidx.compose.animation.slideInHorizontally(
-        initialOffsetX = { it / 6 },
+    /** Back navigation (pop): content re-enters from the RTL trailing edge (right). */
+    val popEnterRtl: EnterTransition = androidx.compose.animation.slideInHorizontally(
+        initialOffsetX = { it / 8 },
         animationSpec = tween(ENTER_DURATION, easing = FastOutSlowInEasing)
     ) + fadeIn(animationSpec = tween(ENTER_DURATION))
 
-    /** Back navigation (pop): content exits to the left (RTL leading edge). */
-    val popExitToLeft: ExitTransition = androidx.compose.animation.slideOutHorizontally(
-        targetOffsetX = { -it / 6 },
+    /** Back navigation (pop): content exits toward the RTL leading edge (left). */
+    val popExitRtl: ExitTransition = androidx.compose.animation.slideOutHorizontally(
+        targetOffsetX = { -it / 8 },
         animationSpec = tween(EXIT_DURATION, easing = FastOutSlowInEasing)
     ) + fadeOut(animationSpec = tween(EXIT_DURATION))
 
-    /**
-     * Bottom-nav tab switching: pure fade — no slide.
-     * Sliding between sibling tabs feels directionally ambiguous; fade is cleaner.
-     * Also cheaper to render (no layout shift, pure alpha on RenderThread).
-     */
-    val fadeEnter: EnterTransition = fadeIn(animationSpec = tween(200))
-    val fadeExit: ExitTransition = fadeOut(animationSpec = tween(180))
+    // Backwards-compatible aliases
+    val enterFromRight: EnterTransition get() = pushEnterRtl
+    val exitToRight: ExitTransition get() = pushExitRtl
+    val popEnterFromLeft: EnterTransition get() = popEnterRtl
+    val popExitToLeft: ExitTransition get() = popExitRtl
+
+    val fadeEnter: EnterTransition = fadeIn(animationSpec = tween(160))
+    val fadeExit: ExitTransition = fadeOut(animationSpec = tween(140))
 }

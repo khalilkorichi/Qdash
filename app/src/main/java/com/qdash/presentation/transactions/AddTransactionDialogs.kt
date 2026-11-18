@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,7 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.domain.model.CategoryType
 import com.qdash.domain.model.TransactionType
-import com.qdash.ui.theme.Primary
+import com.qdash.presentation.categories.components.CategoryIconPickerBottomSheet
+import com.qdash.presentation.components.UnifiedCategoryIcon
+import com.qdash.presentation.components.safeParseColor
 import com.qdash.ui.theme.TextGray
 
 private val curatedColors = listOf(
@@ -38,8 +42,9 @@ fun AddCategoryDialog(
     onConfirm: (name: String, icon: String, color: String, parentId: Long?) -> Unit
 ) {
     var newCategoryName by remember { mutableStateOf("") }
-    var newCategoryIcon by remember { mutableStateOf("📁") }
+    var newCategoryIcon by remember { mutableStateOf("shopping_bag") }
     var newCategoryColor by remember { mutableStateOf("#8B5CF6") }
+    var showIconPickerSheet by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -70,27 +75,35 @@ fun AddCategoryDialog(
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    OutlinedTextField(
-                        value = newCategoryIcon,
-                        onValueChange = { newCategoryIcon = it },
-                        label = { Text("أيقونة/رمز") },
-                        placeholder = { Text("📁") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.width(90.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = typeAccentColor,
-                            cursorColor = typeAccentColor
+                    val previewColor = safeParseColor(newCategoryColor, typeAccentColor)
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(previewColor.copy(alpha = 0.15f))
+                            .border(1.dp, previewColor.copy(alpha = 0.4f), CircleShape)
+                            .clickable { showIconPickerSheet = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        UnifiedCategoryIcon(
+                            iconKey = newCategoryIcon,
+                            tint = previewColor,
+                            modifier = Modifier.size(22.dp),
+                            emojiFontSize = 20.sp
                         )
-                    )
-                    Text(
-                        text = "يمكنك كتابة رمز تعبيري (Emoji)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextGray,
+                    }
+                    OutlinedButton(
+                        onClick = { showIconPickerSheet = true },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f)
-                    )
+                    ) {
+                        Icon(Icons.Default.GridView, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("اختر أيقونة الفئة", fontWeight = FontWeight.Bold)
+                    }
                 }
 
                 Column {
@@ -105,7 +118,7 @@ fun AddCategoryDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         curatedColors.forEach { hexColor ->
-                            val color = Color(android.graphics.Color.parseColor(hexColor))
+                            val color = safeParseColor(hexColor, typeAccentColor)
                             val isSelected = newCategoryColor == hexColor
                             Box(
                                 modifier = Modifier
@@ -117,8 +130,18 @@ fun AddCategoryDialog(
                                         color = if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent,
                                         shape = CircleShape
                                     )
-                                    .clickable { newCategoryColor = hexColor }
-                            )
+                                    .clickable { newCategoryColor = hexColor },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -144,6 +167,14 @@ fun AddCategoryDialog(
             }
         }
     )
+
+    if (showIconPickerSheet) {
+        CategoryIconPickerBottomSheet(
+            selectedIconKey = newCategoryIcon,
+            onIconSelected = { newCategoryIcon = it },
+            onDismiss = { showIconPickerSheet = false }
+        )
+    }
 }
 
 @Composable
@@ -151,13 +182,14 @@ fun SavingsConfirmDialog(
     onDismiss: () -> Unit,
     onConfirm: (isContribution: Boolean) -> Unit
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
                 text = "إيداع في حساب ادخار",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                textAlign = TextAlign.Right,
+                textAlign = TextAlign.Start,
                 modifier = Modifier.fillMaxWidth()
             )
         },
@@ -165,16 +197,16 @@ fun SavingsConfirmDialog(
             Text(
                 text = "أنت تضيف دخلاً إلى حساب ادخار. هل تريد تسجيله كمساهمة ادخار (يحافظ على الدخل الشهري دون تغيير) أم كدخل عادي لهذا الحساب (سيؤدي لزيادة الدخل الشهري)؟",
                 style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Right,
+                textAlign = TextAlign.Start,
                 modifier = Modifier.fillMaxWidth()
             )
         },
         confirmButton = {
             Button(
                 onClick = { onConfirm(true) },
-                colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
             ) {
-                Text("مساهمة ادخار (موصى به)", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("مساهمة ادخار (موصى به)", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -250,15 +282,16 @@ fun SaveTemplateDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val primaryColor = MaterialTheme.colorScheme.primary
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.PushPin, contentDescription = null, tint = Primary, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.PushPin, contentDescription = null, tint = primaryColor, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("تثبيت القالب في الرئيسية", style = MaterialTheme.typography.bodyMedium)
                     }
                     Switch(
                         checked = templatePinned,
                         onCheckedChange = { templatePinned = it },
-                        colors = SwitchDefaults.colors(checkedTrackColor = Primary)
+                        colors = SwitchDefaults.colors(checkedTrackColor = primaryColor)
                     )
                 }
             }
@@ -373,7 +406,7 @@ fun AddTransactionDialogsContainer(
                             ?: uiState.accounts.firstOrNull()?.id 
                             ?: 1L,
                         targetAccountId = if (type == TransactionType.TRANSFER) toAccountId else null,
-                        categoryId = if (type == TransactionType.TRANSFER) null else (subcategoryId ?: selectedCategoryId),
+                        categoryId = if (type == TransactionType.TRANSFER) null else selectedCategoryId,
                         subcategoryId = if (type == TransactionType.TRANSFER) null else subcategoryId,
                         notes = note.ifBlank { null },
                         iconEmoji = emoji,

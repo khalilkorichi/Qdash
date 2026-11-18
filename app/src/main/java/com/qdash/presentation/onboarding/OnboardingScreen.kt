@@ -2,6 +2,7 @@ package com.qdash.presentation.onboarding
 
 import android.Manifest
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -9,6 +10,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,9 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.qdash.domain.model.AccountType
 import com.qdash.presentation.onboarding.components.*
-import com.qdash.ui.theme.Primary
 import com.qdash.ui.theme.TextGray
 import com.qdash.ui.designsystem.components.shimmerEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -36,9 +37,15 @@ fun OnboardingScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     val backupToRestore by viewModel.backupFoundToRestore.collectAsStateWithLifecycle()
     val isRestoring by viewModel.isRestoringBackup.collectAsStateWithLifecycle()
+
+    BackHandler(enabled = uiState.currentStep > 1 && !uiState.isSaving && !isRestoring) {
+        keyboardController?.hide()
+        viewModel.prevStep()
+    }
 
     if (backupToRestore != null) {
         com.qdash.presentation.backup.components.RestoreBackupPromptDialog(
@@ -65,12 +72,13 @@ fun OnboardingScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .safeDrawingPadding()
+            .navigationBarsPadding()
+            .imePadding()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
@@ -84,14 +92,40 @@ fun OnboardingScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "قداشّ",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 22.sp
-                        ),
-                        color = Primary
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (uiState.currentStep > 1) {
+                            IconButton(
+                                onClick = {
+                                    keyboardController?.hide()
+                                    viewModel.prevStep()
+                                },
+                                enabled = !uiState.isSaving && !isRestoring,
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .background(MaterialTheme.colorScheme.surface, CircleShape)
+                                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "رجوع",
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = "قداشّ",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 22.sp
+                            ),
+                            color = primaryColor
+                        )
+                    }
 
                     // Step Indicator label in Arabic
                     Text(
@@ -119,13 +153,13 @@ fun OnboardingScreen(
                                 .weight(1f)
                                 .fillMaxHeight()
                                 .clip(CircleShape)
-                                .background(if (isCompletedOrCurrent) Primary else Color.Transparent)
+                                .background(if (isCompletedOrCurrent) primaryColor else Color.Transparent)
                         )
                     }
                 }
             }
 
-            // Main steps content with animated visibility
+            // Main steps content
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -171,11 +205,11 @@ fun OnboardingScreen(
                             onRemoveCustomWallet = { viewModel.onRemoveCustomWallet(it) },
                             onNext = {
                                 keyboardController?.hide()
-                                viewModel.completeWalletSetup(skip = false, onFinished = onFinished)
+                                viewModel.proceedToAuthStep(skip = false)
                             },
                             onSkip = {
                                 keyboardController?.hide()
-                                viewModel.completeWalletSetup(skip = true, onFinished = onFinished)
+                                viewModel.proceedToAuthStep(skip = true)
                             }
                         )
                     }

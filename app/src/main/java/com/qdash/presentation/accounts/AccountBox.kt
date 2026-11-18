@@ -248,7 +248,11 @@ fun AccountItemCard(
                         )
                     }
                     Text(
-                        text = if (showBalance) FormatterUtils.formatCurrency(account.balance) else "•••• دج",
+                        text = if (showBalance) {
+                            FormatterUtils.formatCurrency(account.balance, currencyCode = account.currency)
+                        } else {
+                            "•••• ${FormatterUtils.currencySymbol(account.currency)}"
+                        },
                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.ExtraBold

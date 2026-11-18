@@ -7,7 +7,10 @@ import androidx.room.ForeignKey
 
 @Entity(
     tableName = "user_category_mappings",
-    indices = [Index(value = ["normalizedText"], unique = true)],
+    indices = [
+        Index(value = ["normalizedText"], unique = true),
+        Index(value = ["categoryId"])
+    ],
     foreignKeys = [
         ForeignKey(
             entity = CategoryEntity::class,

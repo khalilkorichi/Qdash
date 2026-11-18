@@ -120,6 +120,7 @@ fun FormGrid(
     onRipChange: (Boolean) -> Unit,
     focusedField: String?,
     onFieldFocus: (String?) -> Unit,
+    onMotifChange: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val formBg = ColorTokens.SfpFormBg
@@ -128,13 +129,13 @@ fun FormGrid(
     val writingColor = Color(0xFF1A1A2E)
 
     val formattedAmount = remember(uiState.sfpAmount) {
-        val amt = uiState.sfpAmount.toDoubleOrNull()
+        val amt = AmountConversionEngine.parseFlexibleAmount(uiState.sfpAmount)
         if (amt != null) AmountConversionEngine.formatAmountToPostal(amt) else ""
     }
 
     val amountInWords = remember(uiState.sfpAmount) {
-        val amt = uiState.sfpAmount.toDoubleOrNull()
-        if (amt != null) AmountConversionEngine.convertToArabicWords(amt) else ""
+        val amt = AmountConversionEngine.parseFlexibleAmount(uiState.sfpAmount)
+        if (amt != null) AmountConversionEngine.convertToArabicWords(amt, preferCentimes = false) else ""
     }
 
     val isVersement = uiState.sfpOperation == SfpOperationType.VERSEMENT
@@ -597,13 +598,14 @@ fun FormGrid(
                 .height(44.dp),
             labelArabic = "سبب الإرسال / المراسلة",
             labelFrench = "Motif - Correspondance",
-            isFocused = false
+            isFocused = focusedField == "sfpMotif",
+            onTap = { onFieldFocus("sfpMotif") }
         ) {
             SingleLineUnderlineInput(
-                value = "",
-                onValueChange = {},
+                value = uiState.sfpMotif,
+                onValueChange = onMotifChange,
                 placeholder = "سبب العملية المالية...",
-                enabled = false
+                enabled = true
             )
         }
 

@@ -1,29 +1,47 @@
 package com.qdash.presentation.debt
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Handshake
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
-import com.qdash.core.ui.components.FinTrackTopBar
-import com.qdash.domain.model.*
-import com.qdash.domain.model.RegularDebt
-import com.qdash.domain.model.InstallmentDebt
-import com.qdash.presentation.debt.components.*
-import com.qdash.ui.designsystem.components.AppDialog
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.qdash.core.ui.components.FinTrackTopBar
+import com.qdash.core.utils.FormatterUtils
+import com.qdash.domain.model.*
+import com.qdash.presentation.debt.components.*
+import com.qdash.ui.designsystem.components.AppBottomSheet
+import com.qdash.ui.designsystem.components.AppCard
+import com.qdash.ui.designsystem.components.AppDialog
+import com.qdash.ui.designsystem.components.CardVariant
+import com.qdash.ui.designsystem.components.debt.DebtSkeleton
+import com.qdash.ui.designsystem.tokens.ShapeTokens
+import com.qdash.ui.theme.ExpenseRed
+import com.qdash.ui.theme.SavingsAmber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DebtsScreen(
     viewModel: DebtViewModel,
+    onBack: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -34,7 +52,12 @@ fun DebtsScreen(
     // Sub-screen navigation
     var activeDebtForDetails by remember { mutableStateOf<Debt?>(null) }
 
-    // Dialog visibility states
+    BackHandler(enabled = activeDebtForDetails != null) {
+        activeDebtForDetails = null
+    }
+
+    // Dialog & Sheet visibility states
+    var showAddDebtChooserSheet by remember { mutableStateOf(false) }
     var showAddRegularDebtDialog by remember { mutableStateOf(false) }
     var showAddInstallmentDebtDialog by remember { mutableStateOf(false) }
     var showAddLentDebtDialog by remember { mutableStateOf(false) }
@@ -45,7 +68,7 @@ fun DebtsScreen(
     var showPaymentsHistoryBottomSheet by remember { mutableStateOf<Debt?>(null) }
     var showCancelPaymentConfirmDialog by remember { mutableStateOf<DebtPayment?>(null) }
 
-    LaunchedEffect(activeDebtForDetails, uiState.debts) {
+    LaunchedEffect(activeDebtForDetails?.id, uiState.debts) {
         activeDebtForDetails?.let { current ->
             val updated = uiState.debts.find { it.id == current.id }
             activeDebtForDetails = updated
@@ -54,7 +77,9 @@ fun DebtsScreen(
     }
 
     Scaffold(
-        modifier = modifier.fillMaxSize().testTag("debts_screen"),
+        modifier = modifier
+            .fillMaxSize()
+            .testTag("debts_screen"),
         topBar = {
             if (activeDebtForDetails != null) {
                 FinTrackTopBar(
@@ -63,7 +88,11 @@ fun DebtsScreen(
                     onBackClick = { activeDebtForDetails = null }
                 )
             } else {
-                FinTrackTopBar(title = "خطة وتسوية الديون والالتزامات")
+                FinTrackTopBar(
+                    title = "خطة الديون والالتزامات",
+                    showBackButton = true,
+                    onBackClick = onBack
+                )
             }
         }
     ) { innerPadding ->
@@ -71,57 +100,188 @@ fun DebtsScreen(
             isRefreshing = uiState.isRefreshing,
             onRefresh = { viewModel.refresh() },
             state = pullRefreshState,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
                     .background(MaterialTheme.colorScheme.background)
             ) {
-                if (activeDebtForDetails != null) {
-                    val debt = activeDebtForDetails!!
-                    DebtDetailsContent(
-                        debt = debt,
-                        accounts = uiState.accounts,
-                        selectedDebtPayments = uiState.selectedDebtPayments,
-                        onPayClick = { showPaymentDialog = debt },
-                        onEditClick = { d -> showEditDebtBottomSheet = d },
-                        onDeleteClick = { d -> showDeleteConfirmDialog = d },
-                        onForgiveClick = { d -> showForgiveConfirmDialog = d },
-                        onCloseDebt = { id -> viewModel.closeDebt(id) },
-                        onCancelPaymentClick = { payment -> showCancelPaymentConfirmDialog = payment }
-                    )
-                } else {
-                    DebtsMainContent(
-                        debts = uiState.debts,
-                        insights = uiState.insights,
-                        strategyResults = uiState.strategyResults,
-                        selectedStrategy = uiState.selectedStrategy,
-                        selectedDirection = uiState.selectedDirection,
-                        onDirectionChange = { viewModel.selectDirection(it) },
-                        onStrategyChange = { viewModel.changeStrategy(it) },
-                        onSelectDebt = { d ->
-                            activeDebtForDetails = d
-                            viewModel.selectDebt(d.id)
-                        },
-                        onPayClick = { d -> showPaymentDialog = d },
-                        onAddDebtClick = { type ->
-                            if (type == DebtType.REGULAR) {
-                                showAddRegularDebtDialog = true
-                            } else {
-                                showAddInstallmentDebtDialog = true
+                when {
+                    uiState.isLoading && uiState.debts.isEmpty() -> {
+                        DebtSkeleton()
+                    }
+                    activeDebtForDetails != null -> {
+                        val debt = activeDebtForDetails!!
+                        DebtDetailsContent(
+                            debt = debt,
+                            accounts = uiState.accounts,
+                            selectedDebtPayments = uiState.selectedDebtPayments,
+                            onPayClick = { showPaymentDialog = debt },
+                            onEditClick = { d -> showEditDebtBottomSheet = d },
+                            onDeleteClick = { d -> showDeleteConfirmDialog = d },
+                            onForgiveClick = { d -> showForgiveConfirmDialog = d },
+                            onPaymentsHistoryClick = { d ->
+                                viewModel.selectDebt(d.id)
+                                showPaymentsHistoryBottomSheet = d
+                            },
+                            onCancelPaymentClick = { payment -> showCancelPaymentConfirmDialog = payment }
+                        )
+                    }
+                    else -> {
+                        DebtsMainContent(
+                            debts = uiState.debts,
+                            orderedPlanDebts = uiState.orderedPlanDebts,
+                            insights = uiState.insights,
+                            strategyResults = uiState.strategyComparison,
+                            selectedStrategy = uiState.selectedStrategy,
+                            selectedDirection = uiState.selectedDirection,
+                            onDirectionChange = { viewModel.selectDirection(it) },
+                            onStrategyChange = { viewModel.selectStrategy(it) },
+                            onSelectDebt = { d ->
+                                activeDebtForDetails = d
+                                viewModel.selectDebt(d.id)
+                            },
+                            onPayClick = { d -> showPaymentDialog = d },
+                            onAddPrimaryClick = { preferredFilter ->
+                                if (uiState.selectedDirection == DebtDirection.OWED_TO_ME) {
+                                    showAddLentDebtDialog = true
+                                } else {
+                                    when (preferredFilter) {
+                                        DebtListFilter.INSTALLMENT -> showAddInstallmentDebtDialog = true
+                                        DebtListFilter.REGULAR -> showAddRegularDebtDialog = true
+                                        else -> showAddDebtChooserSheet = true
+                                    }
+                                }
                             }
-                        },
-                        onAddLentDebtClick = { showAddLentDebtDialog = true },
-                        onEditClick = { d -> showEditDebtBottomSheet = d },
-                        onDeleteClick = { d -> showDeleteConfirmDialog = d },
-                        onForgiveClick = { d -> showForgiveConfirmDialog = d },
-                        onPaymentsHistoryClick = { d ->
-                            viewModel.selectDebt(d.id)
-                            showPaymentsHistoryBottomSheet = d
+                        )
+                    }
+                }
+
+                // --- ADD OBLIGATION TYPE CHOOSER SHEET ---
+                if (showAddDebtChooserSheet) {
+                    AppBottomSheet(
+                        onDismissRequest = { showAddDebtChooserSheet = false }
+                    ) {
+                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp)
+                                    .padding(top = 4.dp, bottom = 28.dp)
+                                    .navigationBarsPadding(),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Text(
+                                    text = "إضافة التزام مالي جديد",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "اختر نوع الالتزام ليتم إدراجه تلقائياً في خطة السداد الذكية:",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                                AppCard(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    variant = CardVariant.SOLID,
+                                    shape = ShapeTokens.Lg,
+                                    backgroundColor = MaterialTheme.colorScheme.surface,
+                                    onClick = {
+                                        showAddDebtChooserSheet = false
+                                        showAddInstallmentDebtDialog = true
+                                    }
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(44.dp)
+                                                .clip(CircleShape)
+                                                .background(ExpenseRed.copy(alpha = 0.12f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.AccountBalance,
+                                                contentDescription = null,
+                                                tint = ExpenseRed
+                                            )
+                                        }
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "قرض أو أقساط مجدولة",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = "تمويل بنكي أو تقسيط تجاري بقسط شهري محدد وأولوية سداد.",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+
+                                AppCard(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    variant = CardVariant.SOLID,
+                                    shape = ShapeTokens.Lg,
+                                    backgroundColor = MaterialTheme.colorScheme.surface,
+                                    onClick = {
+                                        showAddDebtChooserSheet = false
+                                        showAddRegularDebtDialog = true
+                                    }
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(44.dp)
+                                                .clip(CircleShape)
+                                                .background(SavingsAmber.copy(alpha = 0.14f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Handshake,
+                                                contentDescription = null,
+                                                tint = SavingsAmber
+                                            )
+                                        }
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "دين مرن / سلفة شخصية",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = "دين عائلي أو شخصي بدون فوائد يُسدد على دفعات مرنة.",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
-                    )
+                    }
                 }
 
                 // --- DIALOGS ---
@@ -212,7 +372,7 @@ fun DebtsScreen(
                                     date = date
                                 )
                                 showPaymentDialog = null
-                                Toast.makeText(context, "تم تسجيل استرداد السلفة وإيداعها في المحفظة بنجاح", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "تم تسجيل تحصيل الدفعة وإيداعها في المحفظة بنجاح", Toast.LENGTH_SHORT).show()
                             }
                         )
                     } else when (debt) {
@@ -232,6 +392,7 @@ fun DebtsScreen(
                                         date = date
                                     )
                                     showPaymentDialog = null
+                                    Toast.makeText(context, "تم تسجيل دفعة السداد بنجاح", Toast.LENGTH_SHORT).show()
                                 }
                             )
                         }
@@ -251,6 +412,7 @@ fun DebtsScreen(
                                         date = date
                                     )
                                     showPaymentDialog = null
+                                    Toast.makeText(context, "تم تسجيل تسديد القسط بنجاح", Toast.LENGTH_SHORT).show()
                                 }
                             )
                         }
@@ -265,6 +427,7 @@ fun DebtsScreen(
                                 accounts = uiState.accounts,
                                 onDismissRequest = { showEditDebtBottomSheet = null },
                                 onConfirm = { title, creditorName, totalAmount, linkedAccountId, notes, color, dueDate ->
+                                    val isLent = targetDebt.direction == DebtDirection.OWED_TO_ME
                                     viewModel.updateDebtDetails(
                                         debtId = targetDebt.id,
                                         title = title,
@@ -281,7 +444,8 @@ fun DebtsScreen(
                                         debtType = DebtType.REGULAR,
                                         onSuccess = {
                                             showEditDebtBottomSheet = null
-                                            Toast.makeText(context, "تم تحديث الدين بنجاح", Toast.LENGTH_SHORT).show()
+                                            val msg = if (isLent) "تم تحديث بيانات السلفة بنجاح" else "تم تحديث بيانات الالتزام بنجاح"
+                                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                         },
                                         onError = { error -> Toast.makeText(context, error, Toast.LENGTH_LONG).show() }
                                     )
@@ -310,7 +474,7 @@ fun DebtsScreen(
                                         debtType = DebtType.INSTALLMENT,
                                         onSuccess = {
                                             showEditDebtBottomSheet = null
-                                            Toast.makeText(context, "تم تحديث الدين بنجاح", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, "تم تحديث بيانات القرض بنجاح", Toast.LENGTH_SHORT).show()
                                         },
                                         onError = { error -> Toast.makeText(context, error, Toast.LENGTH_LONG).show() }
                                     )
@@ -322,11 +486,11 @@ fun DebtsScreen(
 
                 showDeleteConfirmDialog?.let { targetDebt ->
                     val isLent = targetDebt.direction == DebtDirection.OWED_TO_ME
-                    val delTitle = if (isLent) "حذف السجل المالي للسلفة" else "حذف السجل المالي للدين"
+                    val delTitle = if (isLent) "حذف السجل المالي للسلفة" else "حذف الالتزام المالي"
                     val delMsg = if (isLent) {
-                        "هل أنت متأكد من حذف سلفة '${targetDebt.title}' نهائياً؟ سيؤدي ذلك إلى استرجاع مبلغ السلفة الأصلي إلى محفظتك وإلغاء أي دفعات مستردة مرتبطة بها. لا يمكن التراجع عن هذا الإجراء."
+                        "هل أنت متأكد من حذف سلفة '${targetDebt.title}' نهائياً؟ سيؤدي ذلك إلى استرجاع مبلغ السلفة الأصلي إلى محفظتك وإلغاء أي دفعات مستردة مرتبطة بها."
                     } else {
-                        "هل أنت متأكد من حذف دين '${targetDebt.title}' نهائياً؟ سيؤدي ذلك أيضاً إلى حذف جميع دفعات السداد المسجلة المرتبطة به وإلغاء تأثيرها على رصيد محفظتك المالية (حذف المعاملات). لا يمكن التراجع عن هذا الإجراء."
+                        "هل أنت متأكد من حذف التزام '${targetDebt.title}' نهائياً؟ سيؤدي ذلك إلى حذف جميع دفعات السداد المسجلة المرتبطة به واسترجاع أثرها إلى محفظتك المالية."
                     }
                     AppDialog(
                         onDismissRequest = { showDeleteConfirmDialog = null },
@@ -338,7 +502,7 @@ fun DebtsScreen(
                             viewModel.deleteDebt(targetDebt.id)
                             showDeleteConfirmDialog = null
                             if (activeDebtForDetails?.id == targetDebt.id) activeDebtForDetails = null
-                            val successMsg = if (isLent) "تم حذف السلفة واسترجاع رصيدها لمحفظتك" else "تم حذف الدين وإلغاء دفعاته بنجاح"
+                            val successMsg = if (isLent) "تم حذف السلفة واسترجاع رصيدها لمحفظتك" else "تم حذف الالتزام واسترجاع دفعاته بنجاح"
                             Toast.makeText(context, successMsg, Toast.LENGTH_SHORT).show()
                         },
                         dismissButtonText = "إلغاء",
@@ -349,11 +513,11 @@ fun DebtsScreen(
 
                 showForgiveConfirmDialog?.let { targetDebt ->
                     val isLent = targetDebt.direction == DebtDirection.OWED_TO_ME
-                    val fTitle = if (isLent) "مسامحة المدين في السلفة" else "الإعفاء من الدين"
+                    val fTitle = if (isLent) "مسامحة المدين في السلفة" else "الإعفاء من المبلغ المتبقي"
                     val fMsg = if (isLent) {
-                        "هل أنت متأكد من مسامحة '${targetDebt.creditorName}' في المبلغ المتبقي لسلفة '${targetDebt.title}'؟ سيتم تصفير المبلغ المتبقي وإغلاق السلفة لوجه الله دون أي تأثير إضافي على محافظك."
+                        "هل أنت متأكد من مسامحة '${targetDebt.creditorName}' في المبلغ المتبقي (${FormatterUtils.formatCurrency(targetDebt.remainingAmount)}) لسلفة '${targetDebt.title}'؟ سيتم تصفير المتبقي وإغلاق السلفة دون أي تأثير على رصيد محفظتك."
                     } else {
-                        "هل أنت متأكد من الإعفاء من المتبقي لدين '${targetDebt.title}'؟ سيتم تصفير المبلغ المتبقي وتعيين الدين كمغلق دون خصم أي مبلغ من رصيدك المالي أو إنشاء معاملة سداد."
+                        "هل أنت متأكد من تسجيل إعفاء من المبلغ المتبقي (${FormatterUtils.formatCurrency(targetDebt.remainingAmount)}) لالتزام '${targetDebt.title}'؟ سيتم تصفير المتبقي وإغلاق الالتزام دون خصم أي مبلغ من محفظتك."
                     }
                     val confirmBtnText = if (isLent) "تأكيد المسامحة" else "تأكيد الإعفاء"
                     AppDialog(
@@ -366,10 +530,7 @@ fun DebtsScreen(
                                 debtId = targetDebt.id,
                                 onSuccess = {
                                     showForgiveConfirmDialog = null
-                                    if (activeDebtForDetails?.id == targetDebt.id) {
-                                        activeDebtForDetails = uiState.debts.find { it.id == targetDebt.id }
-                                    }
-                                    val toastMsg = if (isLent) "تمت المسامحة في السلفة وتصفيرها لوجه الله" else "تم الإعفاء من الدين وتصفيره"
+                                    val toastMsg = if (isLent) "تمت المسامحة في السلفة وإغلاقها بنجاح" else "تم الإعفاء من الالتزام وإغلاقه بنجاح"
                                     Toast.makeText(context, toastMsg, Toast.LENGTH_SHORT).show()
                                 },
                                 onError = { error -> Toast.makeText(context, error, Toast.LENGTH_LONG).show() }
@@ -392,21 +553,21 @@ fun DebtsScreen(
                 showCancelPaymentConfirmDialog?.let { targetPayment ->
                     AppDialog(
                         onDismissRequest = { showCancelPaymentConfirmDialog = null },
-                        title = "إلغاء الدفعة المالية",
-                        text = "هل أنت متأكد من إلغاء هذه الدفعة بقيمة ${targetPayment.amount.toInt()} د.ج؟ سيؤدي ذلك إلى حذف المعاملة المالية المرتبطة بها واستعادة توازن الرصيد في محفظتك، وتحديث المبلغ المتبقي. لا يمكن التراجع عن هذا الإجراء.",
-                        confirmButtonText = "تأكيد الإلغاء",
+                        title = "التراجع عن الدفعة المسجلة",
+                        text = "هل أنت متأكد من إلغاء هذه الدفعة بقيمة ${FormatterUtils.formatCurrency(targetPayment.amount)}؟ سيتم حذف المعاملة المالية المرتبطة بها واستعادة رصيد المحفظة وتحديث المبلغ المتبقي تلقائياً.",
+                        confirmButtonText = "نعم، إلغاء الدفعة",
                         onConfirm = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             viewModel.cancelPayment(
                                 paymentId = targetPayment.id,
                                 onSuccess = {
                                     showCancelPaymentConfirmDialog = null
-                                    Toast.makeText(context, "تم إلغاء الدفعة وتحديث الرصيد", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "تم إلغاء الدفعة واستعادة رصيد المحفظة", Toast.LENGTH_SHORT).show()
                                 },
                                 onError = { error -> Toast.makeText(context, error, Toast.LENGTH_LONG).show() }
                             )
                         },
-                        dismissButtonText = "إلغاء",
+                        dismissButtonText = "تراجع",
                         onDismiss = { showCancelPaymentConfirmDialog = null },
                         isDestructive = true
                     )

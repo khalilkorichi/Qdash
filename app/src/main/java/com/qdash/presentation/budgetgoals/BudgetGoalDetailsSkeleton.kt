@@ -2,17 +2,15 @@ package com.qdash.presentation.budgetgoals
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.qdash.core.ui.components.FinTrackTopBar
 import com.qdash.ui.designsystem.components.shimmerEffect
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BudgetGoalDetailsSkeleton(
     onBack: () -> Unit,
@@ -20,18 +18,10 @@ fun BudgetGoalDetailsSkeleton(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Box(modifier = Modifier.size(width = 140.dp, height = 24.dp).shimmerEffect(RoundedCornerShape(6.dp)))
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+            FinTrackTopBar(
+                title = "تفاصيل الميزانية",
+                showBackButton = true,
+                onBackClick = onBack
             )
         },
         modifier = modifier.fillMaxSize()
@@ -43,7 +33,6 @@ fun BudgetGoalDetailsSkeleton(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Main Stat Dial / Display Card Skeleton
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -60,35 +49,24 @@ fun BudgetGoalDetailsSkeleton(
                     Box(modifier = Modifier.size(width = 180.dp, height = 36.dp).shimmerEffect(RoundedCornerShape(8.dp)))
 
                     Spacer(modifier = Modifier.height(24.dp))
-
                     HorizontalDivider()
-
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Box(modifier = Modifier.size(width = 60.dp, height = 12.dp).shimmerEffect(RoundedCornerShape(4.dp)))
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Box(modifier = Modifier.size(width = 80.dp, height = 16.dp).shimmerEffect(RoundedCornerShape(4.dp)))
-                        }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Box(modifier = Modifier.size(width = 60.dp, height = 12.dp).shimmerEffect(RoundedCornerShape(4.dp)))
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Box(modifier = Modifier.size(width = 80.dp, height = 16.dp).shimmerEffect(RoundedCornerShape(4.dp)))
-                        }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Box(modifier = Modifier.size(width = 60.dp, height = 12.dp).shimmerEffect(RoundedCornerShape(4.dp)))
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Box(modifier = Modifier.size(width = 80.dp, height = 16.dp).shimmerEffect(RoundedCornerShape(4.dp)))
+                        repeat(3) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(modifier = Modifier.size(width = 60.dp, height = 12.dp).shimmerEffect(RoundedCornerShape(4.dp)))
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Box(modifier = Modifier.size(width = 80.dp, height = 16.dp).shimmerEffect(RoundedCornerShape(4.dp)))
+                            }
                         }
                     }
                 }
             }
 
-            // Coach card suggestion skeleton
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -117,7 +95,6 @@ fun BudgetGoalDetailsSkeleton(
                 }
             }
 
-            // Period, category, threshold metadata Card Skeleton
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),

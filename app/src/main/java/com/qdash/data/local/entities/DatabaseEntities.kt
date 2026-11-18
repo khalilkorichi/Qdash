@@ -10,7 +10,9 @@ import androidx.room.ForeignKey
     indices = [
         Index(value = ["accountId"]),
         Index(value = ["categoryId"]),
-        Index(value = ["date"])
+        Index(value = ["date"]),
+        Index(value = ["occurredAt"]),
+        Index(value = ["transferId"])
     ],
     foreignKeys = [
         ForeignKey(
@@ -150,7 +152,10 @@ data class SavingGoalEntity(
     val accountId: Long,
     val icon: String,
     val color: String,
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    val isPaused: Boolean = false,
+    val isArchived: Boolean = false,
+    val strategy: String = "FIXED"
 )
 
 @Entity(

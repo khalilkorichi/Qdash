@@ -1,12 +1,10 @@
 package com.qdash.presentation.export
 
 import androidx.compose.runtime.Immutable
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qdash.domain.model.*
 import com.qdash.domain.repository.*
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -41,13 +39,15 @@ class ExportViewModel(
 
     fun generateReport(reportType: String, accounts: List<Long>, includeDebt: Boolean, includeSavings: Boolean) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, progressText = "جاري تجميع المعاملات والمدفوعات...", exportResult = null, error = null) }
-            delay(1200)
-            _uiState.update { it.copy(progressText = "جاري تشكيل المخططات المالية وهياكل الإحصاء...") }
-            delay(1000)
-            _uiState.update { it.copy(progressText = "جاري صياغة التقرير ورصف البيانات بصفحات PDF باللغة العربية...") }
-            delay(800)
-            
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    progressText = "جاري إنشاء ملف التقرير بصيغة PDF...",
+                    exportResult = null,
+                    error = null
+                )
+            }
+
             val request = ExportReportRequest(
                 reportType = reportType,
                 selectedAccounts = accounts,

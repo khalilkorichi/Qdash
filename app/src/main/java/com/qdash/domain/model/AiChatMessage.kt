@@ -12,7 +12,8 @@ data class AiChatMessage(
     val sender: ChatSender,
     val message: String,
     val timestamp: Long = System.currentTimeMillis(),
-    val sessionTitle: String
+    val sessionTitle: String,
+    val draftStatus: String? = null
 ) : Identifiable
 
 fun AiChatMessageEntity.toDomain() = AiChatMessage(
@@ -20,7 +21,8 @@ fun AiChatMessageEntity.toDomain() = AiChatMessage(
     sender = ChatSender.valueOf(sender),
     message = message,
     timestamp = timestamp,
-    sessionTitle = sessionTitle
+    sessionTitle = sessionTitle,
+    draftStatus = draftStatus
 )
 
 fun AiChatMessage.toEntity() = AiChatMessageEntity(
@@ -28,5 +30,6 @@ fun AiChatMessage.toEntity() = AiChatMessageEntity(
     sender = sender.name,
     message = message,
     timestamp = timestamp,
-    sessionTitle = sessionTitle
+    sessionTitle = sessionTitle,
+    draftStatus = draftStatus
 )

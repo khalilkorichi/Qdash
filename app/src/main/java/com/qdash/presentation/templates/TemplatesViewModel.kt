@@ -13,7 +13,10 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 sealed class TemplatesEvent {
-    data class NavigateToPreFill(val draftJson: String) : TemplatesEvent()
+    data class NavigateToPreFill(
+        val draftJson: String,
+        val transactionType: String = "EXPENSE"
+    ) : TemplatesEvent()
     object NavigateBack : TemplatesEvent()
 }
 
@@ -110,7 +113,7 @@ class TemplatesViewModel(
         _uiState.update { it.copy(searchQuery = query) }
     }
 
-    fun onCreateTemplate(template: TransactionTemplate) {
+    fun onCreateTemplate(template: TransactionTemplate, onSaved: () -> Unit = {}) {
         viewModelScope.launch {
             // Check for identical template duplicate
             val isDuplicate = _uiState.value.templates.any {
@@ -126,14 +129,16 @@ class TemplatesViewModel(
             } else {
                 createTemplateUseCase(template)
                 _uiState.update { it.copy(duplicateWarningTemplate = null) }
+                onSaved()
             }
         }
     }
 
-    fun forceCreateTemplate(template: TransactionTemplate) {
+    fun forceCreateTemplate(template: TransactionTemplate, onSaved: () -> Unit = {}) {
         viewModelScope.launch {
             createTemplateUseCase(template)
             _uiState.update { it.copy(duplicateWarningTemplate = null) }
+            onSaved()
         }
     }
 
@@ -141,9 +146,10 @@ class TemplatesViewModel(
         _uiState.update { it.copy(duplicateWarningTemplate = null) }
     }
 
-    fun onUpdateTemplate(template: TransactionTemplate) {
+    fun onUpdateTemplate(template: TransactionTemplate, onSaved: () -> Unit = {}) {
         viewModelScope.launch {
             updateTemplateUseCase(template)
+            onSaved()
         }
     }
 
@@ -168,26 +174,27 @@ class TemplatesViewModel(
         viewModelScope.launch {
             val draft = useTemplateUseCase(templateId)
             if (draft != null) {
-                // Serialize draft to JSON string to pass safely via Navigation Compose route args
                 val json = encodeDraftToJson(draft)
-                _eventChannel.send(TemplatesEvent.NavigateToPreFill(json))
+                _eventChannel.send(
+                    TemplatesEvent.NavigateToPreFill(
+                        draftJson = json,
+                        transactionType = draft.type.name
+                    )
+                )
             }
         }
     }
 
     private fun encodeDraftToJson(draft: com.qdash.domain.model.TransactionDraft): String {
-        // Quick simple custom JSON serializer to keep dependency clean and fast
-        return """
-            {
-                "amount": ${draft.amount},
-                "type": "${draft.type.name}",
-                "categoryId": ${draft.categoryId ?: "null"},
-                "subcategoryId": ${draft.subcategoryId ?: "null"},
-                "accountId": ${draft.accountId},
-                "targetAccountId": ${draft.targetAccountId ?: "null"},
-                "notes": "${draft.notes?.replace("\"", "\\\"") ?: ""}",
-                "templateId": ${draft.templateId ?: "null"}
-            }
-        """.trimIndent().replace("\n", "").replace(" ", "")
+        return org.json.JSONObject().apply {
+            put("amount", draft.amount)
+            put("type", draft.type.name)
+            put("categoryId", draft.categoryId ?: org.json.JSONObject.NULL)
+            put("subcategoryId", draft.subcategoryId ?: org.json.JSONObject.NULL)
+            put("accountId", draft.accountId)
+            put("targetAccountId", draft.targetAccountId ?: org.json.JSONObject.NULL)
+            put("notes", draft.notes ?: org.json.JSONObject.NULL)
+            put("templateId", draft.templateId ?: org.json.JSONObject.NULL)
+        }.toString()
     }
 }

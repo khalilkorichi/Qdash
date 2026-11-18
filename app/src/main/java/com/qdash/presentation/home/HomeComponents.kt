@@ -70,7 +70,6 @@ fun HomeTopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .statusBarsPadding()
             .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -164,6 +163,7 @@ fun PremiumTopBalanceCard(
     modifier: Modifier = Modifier
 ) {
     val Primary = MaterialTheme.colorScheme.primary
+    val navController = com.qdash.presentation.navigation.LocalNavController.current
 
     val gradient = Brush.verticalGradient(
         colors = listOf(
@@ -171,6 +171,16 @@ fun PremiumTopBalanceCard(
             Color(0xFF121212)  // Jet Black
         )
     )
+
+    val greetingSubtitle = remember(monthlyIncome, monthlyExpense) {
+        when {
+            monthlyIncome <= 0.0 && monthlyExpense <= 0.0 -> "ابدأ بتسجيل معاملاتك لمتابعة وضعك المالي"
+            monthlyIncome > 0.0 && monthlyExpense > monthlyIncome -> "تنبيه: مصاريفك تجاوزت دخلك هذا الشهر"
+            monthlyIncome > 0.0 && monthlyExpense >= monthlyIncome * 0.8 -> "اقتربت مصاريفك من سقف دخلك الشهري"
+            monthlyIncome <= 0.0 && monthlyExpense > 0.0 -> "سجّل مصادر دخلك لحساب معدل ادخارك بدقة"
+            else -> "تبدو ميزانيتك بأمان اليوم"
+        }
+    }
 
     Card(
         modifier = modifier
@@ -184,7 +194,6 @@ fun PremiumTopBalanceCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(gradient)
-                .statusBarsPadding()
                 .padding(top = 12.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)
         ) {
             // Background decoration circles (glassmorphism look)
@@ -295,7 +304,7 @@ fun PremiumTopBalanceCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "مرحباً بك 👋",
                             style = MaterialTheme.typography.headlineMedium.copy(
@@ -306,22 +315,26 @@ fun PremiumTopBalanceCard(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "تبدو ميزانيتك بأمان اليوم",
+                            text = greetingSubtitle,
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.75f)
                         )
                     }
 
-                    // Avatar box (dark/semi-trans background, profile icon)
+                    // Avatar box (navigates to AccountManagement)
                     Box(
                         modifier = Modifier
                             .size(46.dp)
-                            .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp)),
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White.copy(alpha = 0.15f))
+                            .clickable {
+                                navController?.navigate(com.qdash.presentation.navigation.Screen.AccountManagement.route)
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Face,
-                            contentDescription = "الملف الشخصي",
+                            contentDescription = "إدارة الحساب",
                             tint = Color.White,
                             modifier = Modifier.size(28.dp)
                         )
@@ -345,13 +358,13 @@ fun PremiumTopBalanceCard(
                     // Show/hide eye icon
                     IconButton(
                         onClick = onToggleShowBalances,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(36.dp)
                     ) {
                         Icon(
                             imageVector = if (showBalances) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                             contentDescription = if (showBalances) "إخفاء الرصيد" else "إظهار الرصيد",
                             tint = Color.White.copy(alpha = 0.8f),
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
@@ -411,7 +424,7 @@ fun PremiumTopBalanceCard(
                     val badgeColor = when {
                         savingsPercent > 0 -> IncomeGreen
                         savingsPercent < 0 -> ExpenseRed
-                        else -> Primary
+                        else -> ColorTokens.Primary
                     }
 
                     Surface(
@@ -460,17 +473,16 @@ fun PremiumTopBalanceCard(
                         }
                     }
 
-                    // Calendar button (navigates to financial plans/calendar)
-                    val navController = com.qdash.presentation.navigation.LocalNavController.current
+                    // Calendar button (navigates to financial plans)
                     IconButton(
-                        onClick = { navController?.navigate(com.qdash.presentation.navigation.Screen.Transactions.route) },
+                        onClick = { navController?.navigate(com.qdash.presentation.navigation.Screen.FinancialPlans.route) },
                         modifier = Modifier
                             .size(44.dp)
                             .background(Color.White.copy(alpha = 0.15f), CircleShape)
                     ) {
                         Icon(
                             imageVector = Icons.Default.DateRange,
-                            contentDescription = "التقويم والخطط",
+                            contentDescription = "الخطط المالية",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
@@ -522,6 +534,7 @@ fun IncomeExpenseSplitCards(
     monthlyExpense: Double,
     incomeChangePercent: Double = 0.0,
     expenseChangePercent: Double = 0.0,
+    totalAmana: Double = 0.0,
     accounts: List<Account> = emptyList(),
     recentTransactions: List<Transaction> = emptyList(),
     onIncomeShowAllClick: () -> Unit,
@@ -639,6 +652,9 @@ fun IncomeExpenseSplitCards(
 
         // Savings details dialog
         if (showSavingsDetailDialog) {
+            fun formatProtected(amount: Double): String =
+                if (showBalances) FormatterUtils.formatCurrency(amount) else "•••• دج"
+
             AlertDialog(
                 onDismissRequest = { showSavingsDetailDialog = false },
                 title = {
@@ -673,7 +689,7 @@ fun IncomeExpenseSplitCards(
                                 ) {
                                     Text("إجمالي الدخل الشهري:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
                                     Text(
-                                        text = FormatterUtils.formatCurrency(monthlyIncome),
+                                        text = formatProtected(monthlyIncome),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = IncomeGreen
@@ -685,7 +701,7 @@ fun IncomeExpenseSplitCards(
                                 ) {
                                     Text("إجمالي المصاريف الشهرية:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
                                     Text(
-                                        text = FormatterUtils.formatCurrency(monthlyExpense),
+                                        text = formatProtected(monthlyExpense),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = ExpenseRed
@@ -712,7 +728,7 @@ fun IncomeExpenseSplitCards(
                                     Text("الفائض/العجز الشهري:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
                                     val netSaved = monthlyIncome - monthlyExpense
                                     Text(
-                                        text = FormatterUtils.formatCurrency(netSaved),
+                                        text = formatProtected(netSaved),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = if (netSaved >= 0) IncomeGreen else ExpenseRed
@@ -723,10 +739,12 @@ fun IncomeExpenseSplitCards(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("الرصيد الحالي المتوفر:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
-                                    val currentAvailableBalance = accounts.sumOf { it.balance }
+                                    Text("الرصيد الصافي المتوفر:", style = MaterialTheme.typography.bodyMedium, color = TextGray)
+                                    val currentAvailableBalance = accounts
+                                        .filter { it.isActive && !it.isArchived }
+                                        .sumOf { it.balance } - totalAmana
                                     Text(
-                                        text = FormatterUtils.formatCurrency(currentAvailableBalance),
+                                        text = formatProtected(currentAvailableBalance),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
@@ -735,8 +753,8 @@ fun IncomeExpenseSplitCards(
                             }
                         }
 
-                        // Direct transfers to savings accounts
-                        val savingsAccounts = accounts.filter { it.type == AccountType.SAVINGS }
+                        // Direct transfers to active savings accounts
+                        val savingsAccounts = accounts.filter { it.isActive && !it.isArchived && it.type == AccountType.SAVINGS }
                         val savingsAccIds = savingsAccounts.map { it.id }.toSet()
                         
                         val directSavingTxs = recentTransactions.filter { tx ->
@@ -780,7 +798,7 @@ fun IncomeExpenseSplitCards(
                                             )
                                         }
                                         Text(
-                                            text = FormatterUtils.formatCurrency(tx.amount),
+                                            text = formatProtected(tx.amount),
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.primary
@@ -1106,8 +1124,8 @@ fun AccountsRowSkeleton(modifier: Modifier = Modifier) {
         items(3) {
             Box(
                 modifier = Modifier
-                    .width(160.dp)
-                    .height(105.dp)
+                    .width(164.dp)
+                    .height(114.dp)
                     .shimmerEffect(ShapeTokens.Lg)
             )
         }
@@ -1282,25 +1300,39 @@ fun ContextAwareTemplateCard(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val onTintColor = if (aiTimeSuggestion != null) {
+                    MaterialTheme.colorScheme.onSecondary
+                } else {
+                    MaterialTheme.colorScheme.onPrimary
+                }
                 Button(
                     onClick = {
-                        val draft = """{"amount":$defaultAmount,"type":"EXPENSE","categoryId":${categoryId ?: "null"},"notes":"$note"}"""
+                        val draft = org.json.JSONObject().apply {
+                            put("amount", defaultAmount)
+                            put("type", "EXPENSE")
+                            if (categoryId != null) put("categoryId", categoryId) else put("categoryId", org.json.JSONObject.NULL)
+                            put("notes", note)
+                        }.toString()
                         onSelectTemplate(draft)
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = tintColor),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = tintColor,
+                        contentColor = onTintColor
+                    ),
                     shape = RoundedCornerShape(10.dp),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = null,
+                        tint = onTintColor,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "سجل الآن (${FormatterUtils.formatCurrency(defaultAmount)})",
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = Color.White
+                        color = onTintColor
                     )
                 }
             }

@@ -35,12 +35,14 @@ fun GeneralTab(
     onNavigateToDebts: () -> Unit,
     onNavigateToTransfer: () -> Unit,
     onNavigateToExport: () -> Unit,
+    onNavigateToCategories: () -> Unit = {},
     onNavigateToFinancialPlans: () -> Unit,
     onNavigateToSalary: () -> Unit,
     onNavigateToAccountManagement: () -> Unit,
     onCustomiseDashboardClick: () -> Unit
 ) {
     val Primary = MaterialTheme.colorScheme.primary
+    val bottomBarPadding = com.qdash.presentation.navigation.LocalBottomBarPadding.current
     var showAboutDialog by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
@@ -161,6 +163,14 @@ fun GeneralTab(
 
             val navController = com.qdash.presentation.navigation.LocalNavController.current
             SettingsNavItem(
+                icon = Icons.Default.Category,
+                iconTint = SavingsAmber,
+                title = "إدارة الفئات والتصنيفات",
+                subtitle = "إضافة وتعديل وترتيب فئات المصاريف والدخل وفئاتها الفرعية",
+                onClick = onNavigateToCategories
+            )
+
+            SettingsNavItem(
                 icon = Icons.Default.ReceiptLong,
                 iconTint = Primary,
                 title = "قوالب المعاملات",
@@ -247,7 +257,7 @@ fun GeneralTab(
                 onClick = { navController?.navigate(com.qdash.presentation.navigation.Screen.Updates.route) }
             )
 
-            Spacer(modifier = Modifier.height(96.dp))
+            Spacer(modifier = Modifier.height(bottomBarPadding + 24.dp))
         }
     }
 }

@@ -32,6 +32,14 @@ data class SettingsUiState(
     val isAmountWordsEnabled: Boolean = true,
     val useWesternNumerals: Boolean = true,
     val useAlgerianMonths: Boolean = true,
+    val notifBillingReminder: Boolean = true,
+    val notifSalaryReminder: Boolean = true,
+    val notifBudgetAlert: Boolean = true,
+    val notifWeeklyReport: Boolean = false,
+    val notifGoalProgress: Boolean = true,
+    val notifSmartReminders: Boolean = true,
+    val customGeminiApiKey: String = "",
+    val customOpenRouterApiKey: String = "",
     val dashboardSectionsOrder: List<String> = emptyList(),
     val dashboardSectionsVisibility: Map<String, Boolean> = emptyMap(),
     val lastSyncTimestamp: Long = 0L
@@ -64,6 +72,14 @@ class SettingsViewModel(
             isAmountWordsEnabled = preferencesManager.amountWordsEnabled,
             useWesternNumerals = preferencesManager.useWesternNumerals,
             useAlgerianMonths = preferencesManager.useAlgerianMonths,
+            notifBillingReminder = preferencesManager.notifBillingReminder,
+            notifSalaryReminder = preferencesManager.notifSalaryReminder,
+            notifBudgetAlert = preferencesManager.notifBudgetAlert,
+            notifWeeklyReport = preferencesManager.notifWeeklyReport,
+            notifGoalProgress = preferencesManager.notifGoalProgress,
+            notifSmartReminders = preferencesManager.notifSmartReminders,
+            customGeminiApiKey = preferencesManager.customGeminiApiKey,
+            customOpenRouterApiKey = preferencesManager.customOpenRouterApiKey,
             lastSyncTimestamp = preferencesManager.lastSyncTimestamp
         )
     )
@@ -101,6 +117,14 @@ class SettingsViewModel(
                     isAmountWordsEnabled = amountWords,
                     useWesternNumerals = useWestern,
                     useAlgerianMonths = useAlgerian,
+                    notifBillingReminder = preferencesManager.notifBillingReminder,
+                    notifSalaryReminder = preferencesManager.notifSalaryReminder,
+                    notifBudgetAlert = preferencesManager.notifBudgetAlert,
+                    notifWeeklyReport = preferencesManager.notifWeeklyReport,
+                    notifGoalProgress = preferencesManager.notifGoalProgress,
+                    notifSmartReminders = preferencesManager.notifSmartReminders,
+                    customGeminiApiKey = preferencesManager.customGeminiApiKey,
+                    customOpenRouterApiKey = preferencesManager.customOpenRouterApiKey,
                     dashboardSectionsOrder = sectionsOrder,
                     dashboardSectionsVisibility = sectionsVisibility,
                     lastSyncTimestamp = preferencesManager.lastSyncTimestamp
@@ -149,6 +173,60 @@ class SettingsViewModel(
     fun toggleAutoBackup(enabled: Boolean) {
         preferencesManager.autoBackupEnabled = enabled
         _uiState.update { it.copy(isAutoBackupEnabled = enabled) }
+    }
+
+    fun toggleNotifBillingReminder(enabled: Boolean) {
+        preferencesManager.notifBillingReminder = enabled
+        _uiState.update { it.copy(notifBillingReminder = enabled) }
+    }
+
+    fun toggleNotifSalaryReminder(enabled: Boolean) {
+        preferencesManager.notifSalaryReminder = enabled
+        _uiState.update { it.copy(notifSalaryReminder = enabled) }
+    }
+
+    fun toggleNotifBudgetAlert(enabled: Boolean) {
+        preferencesManager.notifBudgetAlert = enabled
+        _uiState.update { it.copy(notifBudgetAlert = enabled) }
+    }
+
+    fun toggleNotifWeeklyReport(enabled: Boolean) {
+        preferencesManager.notifWeeklyReport = enabled
+        _uiState.update { it.copy(notifWeeklyReport = enabled) }
+    }
+
+    fun toggleNotifGoalProgress(enabled: Boolean) {
+        preferencesManager.notifGoalProgress = enabled
+        _uiState.update { it.copy(notifGoalProgress = enabled) }
+    }
+
+    fun toggleNotifSmartReminders(enabled: Boolean) {
+        preferencesManager.notifSmartReminders = enabled
+        _uiState.update { it.copy(notifSmartReminders = enabled) }
+    }
+
+    fun saveCustomApiKeys(geminiKey: String, openRouterKey: String) {
+        val cleanGemini = geminiKey.trim()
+        val cleanOpenRouter = openRouterKey.trim()
+        preferencesManager.customGeminiApiKey = cleanGemini
+        preferencesManager.customOpenRouterApiKey = cleanOpenRouter
+        _uiState.update {
+            it.copy(
+                customGeminiApiKey = cleanGemini,
+                customOpenRouterApiKey = cleanOpenRouter
+            )
+        }
+    }
+
+    fun clearCustomApiKeys() {
+        preferencesManager.customGeminiApiKey = ""
+        preferencesManager.customOpenRouterApiKey = ""
+        _uiState.update {
+            it.copy(
+                customGeminiApiKey = "",
+                customOpenRouterApiKey = ""
+            )
+        }
     }
 
     fun connectGoogleDriveAccount(account: GoogleSignInAccount, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
@@ -323,7 +401,7 @@ class SettingsViewModel(
                         it.copy(
                             isSyncing = false,
                             backupRestoreStatus = "تم مسح جميع البيانات وتهيئة التطبيق بنجاح!",
-                            lastBackupDate = null.toString()
+                            lastBackupDate = "غير متوفر"
                         )
                     }
                     onComplete()

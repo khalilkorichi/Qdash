@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.sp
 import com.qdash.core.ui.components.UnifiedScreenHeader
 import com.qdash.domain.model.Category
 import com.qdash.domain.model.CategoryType
+import com.qdash.ui.designsystem.components.AppDialog
+import com.qdash.ui.designsystem.tokens.ColorTokens
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
@@ -26,23 +28,46 @@ fun CategoriesScreen(
 ) {
     val Primary = MaterialTheme.colorScheme.primary
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("مصروف", "دخل")
     var showAddDialog by remember { mutableStateOf(false) }
+    var addDialogParentCategory by remember { mutableStateOf<Category?>(null) }
     var expandedCategoryId by remember { mutableStateOf<Long?>(null) }
 
     var categoryToEdit by remember { mutableStateOf<Category?>(null) }
     var categoryToMerge by remember { mutableStateOf<Category?>(null) }
     var categoryToMove by remember { mutableStateOf<Category?>(null) }
+    var categoryToDelete by remember { mutableStateOf<Category?>(null) }
 
     val currentType = if (selectedTab == 0) CategoryType.EXPENSE else CategoryType.INCOME
-    val filteredRoot = uiState.rootCategories.filter { it.type == currentType }
-
-    uiState.errorMessage?.let { error ->
-        LaunchedEffect(error) { viewModel.clearError() }
+    val filteredRoot = remember(uiState.rootCategories, currentType) {
+        uiState.rootCategories.filter { it.type == currentType }
     }
 
-    Scaffold { padding ->
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { error ->
+            snackbarHostState.showSnackbar(
+                message = error,
+                actionLabel = "حسناً",
+                duration = SnackbarDuration.Short
+            )
+            viewModel.clearError()
+        }
+    }
+
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    actionColor = Primary
+                )
+            }
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -55,7 +80,12 @@ fun CategoriesScreen(
                 showBackButton = true,
                 onBackClick = onBack,
                 actions = {
-                    IconButton(onClick = { showAddDialog = true }) {
+                    IconButton(
+                        onClick = {
+                            addDialogParentCategory = null
+                            showAddDialog = true
+                        }
+                    ) {
                         Icon(Icons.Default.Add, contentDescription = "إضافة فئة", tint = Primary)
                     }
                 }
@@ -106,7 +136,12 @@ fun CategoriesScreen(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        TextButton(onClick = { showAddDialog = true }) {
+                        TextButton(
+                            onClick = {
+                                addDialogParentCategory = null
+                                showAddDialog = true
+                            }
+                        ) {
                             Text("+ إضافة فئة جديدة", color = Primary)
                         }
                     }
@@ -118,12 +153,17 @@ fun CategoriesScreen(
                 ) {
                     items(filteredRoot, key = { it.id }) { category ->
                         val isExpanded = expandedCategoryId == category.id
-                        val subCount = uiState.subcategories.count { it.parentId == category.id }
+                        val subList = remember(uiState.allCategories, category.id) {
+                            uiState.allCategories
+                                .filter { it.parentId == category.id }
+                                .sortedBy { it.sortOrder }
+                        }
+                        val subCount = uiState.subcategoryCounts[category.id] ?: subList.size
 
                         CategoryCard(
                             category = category,
                             isExpanded = isExpanded,
-                            subCount = if (expandedCategoryId == category.id) uiState.subcategories.size else subCount,
+                            subCount = subCount,
                             onExpandClick = {
                                 if (isExpanded) {
                                     expandedCategoryId = null
@@ -134,9 +174,12 @@ fun CategoriesScreen(
                                 }
                             },
                             onEdit = { categoryToEdit = category },
-                            onDelete = { viewModel.deleteCategory(category) },
+                            onDelete = { categoryToDelete = category },
                             onMergeClick = { categoryToMerge = category },
-                            onAddSubcategory = { showAddDialog = true },
+                            onAddSubcategory = {
+                                addDialogParentCategory = category
+                                showAddDialog = true
+                            },
                             onMoveClick = { categoryToMove = category }
                         )
 
@@ -146,21 +189,23 @@ fun CategoriesScreen(
                                 modifier = Modifier.padding(start = 16.dp, top = 6.dp, bottom = 6.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                val subList = uiState.subcategories.filter { it.parentId == category.id }
                                 if (subList.isNotEmpty()) {
                                     subList.forEach { sub ->
                                         SubcategoryItem(
                                             subcategory = sub,
                                             onEdit = { categoryToEdit = sub },
                                             onMove = { categoryToMove = sub },
-                                            onDelete = { viewModel.deleteCategory(sub) }
+                                            onDelete = { categoryToDelete = sub }
                                         )
                                     }
                                 }
 
                                 // Add subcategory button
                                 TextButton(
-                                    onClick = { showAddDialog = true },
+                                    onClick = {
+                                        addDialogParentCategory = category
+                                        showAddDialog = true
+                                    },
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Icon(
@@ -184,14 +229,38 @@ fun CategoriesScreen(
 
     if (showAddDialog) {
         AddCategoryDialog(
-            defaultType = currentType,
-            parentCategory = if (expandedCategoryId != null) {
-                uiState.rootCategories.firstOrNull { it.id == expandedCategoryId }
-            } else null,
-            onDismiss = { showAddDialog = false },
+            defaultType = addDialogParentCategory?.type ?: currentType,
+            parentCategory = addDialogParentCategory,
+            onDismiss = {
+                showAddDialog = false
+                addDialogParentCategory = null
+            },
             onConfirm = { name, type, icon, color, parentId ->
                 viewModel.addCategory(name, type, icon, color, parentId)
                 showAddDialog = false
+                addDialogParentCategory = null
+            }
+        )
+    }
+
+    categoryToDelete?.let { cat ->
+        AppDialog(
+            onDismissRequest = { categoryToDelete = null },
+            title = "حذف الفئة",
+            text = if (cat.parentId == null) {
+                "هل أنت متأكد من حذف الفئة \"${cat.name}\" وجميع فئاتها الفرعية؟ لن يتم الحذف إذا كانت مرتبطة بمعاملات مالية مسجلة."
+            } else {
+                "هل أنت متأكد من حذف الفئة الفرعية \"${cat.name}\"؟ لن يتم الحذف إذا كانت مرتبطة بمعاملات مالية مسجلة."
+            },
+            confirmButtonText = "نعم، حذف",
+            onConfirm = {
+                viewModel.deleteCategory(cat)
+                categoryToDelete = null
+            },
+            dismissButtonText = "إلغاء",
+            isDestructive = true,
+            icon = {
+                Icon(Icons.Default.Delete, contentDescription = null, tint = ColorTokens.Danger)
             }
         )
     }
@@ -222,7 +291,7 @@ fun CategoriesScreen(
     categoryToMove?.let { cat ->
         MoveCategoryDialog(
             category = cat,
-            allCategories = uiState.rootCategories,
+            allCategories = uiState.allCategories.ifEmpty { uiState.rootCategories },
             onDismiss = { categoryToMove = null },
             onConfirm = { newParentId ->
                 viewModel.moveCategory(cat.id, newParentId)

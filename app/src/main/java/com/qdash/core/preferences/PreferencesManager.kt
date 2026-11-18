@@ -125,8 +125,59 @@ class PreferencesManager(context: Context) {
         set(value) = mainPrefs.edit().putBoolean("amount_words_enabled", value).apply()
 
     var selectedAiModel: String
-        get() = mainPrefs.getString("selected_ai_model", "gemini-3.6-flash-high") ?: "gemini-3.6-flash-high"
+        get() {
+            val saved = mainPrefs.getString("selected_ai_model", "gemini-2.5-flash") ?: "gemini-2.5-flash"
+            return if (saved in setOf("gemini-3.6-flash-high", "gemini-3.6-flash", "gemini-3.5-flash-lite")) {
+                mainPrefs.edit().putString("selected_ai_model", "gemini-2.5-flash").apply()
+                "gemini-2.5-flash"
+            } else {
+                saved
+            }
+        }
         set(value) = mainPrefs.edit().putString("selected_ai_model", value).apply()
+
+    // Persistent Notification Preferences
+    var notifBillingReminder: Boolean
+        get() = mainPrefs.getBoolean("notif_billing_reminder", true)
+        set(value) = mainPrefs.edit().putBoolean("notif_billing_reminder", value).apply()
+
+    var notifSalaryReminder: Boolean
+        get() = mainPrefs.getBoolean("notif_salary_reminder", true)
+        set(value) = mainPrefs.edit().putBoolean("notif_salary_reminder", value).apply()
+
+    var notifBudgetAlert: Boolean
+        get() = mainPrefs.getBoolean("notif_budget_alert", true)
+        set(value) = mainPrefs.edit().putBoolean("notif_budget_alert", value).apply()
+
+    var notifWeeklyReport: Boolean
+        get() = mainPrefs.getBoolean("notif_weekly_report", false)
+        set(value) = mainPrefs.edit().putBoolean("notif_weekly_report", value).apply()
+
+    var notifGoalProgress: Boolean
+        get() = mainPrefs.getBoolean("notif_goal_progress", true)
+        set(value) = mainPrefs.edit().putBoolean("notif_goal_progress", value).apply()
+
+    var notifSmartReminders: Boolean
+        get() = mainPrefs.getBoolean("notif_smart_reminders", true)
+        set(value) = mainPrefs.edit().putBoolean("notif_smart_reminders", value).apply()
+
+    // Home AI Insights Cache (24h TTL to eliminate startup LLM storms)
+    var cachedHomeAiInsightJson: String?
+        get() = dashboardPrefs.getString("cached_home_ai_insight_json", null)
+        set(value) = dashboardPrefs.edit().putString("cached_home_ai_insight_json", value).apply()
+
+    var cachedHomeAiInsightTime: Long
+        get() = dashboardPrefs.getLong("cached_home_ai_insight_time", 0L)
+        set(value) = dashboardPrefs.edit().putLong("cached_home_ai_insight_time", value).apply()
+
+    // Optional User-Provided Custom AI API Keys (BYOK)
+    var customGeminiApiKey: String
+        get() = mainPrefs.getString("custom_gemini_api_key", "") ?: ""
+        set(value) = mainPrefs.edit().putString("custom_gemini_api_key", value.trim()).apply()
+
+    var customOpenRouterApiKey: String
+        get() = mainPrefs.getString("custom_openrouter_api_key", "") ?: ""
+        set(value) = mainPrefs.edit().putString("custom_openrouter_api_key", value.trim()).apply()
 
     var notificationPermissionHandled: Boolean
         get() = mainPrefs.getBoolean("notification_permission_handled", false)
@@ -264,8 +315,16 @@ class PreferencesManager(context: Context) {
     }
 
     var lowBalanceLimit: Double
-        get() = mainPrefs.getFloat("low_balance_limit", 5000.0f).toDouble()
-        set(value) = mainPrefs.edit().putFloat("low_balance_limit", value.toFloat()).apply()
+        get() {
+            val exact = mainPrefs.getString("low_balance_limit_exact", null)?.toDoubleOrNull()
+            return exact ?: mainPrefs.getFloat("low_balance_limit", 5000.0f).toDouble()
+        }
+        set(value) {
+            mainPrefs.edit()
+                .putString("low_balance_limit_exact", value.toString())
+                .putFloat("low_balance_limit", value.toFloat())
+                .apply()
+        }
 
     var isGoogleLinked: Boolean
         get() = mainPrefs.getBoolean("is_google_linked", false)

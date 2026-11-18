@@ -4,9 +4,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 
 val LocalNavController = compositionLocalOf<NavHostController?> { null }
+val LocalBottomBarPadding = compositionLocalOf<Dp> { 96.dp }
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector? = null) {
     object Onboarding : Screen("onboarding", "الترحيب")

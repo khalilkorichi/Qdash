@@ -100,7 +100,7 @@ fun UserMessageBubble(
                 modifier = Modifier
                     .widthIn(max = maxWidth)
                     .background(
-                        color = ColorTokens.Primary,
+                        color = MaterialTheme.colorScheme.primary,
                         shape = RoundedCornerShape(20.dp, 20.dp, 4.dp, 20.dp)
                     )
                     .padding(horizontal = 16.dp, vertical = 12.dp)
@@ -111,7 +111,7 @@ fun UserMessageBubble(
                         fontWeight = FontWeight.Medium,
                         textDirection = TextDirection.Content
                     ),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     textAlign = TextAlign.End
                 )
             }
@@ -129,9 +129,8 @@ fun AiMessageBubble(
     onViewDetails: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDark = MaterialTheme.colorScheme.background == ColorTokens.BackgroundDark
-    val surface = if (isDark) ColorTokens.SurfaceDark else ColorTokens.SurfaceLight
-    val border = if (isDark) ColorTokens.BorderDark else ColorTokens.BorderLight
+    val surface = MaterialTheme.colorScheme.surface
+    val border = MaterialTheme.colorScheme.outline
 
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -374,9 +373,8 @@ fun ChatInputBar(
     onMicClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDark = MaterialTheme.colorScheme.background == ColorTokens.BackgroundDark
-    val surface = if (isDark) ColorTokens.SurfaceDark else ColorTokens.SurfaceLight
-    val border = if (isDark) ColorTokens.BorderDark else ColorTokens.BorderLight
+    val surface = MaterialTheme.colorScheme.surface
+    val border = MaterialTheme.colorScheme.outline
     var isExpanded by remember { mutableStateOf(false) }
 
     Row(

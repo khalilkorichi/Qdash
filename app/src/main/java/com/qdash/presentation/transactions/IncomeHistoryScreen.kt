@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.core.ui.components.*
 import com.qdash.core.utils.FormatterUtils
+import com.qdash.domain.model.TransactionKind
 import com.qdash.domain.model.TransactionType
 import com.qdash.presentation.navigation.Screen
 import com.qdash.presentation.transactions.components.TransactionActionMenuDialog
@@ -34,21 +35,52 @@ import com.qdash.ui.theme.*
 import com.qdash.ui.designsystem.components.*
 import com.qdash.ui.designsystem.tokens.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
+import java.util.Calendar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IncomeHistoryScreen(
     viewModel: TransactionsViewModel,
     onBack: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val navController = com.qdash.presentation.navigation.LocalNavController.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     var showDeleteDialog by remember { mutableStateOf<com.qdash.domain.model.Transaction?>(null) }
     var showActionMenuForTransaction by remember { mutableStateOf<com.qdash.domain.model.Transaction?>(null) }
+    var filterThisMonthOnly by remember { mutableStateOf(false) }
 
-    // Filter transactions to show only Income
-    val incomeTransactions = remember(uiState.filteredTransactions) {
-        uiState.filteredTransactions.filter { it.kind == com.qdash.domain.model.TransactionKind.INCOME || it.kind == com.qdash.domain.model.TransactionKind.SALARY }
+    val (monthStart, monthEnd) = remember {
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.DAY_OF_MONTH, 1)
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        val start = cal.timeInMillis
+        cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
+        cal.set(Calendar.HOUR_OF_DAY, 23)
+        cal.set(Calendar.MINUTE, 59)
+        cal.set(Calendar.SECOND, 59)
+        cal.set(Calendar.MILLISECOND, 999)
+        Pair(start, cal.timeInMillis)
+    }
+
+    // Filter transactions to show only genuine Income (excluding internal transfers)
+    val incomeTransactions = remember(uiState.filteredTransactions, filterThisMonthOnly, monthStart, monthEnd) {
+        uiState.filteredTransactions.filter { tx ->
+            tx.type == TransactionType.INCOME &&
+                tx.kind != TransactionKind.TRANSFER &&
+                (!filterThisMonthOnly || tx.date in monthStart..monthEnd)
+        }
+    }
+
+    val groupedTransactions = remember(incomeTransactions) {
+        incomeTransactions.groupBy { FormatterUtils.formatDate(it.date) }
     }
 
     val totalIncome = remember(incomeTransactions) {
@@ -58,7 +90,20 @@ fun IncomeHistoryScreen(
     Scaffold(
         modifier = modifier
             .fillMaxSize()
-            .testTag("income_history_screen")
+            .testTag("income_history_screen"),
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    navController?.navigate(Screen.AddTransaction.createRoute("INCOME"))
+                },
+                containerColor = IncomeGreen,
+                contentColor = Color.White,
+                shape = CircleShape
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "إضافة دخل جديد")
+            }
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -173,9 +218,35 @@ fun IncomeHistoryScreen(
                         disabledIndicatorColor = Color.Transparent,
                         focusedTextColor = MaterialTheme.colorScheme.onBackground,
                         unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-                        cursorColor = Primary
+                        cursorColor = primaryColor
                     )
                 )
+
+                // ── Month / All-Time Filter Chips ────────────────────────────
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FilterChip(
+                        selected = !filterThisMonthOnly,
+                        onClick = { filterThisMonthOnly = false },
+                        label = { Text("كل الفترات", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = primaryColor,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    )
+                    FilterChip(
+                        selected = filterThisMonthOnly,
+                        onClick = { filterThisMonthOnly = true },
+                        label = { Text("هذا الشهر", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = IncomeGreen,
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -184,13 +255,10 @@ fun IncomeHistoryScreen(
             if (incomeTransactions.isEmpty()) {
                 EmptyStateView(
                     title = "لا مداخيل مسجلة مطابقة للبحث!",
-                    description = "جرب إضافة دخل جديد عبر علامة الزائد (+) بالصفحة الرئيسية.",
+                    description = "جرب إضافة دخل جديد عبر علامة الزائد (+) أسفل الشاشة.",
                     modifier = Modifier.weight(1f)
                 )
             } else {
-                val groupedTransactions = incomeTransactions
-                    .groupBy { FormatterUtils.formatDate(it.date) }
-
                 LazyColumn(
                     modifier = Modifier
                         .weight(1f)
@@ -198,32 +266,32 @@ fun IncomeHistoryScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     groupedTransactions.forEach { (dateHeader, txs) ->
-                        item {
-                            // Accent left-border date header
+                        item(key = "header_$dateHeader") {
+                            // Accent right-border date header (RTL Start = Right)
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 10.dp, bottom = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.End
+                                horizontalArrangement = Arrangement.Start
                             ) {
-                                  Text(
-                                      text = dateHeader,
-                                      style = MaterialTheme.typography.labelMedium.copy(
-                                          fontSize = 13.sp,
-                                          fontWeight = FontWeight.Bold
-                                      ),
-                                      color = TextGray,
-                                      textAlign = TextAlign.End
-                                  )
-                                  Spacer(modifier = Modifier.width(8.dp))
-                                  Box(
-                                      modifier = Modifier
-                                          .width(3.dp)
-                                          .height(18.dp)
-                                          .clip(RoundedCornerShape(2.dp))
-                                          .background(IncomeGreen)
-                                  )
+                                Box(
+                                    modifier = Modifier
+                                        .width(3.dp)
+                                        .height(18.dp)
+                                        .clip(RoundedCornerShape(2.dp))
+                                        .background(IncomeGreen)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = dateHeader,
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = TextGray,
+                                    textAlign = TextAlign.Start
+                                )
                             }
                         }
                         items(txs, key = { it.id }) { tx ->
@@ -274,6 +342,16 @@ fun IncomeHistoryScreen(
             onConfirm = {
                 viewModel.deleteTransaction(txToDelete)
                 showDeleteDialog = null
+                scope.launch {
+                    val result = snackbarHostState.showSnackbar(
+                        message = "تم حذف الدخل بنجاح",
+                        actionLabel = "تراجع",
+                        duration = SnackbarDuration.Short
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        viewModel.restoreLastDeletedTransaction()
+                    }
+                }
             }
         )
     }

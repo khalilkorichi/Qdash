@@ -25,6 +25,7 @@ import com.qdash.domain.model.CardAiContext
 import com.qdash.domain.model.CardAiContextType
 import com.qdash.domain.model.TransactionType
 import com.qdash.presentation.analytics.components.*
+import com.qdash.presentation.navigation.LocalBottomBarPadding
 import com.qdash.presentation.navigation.LocalNavController
 import com.qdash.presentation.navigation.Screen
 import com.qdash.ui.theme.*
@@ -88,7 +89,7 @@ fun AnalyticsScreen(
 
         // ── Category detail dialog (long-press) ──
         longClickedCategory?.let { category ->
-            val categoryTxs by remember(category, uiState.transactions, uiState.categories) {
+            val categoryTxs by remember(category, uiState.periodTransactions, uiState.categories) {
                 derivedStateOf {
                     val catId = if (category.categoryId != 0L) {
                         category.categoryId
@@ -111,7 +112,7 @@ fun AnalyticsScreen(
                         emptySet()
                     }
 
-                    uiState.transactions.filter { it.categoryId in targetIds }.sortedByDescending { it.date }
+                    uiState.periodTransactions.filter { it.categoryId in targetIds }.sortedByDescending { it.date }
                 }
             }
             CategoryColorPickerDialog(
@@ -144,6 +145,8 @@ fun AnalyticsScreen(
             ExportErrorDialog(errorMessage = err, onDismiss = { viewModel.clearExportState() })
         }
 
+        val bottomBarPadding = LocalBottomBarPadding.current
+
         PullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = { viewModel.refresh() },
@@ -155,6 +158,7 @@ fun AnalyticsScreen(
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background)
                     .padding(innerPadding),
+                contentPadding = PaddingValues(bottom = bottomBarPadding + 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
 
@@ -254,7 +258,8 @@ fun AnalyticsScreen(
                             AnalyticsSummaryCards(
                                 largestExpenseName = uiState.largestExpenseName,
                                 largestExpense = uiState.largestExpense,
-                                savingsRate = uiState.savingsRate
+                                savingsRate = uiState.savingsRate,
+                                hasIncome = uiState.hasIncomeInPeriod
                             )
                         }
                     }
@@ -291,13 +296,26 @@ fun AnalyticsScreen(
 
                 // ── Tab 1: Comparison ──
                 } else if (uiState.dashboardTab == 1) {
+                    val dashboardRange = computeDashboardPeriodRange(
+                        period = uiState.dashboardPeriod,
+                        month = uiState.dashboardMonth,
+                        year = uiState.dashboardYear
+                    )
+                    val compareRange = computeComparisonPeriodRange(
+                        monthA = uiState.compareMonthA,
+                        yearA = uiState.compareYearA,
+                        monthB = uiState.compareMonthB,
+                        yearB = uiState.compareYearB
+                    )
                     item {
                         AnalyticsComparisonTabContent(
                             uiState = uiState,
                             dashIncome = dashIncome,
                             dashExpenses = dashExpenses,
-                            periodStart = currentPeriodRange.first,
-                            periodEnd = currentPeriodRange.second,
+                            periodStart = dashboardRange.first,
+                            periodEnd = dashboardRange.second,
+                            comparisonStart = compareRange.first,
+                            comparisonEnd = compareRange.second,
                             onPeriodChange = { viewModel.setDashboardPeriod(it) },
                             onMonthChange = { viewModel.setDashboardMonth(it) },
                             onYearChange = { viewModel.setDashboardYear(it) },
@@ -327,11 +345,12 @@ fun AnalyticsScreen(
                 // ── Tab 3: Savings ──
                 } else if (uiState.dashboardTab == 3) {
                     item {
-                        AnalyticsSavingsTabContent(uiState = uiState)
+                        AnalyticsSavingsTabContent(
+                            uiState = uiState,
+                            onManageSavingsClick = { navController?.navigate(Screen.Savings.route) }
+                        )
                     }
                 }
-
-                item { Spacer(modifier = Modifier.height(80.dp)) }
             }
         }
 
@@ -411,4 +430,25 @@ private fun computePeriodRange(uiState: AnalyticsUiState): Pair<Long, Long> {
         }
         else -> Pair(0L, Long.MAX_VALUE)
     }
+}
+
+private fun computeDashboardPeriodRange(period: String, month: Int, year: Int): Pair<Long, Long> {
+    val start = Calendar.getInstance().apply {
+        set(Calendar.YEAR, year)
+        set(Calendar.MONTH, if (period == "MONTHLY") month else Calendar.JANUARY)
+        set(Calendar.DAY_OF_MONTH, 1)
+        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+    }
+    val end = (start.clone() as Calendar).apply {
+        if (period != "MONTHLY") set(Calendar.MONTH, Calendar.DECEMBER)
+        set(Calendar.DAY_OF_MONTH, getActualMaximum(Calendar.DAY_OF_MONTH))
+        set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59); set(Calendar.MILLISECOND, 999)
+    }
+    return Pair(start.timeInMillis, end.timeInMillis)
+}
+
+private fun computeComparisonPeriodRange(monthA: Int, yearA: Int, monthB: Int, yearB: Int): Pair<Long, Long> {
+    val rangeA = computeDashboardPeriodRange("MONTHLY", monthA, yearA)
+    val rangeB = computeDashboardPeriodRange("MONTHLY", monthB, yearB)
+    return Pair(minOf(rangeA.first, rangeB.first), maxOf(rangeA.second, rangeB.second))
 }

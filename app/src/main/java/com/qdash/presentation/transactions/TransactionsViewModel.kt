@@ -307,8 +307,9 @@ class TransactionsViewModel(
     }
 
     private var suggestionJob: kotlinx.coroutines.Job? = null
+    private val keywordMatcher = com.qdash.data.categorization.KeywordMatcher()
 
-    fun onNoteChanged(note: String, amount: Double?, accountId: Long?) {
+    fun onNoteChanged(note: String, amount: Double?, accountId: Long?, forceAi: Boolean = false) {
         suggestionJob?.cancel()
         if (note.trim().isEmpty()) {
             _uiState.update { it.copy(currentSuggestion = null, suggestedCategory = null) }
@@ -316,15 +317,32 @@ class TransactionsViewModel(
         }
         suggestionJob = viewModelScope.launch {
             try {
-                // Keypress debounce delay (200ms for fast feedback)
-                kotlinx.coroutines.delay(200L)
-                val suggestion = getCategorySuggestionUseCase(note, amount, accountId)
-                val matchedCategory = _uiState.value.categories.find { it.id == suggestion.suggestedCategoryId }
-                _uiState.update {
-                    it.copy(
-                        currentSuggestion = suggestion,
-                        suggestedCategory = matchedCategory
-                    )
+                if (!forceAi) {
+                    kotlinx.coroutines.delay(300L)
+                }
+                val stateSnapshot = _uiState.value
+                val localResult = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                    findLocalCategorySuggestion(note, stateSnapshot, keywordMatcher)
+                }
+
+                if (localResult != null && !forceAi) {
+                    _uiState.update {
+                        it.copy(
+                            currentSuggestion = localResult.first,
+                            suggestedCategory = localResult.second
+                        )
+                    }
+                } else if (forceAi) {
+                    val suggestion = getCategorySuggestionUseCase(note, amount, accountId)
+                    val matchedCategory = _uiState.value.categories.find { it.id == suggestion.suggestedCategoryId }
+                    _uiState.update {
+                        it.copy(
+                            currentSuggestion = suggestion,
+                            suggestedCategory = matchedCategory
+                        )
+                    }
+                } else {
+                    _uiState.update { it.copy(currentSuggestion = null, suggestedCategory = null) }
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 // Ignore cancelations
@@ -388,7 +406,20 @@ class TransactionsViewModel(
     fun restoreLastDeletedTransaction() {
         val tx = lastDeletedTransaction ?: return
         viewModelScope.launch {
-            transactionRepository.insertTransaction(tx)
+            val restoredTx = if (tx.type == TransactionType.TRANSFER) {
+                val srcAcc = if (tx.isDebit) tx.accountId else (tx.toAccountId ?: tx.accountId)
+                val dstAcc = if (tx.isDebit) tx.toAccountId else tx.accountId
+                tx.copy(
+                    id = 0L,
+                    accountId = srcAcc,
+                    toAccountId = dstAcc,
+                    transferId = null,
+                    isDebit = true
+                )
+            } else {
+                tx.copy(id = 0L)
+            }
+            transactionRepository.insertTransaction(restoredTx)
             lastDeletedTransaction = null
         }
     }
@@ -421,9 +452,14 @@ class TransactionsViewModel(
 
 
     fun setAdvancedFilters(minAmount: Double?, startDate: Long?, endDate: Long?) {
+        val (validStart, validEnd) = if (startDate != null && endDate != null && startDate > endDate) {
+            Pair(endDate, startDate)
+        } else {
+            Pair(startDate, endDate)
+        }
         _filterMinAmount.value = minAmount
-        _filterStartDate.value = startDate
-        _filterEndDate.value = endDate
+        _filterStartDate.value = validStart
+        _filterEndDate.value = validEnd
     }
 
     fun clearAdvancedFilters() {

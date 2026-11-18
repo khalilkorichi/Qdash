@@ -1,6 +1,7 @@
 package com.qdash.presentation.categories
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -9,6 +10,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,8 +20,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.qdash.domain.model.Category
 import com.qdash.domain.model.CategoryType
+import com.qdash.presentation.categories.components.CategoryIconPickerBottomSheet
+import com.qdash.presentation.components.UnifiedCategoryIcon
 import com.qdash.ui.theme.ExpenseRed
 import com.qdash.ui.theme.TextGray
 
@@ -34,7 +40,8 @@ fun AddCategoryDialog(
     var name by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf(defaultType) }
     var selectedIcon by remember { mutableStateOf("star") }
-    var selectedColor by remember { mutableStateOf("#6C63FF") }
+    var selectedColor by remember { mutableStateOf(parentCategory?.color ?: "#6C63FF") }
+    var showIconPickerSheet by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -71,15 +78,49 @@ fun AddCategoryDialog(
                                 label = { Text(categoryTypeLabel(type)) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = Primary,
-                                    selectedLabelColor = Color.White
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                                 )
                             )
                         }
                     }
                 }
 
-                // Icon picker
-                Text("اختر أيقونة:", style = MaterialTheme.typography.labelMedium, color = TextGray)
+                // Icon picker + full icon sheet trigger
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val previewColor = parseHex(selectedColor)
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(previewColor.copy(alpha = 0.16f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            UnifiedCategoryIcon(
+                                iconKey = selectedIcon,
+                                tint = previewColor,
+                                modifier = Modifier.size(18.dp),
+                                emojiFontSize = 16.sp
+                            )
+                        }
+                        Text("اختر أيقونة:", style = MaterialTheme.typography.labelMedium, color = TextGray)
+                    }
+                    TextButton(
+                        onClick = { showIconPickerSheet = true },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Icon(Icons.Default.GridView, contentDescription = null, tint = Primary, modifier = Modifier.size(15.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("كل الأيقونات", color = Primary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -87,26 +128,26 @@ fun AddCategoryDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     iconOptions.forEach { iconName ->
+                        val isSelected = selectedIcon.equals(iconName, ignoreCase = true)
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(
-                                    if (selectedIcon == iconName) Primary.copy(alpha = 0.2f)
+                                    if (isSelected) Primary.copy(alpha = 0.2f)
                                     else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                                 )
-                                .clickable { selectedIcon = iconName }
-                                .then(
-                                    if (selectedIcon == iconName)
-                                        Modifier.background(Primary.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
-                                    else Modifier
-                                ),
+                                .border(
+                                    width = if (isSelected) 1.5.dp else 0.dp,
+                                    color = if (isSelected) Primary else Color.Transparent,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .clickable { selectedIcon = iconName },
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = getIconVector(iconName),
-                                contentDescription = null,
-                                tint = if (selectedIcon == iconName) Primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            UnifiedCategoryIcon(
+                                iconKey = iconName,
+                                tint = if (isSelected) Primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -123,18 +164,29 @@ fun AddCategoryDialog(
                 ) {
                     colorOptions.forEach { hex ->
                         val color = parseHex(hex)
+                        val isSelected = selectedColor.equals(hex, ignoreCase = true)
                         Box(
                             modifier = Modifier
                                 .size(34.dp)
                                 .clip(CircleShape)
                                 .background(color)
-                                .clickable { selectedColor = hex }
-                                .then(
-                                    if (selectedColor == hex)
-                                        Modifier.padding(3.dp).background(Color.White, CircleShape)
-                                    else Modifier
+                                .border(
+                                    width = if (isSelected) 2.5.dp else 0.dp,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent,
+                                    shape = CircleShape
                                 )
-                        )
+                                .clickable { selectedColor = hex },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "محدد",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -143,7 +195,7 @@ fun AddCategoryDialog(
             TextButton(
                 onClick = {
                     if (name.isNotBlank()) {
-                        onConfirm(name, selectedType, selectedIcon, selectedColor, parentCategory?.id)
+                        onConfirm(name.trim(), selectedType, selectedIcon, selectedColor, parentCategory?.id)
                     }
                 }
             ) {
@@ -154,6 +206,14 @@ fun AddCategoryDialog(
             TextButton(onClick = onDismiss) { Text("إلغاء") }
         }
     )
+
+    if (showIconPickerSheet) {
+        CategoryIconPickerBottomSheet(
+            selectedIconKey = selectedIcon,
+            onIconSelected = { selectedIcon = it },
+            onDismiss = { showIconPickerSheet = false }
+        )
+    }
 }
 
 @Composable
@@ -166,6 +226,7 @@ fun EditCategoryDialog(
     var name by remember { mutableStateOf(category.name) }
     var selectedIcon by remember { mutableStateOf(category.icon) }
     var selectedColor by remember { mutableStateOf(category.color) }
+    var showIconPickerSheet by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -180,8 +241,42 @@ fun EditCategoryDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // Icon picker
-                Text("اختر أيقونة:", style = MaterialTheme.typography.labelMedium, color = TextGray)
+                // Icon picker + full icon sheet trigger
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val previewColor = parseHex(selectedColor)
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(previewColor.copy(alpha = 0.16f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            UnifiedCategoryIcon(
+                                iconKey = selectedIcon,
+                                tint = previewColor,
+                                modifier = Modifier.size(18.dp),
+                                emojiFontSize = 16.sp
+                            )
+                        }
+                        Text("اختر أيقونة:", style = MaterialTheme.typography.labelMedium, color = TextGray)
+                    }
+                    TextButton(
+                        onClick = { showIconPickerSheet = true },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Icon(Icons.Default.GridView, contentDescription = null, tint = Primary, modifier = Modifier.size(15.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("كل الأيقونات", color = Primary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -189,26 +284,26 @@ fun EditCategoryDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     iconOptions.forEach { iconName ->
+                        val isSelected = selectedIcon.equals(iconName, ignoreCase = true)
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(
-                                    if (selectedIcon == iconName) Primary.copy(alpha = 0.2f)
+                                    if (isSelected) Primary.copy(alpha = 0.2f)
                                     else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                                 )
-                                .clickable { selectedIcon = iconName }
-                                .then(
-                                    if (selectedIcon == iconName)
-                                        Modifier.background(Primary.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
-                                    else Modifier
-                                ),
+                                .border(
+                                    width = if (isSelected) 1.5.dp else 0.dp,
+                                    color = if (isSelected) Primary else Color.Transparent,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .clickable { selectedIcon = iconName },
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = getIconVector(iconName),
-                                contentDescription = null,
-                                tint = if (selectedIcon == iconName) Primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            UnifiedCategoryIcon(
+                                iconKey = iconName,
+                                tint = if (isSelected) Primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -225,18 +320,29 @@ fun EditCategoryDialog(
                 ) {
                     colorOptions.forEach { hex ->
                         val color = parseHex(hex)
+                        val isSelected = selectedColor.equals(hex, ignoreCase = true)
                         Box(
                             modifier = Modifier
                                 .size(34.dp)
                                 .clip(CircleShape)
                                 .background(color)
-                                .clickable { selectedColor = hex }
-                                .then(
-                                    if (selectedColor == hex)
-                                        Modifier.padding(3.dp).background(Color.White, CircleShape)
-                                    else Modifier
+                                .border(
+                                    width = if (isSelected) 2.5.dp else 0.dp,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent,
+                                    shape = CircleShape
                                 )
-                        )
+                                .clickable { selectedColor = hex },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "محدد",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -245,7 +351,7 @@ fun EditCategoryDialog(
             TextButton(
                 onClick = {
                     if (name.isNotBlank()) {
-                        onConfirm(category.copy(name = name, icon = selectedIcon, color = selectedColor))
+                        onConfirm(category.copy(name = name.trim(), icon = selectedIcon, color = selectedColor))
                     }
                 }
             ) {
@@ -256,6 +362,14 @@ fun EditCategoryDialog(
             TextButton(onClick = onDismiss) { Text("إلغاء") }
         }
     )
+
+    if (showIconPickerSheet) {
+        CategoryIconPickerBottomSheet(
+            selectedIconKey = selectedIcon,
+            onIconSelected = { selectedIcon = it },
+            onDismiss = { showIconPickerSheet = false }
+        )
+    }
 }
 
 @Composable
@@ -406,11 +520,11 @@ fun MoveCategoryDialog(
                                 .background(parseHex(category.color)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = getIconVector(category.icon),
-                                contentDescription = null,
+                            UnifiedCategoryIcon(
+                                iconKey = category.icon,
                                 tint = Color.White,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(20.dp),
+                                emojiFontSize = 18.sp
                             )
                         }
                         Column {
@@ -577,11 +691,11 @@ fun MoveCategoryDialog(
                                                                 .background(parseHex(parentCat.color)),
                                                             contentAlignment = Alignment.Center
                                                         ) {
-                                                            Icon(
-                                                                imageVector = getIconVector(parentCat.icon),
-                                                                contentDescription = null,
+                                                            UnifiedCategoryIcon(
+                                                                iconKey = parentCat.icon,
                                                                 tint = Color.White,
-                                                                modifier = Modifier.size(12.dp)
+                                                                modifier = Modifier.size(12.dp),
+                                                                emojiFontSize = 10.sp
                                                             )
                                                         }
                                                         Text(parentCat.name, fontWeight = FontWeight.SemiBold)

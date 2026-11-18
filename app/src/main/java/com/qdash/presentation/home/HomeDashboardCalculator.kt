@@ -1,9 +1,12 @@
 package com.qdash.presentation.home
 
 import com.qdash.domain.model.CategoryType
+import com.qdash.domain.model.ContextAwareSuggestion
 import com.qdash.domain.model.Transaction
 import com.qdash.domain.model.TransactionKind
 import com.qdash.domain.model.TransactionType
+import org.json.JSONArray
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -20,7 +23,8 @@ object HomeDashboardCalculator {
         val monthlyExpense: Double,
         val incomeChangePercent: Double,
         val expenseChangePercent: Double,
-        val budgetUsagePercent: Float
+        val budgetUsagePercent: Float,
+        val categoryMonthlySpent: Map<Long, Double> = emptyMap()
     )
 
     /**
@@ -52,6 +56,9 @@ object HomeDashboardCalculator {
             set(Calendar.SECOND, 59); set(Calendar.MILLISECOND, 999)
         }.timeInMillis
 
+        val catById = categories.associateBy { it.id }
+        val categorySpent = mutableMapOf<Long, Double>()
+
         var monthlyIn = 0.0; var monthlyOut = 0.0
         var prevIn = 0.0;    var prevOut = 0.0
 
@@ -59,8 +66,21 @@ object HomeDashboardCalculator {
             val d = tx.date
             when {
                 d in currentMonthStart..currentMonthEnd -> {
-                    if (tx.kind == TransactionKind.INCOME || tx.kind == TransactionKind.SALARY) monthlyIn += tx.amount
-                    else if (tx.kind == TransactionKind.EXPENSE || tx.kind == TransactionKind.SAVINGS_WITHDRAWAL) monthlyOut += tx.amount
+                    if (tx.kind == TransactionKind.INCOME || tx.kind == TransactionKind.SALARY) {
+                        monthlyIn += tx.amount
+                    } else if (tx.kind == TransactionKind.EXPENSE || tx.kind == TransactionKind.SAVINGS_WITHDRAWAL) {
+                        monthlyOut += tx.amount
+                    }
+                    if (tx.type == TransactionType.EXPENSE) {
+                        val catId = tx.categoryId
+                        if (catId != null) {
+                            categorySpent[catId] = (categorySpent[catId] ?: 0.0) + tx.amount
+                            val parentId = catById[catId]?.parentId
+                            if (parentId != null && parentId != catId) {
+                                categorySpent[parentId] = (categorySpent[parentId] ?: 0.0) + tx.amount
+                            }
+                        }
+                    }
                 }
                 d in prevMonthStart..prevMonthEnd -> {
                     if (tx.kind == TransactionKind.INCOME || tx.kind == TransactionKind.SALARY) prevIn += tx.amount
@@ -78,7 +98,9 @@ object HomeDashboardCalculator {
             val ids = expenseCatsWithLimits.map { it.id }.toSet()
             totalLimit = expenseCatsWithLimits.sumOf { it.budgetLimit ?: 0.0 }
             transactions.forEach { tx ->
-                if (tx.type == TransactionType.EXPENSE && tx.categoryId in ids && tx.date in currentMonthStart..currentMonthEnd) {
+                val catId = tx.categoryId
+                val parentId = if (catId != null) catById[catId]?.parentId else null
+                if (tx.type == TransactionType.EXPENSE && (catId in ids || parentId in ids) && tx.date in currentMonthStart..currentMonthEnd) {
                     totalSpent += tx.amount
                 }
             }
@@ -89,7 +111,8 @@ object HomeDashboardCalculator {
             monthlyExpense = monthlyOut,
             incomeChangePercent = incomeChange,
             expenseChangePercent = expenseChange,
-            budgetUsagePercent = if (totalLimit > 0) (totalSpent / totalLimit).toFloat().coerceIn(0f, 1f) else 0f
+            budgetUsagePercent = if (totalLimit > 0) (totalSpent / totalLimit).toFloat().coerceIn(0f, 1f) else 0f,
+            categoryMonthlySpent = categorySpent
         )
     }
 
@@ -146,5 +169,54 @@ object HomeDashboardCalculator {
             }
         }
         return points
+    }
+
+    fun parseCachedAiPayload(rawJson: String?): Pair<ContextAwareSuggestion?, List<String>> {
+        if (rawJson.isNullOrBlank()) return null to emptyList()
+        return try {
+            val root = JSONObject(rawJson)
+            val suggestion = root.optJSONObject("suggestion")?.let { s ->
+                ContextAwareSuggestion(
+                    title = s.optString("title"),
+                    suggestionText = s.optString("suggestionText"),
+                    note = s.optString("note"),
+                    defaultAmount = s.optDouble("defaultAmount", 0.0),
+                    targetKeyword = s.optString("targetKeyword"),
+                    iconName = s.optString("iconName")
+                ).takeIf { it.suggestionText.isNotBlank() }
+            }
+            val insights = mutableListOf<String>()
+            val arr = root.optJSONArray("insights")
+            if (arr != null) {
+                for (i in 0 until arr.length()) {
+                    val item = arr.optString(i)
+                    if (item.isNotBlank()) insights.add(item)
+                }
+            }
+            suggestion to insights
+        } catch (_: Exception) {
+            null to emptyList()
+        }
+    }
+
+    fun serializeAiPayload(suggestion: ContextAwareSuggestion?, insights: List<String>): String {
+        val root = JSONObject()
+        if (suggestion != null) {
+            root.put(
+                "suggestion",
+                JSONObject().apply {
+                    put("title", suggestion.title)
+                    put("suggestionText", suggestion.suggestionText)
+                    put("note", suggestion.note)
+                    put("defaultAmount", suggestion.defaultAmount)
+                    put("targetKeyword", suggestion.targetKeyword)
+                    put("iconName", suggestion.iconName)
+                }
+            )
+        }
+        if (insights.isNotEmpty()) {
+            root.put("insights", JSONArray(insights))
+        }
+        return root.toString()
     }
 }

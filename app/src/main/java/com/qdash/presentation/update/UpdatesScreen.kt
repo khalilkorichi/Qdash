@@ -171,14 +171,16 @@ fun UpdatesScreen(
                         progress = state.progress,
                         speed = state.speed,
                         eta = state.eta,
-                        onPauseDownload = { viewModel.pauseDownload(state.info) }
+                        onPauseDownload = { viewModel.pauseDownload(state.info) },
+                        onCancelDownload = { viewModel.cancelDownload(state.info) }
                     )
                 }
                 is UpdateUiState.Paused -> {
                     UpdateCard(info = state.info)
                     PausedUpdatesSection(
                         progress = state.progress,
-                        onResumeDownload = { viewModel.resumeDownload(state.info) }
+                        onResumeDownload = { viewModel.resumeDownload(state.info) },
+                        onCancelDownload = { viewModel.cancelDownload(state.info) }
                     )
                 }
                 is UpdateUiState.DownloadFailed -> {
@@ -215,9 +217,20 @@ fun UpdatesScreen(
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = IncomeGreen)
                     ) {
-                        Icon(Icons.Default.OpenInNew, contentDescription = null)
+                        Icon(Icons.Default.OpenInNew, contentDescription = null, tint = androidx.compose.ui.graphics.Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("تثبيت الآن", fontWeight = FontWeight.Bold)
+                        Text("تثبيت الآن", fontWeight = FontWeight.Bold, color = androidx.compose.ui.graphics.Color.White)
+                    }
+
+                    TextButton(
+                        onClick = { viewModel.openFallbackRecovery(state.info, state.localApkFile) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "واجهت مشكلة في التثبيت؟ (حل تعارض التوقيع الرقمي)",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
                 is UpdateUiState.BackupInProgress -> {

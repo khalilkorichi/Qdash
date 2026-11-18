@@ -94,7 +94,10 @@ data class SavingGoal(
     override val /* contract */ accountId: Long,
     override val /* contract */ icon: String,
     override val /* contract */ color: String,
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    val isPaused: Boolean = false,
+    val isArchived: Boolean = false,
+    val strategy: String = "FIXED"
 ) : Identifiable, Nameable, AccountLinked, IconTagged, ColorTagged
 
 data class Subscription(
@@ -181,7 +184,10 @@ fun SavingGoalEntity.toDomain() = SavingGoal(
     accountId = accountId,
     icon = icon,
     color = color,
-    isCompleted = isCompleted
+    isCompleted = isCompleted,
+    isPaused = isPaused,
+    isArchived = isArchived,
+    strategy = strategy
 )
 
 fun SubscriptionEntity.toDomain() = Subscription(
@@ -268,7 +274,10 @@ fun SavingGoal.toEntity() = SavingGoalEntity(
     accountId = accountId,
     icon = icon,
     color = color,
-    isCompleted = isCompleted
+    isCompleted = isCompleted,
+    isPaused = isPaused,
+    isArchived = isArchived,
+    strategy = strategy
 )
 
 fun Subscription.toEntity() = SubscriptionEntity(

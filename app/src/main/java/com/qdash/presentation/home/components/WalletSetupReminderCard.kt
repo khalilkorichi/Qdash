@@ -21,10 +21,13 @@ import com.qdash.ui.theme.TextGray
 @Composable
 fun WalletSetupReminderCard(
     onDismiss: () -> Unit,
+    onSetupClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val primary = MaterialTheme.colorScheme.primary
+    val onPrimary = MaterialTheme.colorScheme.onPrimary
     Card(
+        onClick = onSetupClick,
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
@@ -69,9 +72,29 @@ fun WalletSetupReminderCard(
                     color = TextGray,
                     lineHeight = 16.sp
                 )
+                Spacer(modifier = Modifier.height(10.dp))
+                Button(
+                    onClick = onSetupClick,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = primary,
+                        contentColor = onPrimary
+                    ),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                    modifier = Modifier.height(34.dp)
+                ) {
+                    Text(
+                        text = "إعداد الآن",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = onPrimary
+                    )
+                }
             }
 
-            IconButton(onClick = onDismiss) {
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.size(36.dp)
+            ) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "إغلاق",

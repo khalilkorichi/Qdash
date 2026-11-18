@@ -35,6 +35,8 @@ import com.qdash.domain.model.Category
 import com.qdash.domain.model.CategoryType
 import com.qdash.domain.model.Transaction
 import com.qdash.domain.model.TransactionType
+import com.qdash.presentation.components.UnifiedCategoryIcon
+import com.qdash.presentation.components.safeParseColor
 import com.qdash.ui.theme.*
 import com.qdash.core.utils.FormatterUtils
 import androidx.compose.ui.input.pointer.pointerInput
@@ -456,26 +458,37 @@ fun AccountPickerRow(
     parsedAmount: Double = 0.0,
     onSelect: (Long) -> Unit
 ) {
-    Row(
+    val visibleAccounts = remember(accounts) {
+        accounts.filter { !it.isArchived }
+    }
+    LazyRow(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        accounts.forEach { acc ->
+        items(visibleAccounts, key = { it.id }) { acc ->
             val isSelected = selectedId == acc.id
             val isDisabled = acc.id == disabledId
             Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(12.dp))
+                    .widthIn(min = 128.dp)
+                    .clip(RoundedCornerShape(14.dp))
                     .background(
                         when {
-                            isSelected  -> accentColor.copy(alpha = 0.18f)
+                            isSelected  -> accentColor.copy(alpha = 0.16f)
                             isDisabled  -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                             else        -> MaterialTheme.colorScheme.surfaceVariant
                         }
                     )
+                    .border(
+                        width = if (isSelected) 1.5.dp else 1.dp,
+                        color = when {
+                            isSelected -> accentColor
+                            else       -> MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+                        },
+                        shape = RoundedCornerShape(14.dp)
+                    )
                     .clickable(enabled = !isDisabled) { onSelect(acc.id) }
-                    .padding(vertical = 8.dp, horizontal = 4.dp),
+                    .padding(vertical = 10.dp, horizontal = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -513,7 +526,7 @@ fun AccountPickerRow(
                     modifier = Modifier.padding(top = 1.dp)
                 )
                 Text(
-                    text = FormatterUtils.formatCurrency(acc.balance),
+                    text = FormatterUtils.formatCurrency(acc.balance, currencyCode = acc.currency),
                     style = MaterialTheme.typography.labelSmall.copy(
                         localeList = if (com.qdash.core.utils.FormatterUtils.useWesternNumerals) {
                             androidx.compose.ui.text.intl.LocaleList("en")
@@ -537,7 +550,7 @@ fun AccountPickerRow(
                 if (showExpected) {
                     val isPlus = expectedBalance > acc.balance
                     Text(
-                        text = "➔ " + FormatterUtils.formatCurrency(expectedBalance),
+                        text = "➔ " + FormatterUtils.formatCurrency(expectedBalance, currencyCode = acc.currency),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 9.sp,
                             localeList = if (com.qdash.core.utils.FormatterUtils.useWesternNumerals) {
@@ -704,7 +717,7 @@ fun NumPad(onKeyPress: (String) -> Unit) {
                         else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
                     }
                     val textColor = when {
-                        isEquals -> Color.White
+                        isEquals -> MaterialTheme.colorScheme.onPrimary
                         isClear -> ExpenseRed
                         else -> MaterialTheme.colorScheme.onSurface
                     }
@@ -786,78 +799,12 @@ fun CategoryIconView(
     color: Color,
     modifier: Modifier = Modifier
 ) {
-    val isMaterialIcon = remember(iconStr) {
-        iconStr.matches(Regex("^[a-zA-Z_]+$"))
-    }
-
-    if (isMaterialIcon) {
-        val vectorIcon = when (iconStr) {
-            "person" -> Icons.Default.Person
-            "groups" -> Icons.Default.Groups
-            "home" -> Icons.Default.Home
-            "restaurant" -> Icons.Default.Restaurant
-            "directions_car" -> Icons.Default.DirectionsCar
-            "receipt_long" -> Icons.Default.ReceiptLong
-            "shopping_bag" -> Icons.Default.ShoppingBag
-            "medical_services" -> Icons.Default.MedicalServices
-            "school" -> Icons.Default.School
-            "sports_esports" -> Icons.Default.SportsEsports
-            "work" -> Icons.Default.Work
-            "redeem" -> Icons.Default.Redeem
-            "storefront" -> Icons.Default.Storefront
-            "schedule" -> Icons.Default.Schedule
-            "monetization_on" -> Icons.Default.MonetizationOn
-            "savings" -> Icons.Default.Savings
-            "payments" -> Icons.Default.Payments
-            "account_balance" -> Icons.Default.AccountBalance
-            "trending_up" -> Icons.Default.TrendingUp
-            "card_giftcard" -> Icons.Default.CardGiftcard
-            "shopping_cart" -> Icons.Default.ShoppingCart
-            "local_gas_station" -> Icons.Default.LocalGasStation
-            "directions_bus" -> Icons.Default.DirectionsBus
-            "local_taxi" -> Icons.Default.LocalTaxi
-            "flight" -> Icons.Default.Flight
-            "checkroom" -> Icons.Default.Checkroom
-            "spa" -> Icons.Default.Spa
-            "fitness_center" -> Icons.Default.FitnessCenter
-            "live_tv" -> Icons.Default.LiveTv
-            "event" -> Icons.Default.Event
-            "phone_android" -> Icons.Default.PhoneAndroid
-            "wifi" -> Icons.Default.Wifi
-            "bolt" -> Icons.Default.Bolt
-            "water_drop" -> Icons.Default.WaterDrop
-            "chair" -> Icons.Default.Chair
-            "coffee" -> Icons.Default.Coffee
-            "child_care" -> Icons.Default.ChildCare
-            "pets" -> Icons.Default.Pets
-            "favorite" -> Icons.Default.Favorite
-            "star" -> Icons.Default.Star
-            "attach_money" -> Icons.Default.AttachMoney
-            "receipt" -> Icons.Default.Receipt
-            "build" -> Icons.Default.Build
-            "local_hospital" -> Icons.Default.LocalHospital
-            "mosque" -> Icons.Default.Mosque
-            "volunteer_activism" -> Icons.Default.VolunteerActivism
-            else -> Icons.Default.Category
-        }
-        Icon(
-            imageVector = vectorIcon,
-            contentDescription = null,
-            tint = color,
-            modifier = modifier
-        )
-    } else {
-        Box(
-            modifier = modifier,
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = iconStr,
-                fontSize = 14.sp,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
+    UnifiedCategoryIcon(
+        iconKey = iconStr,
+        tint = color,
+        modifier = modifier,
+        emojiFontSize = 14.sp
+    )
 }
 
 sealed interface DropdownCategoryItem {

@@ -96,7 +96,7 @@ object AlgerianKeywordDictionary {
         ),
         KeywordCategoryMapping(
             keywords = listOf("كبش", "علف", "اضحية", "عيد الكبير", "الاضحى", "كبش العيد"),
-            categoryName = "مناسبات وأعيad",
+            categoryName = "مناسبات وأعياد",
             subcategoryName = "عيد الأضحى"
         ),
         KeywordCategoryMapping(

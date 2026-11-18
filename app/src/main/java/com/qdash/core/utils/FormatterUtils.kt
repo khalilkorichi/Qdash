@@ -8,9 +8,9 @@ import java.util.Date
 import java.util.Locale
 
 object FormatterUtils {
-    var hideDecimals: Boolean = true
-    var useWesternNumerals: Boolean = true
-    var useAlgerianMonths: Boolean = true
+    @Volatile var hideDecimals: Boolean = true
+    @Volatile var useWesternNumerals: Boolean = true
+    @Volatile var useAlgerianMonths: Boolean = true
 
     val algerianMonths = arrayOf(
         "جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان",
@@ -75,14 +75,30 @@ object FormatterUtils {
         }
     }
 
-    private val usSymbols = DecimalFormatSymbols(Locale.US)
-    private val decimalFormatWithDecimals = DecimalFormat("#,##0.00", usSymbols)
-    private val decimalFormatWithoutDecimals = DecimalFormat("#,##0", usSymbols)
-    
-    fun formatCurrency(amount: Double, prefix: String = ""): String {
-        val format = if (hideDecimals) decimalFormatWithoutDecimals else decimalFormatWithDecimals
+    private val decimalFormatWithDecimals = object : ThreadLocal<DecimalFormat>() {
+        override fun initialValue(): DecimalFormat = DecimalFormat("#,##0.00", DecimalFormatSymbols(Locale.US))
+    }
+    private val decimalFormatWithoutDecimals = object : ThreadLocal<DecimalFormat>() {
+        override fun initialValue(): DecimalFormat = DecimalFormat("#,##0", DecimalFormatSymbols(Locale.US))
+    }
+
+    fun currencySymbol(currencyCode: String): String = when (currencyCode.uppercase(Locale.US)) {
+        "DZD", "DA", "" -> "دج"
+        "EUR" -> "€"
+        "USD" -> "$"
+        "GBP" -> "£"
+        "CAD" -> "CA$"
+        "SAR" -> "ر.س"
+        "AED" -> "د.إ"
+        "TND" -> "د.ت"
+        else -> currencyCode.uppercase(Locale.US)
+    }
+
+    fun formatCurrency(amount: Double, prefix: String = "", currencyCode: String = "DZD"): String {
+        val format = if (hideDecimals) decimalFormatWithoutDecimals.get()!! else decimalFormatWithDecimals.get()!!
         val formattedNumber = format.format(amount)
-        val result = if (prefix.isNotEmpty()) "\u200E$prefix$formattedNumber دج" else "$formattedNumber دج"
+        val unit = currencySymbol(currencyCode)
+        val result = if (prefix.isNotEmpty()) "\u200E$prefix$formattedNumber $unit" else "$formattedNumber $unit"
         return convertNumerals(result)
     }
 
@@ -136,11 +152,13 @@ object FormatterUtils {
 
 
     fun formatFileSize(size: Long): String {
-        if (size <= 0) return "0 ب"
-        val units = arrayOf("ب", "ك.ب", "م.ب", "ج.ب")
-        val digitGroups = (Math.log10(size.toDouble()) / Math.log10(1024.toDouble())).toInt()
-        val num = size / Math.pow(1024.toDouble(), digitGroups.toDouble())
-        val formatted = java.text.DecimalFormat("#,##0.#").format(num)
+        if (size <= 0) return convertNumerals("0 ب")
+        val units = arrayOf("ب", "ك.ب", "م.ب", "ج.ب", "ت.ب")
+        val digitGroups = (kotlin.math.log10(size.toDouble()) / kotlin.math.log10(1024.0))
+            .toInt()
+            .coerceIn(0, units.lastIndex)
+        val num = size / Math.pow(1024.0, digitGroups.toDouble())
+        val formatted = DecimalFormat("#,##0.#", DecimalFormatSymbols(Locale.US)).format(num)
         return convertNumerals("$formatted ${units[digitGroups]}")
     }
 
@@ -157,6 +175,8 @@ object FormatterUtils {
                 '٧' -> '7'
                 '٨' -> '8'
                 '٩' -> '9'
+                '٫' -> '.'
+                '٬' -> ','
                 else -> char
             }
         }.joinToString("").replace(",", "").replace(" ", "").trim()

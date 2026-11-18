@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -55,15 +56,16 @@ fun FinTrackTopBar(
         if (showBackButton) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                     .clickable { onBackClick() }
                     .testTag("back_button"),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.ArrowForward,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "رجوع",
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(20.dp)
@@ -73,11 +75,13 @@ fun FinTrackTopBar(
             val navController = com.qdash.presentation.navigation.LocalNavController.current
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
                     .background(Primary.copy(alpha = 0.1f))
                     .clickable { 
-                        navController?.navigate(com.qdash.presentation.navigation.Screen.Notifications.route) ?: onNotificationClick()
+                        navController?.navigate(com.qdash.presentation.navigation.Screen.Notifications.route) {
+                            launchSingleTop = true
+                        } ?: onNotificationClick()
                     },
                 contentAlignment = Alignment.Center
             ) {
@@ -97,7 +101,9 @@ fun FinTrackTopBar(
                 fontSize = 18.sp,
                 letterSpacing = (-0.3).sp
             ),
-            color = MaterialTheme.colorScheme.onBackground
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
 
         Row(
@@ -109,11 +115,14 @@ fun FinTrackTopBar(
                 val navController = com.qdash.presentation.navigation.LocalNavController.current
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(44.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                         .clickable {
-                            navController?.navigate(com.qdash.presentation.navigation.Screen.Search.route)
+                            navController?.navigate(com.qdash.presentation.navigation.Screen.Search.route) {
+                                launchSingleTop = true
+                            }
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -124,6 +133,9 @@ fun FinTrackTopBar(
                         modifier = Modifier.size(20.dp)
                     )
                 }
+            } else {
+                // Balanced placeholder when no trailing actions exist so title stays visually centered
+                Spacer(modifier = Modifier.width(4.dp))
             }
         }
     }

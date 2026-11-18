@@ -11,6 +11,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.qdash.core.utils.FormatterUtils
 import com.qdash.core.preferences.PreferencesManager
 import com.qdash.core.utils.ExportUtility
+import com.qdash.domain.model.BackupFileMetadata
 import com.qdash.domain.model.BackupProgress
 import com.qdash.domain.model.RestorePreview
 import com.qdash.domain.model.UserProfile
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.qdash.domain.usecase.onboarding.CompleteOnboardingUseCase
+import com.qdash.domain.usecase.settings.CheckForExistingBackupUseCase
 
 @Immutable
 data class BackupUiState(
@@ -38,7 +40,8 @@ data class BackupUiState(
     val restorePreview: RestorePreview? = null,
     val showPasswordPrompt: Boolean = false,
     val passwordError: String? = null,
-    val pendingRestoreUri: Uri? = null
+    val pendingRestoreUri: Uri? = null,
+    val existingCloudBackupPrompt: BackupFileMetadata? = null
 )
 
 class BackupViewModel(
@@ -50,7 +53,8 @@ class BackupViewModel(
     private val authRepository: AuthRepository,
     private val driveSyncRepository: DriveSyncRepository,
     private val context: Context,
-    private val completeOnboardingUseCase: CompleteOnboardingUseCase
+    private val completeOnboardingUseCase: CompleteOnboardingUseCase,
+    private val checkForExistingBackupUseCase: CheckForExistingBackupUseCase = CheckForExistingBackupUseCase(driveSyncRepository)
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BackupUiState())
@@ -301,6 +305,14 @@ class BackupViewModel(
         _uiState.value = _uiState.value.copy(successMessage = null, errorMessage = null)
     }
 
+    fun handleGoogleSignInResult(
+        account: GoogleSignInAccount,
+        onSuccess: () -> Unit = {},
+        onFailure: (String) -> Unit = {}
+    ) {
+        connectGoogleDriveAccount(account, onSuccess, onFailure)
+    }
+
     fun connectGoogleDriveAccount(
         account: GoogleSignInAccount,
         onSuccess: () -> Unit,
@@ -308,21 +320,94 @@ class BackupViewModel(
     ) {
         viewModelScope.launch {
             try {
-                authRepository.signIn(account)
-                preferencesManager.isGoogleLinked = true
-                
-                // Initial sync to upload current state
                 _uiState.update { it.copy(isLoading = true) }
-                val result = driveSyncRepository.uploadToAppData(context)
-                if (result.isSuccess) {
-                    preferencesManager.lastSyncTimestamp = System.currentTimeMillis()
+                val signInResult = authRepository.signIn(account)
+                if (signInResult.isFailure) {
+                    _uiState.update { it.copy(isLoading = false) }
+                    onFailure(signInResult.exceptionOrNull()?.localizedMessage ?: "فشل ربط الحساب")
+                    return@launch
                 }
-                _uiState.update { it.copy(isLoading = false) }
-                onSuccess()
+                preferencesManager.isGoogleLinked = true
+                preferencesManager.hasPendingBackupRestoreCheck = true
+
+                // CRITICAL: Check for existing cloud backup FIRST before uploading so we never overwrite Drive data!
+                val checkResult = checkForExistingBackupUseCase(context)
+                val existingMetadata = checkResult.getOrNull()
+                if (existingMetadata != null) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            existingCloudBackupPrompt = existingMetadata
+                        )
+                    }
+                    // Wait for user decision (Restore vs Keep Local)
+                } else {
+                    val uploadResult = driveSyncRepository.uploadToAppData(context)
+                    if (uploadResult.isSuccess) {
+                        preferencesManager.lastSyncTimestamp = System.currentTimeMillis()
+                    }
+                    preferencesManager.hasPendingBackupRestoreCheck = false
+                    _uiState.update { it.copy(isLoading = false) }
+                    onSuccess()
+                }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false) }
                 onFailure(e.localizedMessage ?: "فشل ربط الحساب")
             }
+        }
+    }
+
+    fun restoreExistingCloudBackupPrompt(
+        onSuccess: () -> Unit = {},
+        onFailure: (String) -> Unit = {}
+    ) {
+        _uiState.update { it.copy(isLoading = true) }
+        viewModelScope.launch {
+            try {
+                val result = driveSyncRepository.downloadFromAppData(context)
+                if (result.isSuccess && result.getOrDefault(false)) {
+                    completeOnboardingUseCase()
+                    preferencesManager.hasPendingBackupRestoreCheck = false
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            existingCloudBackupPrompt = null,
+                            successMessage = "تمت استعادة البيانات السحابية بنجاح!"
+                        )
+                    }
+                    onSuccess()
+                } else {
+                    val err = result.exceptionOrNull()?.localizedMessage ?: "تعذّر استعادة النسخة السحابية."
+                    _uiState.update { it.copy(isLoading = false, errorMessage = err) }
+                    onFailure(err)
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = e.localizedMessage) }
+                onFailure(e.localizedMessage ?: "خطأ غير معروف")
+            }
+        }
+    }
+
+    fun keepLocalDataInsteadOfCloudRestore(onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, existingCloudBackupPrompt = null) }
+            try {
+                val uploadResult = driveSyncRepository.uploadToAppData(context)
+                if (uploadResult.isSuccess) {
+                    preferencesManager.lastSyncTimestamp = System.currentTimeMillis()
+                }
+                preferencesManager.hasPendingBackupRestoreCheck = false
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        successMessage = "تم الاحتفاظ بالبيانات المحلية ومزامنتها سحابياً."
+                    )
+                }
+            } catch (_: Exception) {
+                preferencesManager.hasPendingBackupRestoreCheck = false
+                _uiState.update { it.copy(isLoading = false) }
+            }
+            onComplete()
         }
     }
 

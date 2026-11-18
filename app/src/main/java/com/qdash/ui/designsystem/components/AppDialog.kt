@@ -79,29 +79,29 @@ fun AppDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(24.dp),
-                    horizontalAlignment = Alignment.End // RTL layout compliance
+                    horizontalAlignment = Alignment.Start // In RTL, Start = Right
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
+                        horizontalArrangement = Arrangement.Start,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        if (icon != null) {
+                            Box(contentAlignment = Alignment.Center) {
+                                icon()
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                        }
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 18.sp
                             ),
-                            color = if (isDestructive) ColorTokens.Danger else MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.Right,
+                            color = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Start,
                             modifier = Modifier.weight(1f)
                         )
-                        if (icon != null) {
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Box(contentAlignment = Alignment.Center) {
-                                icon()
-                            }
-                        }
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -113,7 +113,7 @@ fun AppDialog(
                             fontSize = 14.sp
                         ),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Right,
+                        textAlign = TextAlign.Start,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -146,7 +146,7 @@ fun AppDialog(
                             variant = ButtonVariant.SOLID,
                             intent = if (isDestructive) ButtonIntent.DANGER else ButtonIntent.PRIMARY
                         ) {
-                            Text(confirmButtonText, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
+                            Text(confirmButtonText, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
                     }
                 }

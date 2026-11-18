@@ -20,7 +20,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qdash.core.ui.components.UnifiedScreenHeader
+import com.qdash.core.utils.AmountConversionEngine
 import com.qdash.core.utils.FileUtils
+import com.qdash.core.utils.FormatterUtils
 import com.qdash.domain.model.Account
 import com.qdash.ui.designsystem.components.AppButton
 import com.qdash.ui.designsystem.components.ButtonVariant
@@ -30,7 +32,6 @@ import com.qdash.ui.designsystem.components.AppDialog
 import com.qdash.ui.designsystem.tokens.ColorTokens
 import com.qdash.ui.designsystem.tokens.SpacingTokens
 import com.qdash.ui.theme.ExpenseRed
-import com.qdash.ui.theme.Primary
 import com.qdash.ui.theme.TransferBlue
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -143,6 +144,7 @@ fun AddEditAccountScreen(
                             icon = uiState.icon,
                             iconPath = uiState.iconPath,
                             isAmana = uiState.isAmanaEnabled,
+                            currency = uiState.currency,
                             modifier = Modifier.padding(bottom = SpacingTokens.Xs)
                         )
                     }
@@ -160,7 +162,62 @@ fun AddEditAccountScreen(
                         )
                     }
 
+                    item {
+                        SectionLabel("نوع الحساب")
+                        Spacer(modifier = Modifier.height(SpacingTokens.Xs))
+                        AccountTypeSelector(
+                            selectedType = uiState.type,
+                            onTypeSelected = viewModel::onTypeChange
+                        )
+                    }
 
+                    item {
+                        SectionLabel("العملة")
+                        Spacer(modifier = Modifier.height(SpacingTokens.Xs))
+                        AccountCurrencySelector(
+                            selectedCurrency = uiState.currency,
+                            onCurrencySelected = viewModel::onCurrencyChange
+                        )
+                    }
+
+                    item {
+                        SectionLabel("اللون")
+                        Spacer(modifier = Modifier.height(SpacingTokens.Xs))
+                        ColorPicker(
+                            selectedColor = uiState.color,
+                            onColorSelected = viewModel::onColorChange
+                        )
+                    }
+
+                    item {
+                        // Optional Balance Reconciliation in Edit Mode
+                        var reconcileText by remember(uiState.accountId) {
+                            mutableStateOf(
+                                if (uiState.balance % 1.0 == 0.0) uiState.balance.toLong().toString()
+                                else uiState.balance.toString()
+                            )
+                        }
+                        LaunchedEffect(uiState.balance) {
+                            val currentParsed = AmountConversionEngine.parseFlexibleAmount(reconcileText)
+                            if (uiState.balance == 0.0 && currentParsed != 0.0) {
+                                reconcileText = "0"
+                            }
+                        }
+                        AppInput(
+                            value = reconcileText,
+                            onValueChange = { text ->
+                                reconcileText = text
+                                val parsed = AmountConversionEngine.parseFlexibleAmount(text)
+                                if (parsed != null) {
+                                    viewModel.onBalanceChange(parsed)
+                                }
+                            },
+                            label = "مطابقة الرصيد الحالي (${FormatterUtils.currencySymbol(uiState.currency)})",
+                            placeholder = "0.00",
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
 
                     item {
                         AccountActionButtons(
@@ -242,6 +299,7 @@ fun AddEditAccountScreen(
                             icon = uiState.icon,
                             iconPath = uiState.iconPath,
                             isAmana = uiState.isAmanaEnabled,
+                            currency = uiState.currency,
                             modifier = Modifier.padding(bottom = SpacingTokens.Xs)
                         )
                     }
@@ -259,8 +317,6 @@ fun AddEditAccountScreen(
                         )
                     }
 
-
-
                     item {
                         // --- Initial balance (only on creation) ---
                         var balanceText by remember { mutableStateOf("") }
@@ -268,10 +324,10 @@ fun AddEditAccountScreen(
                             value = balanceText,
                             onValueChange = { text ->
                                 balanceText = text
-                                val parsed = text.toDoubleOrNull() ?: 0.0
+                                val parsed = AmountConversionEngine.parseFlexibleAmount(text) ?: 0.0
                                 viewModel.onBalanceChange(parsed)
                             },
-                            label = "الرصيد الأولي (اختياري)",
+                            label = "الرصيد الأولي (${FormatterUtils.currencySymbol(uiState.currency)})",
                             placeholder = "0.00",
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.fillMaxWidth()
@@ -285,6 +341,16 @@ fun AddEditAccountScreen(
                         AccountTypeSelector(
                             selectedType = uiState.type,
                             onTypeSelected = viewModel::onTypeChange
+                        )
+                    }
+
+                    item {
+                        // --- Currency ---
+                        SectionLabel("العملة")
+                        Spacer(modifier = Modifier.height(SpacingTokens.Xs))
+                        AccountCurrencySelector(
+                            selectedCurrency = uiState.currency,
+                            onCurrencySelected = viewModel::onCurrencyChange
                         )
                     }
 

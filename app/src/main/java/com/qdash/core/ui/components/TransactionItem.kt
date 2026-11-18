@@ -50,45 +50,33 @@ fun TransactionItem(
     currentViewedAccountId: Long? = null,
     toAccountName: String? = null
 ) {
+    val isIncome = transaction.type == TransactionType.INCOME
     val isExpense = transaction.type == TransactionType.EXPENSE
     val isTransfer = transaction.type == TransactionType.TRANSFER
-    val isIncomingTransfer = isTransfer && transaction.toAccountId == currentViewedAccountId
-    val isOutgoingTransfer = isTransfer && transaction.accountId == currentViewedAccountId
+    val isIncomingTransfer = isTransfer && currentViewedAccountId != null && (
+        (!transaction.isDebit && transaction.accountId == currentViewedAccountId) ||
+        (transaction.isDebit && transaction.toAccountId == currentViewedAccountId)
+    )
+    val isOutgoingTransfer = isTransfer && currentViewedAccountId != null && (
+        transaction.isDebit && transaction.accountId == currentViewedAccountId
+    )
 
     val amountPrefix = when {
         isExpense || isOutgoingTransfer -> "-"
-        isIncomingTransfer -> "+"
+        isIncome || isIncomingTransfer -> "+"
         else -> ""
     }
 
     val accentColor = when {
         isExpense || isOutgoingTransfer -> ExpenseRed
-        isIncomingTransfer -> IncomeGreen
+        isIncome || isIncomingTransfer -> IncomeGreen
         else -> TransferBlue
     }
 
-    val textColor = when {
-        isExpense || isOutgoingTransfer -> ExpenseRed
-        isIncomingTransfer -> IncomeGreen
-        else -> TransferBlue
-    }
+    val textColor = accentColor
 
-    val catColor = category?.color?.let { Color(android.graphics.Color.parseColor(it)) } ?: accentColor
-    val icon = category?.icon ?: "receipt"
-    val vectorIcon = when (icon) {
-        "person" -> Icons.Default.Person
-        "groups" -> Icons.Default.Groups
-        "home" -> Icons.Default.Home
-        "restaurant" -> Icons.Default.Restaurant
-        "directions_car" -> Icons.Default.DirectionsCar
-        "receipt_long" -> Icons.Default.ReceiptLong
-        "shopping_bag" -> Icons.Default.ShoppingBag
-        "medical_services" -> Icons.Default.MedicalServices
-        "school" -> Icons.Default.School
-        "sports_esports" -> Icons.Default.SportsEsports
-        "work" -> Icons.Default.Work
-        else -> Icons.Default.Receipt
-    }
+    val catColor = com.qdash.presentation.components.safeParseColor(category?.color, accentColor)
+    val iconKey = category?.icon ?: if (isTransfer) "sync_alt" else "receipt"
     val amountText = FormatterUtils.formatCurrency(transaction.amount, amountPrefix)
 
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -146,11 +134,12 @@ fun TransactionItem(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = vectorIcon,
-                        contentDescription = category?.name,
+                    com.qdash.presentation.components.UnifiedCategoryIcon(
+                        iconKey = iconKey,
                         tint = catColor,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(24.dp),
+                        emojiFontSize = 20.sp,
+                        contentDescription = category?.name
                     )
                 }
 

@@ -139,7 +139,7 @@ fun AddAccountDialog(
                                 ) {
                                     Text(
                                         label,
-                                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                                         fontSize = 11.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     )
@@ -196,7 +196,7 @@ fun AddAccountDialog(
                 variant = ButtonVariant.SOLID,
                 intent = ButtonIntent.PRIMARY
             ) {
-                Text("حفظ الحساب", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("حفظ الحساب", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -391,7 +391,7 @@ fun EditAccountBottomSheet(
                     variant = ButtonVariant.SOLID,
                     intent = ButtonIntent.PRIMARY
                 ) {
-                    Text("حفظ التعديلات", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("حفظ التعديلات", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -514,7 +514,7 @@ fun TransferDialog(
                         ) {
                             Text(
                                 acc.name,
-                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                                 fontSize = 10.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -616,7 +616,7 @@ fun NetWealthCard(
                 .fillMaxWidth()
                 .background(
                     Brush.linearGradient(
-                        if (isDark) listOf(Primary, PrimaryDark) else listOf(Primary, Primary)
+                        if (isDark) listOf(Color(0xFF4338CA), Color(0xFF1E1B4B)) else listOf(Primary, Primary)
                     ),
                     RoundedCornerShape(24.dp)
                 )
@@ -767,12 +767,12 @@ fun EmptyAccountsState(
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Icon(Icons.Default.AddCircleOutline, null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.AddCircleOutline, null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "أنشئ محفظتك الأولى",
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
             }
         }

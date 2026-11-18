@@ -15,6 +15,8 @@ class ScheduledBackupWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
+        if (runAttemptCount >= 3) return Result.failure()
+
         val app = applicationContext as? FinTrackApp ?: return Result.failure()
         val backupManager = app.container.backupManager
         val preferencesManager = app.container.preferencesManager
@@ -48,13 +50,21 @@ class ScheduledBackupWorker(
                     Result.success()
                 },
                 onFailure = { error ->
-                    sendFailureNotification(error.localizedMessage ?: "حدث خطأ غير معروف.")
-                    Result.retry()
+                    if (runAttemptCount >= 3) {
+                        sendFailureNotification(error.localizedMessage ?: "حدث خطأ غير معروف.")
+                        Result.failure()
+                    } else {
+                        Result.retry()
+                    }
                 }
             )
         } catch (e: Exception) {
-            sendFailureNotification(e.localizedMessage ?: "حدث خطأ غير معروف.")
-            Result.failure()
+            if (runAttemptCount >= 3) {
+                sendFailureNotification(e.localizedMessage ?: "حدث خطأ غير معروف.")
+                Result.failure()
+            } else {
+                Result.retry()
+            }
         }
     }
 

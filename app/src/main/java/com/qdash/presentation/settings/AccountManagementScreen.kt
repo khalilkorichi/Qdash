@@ -1,15 +1,21 @@
 package com.qdash.presentation.settings
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,13 +26,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
-import com.qdash.ui.theme.TextGray
-import com.qdash.ui.theme.Primary
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.Scope
+import com.qdash.core.utils.FormatterUtils
+import com.qdash.presentation.backup.components.RestoreBackupPromptDialog
+import com.qdash.presentation.settings.components.GoogleSignInOutButton
 import com.qdash.ui.designsystem.components.*
 import com.qdash.ui.designsystem.tokens.*
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.qdash.ui.theme.TextGray
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,13 +50,57 @@ fun AccountManagementScreen(
 ) {
     val context = LocalContext.current
     val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
-    
+    val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
+    val pendingCloudBackup by viewModel.pendingCloudBackup.collectAsStateWithLifecycle()
+
     var showConfirmDialog by remember { mutableStateOf(false) }
-    var birthdateText by remember { mutableStateOf("") }
-    
-    // Update local state when entity is fetched
-    LaunchedEffect(userProfile) {
-        birthdateText = userProfile?.birthDate ?: ""
+    var showBirthdatePicker by remember { mutableStateOf(false) }
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            if (account != null) {
+                viewModel.connectGoogleAccount(
+                    account = account,
+                    onSuccess = {
+                        Toast.makeText(context, "تم ربط حساب Google بنجاح!", Toast.LENGTH_SHORT).show()
+                    },
+                    onFailure = { err ->
+                        Toast.makeText(context, "فشل ربط الحساب: $err", Toast.LENGTH_LONG).show()
+                    }
+                )
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "فشل تسجيل الدخول: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val launchGoogleSignIn = {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .requestProfile()
+            .requestScopes(Scope("https://www.googleapis.com/auth/drive.appdata"))
+            .build()
+        val client = GoogleSignIn.getClient(context, gso)
+        googleSignInLauncher.launch(client.signInIntent)
+    }
+
+    val isoFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US) }
+    val rawBirthdate = userProfile?.birthDate?.trim().orEmpty()
+    val parsedBirthdateMillis: Long? = remember(rawBirthdate) {
+        if (rawBirthdate.isBlank()) null else {
+            runCatching { isoFormat.parse(rawBirthdate)?.time }.getOrNull()
+        }
+    }
+    val displayBirthdate = remember(rawBirthdate, parsedBirthdateMillis) {
+        when {
+            parsedBirthdateMillis != null -> FormatterUtils.formatDate(parsedBirthdateMillis)
+            rawBirthdate.isNotBlank() -> rawBirthdate
+            else -> ""
+        }
     }
 
     Scaffold(
@@ -58,7 +116,7 @@ fun AccountManagementScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "رجوع")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -165,7 +223,17 @@ fun AccountManagementScreen(
                 }
             }
 
-            // 2. Birthdate Entry Card
+            // Guest Mode: Link Google Account button right here
+            if (!isLinked) {
+                GoogleSignInOutButton(
+                    isLinked = false,
+                    isLoading = isSyncing,
+                    onSignInClick = launchGoogleSignIn,
+                    onSignOutClick = {}
+                )
+            }
+
+            // 2. Birthdate Picker Card (Clickable row opening AppDatePickerDialog)
             AppCard(
                 modifier = Modifier.fillMaxWidth(),
                 variant = CardVariant.SOLID,
@@ -185,26 +253,67 @@ fun AccountManagementScreen(
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Right
                     )
-                    
+
                     Text(
-                        text = "أدخل تاريخ ميلادك لحفظه محلياً في جهازك.",
+                        text = "اختر تاريخ ميلادك لحفظه محلياً في جهازك.",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextGray,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Right
                     )
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
 
-                    AppInput(
-                        value = birthdateText,
-                        onValueChange = {
-                            birthdateText = it
-                            viewModel.saveBirthDate(it)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = if (userProfile?.birthDate.isNullOrEmpty()) "لم يُحدَّد بعد — اضغط للإضافة" else "مثال: 1995-05-15"
-                    )
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(ShapeTokens.Md)
+                            .clickable { showBirthdatePicker = true },
+                        shape = ShapeTokens.Md,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CalendarMonth,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = displayBirthdate.ifEmpty { "لم يُحدَّد بعد — اضغط للاختيار" },
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = if (displayBirthdate.isNotEmpty()) FontWeight.Bold else FontWeight.Normal
+                                    ),
+                                    color = if (displayBirthdate.isNotEmpty()) MaterialTheme.colorScheme.onSurface else TextGray
+                                )
+                            }
+                            if (displayBirthdate.isNotEmpty()) {
+                                IconButton(
+                                    onClick = { viewModel.saveBirthDate("") },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Clear,
+                                        contentDescription = "مسح التاريخ",
+                                        tint = TextGray,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -221,6 +330,40 @@ fun AccountManagementScreen(
                 }
             }
         }
+    }
+
+    if (showBirthdatePicker) {
+        AppDatePickerDialog(
+            initialSelectedDateMillis = parsedBirthdateMillis,
+            onDismissRequest = { showBirthdatePicker = false },
+            onDateSelected = { selectedMillis ->
+                val formattedIso = isoFormat.format(Date(selectedMillis))
+                viewModel.saveBirthDate(formattedIso)
+                Toast.makeText(context, "تم حفظ تاريخ الميلاد بنجاح!", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    if (pendingCloudBackup != null) {
+        RestoreBackupPromptDialog(
+            modifiedTime = pendingCloudBackup!!.modifiedTime,
+            isLoading = isSyncing,
+            onConfirm = {
+                viewModel.restoreExistingCloudBackup(
+                    onSuccess = {
+                        Toast.makeText(context, "تمت استعادة النسخة السحابية بنجاح!", Toast.LENGTH_SHORT).show()
+                    },
+                    onFailure = { err ->
+                        Toast.makeText(context, "فشل الاستعادة: $err", Toast.LENGTH_LONG).show()
+                    }
+                )
+            },
+            onDismiss = {
+                viewModel.keepLocalDataAndUpload {
+                    Toast.makeText(context, "تم ربط الحساب والاحتفاظ بالبيانات المحلية!", Toast.LENGTH_SHORT).show()
+                }
+            }
+        )
     }
 
     if (showConfirmDialog) {

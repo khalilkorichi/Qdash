@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.qdash.domain.model.BudgetGoal
 import com.qdash.domain.model.BudgetType
 import com.qdash.domain.model.TransactionType
+import com.qdash.domain.repository.AccountRepository
 import com.qdash.domain.repository.CategoryRepository
 import com.qdash.domain.repository.TransactionRepository
 import com.qdash.domain.usecase.budget.*
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -18,11 +20,17 @@ class BudgetGoalsViewModel(
     private val deleteBudgetGoalUseCase: DeleteBudgetGoalUseCase,
     private val getBudgetAlertsUseCase: GetBudgetAlertsUseCase,
     private val categoryRepository: CategoryRepository,
-    private val transactionRepository: TransactionRepository
+    private val transactionRepository: TransactionRepository,
+    private val accountRepository: AccountRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BudgetGoalsUiState())
     val uiState: StateFlow<BudgetGoalsUiState> = _uiState.asStateFlow()
+
+    private var categoriesJob: Job? = null
+    private var accountsJob: Job? = null
+    private var budgetGoalsJob: Job? = null
+    private var detailsJob: Job? = null
 
     init {
         loadData()
@@ -31,27 +39,37 @@ class BudgetGoalsViewModel(
     fun refresh() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
-            loadData()
-            kotlinx.coroutines.delay(600)
+            loadData(showLoading = false)
+            kotlinx.coroutines.delay(500)
             _uiState.update { it.copy(isRefreshing = false) }
         }
     }
 
-    private var categoriesJob: kotlinx.coroutines.Job? = null
-    private var budgetGoalsJob: kotlinx.coroutines.Job? = null
-
-    private fun loadData() {
+    private fun loadData(showLoading: Boolean = true) {
         categoriesJob?.cancel()
+        accountsJob?.cancel()
         budgetGoalsJob?.cancel()
-        _uiState.update { it.copy(isLoading = true) }
+        if (showLoading && _uiState.value.budgets.isEmpty()) {
+            _uiState.update { it.copy(isLoading = true) }
+        }
+
         categoriesJob = viewModelScope.launch {
-            // Load categories first
             try {
                 categoryRepository.getAllCategories().collectLatest { categories ->
                     _uiState.update { it.copy(categories = categories) }
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            } catch (_: Exception) {
+            }
+        }
+
+        if (accountRepository != null) {
+            accountsJob = viewModelScope.launch {
+                try {
+                    accountRepository.getAllAccounts().collectLatest { accounts ->
+                        _uiState.update { it.copy(accounts = accounts) }
+                    }
+                } catch (_: Exception) {
+                }
             }
         }
 
@@ -67,7 +85,6 @@ class BudgetGoalsViewModel(
                         )
                     }
 
-                    // Refresh active selection details if viewing details
                     val currentSelected = _uiState.value.selectedBudget
                     if (currentSelected != null) {
                         val refreshedSelected = budgets.find { it.id == currentSelected.id }
@@ -112,13 +129,23 @@ class BudgetGoalsViewModel(
 
     fun updateBudgetGoal(budgetGoal: BudgetGoal) {
         viewModelScope.launch {
-            updateBudgetGoalUseCase(budgetGoal)
+            val normalized = budgetGoal.copy(
+                linkedCategoryId = if (budgetGoal.budgetType == BudgetType.CATEGORY) budgetGoal.linkedCategoryId else null
+            )
+            updateBudgetGoalUseCase(normalized)
+            if (_uiState.value.selectedBudget?.id == normalized.id) {
+                loadBudgetDetails(normalized)
+            }
         }
     }
 
     fun toggleBudgetArchive(budgetGoal: BudgetGoal) {
         viewModelScope.launch {
-            updateBudgetGoalUseCase(budgetGoal.copy(isActive = !budgetGoal.isActive))
+            val updated = budgetGoal.copy(isActive = !budgetGoal.isActive)
+            updateBudgetGoalUseCase(updated)
+            if (_uiState.value.selectedBudget?.id == updated.id) {
+                _uiState.update { it.copy(selectedBudget = updated) }
+            }
         }
     }
 
@@ -136,17 +163,25 @@ class BudgetGoalsViewModel(
         loadBudgetDetails(budgetGoal)
     }
 
-    private var detailsJob: kotlinx.coroutines.Job? = null
-
     fun loadBudgetDetails(budgetGoal: BudgetGoal) {
         detailsJob?.cancel()
         detailsJob = viewModelScope.launch {
             transactionRepository.getAllTransactions().collectLatest { allTransactions ->
+                val targetCatIds: Set<Long> = if (budgetGoal.budgetType == BudgetType.CATEGORY && budgetGoal.linkedCategoryId != null) {
+                    val subIds = _uiState.value.categories
+                        .filter { it.parentId == budgetGoal.linkedCategoryId }
+                        .map { it.id }
+                    setOf(budgetGoal.linkedCategoryId) + subIds
+                } else emptySet()
+
                 val filtered = allTransactions.filter { tx ->
                     tx.type == TransactionType.EXPENSE &&
-                    tx.date in budgetGoal.startDate..budgetGoal.endDate &&
-                    (budgetGoal.budgetType != BudgetType.CATEGORY || budgetGoal.linkedCategoryId == null || tx.categoryId == budgetGoal.linkedCategoryId)
-                }
+                            tx.date in budgetGoal.startDate..budgetGoal.endDate &&
+                            (budgetGoal.budgetType != BudgetType.CATEGORY ||
+                                    budgetGoal.linkedCategoryId == null ||
+                                    tx.categoryId in targetCatIds)
+                }.sortedByDescending { it.date }
+
                 _uiState.update {
                     it.copy(
                         selectedBudget = budgetGoal,

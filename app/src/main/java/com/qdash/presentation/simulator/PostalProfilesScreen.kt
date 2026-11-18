@@ -11,8 +11,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,6 +27,7 @@ import com.qdash.core.ui.components.FinTrackTopBar
 import com.qdash.domain.model.PostalProfile
 import com.qdash.domain.model.PostalProfileRole
 import com.qdash.core.ui.components.EmptyStateView
+import com.qdash.ui.designsystem.components.AppDialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,7 +41,7 @@ fun PostalProfilesScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val profiles = uiState.savedProfiles
-    val Primary = MaterialTheme.colorScheme.primary
+    var profilePendingDelete by remember { mutableStateOf<PostalProfile?>(null) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -52,8 +55,8 @@ fun PostalProfilesScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddProfile,
-                containerColor = Primary,
-                contentColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = CircleShape
             ) {
                 Icon(
@@ -93,12 +96,27 @@ fun PostalProfilesScreen(
                             profile = profile,
                             onEditClick = { onEditProfile(profile.id) },
                             onToggleFavorite = { viewModel.toggleProfileFavorite(profile) },
-                            onDeleteClick = { viewModel.deletePostalProfile(profile) }
+                            onDeleteClick = { profilePendingDelete = profile }
                         )
                     }
                 }
             }
         }
+    }
+
+    profilePendingDelete?.let { pending ->
+        AppDialog(
+            onDismissRequest = { profilePendingDelete = null },
+            title = "حذف الملف البريدي",
+            text = "هل أنت متأكد من حذف الملف البريدي «${pending.profileName}»؟ لا يمكن التراجع عن هذا الإجراء.",
+            confirmButtonText = "حذف",
+            dismissButtonText = "إلغاء",
+            isDestructive = true,
+            onConfirm = {
+                viewModel.deletePostalProfile(pending)
+                profilePendingDelete = null
+            }
+        )
     }
 }
 

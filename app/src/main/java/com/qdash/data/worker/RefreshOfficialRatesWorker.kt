@@ -18,12 +18,19 @@ class RefreshOfficialRatesWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
+        if (runAttemptCount >= 3) return Result.failure()
+        val app = applicationContext as? FinTrackApp ?: return Result.failure()
         return try {
-            val container = (applicationContext as FinTrackApp).container
-            val result = container.refreshOfficialRatesUseCase()
-            if (result.isSuccess) Result.success() else Result.retry()
+            val result = app.container.refreshOfficialRatesUseCase()
+            if (result.isSuccess) {
+                Result.success()
+            } else if (runAttemptCount >= 3) {
+                Result.failure()
+            } else {
+                Result.retry()
+            }
         } catch (e: Exception) {
-            Result.retry()
+            if (runAttemptCount >= 3) Result.failure() else Result.retry()
         }
     }
 }

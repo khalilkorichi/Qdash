@@ -363,9 +363,20 @@ class UpdatesViewModel(
             val file = lastTriggeredApkFile
             val info = lastUpdateInfo
             if (file != null && info != null) {
-                _uiState.value = UpdateUiState.FallbackRecovery(info, file, FallbackStep.BACKUP)
+                if (info.versionCode > 0 && BuildConfig.VERSION_CODE >= info.versionCode) {
+                    val versionStr = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
+                    _uiState.value = UpdateUiState.NoUpdate(versionStr)
+                } else {
+                    // User may have cancelled the Android installer — return to ReadyToInstall
+                    // instead of falsely claiming SignatureMismatch / forcing Uninstall!
+                    _uiState.value = UpdateUiState.ReadyToInstall(info, file)
+                }
             }
         }
+    }
+
+    fun openFallbackRecovery(info: UpdateInfo, file: File) {
+        _uiState.value = UpdateUiState.FallbackRecovery(info, file, FallbackStep.BACKUP)
     }
 
     fun exportManualBackup(uri: Uri) {

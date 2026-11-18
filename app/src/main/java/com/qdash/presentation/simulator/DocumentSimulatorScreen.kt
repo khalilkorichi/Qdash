@@ -3,6 +3,8 @@ package com.qdash.presentation.simulator
 import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -11,16 +13,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qdash.core.ui.components.FinTrackTopBar
 import com.qdash.domain.model.PostalProfileRole
 import com.qdash.presentation.simulator.components.*
 import com.qdash.ui.designsystem.components.FormGrid
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +39,19 @@ fun DocumentSimulatorScreen(
 
     var showProfilePicker by remember { mutableStateOf(false) }
     var selectedRoleForAutofill by remember { mutableStateOf<PostalProfileRole?>(null) }
+
+    // Pinch-to-zoom & quick zoom toggle state for document preview
+    var zoomScale by remember(uiState.selectedDocType) { mutableFloatStateOf(1f) }
+    var panOffset by remember(uiState.selectedDocType) { mutableStateOf(Offset.Zero) }
+    val transformableState = rememberTransformableState { zoomChange, panChange, _ ->
+        val nextScale = (zoomScale * zoomChange).coerceIn(1f, 2.5f)
+        zoomScale = nextScale
+        if (nextScale > 1f) {
+            panOffset += panChange
+        } else {
+            panOffset = Offset.Zero
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -99,11 +117,38 @@ fun DocumentSimulatorScreen(
                     }
                 }
                 
-                // Right: Action Icons (Guide, Review)
+                // Right: Action Icons (Zoom, Guide, Review)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Zoom Toggle Button
+                    val isZoomed = zoomScale > 1.05f
+                    IconButton(
+                        onClick = {
+                            if (isZoomed) {
+                                zoomScale = 1f
+                                panOffset = Offset.Zero
+                            } else {
+                                zoomScale = 1.6f
+                            }
+                        },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(
+                                if (isZoomed) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .border(1.dp, if (isZoomed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                    ) {
+                        Icon(
+                            imageVector = if (isZoomed) Icons.Default.ZoomOut else Icons.Default.ZoomIn,
+                            contentDescription = if (isZoomed) "تصغير المعاينة" else "تكبير المعاينة",
+                            tint = if (isZoomed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
                     // Guide Button
                     val isGuideActive = uiState.activePanel == SimulatorActivePanel.GUIDE
                     IconButton(
@@ -168,7 +213,7 @@ fun DocumentSimulatorScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         when (uiState.activePanel) {
@@ -199,7 +244,9 @@ fun DocumentSimulatorScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 6.dp)
                         .shadow(2.dp, RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                        .transformable(transformableState)
                 ) {
                     ChequeVisualView(
                         chequeAmount = uiState.chequeAmount,
@@ -208,7 +255,14 @@ fun DocumentSimulatorScreen(
                         chequeDate = uiState.chequeDate,
                         chequeCcp = uiState.chequeCcp,
                         chequeKey = uiState.chequeKey,
-                        onFieldTap = { viewModel.setFocusedField(it) }
+                        focusedField = uiState.focusedField,
+                        onFieldTap = { viewModel.setFocusedField(it) },
+                        modifier = Modifier.graphicsLayer(
+                            scaleX = zoomScale,
+                            scaleY = zoomScale,
+                            translationX = panOffset.x,
+                            translationY = panOffset.y
+                        )
                     )
                 }
 
@@ -262,6 +316,8 @@ fun DocumentSimulatorScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .shadow(2.dp, RoundedCornerShape(8.dp))
+                                .clip(RoundedCornerShape(8.dp))
+                                .transformable(transformableState)
                         ) {
                             FormGrid(
                                 uiState = uiState,
@@ -286,7 +342,14 @@ fun DocumentSimulatorScreen(
                                 onCodeConfidentielChange = { viewModel.updateSfpCodeConfidentiel(it) },
                                 onRipChange = { viewModel.updateSfpRip(it) },
                                 focusedField = uiState.focusedField,
-                                onFieldFocus = { viewModel.setFocusedField(it) }
+                                onFieldFocus = { viewModel.setFocusedField(it) },
+                                onMotifChange = { viewModel.updateSfpMotif(it) },
+                                modifier = Modifier.graphicsLayer(
+                                    scaleX = zoomScale,
+                                    scaleY = zoomScale,
+                                    translationX = panOffset.x,
+                                    translationY = panOffset.y
+                                )
                             )
                         }
 

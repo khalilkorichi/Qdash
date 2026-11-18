@@ -1,7 +1,6 @@
 package com.qdash.presentation.simulator
 
-import com.qdash.domain.model.PostalProfile
-import com.qdash.domain.model.PostalProfileRole
+import com.qdash.core.utils.AmountConversionEngine
 
 /**
  * Helper to perform validation on postal document simulator values.
@@ -78,8 +77,9 @@ object DocumentSimulatorValidator {
 
         } else {
             // SFP 01
-            val isVersement = state.sfpOperation == SfpOperationType.VERSEMENT
-            totalCount = if (isVersement) 10 else 7
+            val requiresBeneficiary = state.sfpOperation == SfpOperationType.VERSEMENT ||
+                state.sfpOperation == SfpOperationType.VIREMENT
+            totalCount = if (requiresBeneficiary) 9 else 7
 
             // 1. Operation type is implicitly selected (always VERSEMENT/RETRAIT/VIREMENT)
             filledCount++
@@ -133,10 +133,10 @@ object DocumentSimulatorValidator {
                 filledCount++
             }
 
-            // For Versement, Beneficiary info is required
-            if (isVersement) {
+            // For Versement and Virement, Beneficiary info is required
+            if (requiresBeneficiary) {
                 if (state.sfpBeneficiaryNom.isBlank() || state.sfpBeneficiaryPrenom.isBlank()) {
-                    errMap["sfpBeneficiaryName"] = "معلومات المستفيد (المرسل إليه) مطلوبة للدفع"
+                    errMap["sfpBeneficiaryName"] = "معلومات المستفيد (المرسل إليه) مطلوبة"
                 } else {
                     filledCount++
                 }
@@ -146,9 +146,6 @@ object DocumentSimulatorValidator {
                 } else {
                     filledCount++
                 }
-
-                // Placeholder to represent beneficiary requirement
-                filledCount++
             }
         }
 
@@ -161,13 +158,6 @@ object DocumentSimulatorValidator {
     }
 
     private fun parseAmount(value: String): Double? {
-        val compact = value.trim().replace(" ", "")
-        if (compact.isBlank()) return null
-        val normalized = if (compact.count { it == ',' } == 1 && !compact.contains('.')) {
-            compact.replace(',', '.')
-        } else {
-            compact
-        }
-        return normalized.toDoubleOrNull()
+        return AmountConversionEngine.parseFlexibleAmount(value)
     }
 }

@@ -43,16 +43,19 @@ fun CategoryChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val catColor = Color(android.graphics.Color.parseColor(category.color))
-    val containerColor = if (isSelected) catColor else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+    val catColor = com.qdash.presentation.components.safeParseColor(category.color, MaterialTheme.colorScheme.primary)
+    val containerColor = if (isSelected) catColor else MaterialTheme.colorScheme.surfaceVariant
     val contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+    val borderColor = if (isSelected) catColor else MaterialTheme.colorScheme.outline
 
     Box(
         modifier = modifier
+            .defaultMinSize(minHeight = 40.dp)
             .clip(RoundedCornerShape(20.dp))
             .background(containerColor)
+            .border(1.dp, borderColor, RoundedCornerShape(20.dp))
             .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .padding(horizontal = 14.dp, vertical = 8.dp)
             .testTag("category_chip_${category.id}"),
         contentAlignment = Alignment.Center
     ) {
@@ -60,34 +63,21 @@ fun CategoryChip(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            val icon = category.icon
-            val vectorIcon = when (icon) {
-                "person" -> Icons.Default.Person
-                "groups" -> Icons.Default.Groups
-                "home" -> Icons.Default.Home
-                "restaurant" -> Icons.Default.Restaurant
-                "directions_car" -> Icons.Default.DirectionsCar
-                "receipt_long" -> Icons.Default.ReceiptLong
-                "shopping_bag" -> Icons.Default.ShoppingBag
-                "medical_services" -> Icons.Default.MedicalServices
-                "school" -> Icons.Default.School
-                "sports_esports" -> Icons.Default.SportsEsports
-                "work" -> Icons.Default.Work
-                else -> Icons.Default.Receipt
-            }
-
-            Icon(
-                imageVector = vectorIcon,
-                contentDescription = null,
+            com.qdash.presentation.components.UnifiedCategoryIcon(
+                iconKey = category.icon,
                 tint = if (isSelected) Color.White else catColor,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(16.dp),
+                emojiFontSize = 14.sp,
+                contentDescription = null
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = category.name,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                color = contentColor
+                color = contentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

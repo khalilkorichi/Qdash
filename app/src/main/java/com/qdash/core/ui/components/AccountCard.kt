@@ -49,13 +49,13 @@ fun AccountCard(
         AccountType.CCP -> Color(0xFFF59E0B)
         AccountType.CASH -> Color(0xFF22C55E)
         AccountType.SAVINGS -> Color(0xFF3B82F6)
-        else -> Primary
+        else -> MaterialTheme.colorScheme.primary
     }
 
     AppCard(
         modifier = modifier
-            .width(160.dp)
-            .height(105.dp)
+            .width(164.dp)
+            .height(114.dp)
             .border(1.dp, accentColor.copy(alpha = 0.12f), ShapeTokens.Lg)
             .testTag("account_card_${account.id}"),
         variant = CardVariant.INTERACTIVE,
@@ -119,22 +119,25 @@ fun AccountCard(
                     )
                     IconButton(
                         onClick = onToggleBalanceVisibility,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier
+                            .size(36.dp)
+                            .offset(x = 6.dp)
                     ) {
                         Icon(
                             imageVector = if (showBalance) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                             contentDescription = "إخفاء/إظهار",
                             tint = TextGray,
-                            modifier = Modifier.size(12.dp)
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = if (showBalance) FormatterUtils.formatCurrency(account.balance) else "•••• دج",
                     style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp),
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.ExtraBold
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }

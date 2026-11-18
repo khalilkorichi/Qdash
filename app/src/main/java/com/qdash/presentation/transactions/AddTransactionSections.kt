@@ -535,7 +535,7 @@ fun RecurringOptionsSection(
                 onCheckedChange = onRecurringChanged,
                 colors = SwitchDefaults.colors(
                     checkedTrackColor = primaryColor,
-                    checkedThumbColor = Color.White
+                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }
@@ -566,7 +566,7 @@ fun RecurringOptionsSection(
                     onCheckedChange = onSalaryAutomationChanged,
                     colors = SwitchDefaults.colors(
                         checkedTrackColor = primaryColor,
-                        checkedThumbColor = Color.White
+                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary
                     )
                 )
             }

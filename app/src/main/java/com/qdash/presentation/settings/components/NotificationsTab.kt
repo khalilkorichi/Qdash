@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.qdash.presentation.navigation.LocalBottomBarPadding
 import com.qdash.ui.theme.IncomeGreen
 import com.qdash.ui.theme.SavingsAmber
 import com.qdash.ui.theme.ExpenseRed
@@ -22,13 +23,16 @@ fun NotificationsTab(
     budgetAlert: Boolean,
     weeklyReport: Boolean,
     goalProgress: Boolean,
+    smartReminders: Boolean = true,
     onBillingToggle: (Boolean) -> Unit,
     onSalaryToggle: (Boolean) -> Unit,
     onBudgetToggle: (Boolean) -> Unit,
     onWeeklyToggle: (Boolean) -> Unit,
-    onGoalToggle: (Boolean) -> Unit
+    onGoalToggle: (Boolean) -> Unit,
+    onSmartRemindersToggle: (Boolean) -> Unit = {}
 ) {
     val Primary = MaterialTheme.colorScheme.primary
+    val bottomBarPadding = LocalBottomBarPadding.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -96,7 +100,21 @@ fun NotificationsTab(
             }
         )
 
-        SettingsSectionTitle("تقارير دورية")
+        SettingsSectionTitle("تقارير وتذكيرات ذكية")
+
+        SettingsItem(
+            icon = Icons.Default.AutoAwesome,
+            iconTint = Primary,
+            title = "التذكيرات الذكية",
+            subtitle = "تذكيرات يومية ذكية لتسجيل مصاريفك في أوقات نشاطك المعتادة",
+            trailing = {
+                Switch(
+                    checked = smartReminders,
+                    onCheckedChange = onSmartRemindersToggle,
+                    colors = SwitchDefaults.colors(checkedTrackColor = Primary)
+                )
+            }
+        )
 
         SettingsItem(
             icon = Icons.Default.BarChart,
@@ -112,6 +130,6 @@ fun NotificationsTab(
             }
         )
 
-        Spacer(modifier = Modifier.height(96.dp))
+        Spacer(modifier = Modifier.height(bottomBarPadding + 24.dp))
     }
 }

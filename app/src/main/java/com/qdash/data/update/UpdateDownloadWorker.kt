@@ -64,15 +64,26 @@ class UpdateDownloadWorker(
         .build()
 
     override suspend fun doWork(): Result {
+        if (runAttemptCount >= 3) return Result.failure()
+
         val apkUrl = inputData.getString("apkUrl") ?: return Result.failure()
-        val apkSha256 = inputData.getString("apkSha256") ?: return Result.failure()
+        val apkSha256 = inputData.getString("apkSha256")?.trim() ?: return Result.failure()
         val versionName = inputData.getString("versionName") ?: "1.0.0"
         val apkSize = inputData.getLong("apkSize", 0L)
         val infoJson = inputData.getString("infoJson") ?: ""
 
+        createNotificationChannel()
+
+        if (apkSha256.isBlank() || !apkSha256.matches(Regex("^[a-fA-F0-9]{64}$"))) {
+            val info = getUpdateInfoFromJson(infoJson, apkUrl, apkSize, apkSha256, versionName)
+            val errMsg = "فشلت عملية التحقق: البصمة الرقمية (SHA-256) للتحديث مفقودة أو غير صالحة."
+            showFailureNotification(errMsg)
+            updateRepositoryState(DownloadState.Error(errMsg, info))
+            return Result.failure()
+        }
+
         Log.d("UpdateDownloadWorker", "Starting download for $apkUrl (size: $apkSize)")
         
-        createNotificationChannel()
         clearPaused(apkUrl)
 
         // Set initial state
@@ -106,91 +117,92 @@ class UpdateDownloadWorker(
         try {
             setForeground(createForegroundInfo(0, "جاري البدء...", "جاري الحساب...", false, infoJson, apkUrl, apkSize, apkSha256, versionName))
             
-            val response = client.newCall(request).execute()
-            if (!response.isSuccessful) {
-                throw IOException("Server returned code ${response.code}")
-            }
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    throw IOException("Server returned code ${response.code}")
+                }
 
-            val body = response.body ?: throw IOException("Empty response body")
-            val remainingLength = body.contentLength()
-            val totalLength = if (startBytes > 0L && (response.code == 206 || response.code == 200)) {
-                if (response.code == 206) remainingLength + startBytes else remainingLength
-            } else {
-                remainingLength
-            }
+                val body = response.body ?: throw IOException("Empty response body")
+                val remainingLength = body.contentLength()
+                val totalLength = if (startBytes > 0L && (response.code == 206 || response.code == 200)) {
+                    if (response.code == 206) remainingLength + startBytes else remainingLength
+                } else {
+                    remainingLength
+                }
 
-            val isAppend = startBytes > 0L && response.code == 206
-            if (startBytes > 0L && response.code == 200 && tempFile.exists()) {
-                tempFile.delete()
-            }
+                val isAppend = startBytes > 0L && response.code == 206
+                if (startBytes > 0L && response.code == 200 && tempFile.exists()) {
+                    tempFile.delete()
+                }
 
-            body.byteStream().use { input ->
-                FileOutputStream(tempFile, isAppend).use { output ->
-                    val buffer = ByteArray(16384) // 16KB buffer for smooth I/O
-                    var bytesRead: Int
-                    var totalBytesRead = 0L
-                    
-                    var lastEmittedTime = System.currentTimeMillis()
-                    var lastEmittedBytes = 0L
-                    val speedWindow = LinkedList<Long>()
-                    
-                    while (input.read(buffer).also { bytesRead = it } != -1) {
-                        // Check if paused
-                        if (isPaused(apkUrl)) {
-                            Log.d("UpdateDownloadWorker", "Download paused by user request")
-                            val currentTotalRead = totalBytesRead + (if (isAppend) startBytes else 0L)
-                            val percentage = if (totalLength > 0L) ((currentTotalRead * 100) / totalLength).toInt().coerceIn(0, 100) else 0
-                            showPausedNotification(percentage, infoJson, apkUrl, apkSize, apkSha256, versionName)
-                            
-                            val info = getUpdateInfoFromJson(infoJson, apkUrl, apkSize, apkSha256, versionName)
-                            updateRepositoryState(DownloadState.Paused(percentage, info))
-                            return Result.success()
-                        }
-
-                        // Check if cancelled/stopped by WorkManager
-                        if (isStopped) {
-                            Log.d("UpdateDownloadWorker", "Download stopped/cancelled")
-                            return Result.failure()
-                        }
-
-                        output.write(buffer, 0, bytesRead)
-                        totalBytesRead += bytesRead
-
-                        val now = System.currentTimeMillis()
-                        val timeDelta = now - lastEmittedTime
-
-                        // Calculate speed and ETA every 1 second
-                        if (timeDelta >= 1000L) {
-                            val byteDelta = totalBytesRead - lastEmittedBytes
-                            val speedBytesPerSec = (byteDelta * 1000L) / timeDelta
-                            
-                            if (speedWindow.size >= 5) {
-                                speedWindow.removeFirst()
+                body.byteStream().use { input ->
+                    FileOutputStream(tempFile, isAppend).use { output ->
+                        val buffer = ByteArray(16384) // 16KB buffer for smooth I/O
+                        var bytesRead: Int
+                        var totalBytesRead = 0L
+                        
+                        var lastEmittedTime = System.currentTimeMillis()
+                        var lastEmittedBytes = 0L
+                        val speedWindow = LinkedList<Long>()
+                        
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            // Check if paused
+                            if (isPaused(apkUrl)) {
+                                Log.d("UpdateDownloadWorker", "Download paused by user request")
+                                val currentTotalRead = totalBytesRead + (if (isAppend) startBytes else 0L)
+                                val percentage = if (totalLength > 0L) ((currentTotalRead * 100) / totalLength).toInt().coerceIn(0, 100) else 0
+                                showPausedNotification(percentage, infoJson, apkUrl, apkSize, apkSha256, versionName)
+                                
+                                val info = getUpdateInfoFromJson(infoJson, apkUrl, apkSize, apkSha256, versionName)
+                                updateRepositoryState(DownloadState.Paused(percentage, info))
+                                return Result.success()
                             }
-                            speedWindow.add(speedBytesPerSec)
-                            val avgSpeed = speedWindow.average().toLong()
 
-                            val currentTotalRead = totalBytesRead + (if (isAppend) startBytes else 0L)
-                            val progressPercent = if (totalLength > 0L) ((currentTotalRead * 100) / totalLength).toInt().coerceIn(0, 100) else 0
+                            // Check if cancelled/stopped by WorkManager
+                            if (isStopped) {
+                                Log.d("UpdateDownloadWorker", "Download stopped/cancelled")
+                                return Result.failure()
+                            }
 
-                            val speedStr = formatSpeed(avgSpeed)
-                            val remainingBytes = totalLength - currentTotalRead
-                            val etaStr = formatEta(remainingBytes, avgSpeed)
+                            output.write(buffer, 0, bytesRead)
+                            totalBytesRead += bytesRead
 
-                            // Update notification and WorkManager progress
-                            setForeground(createForegroundInfo(progressPercent, speedStr, etaStr, false, infoJson, apkUrl, apkSize, apkSha256, versionName))
-                            setProgress(workDataOf(
-                                "progress" to progressPercent,
-                                "speed" to speedStr,
-                                "eta" to etaStr,
-                                "isPaused" to false
-                            ))
+                            val now = System.currentTimeMillis()
+                            val timeDelta = now - lastEmittedTime
 
-                            val info = getUpdateInfoFromJson(infoJson, apkUrl, apkSize, apkSha256, versionName)
-                            updateRepositoryState(DownloadState.Downloading(progressPercent, speedStr, etaStr, info))
+                            // Calculate speed and ETA every 1 second
+                            if (timeDelta >= 1000L) {
+                                val byteDelta = totalBytesRead - lastEmittedBytes
+                                val speedBytesPerSec = (byteDelta * 1000L) / timeDelta
+                                
+                                if (speedWindow.size >= 5) {
+                                    speedWindow.removeFirst()
+                                }
+                                speedWindow.add(speedBytesPerSec)
+                                val avgSpeed = speedWindow.average().toLong()
 
-                            lastEmittedTime = now
-                            lastEmittedBytes = totalBytesRead
+                                val currentTotalRead = totalBytesRead + (if (isAppend) startBytes else 0L)
+                                val progressPercent = if (totalLength > 0L) ((currentTotalRead * 100) / totalLength).toInt().coerceIn(0, 100) else 0
+
+                                val speedStr = formatSpeed(avgSpeed)
+                                val remainingBytes = totalLength - currentTotalRead
+                                val etaStr = formatEta(remainingBytes, avgSpeed)
+
+                                // Update notification and WorkManager progress
+                                setForeground(createForegroundInfo(progressPercent, speedStr, etaStr, false, infoJson, apkUrl, apkSize, apkSha256, versionName))
+                                setProgress(workDataOf(
+                                    "progress" to progressPercent,
+                                    "speed" to speedStr,
+                                    "eta" to etaStr,
+                                    "isPaused" to false
+                                ))
+
+                                val info = getUpdateInfoFromJson(infoJson, apkUrl, apkSize, apkSha256, versionName)
+                                updateRepositoryState(DownloadState.Downloading(progressPercent, speedStr, etaStr, info))
+
+                                lastEmittedTime = now
+                                lastEmittedBytes = totalBytesRead
+                            }
                         }
                     }
                 }

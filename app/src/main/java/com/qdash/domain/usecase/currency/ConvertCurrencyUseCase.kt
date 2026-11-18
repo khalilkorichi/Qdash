@@ -49,24 +49,26 @@ class ConvertCurrencyUseCase {
             val fromRate = rates.find { it.currencyCode == fromCode }
                 ?: return 0.0
             val multiplier = selectRate(fromRate, resolvedRateType, manualRate)
-            return (amount * multiplier).roundTo(2)
+            return if (multiplier > 0.0) (amount * multiplier).roundTo(2) else 0.0
         }
 
         // General: Foreign → DZD → Foreign (pivot)
         val fromRate = rates.find { it.currencyCode == fromCode } ?: return 0.0
         val toRate = rates.find { it.currencyCode == toCode } ?: return 0.0
-        val inDzd = amount * selectRate(fromRate, resolvedRateType, manualRate)
+        val fromMultiplier = selectRate(fromRate, resolvedRateType, manualRate)
         val divisor = selectRate(toRate, resolvedRateType, manualRate)
-        return if (divisor > 0.0) (inDzd / divisor).roundTo(4) else 0.0
+        if (fromMultiplier <= 0.0 || divisor <= 0.0) return 0.0
+        val inDzd = amount * fromMultiplier
+        return (inDzd / divisor).roundTo(4)
     }
 
     private fun selectRate(rate: ExchangeRate, rateType: RateType, manualRate: Double?): Double =
         when (rateType) {
             RateType.OFFICIAL_BUY -> rate.officialBuyRate
             RateType.OFFICIAL_SELL -> rate.officialSellRate
-            RateType.PARALLEL_BUY -> rate.parallelBuyRate ?: rate.officialBuyRate
-            RateType.PARALLEL_SELL -> rate.parallelSellRate ?: rate.officialSellRate
-            RateType.MANUAL -> manualRate ?: rate.officialBuyRate
+            RateType.PARALLEL_BUY -> rate.parallelBuyRate ?: 0.0
+            RateType.PARALLEL_SELL -> rate.parallelSellRate ?: 0.0
+            RateType.MANUAL -> manualRate?.takeIf { it > 0.0 } ?: 0.0
         }
 
     private fun Double.roundTo(decimals: Int): Double {

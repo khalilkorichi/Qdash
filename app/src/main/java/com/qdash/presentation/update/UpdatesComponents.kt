@@ -231,6 +231,7 @@ fun DownloadingUpdatesSection(
     speed: String,
     eta: String,
     onPauseDownload: () -> Unit,
+    onCancelDownload: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -284,15 +285,31 @@ fun DownloadingUpdatesSection(
                 }
             }
             Spacer(modifier = Modifier.height(4.dp))
-            OutlinedButton(
-                onClick = onPauseDownload,
-                shape = RoundedCornerShape(12.dp),
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Icon(Icons.Default.Pause, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("إيقاف مؤقت", fontWeight = FontWeight.Bold)
+                OutlinedButton(
+                    onClick = onPauseDownload,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.Default.Pause, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("إيقاف مؤقت", fontWeight = FontWeight.Bold)
+                }
+                OutlinedButton(
+                    onClick = onCancelDownload,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, ExpenseRed.copy(alpha = 0.6f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ExpenseRed)
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("إلغاء التحميل", fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
@@ -302,6 +319,7 @@ fun DownloadingUpdatesSection(
 fun PausedUpdatesSection(
     progress: Int,
     onResumeDownload: () -> Unit,
+    onCancelDownload: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -330,14 +348,30 @@ fun PausedUpdatesSection(
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(4.dp))
-            Button(
-                onClick = onResumeDownload,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Icon(Icons.Default.PlayArrow, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("استئناف التحميل", fontWeight = FontWeight.Bold)
+                Button(
+                    onClick = onResumeDownload,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.PlayArrow, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("استئناف", fontWeight = FontWeight.Bold)
+                }
+                OutlinedButton(
+                    onClick = onCancelDownload,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, ExpenseRed.copy(alpha = 0.6f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ExpenseRed)
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("إلغاء التحميل", fontWeight = FontWeight.Bold)
+                }
             }
         }
     }

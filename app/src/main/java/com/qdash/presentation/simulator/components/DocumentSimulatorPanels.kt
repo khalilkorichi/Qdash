@@ -121,11 +121,11 @@ fun FillFormPanel(
                     }
                 }
 
-                val amt = uiState.chequeAmount.toDoubleOrNull()
+                val amt = AmountConversionEngine.parseFlexibleAmount(uiState.chequeAmount)
                 if (amt != null && amt > 0) {
                     val formatted   = AmountConversionEngine.formatAmountToPostal(amt)
                     val colloquial  = AmountConversionEngine.getAlgerianColloquialWords(amt)
-                    val officialWords = AmountConversionEngine.convertToArabicWords(amt)
+                    val officialWords = AmountConversionEngine.convertToArabicWords(amt, preferCentimes = false)
 
                     Card(
                         colors = CardDefaults.cardColors(containerColor = Color(0xFF0D47A1).copy(alpha = 0.08f)),
@@ -278,11 +278,11 @@ fun FillFormPanel(
             }
 
             // Anti-fraud formatted display helper
-            val sfpAmt = uiState.sfpAmount.toDoubleOrNull()
+            val sfpAmt = AmountConversionEngine.parseFlexibleAmount(uiState.sfpAmount)
             if (sfpAmt != null && sfpAmt > 0) {
                 val formatted     = AmountConversionEngine.formatAmountToPostal(sfpAmt)
                 val colloquial    = AmountConversionEngine.getAlgerianColloquialWords(sfpAmt)
-                val officialWords = AmountConversionEngine.convertToArabicWords(sfpAmt)
+                val officialWords = AmountConversionEngine.convertToArabicWords(sfpAmt, preferCentimes = false)
 
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color(0xFF0D47A1).copy(alpha = 0.08f)),

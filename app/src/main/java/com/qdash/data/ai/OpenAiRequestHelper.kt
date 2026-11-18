@@ -47,13 +47,15 @@ fun buildOpenAiRequestBody(
 }
 
 fun parseOpenAiResponse(response: Response): String {
-    val body = response.body?.string() ?: throw IOException("Empty response body")
-    if (!response.isSuccessful) throw IOException("HTTP ${response.code}: $body")
-    val json = JSONObject(body)
-    val choices = json.optJSONArray("choices") ?: throw IOException("No choices generated in response")
-    if (choices.length() == 0) throw IOException("Empty choices array")
-    return choices
-        .getJSONObject(0)
-        .getJSONObject("message")
-        .getString("content")
+    return response.use { res ->
+        val body = res.body?.string() ?: throw IOException("Empty response body")
+        if (!res.isSuccessful) throw IOException("HTTP ${res.code}: $body")
+        val json = JSONObject(body)
+        val choices = json.optJSONArray("choices") ?: throw IOException("No choices generated in response")
+        if (choices.length() == 0) throw IOException("Empty choices array")
+        choices
+            .getJSONObject(0)
+            .getJSONObject("message")
+            .getString("content")
+    }
 }

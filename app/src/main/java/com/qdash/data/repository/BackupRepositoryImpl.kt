@@ -40,12 +40,31 @@ class BackupRepositoryImpl(
                 put("currency", it.currency)
                 put("color", it.color)
                 put("icon", it.icon)
+                put("iconPath", it.iconPath ?: JSONObject.NULL)
                 put("isDefault", it.isDefault)
                 put("isArchived", it.isArchived)
+                put("isActive", it.isActive)
+                put("isAmanaEnabled", it.isAmanaEnabled)
                 put("createdAt", it.createdAt)
+                put("sortOrder", it.sortOrder)
             })
         }
         backupObj.put("accounts", accountsArray)
+
+        // 1b. Capture Amanas
+        val amanasArray = JSONArray()
+        database.amanaDao().getAllAmanas().first().forEach {
+            amanasArray.put(JSONObject().apply {
+                put("id", it.id)
+                put("accountId", it.accountId)
+                put("name", it.name)
+                put("ownerName", it.ownerName)
+                put("amount", it.amount)
+                put("notes", it.notes ?: JSONObject.NULL)
+                put("createdAt", it.createdAt)
+            })
+        }
+        backupObj.put("amanas", amanasArray)
 
         // 2. Capture Categories
         val catsArray = JSONArray()
@@ -112,6 +131,9 @@ class BackupRepositoryImpl(
                 put("icon", it.icon)
                 put("color", it.color)
                 put("isCompleted", it.isCompleted)
+                put("isPaused", it.isPaused)
+                put("isArchived", it.isArchived)
+                put("strategy", it.strategy)
             })
         }
         backupObj.put("saving_goals", savingsGoalsArray)
@@ -173,6 +195,8 @@ class BackupRepositoryImpl(
                 put("createdAt", debt.createdAt)
                 put("isClosed", debt.isClosed)
                 put("debtType", debt.debtType)
+                put("direction", debt.direction)
+                put("initialTransactionId", debt.initialTransactionId ?: JSONObject.NULL)
             })
         }
         backupObj.put("debts", debtsArray)
@@ -205,6 +229,7 @@ class BackupRepositoryImpl(
                 put("date", it.date)
                 put("referenceId", it.referenceId)
                 put("createdAt", it.createdAt)
+                put("occurredAt", it.occurredAt ?: JSONObject.NULL)
             })
         }
         backupObj.put("transfers", transfersArray)
@@ -288,6 +313,21 @@ class BackupRepositoryImpl(
         }
         backupObj.put("notifications", notificationsArray)
 
+        val salaryDelaysArray = JSONArray()
+        database.salaryDelayDao().getAllSalaryDelaysOnce().forEach {
+            salaryDelaysArray.put(JSONObject().apply {
+                put("id", it.id)
+                put("salaryId", it.salaryId)
+                put("delayDays", it.delayDays)
+                put("originalDate", it.originalDate)
+                put("newDate", it.newDate)
+                put("severityScore", it.severityScore)
+                put("status", it.status)
+                put("createdAt", it.createdAt)
+            })
+        }
+        backupObj.put("salary_delays", salaryDelaysArray)
+
         backupObj
     }
 
@@ -297,6 +337,8 @@ class BackupRepositoryImpl(
         }
 
         // Clear existing tables
+        database.openHelper.writableDatabase.execSQL("DELETE FROM salary_delays")
+        database.openHelper.writableDatabase.execSQL("DELETE FROM amanas")
         database.openHelper.writableDatabase.execSQL("DELETE FROM transactions")
         database.openHelper.writableDatabase.execSQL("DELETE FROM accounts")
         database.openHelper.writableDatabase.execSQL("DELETE FROM categories")
@@ -304,6 +346,7 @@ class BackupRepositoryImpl(
         database.openHelper.writableDatabase.execSQL("DELETE FROM saving_goals")
         database.openHelper.writableDatabase.execSQL("DELETE FROM savings_contributions")
         database.openHelper.writableDatabase.execSQL("DELETE FROM subscriptions")
+        database.openHelper.writableDatabase.execSQL("DELETE FROM debt_installment_details")
         database.openHelper.writableDatabase.execSQL("DELETE FROM debts")
         database.openHelper.writableDatabase.execSQL("DELETE FROM debt_payments")
         database.openHelper.writableDatabase.execSQL("DELETE FROM transfers")
@@ -327,8 +370,31 @@ class BackupRepositoryImpl(
                         currency = obj.optString("currency", "DZD"),
                         color = obj.getString("color"),
                         icon = obj.getString("icon"),
+                        iconPath = if (obj.has("iconPath") && !obj.isNull("iconPath")) obj.getString("iconPath") else null,
                         isDefault = obj.optBoolean("isDefault", false),
                         isArchived = obj.optBoolean("isArchived", false),
+                        isActive = obj.optBoolean("isActive", true),
+                        isAmanaEnabled = obj.optBoolean("isAmanaEnabled", false),
+                        createdAt = obj.optLong("createdAt", System.currentTimeMillis()),
+                        sortOrder = obj.optInt("sortOrder", 0)
+                    )
+                )
+            }
+        }
+
+        // 1b. Restore Amanas
+        val amanasArray = json.optJSONArray("amanas")
+        if (amanasArray != null) {
+            for (i in 0 until amanasArray.length()) {
+                val obj = amanasArray.getJSONObject(i)
+                database.amanaDao().insertAmana(
+                    AmanaEntity(
+                        id = obj.getLong("id"),
+                        accountId = obj.getLong("accountId"),
+                        name = obj.getString("name"),
+                        ownerName = obj.getString("ownerName"),
+                        amount = obj.getDouble("amount"),
+                        notes = if (obj.has("notes") && !obj.isNull("notes")) obj.getString("notes") else null,
                         createdAt = obj.optLong("createdAt", System.currentTimeMillis())
                     )
                 )
@@ -431,7 +497,10 @@ class BackupRepositoryImpl(
                         accountId = obj.getLong("accountId"),
                         icon = obj.getString("icon"),
                         color = obj.getString("color"),
-                        isCompleted = obj.optBoolean("isCompleted", false)
+                        isCompleted = obj.optBoolean("isCompleted", false),
+                        isPaused = obj.optBoolean("isPaused", false),
+                        isArchived = obj.optBoolean("isArchived", false),
+                        strategy = obj.optString("strategy", "FIXED").ifEmpty { "FIXED" }
                     )
                 )
             }
@@ -499,7 +568,9 @@ class BackupRepositoryImpl(
                         icon = obj.getString("icon"),
                         createdAt = obj.optLong("createdAt", System.currentTimeMillis()),
                         isClosed = obj.optBoolean("isClosed", false),
-                        debtType = debtType
+                        debtType = debtType,
+                        direction = obj.optString("direction", "OWED_BY_ME").ifEmpty { "OWED_BY_ME" },
+                        initialTransactionId = if (obj.has("initialTransactionId") && !obj.isNull("initialTransactionId")) obj.getLong("initialTransactionId") else null
                     )
                 )
                 if (debtType == "INSTALLMENT") {
@@ -551,7 +622,8 @@ class BackupRepositoryImpl(
                         note = if (obj.has("note") && !obj.isNull("note")) obj.getString("note") else null,
                         date = obj.getLong("date"),
                         referenceId = obj.getString("referenceId"),
-                        createdAt = obj.optLong("createdAt", System.currentTimeMillis())
+                        createdAt = obj.optLong("createdAt", System.currentTimeMillis()),
+                        occurredAt = if (obj.has("occurredAt") && !obj.isNull("occurredAt")) obj.getLong("occurredAt") else null
                     )
                 )
             }
@@ -652,6 +724,25 @@ class BackupRepositoryImpl(
             }
         }
 
+        val salaryDelaysArray = json.optJSONArray("salary_delays")
+        if (salaryDelaysArray != null) {
+            for (i in 0 until salaryDelaysArray.length()) {
+                val obj = salaryDelaysArray.getJSONObject(i)
+                database.salaryDelayDao().insertSalaryDelay(
+                    SalaryDelayEntity(
+                        id = obj.getLong("id"),
+                        salaryId = obj.getLong("salaryId"),
+                        delayDays = obj.getInt("delayDays"),
+                        originalDate = obj.getLong("originalDate"),
+                        newDate = obj.getLong("newDate"),
+                        severityScore = obj.optInt("severityScore", 0),
+                        status = obj.optString("status", "CONFIRMED").ifEmpty { "CONFIRMED" },
+                        createdAt = obj.optLong("createdAt", System.currentTimeMillis())
+                    )
+                )
+            }
+        }
+
         regenerateDailyFinancialAggregates()
         DatabaseSeeder.prepopulateSystemDefaults(database)
     }
@@ -712,10 +803,34 @@ class BackupRepositoryImpl(
                 writer.name("currency").value(it.currency)
                 writer.name("color").value(it.color)
                 writer.name("icon").value(it.icon)
+                writer.name("iconPath")
+                if (it.iconPath == null) writer.nullValue() else writer.value(it.iconPath)
                 writer.name("isDefault").value(it.isDefault)
                 writer.name("isArchived").value(it.isArchived)
+                writer.name("isActive").value(it.isActive)
+                writer.name("isAmanaEnabled").value(it.isAmanaEnabled)
                 writer.name("createdAt").value(it.createdAt)
                 writer.name("sortOrder").value(it.sortOrder)
+                writer.endObject()
+            }
+            writer.endArray()
+        }
+
+        // 1b. Amanas
+        if (isSelected("amanas")) {
+            val list = database.amanaDao().getAllAmanas().first()
+            counts["amanas"] = list.size
+            writer.name("amanas").beginArray()
+            list.forEach {
+                writer.beginObject()
+                writer.name("id").value(it.id)
+                writer.name("accountId").value(it.accountId)
+                writer.name("name").value(it.name)
+                writer.name("ownerName").value(it.ownerName)
+                writer.name("amount").value(it.amount)
+                writer.name("notes")
+                if (it.notes == null) writer.nullValue() else writer.value(it.notes)
+                writer.name("createdAt").value(it.createdAt)
                 writer.endObject()
             }
             writer.endArray()
@@ -781,6 +896,8 @@ class BackupRepositoryImpl(
                 writer.name("transferId")
                 if (it.transferId == null) writer.nullValue() else writer.value(it.transferId)
                 writer.name("isDebit").value(it.isDebit)
+                writer.name("occurredAt")
+                if (it.occurredAt == null) writer.nullValue() else writer.value(it.occurredAt)
                 writer.endObject()
             }
             writer.endArray()
@@ -823,6 +940,9 @@ class BackupRepositoryImpl(
                 writer.name("icon").value(it.icon)
                 writer.name("color").value(it.color)
                 writer.name("isCompleted").value(it.isCompleted)
+                writer.name("isPaused").value(it.isPaused)
+                writer.name("isArchived").value(it.isArchived)
+                writer.name("strategy").value(it.strategy)
                 writer.endObject()
             }
             writer.endArray()
@@ -908,6 +1028,9 @@ class BackupRepositoryImpl(
                 writer.name("createdAt").value(debt.createdAt)
                 writer.name("isClosed").value(debt.isClosed)
                 writer.name("debtType").value(debt.debtType)
+                writer.name("direction").value(debt.direction)
+                writer.name("initialTransactionId")
+                if (debt.initialTransactionId == null) writer.nullValue() else writer.value(debt.initialTransactionId)
                 writer.endObject()
             }
             writer.endArray()
@@ -954,6 +1077,8 @@ class BackupRepositoryImpl(
                 writer.name("date").value(it.date)
                 writer.name("referenceId").value(it.referenceId)
                 writer.name("createdAt").value(it.createdAt)
+                writer.name("occurredAt")
+                if (it.occurredAt == null) writer.nullValue() else writer.value(it.occurredAt)
                 writer.endObject()
             }
             writer.endArray()
@@ -1117,6 +1242,8 @@ class BackupRepositoryImpl(
                 writer.name("message").value(it.message)
                 writer.name("timestamp").value(it.timestamp)
                 writer.name("sessionTitle").value(it.sessionTitle)
+                writer.name("draftStatus")
+                if (it.draftStatus == null) writer.nullValue() else writer.value(it.draftStatus)
                 writer.endObject()
             }
             writer.endArray()
@@ -1277,11 +1404,15 @@ class BackupRepositoryImpl(
         if (isSelected("budget_goals")) database.openHelper.writableDatabase.execSQL("DELETE FROM budget_goals")
         if (isSelected("transfers")) database.openHelper.writableDatabase.execSQL("DELETE FROM transfers")
         if (isSelected("debt_payments")) database.openHelper.writableDatabase.execSQL("DELETE FROM debt_payments")
-        if (isSelected("debts")) database.openHelper.writableDatabase.execSQL("DELETE FROM debts")
+        if (isSelected("debts")) {
+            database.openHelper.writableDatabase.execSQL("DELETE FROM debt_installment_details")
+            database.openHelper.writableDatabase.execSQL("DELETE FROM debts")
+        }
         if (isSelected("subscriptions")) database.openHelper.writableDatabase.execSQL("DELETE FROM subscriptions")
         if (isSelected("savings_contributions")) database.openHelper.writableDatabase.execSQL("DELETE FROM savings_contributions")
         if (isSelected("saving_goals")) database.openHelper.writableDatabase.execSQL("DELETE FROM saving_goals")
         if (isSelected("income_sources")) database.openHelper.writableDatabase.execSQL("DELETE FROM income_sources")
+        if (isSelected("amanas")) database.openHelper.writableDatabase.execSQL("DELETE FROM amanas")
         if (isSelected("transactions")) database.openHelper.writableDatabase.execSQL("DELETE FROM transactions")
         if (isSelected("categories")) database.openHelper.writableDatabase.execSQL("DELETE FROM categories")
         if (isSelected("accounts")) database.openHelper.writableDatabase.execSQL("DELETE FROM accounts")
@@ -1303,6 +1434,9 @@ class BackupRepositoryImpl(
         }
 
         // Tier 2 — depend on accounts and/or root categories
+        if (isSelected("amanas")) {
+            tableData["amanas"]?.forEach { insertRow("amanas", it) }
+        }
         if (isSelected("income_sources")) {
             tableData["income_sources"]?.forEach { insertRow("income_sources", it) }
         }
@@ -1421,10 +1555,24 @@ class BackupRepositoryImpl(
                     currency = stringVal("currency").ifEmpty { "DZD" },
                     color = stringVal("color"),
                     icon = stringVal("icon"),
+                    iconPath = stringValOrNull("iconPath"),
                     isDefault = boolVal("isDefault"),
                     isArchived = boolVal("isArchived"),
-                    createdAt = longVal("createdAt"),
+                    isActive = boolValOrNull("isActive") ?: true,
+                    isAmanaEnabled = boolVal("isAmanaEnabled"),
+                    createdAt = longValOrNull("createdAt") ?: System.currentTimeMillis(),
                     sortOrder = intVal("sortOrder")
+                )
+            )
+            "amanas" -> database.amanaDao().insertAmana(
+                AmanaEntity(
+                    id = longVal("id"),
+                    accountId = longVal("accountId"),
+                    name = stringVal("name"),
+                    ownerName = stringVal("ownerName"),
+                    amount = doubleVal("amount"),
+                    notes = stringValOrNull("notes"),
+                    createdAt = longValOrNull("createdAt") ?: System.currentTimeMillis()
                 )
             )
             "categories" -> database.categoryDao().insertCategory(
@@ -1458,9 +1606,10 @@ class BackupRepositoryImpl(
                     suggestionSource = stringValOrNull("suggestionSource"),
                     confidenceScore = floatValOrNull("confidenceScore"),
                     userAcceptedSuggestion = boolValOrNull("userAcceptedSuggestion"),
-                    kind = stringVal("kind").ifEmpty { "INCOME" },
+                    kind = stringVal("kind").ifEmpty { stringVal("type").ifEmpty { "INCOME" } },
                     transferId = stringValOrNull("transferId"),
-                    isDebit = boolVal("isDebit")
+                    isDebit = boolValOrNull("isDebit") ?: true,
+                    occurredAt = longValOrNull("occurredAt")
                 )
             )
             "income_sources" -> database.incomeSourceDao().insertIncomeSource(
@@ -1471,8 +1620,8 @@ class BackupRepositoryImpl(
                     type = stringVal("type"),
                     accountId = longVal("accountId"),
                     dayOfMonth = intVal("dayOfMonth"),
-                    isActive = boolVal("isActive"),
-                    nextExpectedDate = longVal("nextExpectedDate")
+                    isActive = boolValOrNull("isActive") ?: true,
+                    nextExpectedDate = longValOrNull("nextExpectedDate") ?: System.currentTimeMillis()
                 )
             )
             "saving_goals" -> database.savingGoalDao().insertSavingGoal(
@@ -1485,7 +1634,10 @@ class BackupRepositoryImpl(
                     accountId = longVal("accountId"),
                     icon = stringVal("icon"),
                     color = stringVal("color"),
-                    isCompleted = boolVal("isCompleted")
+                    isCompleted = boolVal("isCompleted"),
+                    isPaused = boolVal("isPaused"),
+                    isArchived = boolVal("isArchived"),
+                    strategy = stringVal("strategy").ifEmpty { "FIXED" }
                 )
             )
             "savings_contributions" -> database.savingsContributionDao().insertContribution(
@@ -1512,8 +1664,8 @@ class BackupRepositoryImpl(
                     accountId = longVal("accountId"),
                     categoryId = longVal("categoryId"),
                     icon = stringValOrNull("icon"),
-                    isActive = boolVal("isActive"),
-                    reminderDaysBefore = intVal("reminderDaysBefore"),
+                    isActive = boolValOrNull("isActive") ?: true,
+                    reminderDaysBefore = (f["reminderDaysBefore"] as? Number)?.toInt() ?: 3,
                     isAutoShiftableBySalary = boolVal("isAutoShiftableBySalary")
                 )
             )
@@ -1532,9 +1684,11 @@ class BackupRepositoryImpl(
                         notes = stringValOrNull("notes"),
                         color = stringVal("color"),
                         icon = stringVal("icon"),
-                        createdAt = longVal("createdAt"),
+                        createdAt = longValOrNull("createdAt") ?: System.currentTimeMillis(),
                         isClosed = boolVal("isClosed"),
-                        debtType = dType
+                        debtType = dType,
+                        direction = stringVal("direction").ifEmpty { "OWED_BY_ME" },
+                        initialTransactionId = longValOrNull("initialTransactionId")
                     )
                 )
                 if (dType == "INSTALLMENT") {
@@ -1545,7 +1699,7 @@ class BackupRepositoryImpl(
                             minimumPayment = doubleValOrNull("minimumPayment") ?: 0.0,
                             recommendedPayment = doubleValOrNull("recommendedPayment"),
                             paymentFrequency = stringVal("paymentFrequency").ifEmpty { "MONTHLY" },
-                            priority = intVal("priority")
+                            priority = (f["priority"] as? Number)?.toInt() ?: 3
                         )
                     )
                 }
@@ -1573,7 +1727,8 @@ class BackupRepositoryImpl(
                     note = stringValOrNull("note"),
                     date = longVal("date"),
                     referenceId = stringVal("referenceId"),
-                    createdAt = longVal("createdAt")
+                    createdAt = longValOrNull("createdAt") ?: System.currentTimeMillis(),
+                    occurredAt = longValOrNull("occurredAt")
                 )
             )
             "budget_goals" -> database.budgetGoalDao().insertBudgetGoal(
@@ -1586,11 +1741,11 @@ class BackupRepositoryImpl(
                     spentAmount = doubleVal("spentAmount"),
                     startDate = longVal("startDate"),
                     endDate = longVal("endDate"),
-                    alertThresholdPercent = intVal("alertThresholdPercent"),
-                    isActive = boolVal("isActive"),
+                    alertThresholdPercent = (f["alertThresholdPercent"] as? Number)?.toInt() ?: 80,
+                    isActive = boolValOrNull("isActive") ?: true,
                     color = stringVal("color"),
                     icon = stringVal("icon"),
-                    createdAt = longVal("createdAt")
+                    createdAt = longValOrNull("createdAt") ?: System.currentTimeMillis()
                 )
             )
             "financial_plans" -> database.financialPlanDao().insertPlan(
@@ -1650,7 +1805,7 @@ class BackupRepositoryImpl(
                     categoryId = longVal("categoryId"),
                     priority = intVal("priority"),
                     source = stringVal("source").ifEmpty { "SYSTEM" },
-                    isActive = boolVal("isActive")
+                    isActive = boolValOrNull("isActive") ?: true
                 )
             )
             "user_category_mappings" -> database.userCategoryMappingDao().insertMapping(
@@ -1668,7 +1823,8 @@ class BackupRepositoryImpl(
                     sender = stringVal("sender"),
                     message = stringVal("message"),
                     timestamp = longVal("timestamp"),
-                    sessionTitle = stringVal("sessionTitle")
+                    sessionTitle = stringVal("sessionTitle"),
+                    draftStatus = stringValOrNull("draftStatus")
                 )
             )
             "postal_profiles" -> database.postalProfileDao().insertProfile(

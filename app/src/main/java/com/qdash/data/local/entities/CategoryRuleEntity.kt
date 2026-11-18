@@ -7,7 +7,10 @@ import androidx.room.ForeignKey
 
 @Entity(
     tableName = "category_rules",
-    indices = [Index(value = ["keyword"])],
+    indices = [
+        Index(value = ["keyword"]),
+        Index(value = ["categoryId"])
+    ],
     foreignKeys = [
         ForeignKey(
             entity = CategoryEntity::class,

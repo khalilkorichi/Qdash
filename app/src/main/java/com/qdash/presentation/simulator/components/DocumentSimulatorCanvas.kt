@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.qdash.core.utils.AmountConversionEngine
+import com.qdash.ui.designsystem.tokens.ColorTokens
 
 @Composable
 fun ChequeVisualView(
@@ -27,21 +28,32 @@ fun ChequeVisualView(
     chequeCcp: String,
     chequeKey: String,
     onFieldTap: (String) -> Unit,
+    focusedField: String? = null,
     modifier: Modifier = Modifier
 ) {
     val chequeBgColor = Color(0xFFFAF6E9) // Traditional postal check cream background
     val chequeBorderColor = Color(0xFF8C9D86)
     val writingColor = Color(0xFF0D1B2A) // Pen ink blue/black
+    val focusBorderColor = ColorTokens.Warning
+    val focusBgColor = ColorTokens.Warning.copy(alpha = 0.12f)
 
     val formattedAmount = remember(chequeAmount) {
-        val amt = chequeAmount.toDoubleOrNull()
+        val amt = AmountConversionEngine.parseFlexibleAmount(chequeAmount)
         if (amt != null) AmountConversionEngine.formatAmountToPostal(amt) else ""
     }
 
     val amountInWords = remember(chequeAmount) {
-        val amt = chequeAmount.toDoubleOrNull()
-        if (amt != null) AmountConversionEngine.convertToArabicWords(amt) else ""
+        val amt = AmountConversionEngine.parseFlexibleAmount(chequeAmount)
+        if (amt != null) AmountConversionEngine.convertToArabicWords(amt, preferCentimes = false) else ""
     }
+
+    val isAmountFocused = focusedField == "chequeAmount"
+    val isBeneficiaryFocused = focusedField == "chequeBeneficiary"
+    val isPlaceFocused = focusedField == "chequePlace"
+    val isDateFocused = focusedField == "chequeDate"
+    val isSignatureFocused = focusedField == "chequeSignature"
+    val isCcpFocused = focusedField == "chequeCcp"
+    val isKeyFocused = focusedField == "chequeKey"
 
     Column(
         modifier = modifier
@@ -74,8 +86,12 @@ fun ChequeVisualView(
                 modifier = Modifier
                     .width(160.dp)
                     .height(38.dp)
-                    .background(Color.White, RoundedCornerShape(4.dp))
-                    .border(1.dp, chequeBorderColor)
+                    .background(if (isAmountFocused) focusBgColor else Color.White, RoundedCornerShape(4.dp))
+                    .border(
+                        width = if (isAmountFocused) 2.dp else 1.dp,
+                        color = if (isAmountFocused) focusBorderColor else chequeBorderColor,
+                        shape = RoundedCornerShape(4.dp)
+                    )
                     .clickable { onFieldTap("chequeAmount") }
                     .padding(horizontal = 8.dp),
                 contentAlignment = Alignment.CenterEnd
@@ -105,6 +121,14 @@ fun ChequeVisualView(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .then(
+                    if (isAmountFocused) {
+                        Modifier
+                            .background(focusBgColor, RoundedCornerShape(4.dp))
+                            .border(1.5.dp, focusBorderColor, RoundedCornerShape(4.dp))
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    } else Modifier
+                )
                 .clickable { onFieldTap("chequeAmount") },
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -130,6 +154,14 @@ fun ChequeVisualView(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .then(
+                    if (isBeneficiaryFocused) {
+                        Modifier
+                            .background(focusBgColor, RoundedCornerShape(4.dp))
+                            .border(1.5.dp, focusBorderColor, RoundedCornerShape(4.dp))
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    } else Modifier
+                )
                 .clickable { onFieldTap("chequeBeneficiary") },
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -161,7 +193,19 @@ fun ChequeVisualView(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 // Place
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { onFieldTap("chequePlace") }) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .then(
+                            if (isPlaceFocused) {
+                                Modifier
+                                    .background(focusBgColor, RoundedCornerShape(4.dp))
+                                    .border(1.5.dp, focusBorderColor, RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                            } else Modifier
+                        )
+                        .clickable { onFieldTap("chequePlace") }
+                ) {
                     Text(text = "في : ", style = MaterialTheme.typography.labelMedium, color = Color.DarkGray)
                     Text(
                         text = chequePlace.ifEmpty { "..............." },
@@ -171,7 +215,19 @@ fun ChequeVisualView(
                 }
 
                 // Date
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { onFieldTap("chequeDate") }) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .then(
+                            if (isDateFocused) {
+                                Modifier
+                                    .background(focusBgColor, RoundedCornerShape(4.dp))
+                                    .border(1.5.dp, focusBorderColor, RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                            } else Modifier
+                        )
+                        .clickable { onFieldTap("chequeDate") }
+                ) {
                     Text(text = "بتاريخ (Le) : ", style = MaterialTheme.typography.labelMedium, color = Color.DarkGray)
                     Text(
                         text = chequeDate.ifEmpty { "..../..../........" },
@@ -186,11 +242,11 @@ fun ChequeVisualView(
                 modifier = Modifier
                     .weight(1f)
                     .height(60.dp)
-                    .background(Color.White.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                    .background(if (isSignatureFocused) focusBgColor else Color.White.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
                     .border(
-                        1.dp,
-                        Color.Gray.copy(alpha = 0.5f),
-                        RoundedCornerShape(4.dp)
+                        width = if (isSignatureFocused) 2.dp else 1.dp,
+                        color = if (isSignatureFocused) focusBorderColor else Color.Gray.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(4.dp)
                     )
                     .clickable { onFieldTap("chequeSignature") },
                 contentAlignment = Alignment.Center
@@ -207,15 +263,18 @@ fun ChequeVisualView(
 
         // Bottom Details (CCP Account & Clé)
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onFieldTap("chequeCcp") },
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .background(Color.White, RoundedCornerShape(4.dp))
-                    .border(1.dp, chequeBorderColor)
+                    .background(if (isCcpFocused) focusBgColor else Color.White, RoundedCornerShape(4.dp))
+                    .border(
+                        width = if (isCcpFocused) 2.dp else 1.dp,
+                        color = if (isCcpFocused) focusBorderColor else chequeBorderColor,
+                        shape = RoundedCornerShape(4.dp)
+                    )
+                    .clickable { onFieldTap("chequeCcp") }
                     .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Text(
@@ -226,10 +285,14 @@ fun ChequeVisualView(
             }
             Box(
                 modifier = Modifier
-                    .background(Color.White, RoundedCornerShape(4.dp))
-                    .border(1.dp, chequeBorderColor)
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                    .background(if (isKeyFocused) focusBgColor else Color.White, RoundedCornerShape(4.dp))
+                    .border(
+                        width = if (isKeyFocused) 2.dp else 1.dp,
+                        color = if (isKeyFocused) focusBorderColor else chequeBorderColor,
+                        shape = RoundedCornerShape(4.dp)
+                    )
                     .clickable { onFieldTap("chequeKey") }
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Text(
                     text = "المفتاح: ${chequeKey.ifEmpty { ".." }}",

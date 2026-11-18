@@ -19,15 +19,17 @@ import com.qdash.core.utils.FormatterUtils
 import com.qdash.domain.model.TransactionTemplate
 import com.qdash.domain.model.TransactionType
 import com.qdash.domain.model.TransactionDraft
+import com.qdash.presentation.components.UnifiedCategoryIcon
 import com.qdash.ui.theme.ExpenseRed
 import com.qdash.ui.theme.IncomeGreen
 import com.qdash.ui.theme.TransferBlue
+import org.json.JSONObject
 
 @Composable
 fun PinnedTemplatesSection(
     pinnedTemplates: List<TransactionTemplate>,
     onManageTemplatesClick: () -> Unit,
-    onTemplateSelect: (jsonDraft: String) -> Unit,
+    onTemplateSelect: (transactionType: String, jsonDraft: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val primary = MaterialTheme.colorScheme.primary
@@ -74,19 +76,17 @@ fun PinnedTemplatesSection(
                             notes = template.notes,
                             templateId = template.id
                         )
-                        val json = """
-                            {
-                                "amount": ${draft.amount},
-                                "type": "${draft.type.name}",
-                                "categoryId": ${draft.categoryId ?: "null"},
-                                "subcategoryId": ${draft.subcategoryId ?: "null"},
-                                "accountId": ${draft.accountId},
-                                "targetAccountId": ${draft.targetAccountId ?: "null"},
-                                "notes": "${draft.notes?.replace("\"", "\\\"") ?: ""}",
-                                "templateId": ${draft.templateId ?: "null"}
-                            }
-                        """.trimIndent().replace("\n", "").replace(" ", "")
-                        onTemplateSelect(json)
+                        val json = JSONObject().apply {
+                            put("amount", draft.amount)
+                            put("type", draft.type.name)
+                            if (draft.categoryId != null) put("categoryId", draft.categoryId) else put("categoryId", JSONObject.NULL)
+                            if (draft.subcategoryId != null) put("subcategoryId", draft.subcategoryId) else put("subcategoryId", JSONObject.NULL)
+                            put("accountId", draft.accountId)
+                            if (draft.targetAccountId != null) put("targetAccountId", draft.targetAccountId) else put("targetAccountId", JSONObject.NULL)
+                            put("notes", draft.notes ?: "")
+                            if (draft.templateId != null) put("templateId", draft.templateId) else put("templateId", JSONObject.NULL)
+                        }.toString()
+                        onTemplateSelect(draft.type.name, json)
                     },
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant,
@@ -99,8 +99,13 @@ fun PinnedTemplatesSection(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         val emoji = template.iconEmoji
-                        if (emoji != null && emoji.isNotBlank()) {
-                            Text(text = emoji, fontSize = 18.sp)
+                        if (!emoji.isNullOrBlank()) {
+                            UnifiedCategoryIcon(
+                                iconKey = emoji,
+                                tint = typeAccentColor,
+                                modifier = Modifier.size(18.dp),
+                                emojiFontSize = 18.sp
+                            )
                         } else {
                             Icon(
                                 imageVector = Icons.Default.ReceiptLong,

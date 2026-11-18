@@ -39,6 +39,8 @@ fun AnalyticsComparisonTabContent(
     dashExpenses: Double,
     periodStart: Long,
     periodEnd: Long,
+    comparisonStart: Long = periodStart,
+    comparisonEnd: Long = periodEnd,
     onPeriodChange: (String) -> Unit,
     onMonthChange: (Int) -> Unit,
     onYearChange: (Int) -> Unit,
@@ -176,8 +178,8 @@ fun AnalyticsComparisonTabContent(
                 onMonthAChange = onCompareMonthAChange,
                 onMonthBChange = onCompareMonthBChange,
                 onAiChatClick = onAiChatClick,
-                periodStart = periodStart,
-                periodEnd = periodEnd
+                periodStart = comparisonStart,
+                periodEnd = comparisonEnd
             )
         }
     }

@@ -18,6 +18,9 @@ interface AiChatDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(message: AiChatMessageEntity): Long
 
+    @Query("UPDATE ai_chat_messages SET draftStatus = :status WHERE id = :id")
+    suspend fun updateDraftStatus(id: Long, status: String)
+
     @Query("DELETE FROM ai_chat_messages WHERE sessionTitle = :sessionTitle")
     suspend fun clearHistory(sessionTitle: String)
 

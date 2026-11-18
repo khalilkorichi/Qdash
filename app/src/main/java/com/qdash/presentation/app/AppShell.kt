@@ -52,7 +52,9 @@ internal fun FinTrackAppShell(
     factory: ViewModelFactory,
     settingsViewModel: SettingsViewModel,
     startDestination: String,
-    isFirstLaunch: Boolean
+    isFirstLaunch: Boolean,
+    pendingDeepLinkRoute: String? = null,
+    onDeepLinkConsumed: () -> Unit = {}
 ) {
     val navController = rememberNavController()
     val scope = rememberCoroutineScope()
@@ -118,8 +120,33 @@ internal fun FinTrackAppShell(
         scrollDeltaAccumulator = 0f
     }
 
+    LaunchedEffect(pendingDeepLinkRoute) {
+        val route = pendingDeepLinkRoute
+        if (!route.isNullOrBlank() && !isFirstLaunch) {
+            runCatching {
+                if (route == Screen.Home.route) {
+                    navController.popBackStack(Screen.Home.route, inclusive = false)
+                } else {
+                    navController.navigate(route) { launchSingleTop = true }
+                }
+            }
+            onDeepLinkConsumed()
+        }
+    }
+
+    val dynamicBottomPadding by animateDpAsState(
+        targetValue = if (isBottomScreen && isBottomControlsVisible) {
+            if (isUpdateBarVisible) 172.dp else 96.dp
+        } else {
+            16.dp
+        },
+        animationSpec = tween(250),
+        label = "dynamic_bottom_bar_padding"
+    )
+
     CompositionLocalProvider(
-        LocalNavController provides navController
+        LocalNavController provides navController,
+        com.qdash.presentation.navigation.LocalBottomBarPadding provides dynamicBottomPadding
     ) {
         Box(
             modifier = Modifier
@@ -146,7 +173,7 @@ internal fun FinTrackAppShell(
             // ── Global In-App Update Bottom Bar ──────────────────────────────
             val context = LocalContext.current
             AnimatedVisibility(
-                visible = isBottomScreen && isUpdateBarVisible,
+                visible = isBottomScreen && isUpdateBarVisible && isBottomControlsVisible,
                 enter = slideInVertically(initialOffsetY = { it }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
                 exit = slideOutVertically(targetOffsetY = { it }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300)),
                 modifier = Modifier
@@ -230,7 +257,7 @@ internal fun FinTrackAppShell(
                 ) {
                     if (!aiChatState.isMiniChatOpen) {
                         com.qdash.presentation.ai.components.FloatingAiBubble(
-                            onClick = { navController.navigate(Screen.AiVoice.route) }
+                            onClick = { aiChatViewModel.toggleMiniChat() }
                         )
                     } else {
                         com.qdash.presentation.ai.components.MiniChatOverlay(
@@ -254,7 +281,9 @@ internal fun FinTrackAppShell(
                             onStartEditingTransaction = { msgId, tx -> aiChatViewModel.startEditingTransaction(msgId, tx) },
                             onFullScreenClick = {
                                 aiChatViewModel.toggleMiniChat()
-                                navController.navigate(Screen.AiVoice.route)
+                                navController.navigate(Screen.AiChat.route) {
+                                    launchSingleTop = true
+                                }
                             },
                             onCloseClick = { aiChatViewModel.toggleMiniChat() },
                             selectedModelId = aiChatState.selectedModelId,

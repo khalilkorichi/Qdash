@@ -50,6 +50,7 @@ data class OnboardingUiState(
     // New wallet setup state
     val walletOptions: List<WalletOption> = listOf(
         WalletOption(AccountType.BARIDIMOB, "بريدي موب", "#8A2387", "phonelink_ring", isSelected = true),
+        WalletOption(AccountType.CCP, "الحساب البريدي الجاري (CCP)", "#F59E0B", "credit_card", isSelected = false),
         WalletOption(AccountType.CASH, "نقدي / كاش", "#11998e", "payments", isSelected = true),
         WalletOption(AccountType.SAVINGS, "حساب التوفير", "#4facfe", "savings", isSelected = false)
     ),
@@ -78,6 +79,8 @@ class OnboardingViewModel(
 
     private val _isRestoringBackup = MutableStateFlow(false)
     val isRestoringBackup: StateFlow<Boolean> = _isRestoringBackup.asStateFlow()
+
+    private val sessionCreatedAccounts = mutableListOf<Account>()
 
     init {
         // Default language is Arabic
@@ -193,46 +196,73 @@ class OnboardingViewModel(
         preferencesManager.notificationPermissionGranted = granted
     }
 
+    private suspend fun persistSelectedWallets(skip: Boolean) {
+        if (sessionCreatedAccounts.isNotEmpty()) {
+            sessionCreatedAccounts.forEach { created ->
+                runCatching { accountRepository.deleteAccount(created) }
+            }
+            sessionCreatedAccounts.clear()
+        }
+
+        if (!skip) {
+            val state = _uiState.value
+            var isFirstAccount = true
+
+            // Insert only selected predefined wallets
+            state.walletOptions.filter { it.isSelected }.forEach { option ->
+                val balance = option.balance.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.0
+                val acc = Account(
+                    name = option.name,
+                    type = option.type,
+                    balance = balance,
+                    color = option.color,
+                    icon = option.icon,
+                    isDefault = isFirstAccount
+                )
+                val id = accountRepository.insertAccount(acc)
+                sessionCreatedAccounts.add(acc.copy(id = id))
+                isFirstAccount = false
+            }
+
+            // Insert custom wallets
+            state.customWallets.forEach { draft ->
+                val balance = draft.balance.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.0
+                val acc = Account(
+                    name = draft.name,
+                    type = AccountType.OTHER,
+                    balance = balance,
+                    color = draft.color,
+                    icon = draft.icon,
+                    isDefault = isFirstAccount
+                )
+                val id = accountRepository.insertAccount(acc)
+                sessionCreatedAccounts.add(acc.copy(id = id))
+                isFirstAccount = false
+            }
+        }
+    }
+
+    fun proceedToAuthStep(skip: Boolean) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isSaving = true,
+                savingMessage = "جاري تهيئة محفظتك المالية..."
+            )
+            persistSelectedWallets(skip)
+            preferencesManager.walletSetupCompleted = true
+            preferencesManager.walletSetupSkipped = skip
+            _uiState.value = _uiState.value.copy(
+                isSaving = false,
+                currentStep = 4
+            )
+        }
+    }
+
     fun completeWalletSetup(skip: Boolean, onFinished: () -> Unit) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSaving = true)
 
-            if (!skip) {
-                val state = _uiState.value
-                var isFirstAccount = true
-
-                // Insert only selected predefined wallets
-                state.walletOptions.filter { it.isSelected }.forEachIndexed { _, option ->
-                    val balance = option.balance.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.0
-                    accountRepository.insertAccount(
-                        Account(
-                            name = option.name,
-                            type = option.type,
-                            balance = balance,
-                            color = option.color,
-                            icon = option.icon,
-                            isDefault = isFirstAccount
-                        )
-                    )
-                    isFirstAccount = false
-                }
-
-                // Insert custom wallets
-                state.customWallets.forEach { draft ->
-                    val balance = draft.balance.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.0
-                    accountRepository.insertAccount(
-                        Account(
-                            name = draft.name,
-                            type = AccountType.OTHER,
-                            balance = balance,
-                            color = draft.color,
-                            icon = draft.icon,
-                            isDefault = isFirstAccount
-                        )
-                    )
-                    isFirstAccount = false
-                }
-            }
+            persistSelectedWallets(skip)
 
             // Mark setup as done regardless of skip — prevents showing screen again.
             // Also sets isFirstLaunch = false so returning users skip onboarding on next cold start.
@@ -260,13 +290,13 @@ class OnboardingViewModel(
                         // No backup found: first-time Google user, upload current local database
                         driveSyncRepository.uploadToAppData(context)
                         preferencesManager.hasPendingBackupRestoreCheck = false
-                        preferencesManager.isFirstLaunch = false
+                        completeOnboardingUseCase()
                         _uiState.value = _uiState.value.copy(isSaving = false)
                         onFinished()
                     }
                 } else {
                     preferencesManager.hasPendingBackupRestoreCheck = false
-                    preferencesManager.isFirstLaunch = false
+                    completeOnboardingUseCase()
                     _uiState.value = _uiState.value.copy(isSaving = false)
                     onFinished()
                 }
@@ -287,7 +317,7 @@ class OnboardingViewModel(
             if (result.isSuccess) {
                 driveSyncRepository.setBackupFoundToRestore(null)
                 preferencesManager.hasPendingBackupRestoreCheck = false
-                preferencesManager.isFirstLaunch = false
+                completeOnboardingUseCase()
                 onFinished()
             }
         }
@@ -298,13 +328,12 @@ class OnboardingViewModel(
             driveSyncRepository.setBackupFoundToRestore(null)
             preferencesManager.hasPendingBackupRestoreCheck = false
             completeOnboardingUseCase()
-            preferencesManager.isFirstLaunch = false
             onFinished()
         }
     }
 
     fun skipGoogleSignIn(onFinished: () -> Unit) {
-        preferencesManager.isFirstLaunch = false
+        completeOnboardingUseCase()
         onFinished()
     }
 }

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.qdash.FinTrackApp
+import com.qdash.core.preferences.PreferencesManager
 import com.qdash.domain.model.AppNotification
 import com.qdash.domain.model.NotificationType
 import kotlinx.coroutines.flow.first
@@ -15,6 +16,12 @@ class SmartReminderWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
+        if (runAttemptCount >= 3) return Result.failure()
+        val prefs = PreferencesManager(applicationContext)
+        if (!prefs.notifSmartReminders) {
+            return Result.success()
+        }
+
         val app = applicationContext as? FinTrackApp ?: return Result.failure()
         val container = app.container
         val notificationRepository = container.notificationRepository
@@ -71,7 +78,7 @@ class SmartReminderWorker(
             return Result.success()
         } catch (e: Exception) {
             e.printStackTrace()
-            return Result.retry()
+            return if (runAttemptCount >= 3) Result.failure() else Result.retry()
         }
     }
 }

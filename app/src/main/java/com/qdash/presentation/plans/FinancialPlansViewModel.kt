@@ -1,7 +1,6 @@
 package com.qdash.presentation.plans
 
 import androidx.compose.runtime.Immutable
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qdash.domain.model.FinancialPlan
@@ -34,11 +33,12 @@ class FinancialPlansViewModel(
         _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
             try {
-                financialPlanRepository.getActivePlans().collect { activePlans ->
+                financialPlanRepository.getAllPlans().collect { allPlans ->
+                    val activeOnly = allPlans.filter { it.status == FinancialPlanStatus.ACTIVE }
                     _uiState.update {
                         it.copy(
-                            activePlans = activePlans,
-                            plans = activePlans,
+                            activePlans = activeOnly,
+                            plans = allPlans,
                             isLoading = false
                         )
                     }
@@ -60,10 +60,10 @@ class FinancialPlansViewModel(
         viewModelScope.launch {
             try {
                 val plan = FinancialPlan(
-                    title = title,
+                    title = title.trim(),
                     type = type,
                     targetAmount = targetAmount,
-                    notes = notes,
+                    notes = notes?.trim()?.ifBlank { null },
                     color = color,
                     icon = icon,
                     status = FinancialPlanStatus.ACTIVE
@@ -75,10 +75,40 @@ class FinancialPlansViewModel(
         }
     }
 
+    fun updatePlan(plan: FinancialPlan) {
+        viewModelScope.launch {
+            try {
+                val resolvedStatus = when {
+                    plan.status == FinancialPlanStatus.PAUSED || plan.status == FinancialPlanStatus.CANCELLED -> plan.status
+                    plan.targetAmount > 0 && plan.currentAmount >= plan.targetAmount -> FinancialPlanStatus.COMPLETED
+                    else -> FinancialPlanStatus.ACTIVE
+                }
+                financialPlanRepository.updatePlan(
+                    plan.copy(
+                        title = plan.title.trim(),
+                        notes = plan.notes?.trim()?.ifBlank { null },
+                        status = resolvedStatus
+                    )
+                )
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = e.localizedMessage) }
+            }
+        }
+    }
+
     fun updateProgress(id: Long, amount: Double) {
         viewModelScope.launch {
             try {
-                financialPlanRepository.updateCurrentAmount(id, amount)
+                val safeAmount = amount.coerceAtLeast(0.0)
+                financialPlanRepository.updateCurrentAmount(id, safeAmount)
+                val existing = financialPlanRepository.getPlanById(id)
+                if (existing != null) {
+                    if (existing.targetAmount > 0 && safeAmount >= existing.targetAmount && existing.status == FinancialPlanStatus.ACTIVE) {
+                        financialPlanRepository.updateStatus(id, FinancialPlanStatus.COMPLETED)
+                    } else if (safeAmount < existing.targetAmount && existing.status == FinancialPlanStatus.COMPLETED) {
+                        financialPlanRepository.updateStatus(id, FinancialPlanStatus.ACTIVE)
+                    }
+                }
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = e.localizedMessage) }
             }

@@ -612,6 +612,7 @@ val MIGRATION_28_29 = object : Migration(28, 29) {
                 FOREIGN KEY(`debtId`) REFERENCES `debts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE 
             )
         """.trimIndent())
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_installment_details_debtId` ON `debt_installment_details` (`debtId`)")
 
         // 2. Populate debt_installment_details table from debts for installment type
         db.execSQL("""
@@ -686,15 +687,36 @@ val MIGRATION_29_30 = object : Migration(29, 30) {
     }
 }
 
+private fun addColumnIfMissing(
+    db: SupportSQLiteDatabase,
+    table: String,
+    column: String,
+    definition: String
+) {
+    val existingColumns = mutableSetOf<String>()
+    db.query("PRAGMA table_info(`$table`)").use { cursor ->
+        val nameIdx = cursor.getColumnIndex("name")
+        while (cursor.moveToNext()) {
+            if (nameIdx >= 0) {
+                existingColumns.add(cursor.getString(nameIdx))
+            }
+        }
+    }
+    if (!existingColumns.contains(column)) {
+        db.execSQL("ALTER TABLE `$table` ADD COLUMN `$column` $definition")
+    }
+}
+
 /**
- * v30 → v31: Add previous rate columns to exchange_rates for trend tracking.
+ * v30 → v31: Add previous rate columns and isManualOverride to exchange_rates safely.
  */
 val MIGRATION_30_31 = object : Migration(30, 31) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("ALTER TABLE `exchange_rates` ADD COLUMN `previousOfficialBuyRate` REAL")
-        db.execSQL("ALTER TABLE `exchange_rates` ADD COLUMN `previousOfficialSellRate` REAL")
-        db.execSQL("ALTER TABLE `exchange_rates` ADD COLUMN `previousParallelBuyRate` REAL")
-        db.execSQL("ALTER TABLE `exchange_rates` ADD COLUMN `previousParallelSellRate` REAL")
+        addColumnIfMissing(db, "exchange_rates", "previousOfficialBuyRate", "REAL")
+        addColumnIfMissing(db, "exchange_rates", "previousOfficialSellRate", "REAL")
+        addColumnIfMissing(db, "exchange_rates", "previousParallelBuyRate", "REAL")
+        addColumnIfMissing(db, "exchange_rates", "previousParallelSellRate", "REAL")
+        addColumnIfMissing(db, "exchange_rates", "isManualOverride", "INTEGER NOT NULL DEFAULT 0")
     }
 }
 
@@ -703,6 +725,7 @@ val MIGRATION_30_31 = object : Migration(30, 31) {
  */
 val MIGRATION_31_32 = object : Migration(31, 32) {
     override fun migrate(db: SupportSQLiteDatabase) {
+        addColumnIfMissing(db, "exchange_rates", "isManualOverride", "INTEGER NOT NULL DEFAULT 0")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_exchange_rates_lastUpdatedAt` ON `exchange_rates` (`lastUpdatedAt`)")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_exchange_rates_source` ON `exchange_rates` (`source`)")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_exchange_rates_isManualOverride` ON `exchange_rates` (`isManualOverride`)")
@@ -714,8 +737,27 @@ val MIGRATION_31_32 = object : Migration(31, 32) {
  */
 val MIGRATION_32_33 = object : Migration(32, 33) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("ALTER TABLE `debts` ADD COLUMN `direction` TEXT NOT NULL DEFAULT 'OWED_BY_ME'")
-        db.execSQL("ALTER TABLE `debts` ADD COLUMN `initialTransactionId` INTEGER DEFAULT NULL")
+        addColumnIfMissing(db, "debts", "direction", "TEXT NOT NULL DEFAULT 'OWED_BY_ME'")
+        addColumnIfMissing(db, "debts", "initialTransactionId", "INTEGER DEFAULT NULL")
+    }
+}
+
+/**
+ * v33 → v34: Repair historical index mismatches, add FK/transfer indices,
+ * persist saving goal pause/archive/strategy state, and persist AI chat draft status.
+ */
+val MIGRATION_33_34 = object : Migration(33, 34) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_occurredAt` ON `transactions` (`occurredAt`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_transferId` ON `transactions` (`transferId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_debt_installment_details_debtId` ON `debt_installment_details` (`debtId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_category_rules_categoryId` ON `category_rules` (`categoryId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_user_category_mappings_categoryId` ON `user_category_mappings` (`categoryId`)")
+
+        addColumnIfMissing(db, "saving_goals", "isPaused", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "saving_goals", "isArchived", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "saving_goals", "strategy", "TEXT NOT NULL DEFAULT 'FIXED'")
+        addColumnIfMissing(db, "ai_chat_messages", "draftStatus", "TEXT DEFAULT NULL")
     }
 }
 
@@ -726,7 +768,7 @@ val ALL_MIGRATIONS = arrayOf(
     MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
     MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25,
     MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30,
-    MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33
+    MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34
 )
 
 

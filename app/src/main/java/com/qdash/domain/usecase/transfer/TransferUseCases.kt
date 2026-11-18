@@ -11,6 +11,7 @@ class TransferBetweenAccountsUseCase(
     private val accountRepository: AccountRepository
 ) {
     suspend operator fun invoke(request: TransferRequest): Boolean {
+        if (request.fromAccountId == request.toAccountId || request.amount <= 0.0) return false
         val fromAccount = accountRepository.getAccountById(request.fromAccountId) ?: return false
         val toAccount = accountRepository.getAccountById(request.toAccountId) ?: return false
         
@@ -20,53 +21,41 @@ class TransferBetweenAccountsUseCase(
         }
         
         val referenceId = "TRF-${UUID.randomUUID().toString().take(6).uppercase()}"
-        // All legs of this transfer share the same occurredAt for consistent ordering.
-        val occurredAt = request.occurredAt
+        val occurredAt = request.occurredAt ?: System.currentTimeMillis()
         
-        // 1. Transaction corresponding to reduction from source account
+        // 1. Atomic mirrored TRANSFER transaction (does NOT pollute income/expense analytics)
         transactionRepository.insertTransaction(
             Transaction(
                 amount = request.amount,
-                type = TransactionType.EXPENSE,
-                categoryId = 12L, // other
+                type = TransactionType.TRANSFER,
+                categoryId = null,
                 accountId = request.fromAccountId,
                 toAccountId = request.toAccountId,
-                note = request.note ?: "تحويل رصيد إلى ${toAccount.name}",
+                note = request.note?.takeIf { it.isNotBlank() } ?: "تحويل رصيد: ${fromAccount.name} ← ${toAccount.name}",
                 date = request.date,
+                kind = TransactionKind.TRANSFER,
                 occurredAt = occurredAt
             )
         )
         
-        // 2. Transaction corresponding to amplification on destination account
-        transactionRepository.insertTransaction(
-            Transaction(
-                amount = request.amount,
-                type = TransactionType.INCOME,
-                categoryId = 12L, // other
-                accountId = request.toAccountId,
-                note = request.note ?: "استلام رصيد محول من ${fromAccount.name}",
-                date = request.date,
-                occurredAt = occurredAt
-            )
-        )
-        
-        // 3. Optional transfer fee from source account
+        // 2. Optional transfer fee from source account (categoryId = null avoids magic-ID FK crashes)
         val fee = request.feeAmount
         if (fee != null && fee > 0) {
             transactionRepository.insertTransaction(
                 Transaction(
                     amount = fee,
                     type = TransactionType.EXPENSE,
-                    categoryId = 5L, // bills / fees
+                    categoryId = null,
                     accountId = request.fromAccountId,
                     note = "رسوم عملية تحويل ($referenceId)",
                     date = request.date,
+                    kind = TransactionKind.EXPENSE,
                     occurredAt = occurredAt
                 )
             )
         }
         
-        // 4. Save transfer record (shares same occurredAt as all legs)
+        // 3. Save transfer record
         val transferRecord = TransferRecord(
             fromAccountId = request.fromAccountId,
             toAccountId = request.toAccountId,

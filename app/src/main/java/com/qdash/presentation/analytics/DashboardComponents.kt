@@ -1105,24 +1105,37 @@ fun MonthComparisonCard(
                         modifier = Modifier.weight(1.2f),
                         horizontalAlignment = Alignment.End
                     ) {
-                        val isIncrease = diff >= 0
-                        val resColor = if (isIncrease) ExpenseRed else IncomeGreen
+                        val isIncrease = diff > 0
+                        val resColor = when {
+                            diff > 0 -> ExpenseRed
+                            diff < 0 -> IncomeGreen
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                        val pctBadgeText = when {
+                            totalExpA <= 0.0 && totalExpB <= 0.0 -> "0%"
+                            totalExpA <= 0.0 && totalExpB > 0.0 -> "جديد"
+                            else -> (if (diff > 0) "+" else "") + "${(pctDiff * 100).toInt()}%"
+                        }
                         Text("الفارق الكلي", style = MaterialTheme.typography.labelSmall, color = TextGray)
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Icon(
-                                imageVector = if (isIncrease) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
+                                imageVector = when {
+                                    isIncrease -> Icons.Default.TrendingUp
+                                    diff < 0 -> Icons.Default.TrendingDown
+                                    else -> Icons.Default.TrendingFlat
+                                },
                                 contentDescription = null,
                                 tint = resColor,
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                text = (if (isIncrease) "+" else "") + "${(pctDiff * 100).toInt()}%",
+                                text = pctBadgeText,
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 14.sp),
                                 color = resColor
                             )
                         }
                         Text(
-                            text = (if (isIncrease) "+" else "") + FormatterUtils.formatCurrency(diff),
+                            text = (if (diff > 0) "+" else "") + FormatterUtils.formatCurrency(diff),
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             color = resColor
                         )
@@ -1164,8 +1177,17 @@ fun MonthComparisonCard(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     comparisonList.forEach { item ->
                         val itemColor = try { Color(android.graphics.Color.parseColor(item.color)) } catch (e: Exception) { MaterialTheme.colorScheme.primary }
-                        val isIncrease = item.diff >= 0
-                        val resColor = if (isIncrease) ExpenseRed else IncomeGreen
+                        val isIncrease = item.diff > 0
+                        val resColor = when {
+                            item.diff > 0 -> ExpenseRed
+                            item.diff < 0 -> IncomeGreen
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                        val itemPctLabel = when {
+                            item.amountA <= 0.0 && item.amountB <= 0.0 -> "0%"
+                            item.amountA <= 0.0 && item.amountB > 0.0 -> "جديد"
+                            else -> (if (item.diff > 0) "+" else "") + "${(item.pctDiff * 100).toInt()}%"
+                        }
 
                         AppCard(
                             modifier = Modifier.fillMaxWidth(),
@@ -1195,13 +1217,17 @@ fun MonthComparisonCard(
                                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
                                             Icon(
-                                                imageVector = if (isIncrease) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
+                                                imageVector = when {
+                                                    isIncrease -> Icons.Default.TrendingUp
+                                                    item.diff < 0 -> Icons.Default.TrendingDown
+                                                    else -> Icons.Default.TrendingFlat
+                                                },
                                                 contentDescription = null,
                                                 tint = resColor,
                                                 modifier = Modifier.size(12.dp)
                                             )
                                             Text(
-                                                text = (if (isIncrease) "+" else "") + "${(item.pctDiff * 100).toInt()}%",
+                                                text = itemPctLabel,
                                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                                 color = resColor
                                             )

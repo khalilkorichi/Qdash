@@ -27,7 +27,6 @@ import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.qdash.domain.model.AccountType
 import com.qdash.ui.theme.ExpenseRed
-import com.qdash.ui.theme.Primary
 import com.qdash.ui.theme.TextGray
 
 // ---------------------------------------------------------------------------
@@ -130,6 +129,7 @@ internal fun ToggleRow(
     onCheckedChange: (Boolean) -> Unit,
     icon: ImageVector
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -141,7 +141,7 @@ internal fun ToggleRow(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (checked) Primary else TextGray,
+            tint = if (checked) primaryColor else TextGray,
             modifier = Modifier.size(22.dp)
         )
         Column(modifier = Modifier.weight(1f)) {
@@ -155,8 +155,8 @@ internal fun ToggleRow(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = Primary,
-                checkedTrackColor = Primary.copy(alpha = 0.3f)
+                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                checkedTrackColor = primaryColor
             )
         )
     }
@@ -227,6 +227,7 @@ internal fun AccountTypeSelector(
     selectedType: AccountType,
     onTypeSelected: (AccountType) -> Unit
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
     val types = listOf(
         AccountType.CASH      to "كاش",
         AccountType.BANK      to "بنكي",
@@ -247,12 +248,48 @@ internal fun AccountTypeSelector(
                 onClick = { onTypeSelected(type) },
                 label = { Text(label, style = MaterialTheme.typography.labelMedium) },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Primary.copy(alpha = 0.15f),
-                    selectedLabelColor = Primary
+                    selectedContainerColor = primaryColor.copy(alpha = 0.15f),
+                    selectedLabelColor = primaryColor
                 ),
                 border = FilterChipDefaults.filterChipBorder(
-                    borderColor = MaterialTheme.colorScheme.outlineVariant,
-                    selectedBorderColor = Primary,
+                    borderColor = MaterialTheme.colorScheme.outline,
+                    selectedBorderColor = primaryColor,
+                    enabled = true,
+                    selected = isSelected
+                )
+            )
+        }
+    }
+}
+
+@Composable
+internal fun AccountCurrencySelector(
+    selectedCurrency: String,
+    onCurrencySelected: (String) -> Unit
+) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val currencies = listOf(
+        "DZD" to "دينار جزائري (دج)",
+        "EUR" to "يورو (€)",
+        "USD" to "دولار ($)"
+    )
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 0.dp)
+    ) {
+        items(currencies, key = { (code, _) -> code }, contentType = { "currency" }) { (code, label) ->
+            val isSelected = selectedCurrency.equals(code, ignoreCase = true)
+            FilterChip(
+                selected = isSelected,
+                onClick = { onCurrencySelected(code) },
+                label = { Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = primaryColor.copy(alpha = 0.15f),
+                    selectedLabelColor = primaryColor
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    borderColor = MaterialTheme.colorScheme.outline,
+                    selectedBorderColor = primaryColor,
                     enabled = true,
                     selected = isSelected
                 )
@@ -278,18 +315,28 @@ internal fun ColorPicker(
             val color = remember(hex) {
                 runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrElse { Color.Gray }
             }
-            val isSelected = hex == selectedColor
+            val isSelected = hex.equals(selectedColor, ignoreCase = true)
             Box(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
                     .background(color)
                     .then(
-                        if (isSelected) Modifier.border(3.dp, MaterialTheme.colorScheme.onBackground, CircleShape)
+                        if (isSelected) Modifier.border(2.5.dp, MaterialTheme.colorScheme.onBackground, CircleShape)
                         else Modifier
                     )
-                    .clickable { onColorSelected(hex) }
-            )
+                    .clickable { onColorSelected(hex) },
+                contentAlignment = Alignment.Center
+            ) {
+                if (isSelected) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "محدد",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
         }
     }
 }
@@ -305,6 +352,7 @@ internal fun IconPicker(
     onIconSelected: (String) -> Unit,
     onPickFromGallery: () -> Unit
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // Gallery image preview or pick button
         Row(
@@ -325,18 +373,18 @@ internal fun IconPicker(
             OutlinedButton(
                 onClick = onPickFromGallery,
                 shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Primary.copy(alpha = 0.5f))
+                border = androidx.compose.foundation.BorderStroke(1.dp, primaryColor.copy(alpha = 0.5f))
             ) {
                 Icon(
                     Icons.Default.PhotoLibrary,
                     contentDescription = null,
-                    tint = Primary,
+                    tint = primaryColor,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
                     text = if (selectedIconPath != null) "تغيير الصورة" else "اختر من المعرض",
-                    color = Primary,
+                    color = primaryColor,
                     style = MaterialTheme.typography.labelMedium
                 )
             }
@@ -357,12 +405,12 @@ internal fun IconPicker(
                         .size(44.dp)
                         .clip(RoundedCornerShape(10.dp))
                         .background(
-                            if (isSelected) Primary.copy(alpha = 0.15f)
+                            if (isSelected) primaryColor.copy(alpha = 0.15f)
                             else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                         )
                         .border(
                             width = if (isSelected) 2.dp else 0.dp,
-                            color = if (isSelected) Primary else Color.Transparent,
+                            color = if (isSelected) primaryColor else Color.Transparent,
                             shape = RoundedCornerShape(10.dp)
                         )
                         .clickable { onIconSelected(key) },
@@ -371,7 +419,7 @@ internal fun IconPicker(
                     Icon(
                         imageVector = vector,
                         contentDescription = key,
-                        tint = if (isSelected) Primary
+                        tint = if (isSelected) primaryColor
                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         modifier = Modifier.size(22.dp)
                     )

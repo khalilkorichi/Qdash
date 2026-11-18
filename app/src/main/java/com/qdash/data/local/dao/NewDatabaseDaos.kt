@@ -36,10 +36,10 @@ interface DebtDao {
     @Query("SELECT * FROM debts WHERE id = :id")
     suspend fun getDebtById(id: Long): DebtWithInstallmentDetails?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertDebt(debt: DebtEntity): Long
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertInstallmentDetails(details: DebtInstallmentDetailsEntity)
 
     @Update

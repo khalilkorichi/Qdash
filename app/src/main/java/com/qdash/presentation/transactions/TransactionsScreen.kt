@@ -117,7 +117,7 @@ fun TransactionsScreen(
     ) { innerPadding ->
 
         var visibleRecentCount by remember(uiState.filteredTransactions, uiState.selectedCalendarDate) {
-            mutableStateOf(5)
+            mutableStateOf(25)
         }
 
         val recentTxs = remember(uiState.filteredTransactions, visibleRecentCount) {
@@ -306,7 +306,7 @@ fun TransactionsScreen(
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         viewModel.toggleTransactionSelection(tx.id)
                     },
-                    onLoadMore = { visibleRecentCount += 5 },
+                    onLoadMore = { visibleRecentCount += 25 },
                     selectedAccountId = uiState.selectedAccountId
                 )
             }
@@ -316,6 +316,9 @@ fun TransactionsScreen(
                 categories = uiState.categories,
                 accounts = uiState.accounts,
                 selectedTotal = selectedTotal,
+                totalTransactionsCount = uiState.filteredTransactions.size,
+                onSelectAllClick = { viewModel.selectAllTransactions() },
+                onDeleteClick = { showBulkDeleteDialog = true },
                 onEditClick = { showBulkEditSheet = true },
                 onCloseClick = { viewModel.clearTransactionSelection() },
                 onRemoveTransaction = { tx ->

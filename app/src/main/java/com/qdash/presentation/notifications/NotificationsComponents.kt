@@ -30,16 +30,19 @@ import com.qdash.ui.designsystem.components.shimmerEffect
 
 internal data class TypeVisual(val color: Color, val icon: ImageVector)
 
-internal data class FilterChipInfo(val label: String, val type: NotificationType?)
+internal data class FilterChipInfo(val label: String, val types: Set<NotificationType>)
 
+// Covers all 10 NotificationType enum values cleanly without hiding any category
 internal val FILTER_CHIPS = listOf(
-    FilterChipInfo("الكل",         null),
-    FilterChipInfo("الميزانية",    NotificationType.BUDGET_ALERT),
-    FilterChipInfo("الاشتراكات",   NotificationType.SUBSCRIPTION_REMINDER),
-    FilterChipInfo("الادخار",      NotificationType.SAVINGS_MILESTONE),
-    FilterChipInfo("الديون",       NotificationType.DEBT_DUE),
-    FilterChipInfo("التذكيرات",     NotificationType.SMART_REMINDER),
-    FilterChipInfo("نصائح",        NotificationType.TIP)
+    FilterChipInfo("الكل", emptySet()),
+    FilterChipInfo("الميزانية", setOf(NotificationType.BUDGET_ALERT, NotificationType.OVERSPEND_FORECAST)),
+    FilterChipInfo("الاشتراكات", setOf(NotificationType.SUBSCRIPTION_REMINDER)),
+    FilterChipInfo("الراتب", setOf(NotificationType.SALARY_ADDED)),
+    FilterChipInfo("الادخار", setOf(NotificationType.SAVINGS_MILESTONE)),
+    FilterChipInfo("الديون", setOf(NotificationType.DEBT_DUE)),
+    FilterChipInfo("التذكيرات", setOf(NotificationType.SMART_REMINDER)),
+    FilterChipInfo("النسخ والتصدير", setOf(NotificationType.BACKUP_DONE, NotificationType.EXPORT_DONE)),
+    FilterChipInfo("نصائح", setOf(NotificationType.TIP))
 )
 
 @Composable
@@ -83,10 +86,10 @@ internal fun timeAgo(timestamp: Long): String {
 
 @Composable
 internal fun FilterRow(
-    selectedFilter: NotificationType?,
-    onFilterSelected: (NotificationType?) -> Unit
+    selectedFilterLabel: String,
+    onFilterSelected: (FilterChipInfo) -> Unit
 ) {
-    val Primary = MaterialTheme.colorScheme.primary
+    val primaryColor = MaterialTheme.colorScheme.primary
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
@@ -96,10 +99,10 @@ internal fun FilterRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(FILTER_CHIPS, key = { it.label }) { chip ->
-            val selected = chip.type == selectedFilter
+            val selected = chip.label == selectedFilterLabel
             FilterChip(
                 selected = selected,
-                onClick = { onFilterSelected(chip.type) },
+                onClick = { onFilterSelected(chip) },
                 label = {
                     Text(
                         chip.label,
@@ -107,7 +110,7 @@ internal fun FilterRow(
                     )
                 },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Primary,
+                    selectedContainerColor = primaryColor,
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     labelColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -115,7 +118,7 @@ internal fun FilterRow(
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true,
                     selected = selected,
-                    selectedBorderColor = Primary,
+                    selectedBorderColor = primaryColor,
                     borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                 )
             )
@@ -134,7 +137,7 @@ internal fun NotificationList(
         modifier = Modifier
             .fillMaxSize()
             .testTag("notifications_list"),
-        contentPadding = PaddingValues(bottom = 80.dp),
+        contentPadding = PaddingValues(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
         grouped.forEach { (sectionLabel, notifications) ->
@@ -314,8 +317,8 @@ internal fun NotificationItemCard(
 }
 
 @Composable
-internal fun EmptyState() {
-    val Primary = MaterialTheme.colorScheme.primary
+internal fun EmptyState(isFiltered: Boolean = false) {
+    val primaryColor = MaterialTheme.colorScheme.primary
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -326,74 +329,27 @@ internal fun EmptyState() {
         Icon(
             imageVector = Icons.Default.NotificationsNone,
             contentDescription = null,
-            tint = Primary,
+            tint = primaryColor,
             modifier = Modifier.size(64.dp)
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "لا توجد إشعارات",
+            text = if (isFiltered) "لا توجد إشعارات في هذا التصنيف" else "لا توجد إشعارات",
             fontSize = 18.sp,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "ستظهر هنا إشعاراتك حول الميزانية والاشتراكات وأكثر",
+            text = if (isFiltered) {
+                "جرّب اختيار تصنيف آخر لعرض الإشعارات السابقة"
+            } else {
+                "ستظهر هنا إشعاراتك حول الميزانية والاشتراكات وأكثر"
+            },
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 48.dp)
-        )
-    }
-}
-
-@Composable
-internal fun ClearAllBar(onClearAll: () -> Unit) {
-    var showConfirm by remember { mutableStateOf(false) }
-    val deleteColor = MaterialTheme.colorScheme.error
-
-    Surface(
-        tonalElevation = 4.dp,
-        color = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            OutlinedButton(
-                onClick = { showConfirm = true },
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = deleteColor),
-                border = BorderStroke(1.dp, deleteColor),
-                modifier = Modifier.testTag("clear_all_button")
-            ) {
-                Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("مسح الكل", fontWeight = FontWeight.SemiBold)
-            }
-        }
-    }
-
-    if (showConfirm) {
-        AlertDialog(
-            onDismissRequest = { showConfirm = false },
-            title = { Text("مسح الإشعارات", fontWeight = FontWeight.Bold) },
-            text = { Text("هل تريد حذف جميع الإشعارات؟ لا يمكن التراجع عن هذا الإجراء.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showConfirm = false
-                    onClearAll()
-                }) {
-                    Text("مسح", color = deleteColor, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showConfirm = false }) {
-                    Text("إلغاء")
-                }
-            }
         )
     }
 }

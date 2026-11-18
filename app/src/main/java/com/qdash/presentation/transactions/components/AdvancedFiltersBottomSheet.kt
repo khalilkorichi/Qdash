@@ -11,8 +11,30 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.ui.designsystem.components.AppDatePickerDialog
+import com.qdash.core.utils.AmountConversionEngine
 import com.qdash.core.utils.FormatterUtils
 import com.qdash.ui.theme.ExpenseRed
+import java.util.Calendar
+
+private fun startOfDayMillis(millis: Long): Long {
+    return Calendar.getInstance().apply {
+        timeInMillis = millis
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+}
+
+private fun endOfDayMillis(millis: Long): Long {
+    return Calendar.getInstance().apply {
+        timeInMillis = millis
+        set(Calendar.HOUR_OF_DAY, 23)
+        set(Calendar.MINUTE, 59)
+        set(Calendar.SECOND, 59)
+        set(Calendar.MILLISECOND, 999)
+    }.timeInMillis
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +74,7 @@ fun AdvancedFiltersBottomSheet(
                 text = "تصفية متقدمة للمعاملات",
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Right,
+                textAlign = TextAlign.Start,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -62,14 +84,14 @@ fun AdvancedFiltersBottomSheet(
                     text = "مبالغ أكبر من أو تساوي (دج):",
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Right,
+                    textAlign = TextAlign.Start,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = tempMinAmount,
                     onValueChange = { tempMinAmount = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("مثال: 1000", textAlign = TextAlign.Right) },
+                    placeholder = { Text("مثال: 1000", textAlign = TextAlign.Start) },
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                         keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
                     ),
@@ -84,29 +106,14 @@ fun AdvancedFiltersBottomSheet(
                     text = "النطاق الزمني:",
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Right,
+                    textAlign = TextAlign.Start,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // End Date Button
-                    OutlinedButton(
-                        onClick = { showEndDatePicker = true },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(
-                            text = tempEndDate?.let { FormatterUtils.formatDate(it) } ?: "تاريخ النهاية",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    // Start Date Button
+                    // Start Date Button (First in RTL = Right)
                     OutlinedButton(
                         onClick = { showStartDatePicker = true },
                         modifier = Modifier
@@ -116,6 +123,21 @@ fun AdvancedFiltersBottomSheet(
                     ) {
                         Text(
                             text = tempStartDate?.let { FormatterUtils.formatDate(it) } ?: "تاريخ البداية",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    // End Date Button (Second in RTL = Left)
+                    OutlinedButton(
+                        onClick = { showEndDatePicker = true },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = tempEndDate?.let { FormatterUtils.formatDate(it) } ?: "تاريخ النهاية",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -149,8 +171,17 @@ fun AdvancedFiltersBottomSheet(
                 // Apply Button
                 Button(
                     onClick = {
-                        val minVal = tempMinAmount.toDoubleOrNull()
-                        onApplyFilters(minVal, tempStartDate, tempEndDate)
+                        val minVal = AmountConversionEngine.parseFlexibleAmount(tempMinAmount)
+                        val rawStart = tempStartDate
+                        val rawEnd = tempEndDate
+                        val (orderedStart, orderedEnd) = if (rawStart != null && rawEnd != null && rawStart > rawEnd) {
+                            Pair(rawEnd, rawStart)
+                        } else {
+                            Pair(rawStart, rawEnd)
+                        }
+                        val normalizedStart = orderedStart?.let { startOfDayMillis(it) }
+                        val normalizedEnd = orderedEnd?.let { endOfDayMillis(it) }
+                        onApplyFilters(minVal, normalizedStart, normalizedEnd)
                     },
                     modifier = Modifier
                         .weight(2f)
@@ -158,7 +189,7 @@ fun AdvancedFiltersBottomSheet(
                     shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
                 ) {
-                    Text("تطبيق الفلتر", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("تطبيق الفلتر", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                 }
             }
         }

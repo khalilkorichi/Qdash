@@ -1,21 +1,26 @@
 package com.qdash
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import com.qdash.core.utils.SystemNotificationHelper
 import com.qdash.presentation.ViewModelFactory
 import com.qdash.presentation.app.FinTrackApp
 import com.qdash.presentation.navigation.Screen
 
 class MainActivity : ComponentActivity() {
+    private val pendingDeepLinkRoute = MutableStateFlow<String?>(null)
     override fun attachBaseContext(newBase: Context) {
         val container = (newBase.applicationContext as? FinTrackApp)?.container
         val prefs = container?.preferencesManager ?: com.qdash.core.preferences.PreferencesManager(newBase)
@@ -34,10 +39,10 @@ class MainActivity : ComponentActivity() {
         val container = (applicationContext as FinTrackApp).container
         val factory = ViewModelFactory(container, applicationContext)
 
-        // Read stable prefs once — these do NOT change during navigation
+        // Read stable prefs once — skip SplashScreen completely for returning users for instant launch
         val prefs = container.preferencesManager
         val isFirstLaunch = prefs.isFirstLaunch
-        val startDestination = Screen.Splash.route
+        val startDestination = if (isFirstLaunch) Screen.Splash.route else Screen.Home.route
 
         val isDark = if (isFirstLaunch) false else {
             val mode = prefs.cachedTheme.get()
@@ -74,12 +79,16 @@ class MainActivity : ComponentActivity() {
         val bgClr = if (isDark) 0xFF09090B.toInt() else 0xFFFBFBFA.toInt()
         window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(bgClr))
 
-        // Request runtime notification permission on Android 13+ (API 33+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        // Only request notification permission on boot for returning users who haven't handled it yet;
+        // first-time users receive a contextual rationale prompt during Onboarding.
+        if (!isFirstLaunch && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !prefs.notificationPermissionHandled) {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+                prefs.notificationPermissionHandled = true
             }
         }
+
+        handleNotificationIntent(intent, container)
 
         // Initialize formatting prefs once at startup
         com.qdash.core.utils.FormatterUtils.hideDecimals = prefs.hideDecimalsEnabled
@@ -114,12 +123,40 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
+            val deepLink by pendingDeepLinkRoute.collectAsStateWithLifecycle()
             FinTrackApp(
                 container = container,
                 factory = factory,
                 startDestination = startDestination,
-                isFirstLaunch = isFirstLaunch
+                isFirstLaunch = isFirstLaunch,
+                pendingDeepLinkRoute = deepLink,
+                onDeepLinkConsumed = { pendingDeepLinkRoute.value = null }
             )
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val container = (applicationContext as? FinTrackApp)?.container
+        if (container != null) {
+            handleNotificationIntent(intent, container)
+        }
+    }
+
+    private fun handleNotificationIntent(intent: Intent?, container: com.qdash.core.di.AppContainer) {
+        if (intent == null) return
+        val notifId = intent.getLongExtra(SystemNotificationHelper.EXTRA_NOTIFICATION_ID, -1L)
+        if (notifId > 0L) {
+            intent.removeExtra(SystemNotificationHelper.EXTRA_NOTIFICATION_ID)
+            lifecycleScope.launch(Dispatchers.IO) {
+                runCatching { container.notificationRepository.markAsRead(notifId) }
+            }
+        }
+        val route = intent.getStringExtra(SystemNotificationHelper.EXTRA_DEEP_LINK_ROUTE)
+        if (!route.isNullOrBlank()) {
+            intent.removeExtra(SystemNotificationHelper.EXTRA_DEEP_LINK_ROUTE)
+            pendingDeepLinkRoute.value = route
         }
     }
 }

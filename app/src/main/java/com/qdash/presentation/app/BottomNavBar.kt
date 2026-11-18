@@ -87,6 +87,11 @@ internal fun FinTrackBottomNavBar(
                         color = MaterialTheme.colorScheme.surface,
                         shape = RoundedCornerShape(24.dp)
                     )
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outline,
+                        shape = RoundedCornerShape(24.dp)
+                    )
                     .clip(RoundedCornerShape(24.dp))
             ) {
                 Row(
@@ -213,9 +218,11 @@ internal fun BottomNavItem(
 
     Box(
         modifier = modifier
+            .defaultMinSize(minHeight = 48.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null
+                indication = null,
+                role = androidx.compose.ui.semantics.Role.Tab
             ) { onClick() },
         contentAlignment = Alignment.Center
     ) {
@@ -227,12 +234,12 @@ internal fun BottomNavItem(
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
                     .background(pillBgColor)
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                    .padding(horizontal = 14.dp, vertical = 5.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
-                    contentDescription = null,
+                    contentDescription = label,
                     tint = iconColor,
                     modifier = Modifier
                         .size(22.dp)
@@ -245,9 +252,10 @@ internal fun BottomNavItem(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = label,
-                fontSize = 9.sp,
+                fontSize = 11.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = iconColor
+                color = iconColor,
+                maxLines = 1
             )
         }
     }

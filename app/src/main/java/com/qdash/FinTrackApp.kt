@@ -31,7 +31,11 @@ class FinTrackApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainerImpl(this)
-        container.preferencesManager.loadInitialThemeSync()
+        val pm = container.preferencesManager
+        pm.loadInitialThemeSync()
+        com.qdash.core.utils.FormatterUtils.hideDecimals = pm.hideDecimalsEnabled
+        com.qdash.core.utils.FormatterUtils.useWesternNumerals = pm.useWesternNumerals
+        com.qdash.core.utils.FormatterUtils.useAlgerianMonths = pm.useAlgerianMonths
         SystemNotificationHelper.createNotificationChannel(this)
         schedulePeriodicUpdateChecks()
         schedulePeriodicFinancialAlerts()
@@ -45,10 +49,11 @@ class FinTrackApp : Application() {
         try {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
+                .setRequiresBatteryNotLow(true)
                 .build()
 
             val parallelRatesRequest = PeriodicWorkRequestBuilder<com.qdash.data.worker.RefreshParallelRatesWorker>(
-                15, TimeUnit.MINUTES
+                6, TimeUnit.HOURS
             )
                 .setConstraints(constraints)
                 .build()

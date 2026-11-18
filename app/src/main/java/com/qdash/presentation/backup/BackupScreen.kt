@@ -53,6 +53,8 @@ fun BackupScreen(
     var showFolderBackupPasswordDialog by remember { mutableStateOf(false) }
     var pendingExportPassword by remember { mutableStateOf<CharArray?>(null) }
     var showComingSoonSheet by remember { mutableStateOf(false) }
+    var showConfirmCloudRestoreDialog by remember { mutableStateOf(false) }
+    val bottomBarPadding = com.qdash.presentation.navigation.LocalBottomBarPadding.current
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -152,7 +154,7 @@ fun BackupScreen(
                 hostState = snackbarHostState,
                 modifier = Modifier
                     .navigationBarsPadding()
-                    .padding(bottom = if (!showTopBar) 96.dp else 16.dp)
+                    .padding(bottom = if (!showTopBar) (bottomBarPadding + 16.dp) else 16.dp)
             )
         },
         modifier = Modifier.fillMaxSize()
@@ -172,7 +174,12 @@ fun BackupScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
+                    .padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 8.dp,
+                        bottom = if (!showTopBar) (bottomBarPadding + 24.dp) else 40.dp
+                    ),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Info Card
@@ -239,6 +246,7 @@ fun BackupScreen(
                                 showFolderBackupPasswordDialog = true
                             }
                         },
+                        onExportStandaloneZipClick = { showExportDialog = true },
                         onImportZipClick = { openBackupLauncher.launch(arrayOf("application/zip")) },
                         onExportCsvTransactionsClick = {
                             val timestamp = System.currentTimeMillis() / 1000
@@ -266,10 +274,7 @@ fun BackupScreen(
                             )
                         },
                         onTriggerDriveRestore = {
-                            viewModel.triggerDriveRestore(
-                                onSuccess = { Toast.makeText(context, "تمت الاستعادة بنجاح!", Toast.LENGTH_SHORT).show() },
-                                onFailure = { err -> Toast.makeText(context, "فشلت الاستعادة: $err", Toast.LENGTH_LONG).show() }
-                            )
+                            showConfirmCloudRestoreDialog = true
                         },
                         onLaunchGoogleSignIn = { launchGoogleSignIn() }
                     )
@@ -277,6 +282,46 @@ fun BackupScreen(
             }
 
             // --- DIALOGS ---
+
+            if (showConfirmCloudRestoreDialog) {
+                com.qdash.ui.designsystem.components.AppDialog(
+                    onDismissRequest = { showConfirmCloudRestoreDialog = false },
+                    title = "تأكيد الاستعادة من السحابة",
+                    text = "سيتم استبدال البيانات المحلية الحالية بالنسخة الاحتياطية المحفوظة على Google Drive. هل تريد المتابعة؟",
+                    confirmButtonText = "استعادة البيانات",
+                    dismissButtonText = "إلغاء",
+                    isDestructive = true,
+                    onConfirm = {
+                        showConfirmCloudRestoreDialog = false
+                        viewModel.triggerDriveRestore(
+                            onSuccess = { Toast.makeText(context, "تمت الاستعادة بنجاح!", Toast.LENGTH_SHORT).show() },
+                            onFailure = { err -> Toast.makeText(context, "فشلت الاستعادة: $err", Toast.LENGTH_LONG).show() }
+                        )
+                    }
+                )
+            }
+
+            if (uiState.existingCloudBackupPrompt != null) {
+                RestoreBackupPromptDialog(
+                    modifiedTime = uiState.existingCloudBackupPrompt!!.modifiedTime,
+                    isLoading = uiState.isLoading,
+                    onConfirm = {
+                        viewModel.restoreExistingCloudBackupPrompt(
+                            onSuccess = {
+                                Toast.makeText(context, "تمت استعادة البيانات السحابية بنجاح!", Toast.LENGTH_SHORT).show()
+                            },
+                            onFailure = { err ->
+                                Toast.makeText(context, "فشلت الاستعادة: $err", Toast.LENGTH_LONG).show()
+                            }
+                        )
+                    },
+                    onDismiss = {
+                        viewModel.keepLocalDataInsteadOfCloudRestore {
+                            Toast.makeText(context, "تم ربط الحساب والاحتفاظ بالبيانات المحلية!", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                )
+            }
 
             ProcessingOverlayDialog(isLoading = uiState.isLoading)
 

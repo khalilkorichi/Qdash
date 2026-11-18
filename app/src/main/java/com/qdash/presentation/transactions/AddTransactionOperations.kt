@@ -221,8 +221,36 @@ fun parseDraftJson(
     ) -> Unit
 ) {
     if (draftJson.isNullOrBlank()) return
+    val decoded = try {
+        if (draftJson.trimStart().startsWith("%7B", ignoreCase = true)) {
+            java.net.URLDecoder.decode(draftJson, "UTF-8")
+        } else {
+            draftJson
+        }
+    } catch (_: Exception) {
+        draftJson
+    }
+
     try {
-        val cleanedJson = draftJson.trim().removePrefix("{").removeSuffix("}").trim()
+        val json = org.json.JSONObject(decoded)
+        val parsedAmountVal = json.optDouble("amount", 0.0).let { if (it.isNaN()) 0.0 else it }
+        val parsedType = runCatching {
+            TransactionType.valueOf(json.optString("type", "EXPENSE"))
+        }.getOrDefault(TransactionType.EXPENSE)
+        val parsedCatId = if (!json.isNull("categoryId") && json.has("categoryId")) json.optLong("categoryId").takeIf { it > 0L } else null
+        val parsedSubcatId = if (!json.isNull("subcategoryId") && json.has("subcategoryId")) json.optLong("subcategoryId").takeIf { it > 0L } else null
+        val parsedAccountId = if (!json.isNull("accountId") && json.has("accountId")) json.optLong("accountId").takeIf { it > 0L } else null
+        val parsedTargetAccountId = if (!json.isNull("targetAccountId") && json.has("targetAccountId")) json.optLong("targetAccountId").takeIf { it > 0L } else null
+        val parsedNotes = if (!json.isNull("notes") && json.has("notes")) json.optString("notes").takeIf { it.isNotEmpty() } else null
+
+        onResult(parsedAmountVal, parsedType, parsedCatId, parsedSubcatId, parsedAccountId, parsedTargetAccountId, parsedNotes)
+        return
+    } catch (_: Exception) {
+        // Fallback to legacy key:value parser below
+    }
+
+    try {
+        val cleanedJson = decoded.trim().removePrefix("{").removeSuffix("}").trim()
         val pairs = cleanedJson.split(",")
         var parsedAmountVal = 0.0
         var parsedType = TransactionType.EXPENSE
@@ -240,7 +268,7 @@ fun parseDraftJson(
                 if (value != "null") {
                     when (key) {
                         "amount" -> parsedAmountVal = value.toDoubleOrNull() ?: 0.0
-                        "type" -> parsedType = TransactionType.valueOf(value)
+                        "type" -> parsedType = runCatching { TransactionType.valueOf(value) }.getOrDefault(TransactionType.EXPENSE)
                         "categoryId" -> parsedCatId = value.toLongOrNull()
                         "subcategoryId" -> parsedSubcatId = value.toLongOrNull()
                         "accountId" -> parsedAccountId = value.toLongOrNull()
@@ -474,14 +502,23 @@ fun AddTransactionEffects(
         }
     }
 
-    LaunchedEffect(draftJson) {
+    LaunchedEffect(draftJson, uiState.categories) {
         if (!hasLoadedDraft && !draftJson.isNullOrBlank()) {
             parseDraftJson(draftJson) { amt, tp, catId, subcatId, accId, targetAccId, notes ->
                 val amtStr = if (amt > 0.0) amt.toString().replace(".0", "") else "0"
                 onRawAmountChange(TextFieldValue(amtStr, selection = TextRange(amtStr.length)))
                 onTypeChange(tp)
-                onSelectedCategoryIdChange(catId)
-                onSubcategoryIdChange(subcatId)
+                val resolvedCat = catId?.let { id -> uiState.categories.find { it.id == id } }
+                if (subcatId != null) {
+                    onSelectedCategoryIdChange(catId)
+                    onSubcategoryIdChange(subcatId)
+                } else if (resolvedCat?.parentId != null) {
+                    onSelectedCategoryIdChange(resolvedCat.parentId)
+                    onSubcategoryIdChange(resolvedCat.id)
+                } else {
+                    onSelectedCategoryIdChange(catId)
+                    onSubcategoryIdChange(null)
+                }
                 onSelectedAccountIdChange(accId)
                 onToAccountIdChange(targetAccId)
                 onNoteChange(notes ?: "")
@@ -492,24 +529,25 @@ fun AddTransactionEffects(
     }
 
     LaunchedEffect(uiState.categories, uiState.accounts, type) {
-        if (transactionId != null) return@LaunchedEffect
+        if (transactionId != null || hasLoadedDraft) return@LaunchedEffect
+        val nonArchivedAccounts = uiState.accounts.filter { !it.isArchived }
         if (selectedCategoryId == null && uiState.categories.isNotEmpty()) {
             val firstCat = uiState.categories.firstOrNull {
-                when (type) {
+                it.parentId == null && when (type) {
                     TransactionType.INCOME -> it.type == CategoryType.INCOME
                     else                   -> it.type == CategoryType.EXPENSE
                 }
             }?.id
             onSelectedCategoryIdChange(firstCat)
         }
-        if (selectedAccountId == null && uiState.accounts.isNotEmpty()) {
-            val defaultAcc = uiState.accounts.find { it.isDefault }?.id
-                ?: uiState.accounts.first().id
+        if (selectedAccountId == null && nonArchivedAccounts.isNotEmpty()) {
+            val defaultAcc = nonArchivedAccounts.find { it.isDefault }?.id
+                ?: nonArchivedAccounts.first().id
             onSelectedAccountIdChange(defaultAcc)
         }
-        if (toAccountId == null && uiState.accounts.size > 1) {
-            val toAcc = uiState.accounts.lastOrNull { it.id != selectedAccountId }?.id
-                ?: uiState.accounts.first().id
+        if (toAccountId == null && nonArchivedAccounts.size > 1) {
+            val toAcc = nonArchivedAccounts.lastOrNull { it.id != selectedAccountId }?.id
+                ?: nonArchivedAccounts.first().id
             onToAccountIdChange(toAcc)
         }
     }

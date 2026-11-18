@@ -52,10 +52,10 @@ class SaveSalaryDistributionUseCase(
             )
         }
 
-        // Fetch all categories for smart auto-mapping
+        // Fetch all categories for smart auto-mapping (supports both legacy & Algerian seeded names)
         val allCategories = categoryRepository.getAllCategories().first()
-        val needsKeywords = listOf("إيجار", "كهرباء وغاز", "ماء", "إنترنت", "بقالة", "تاكسي", "حافلة", "وقود", "صحة", "صيدلية", "مستحقات البريد (CCP)", "البطاقة الذهبية")
-        val wantsKeywords = listOf("مطاعم", "قهوة", "ملابس", "عناية شخصية", "ألعاب", "بث مباشر", "فعاليات", "أعراس وحفلات", "رمضان", "الدخول المدرسي")
+        val needsKeywords = listOf("إيجار", "كهرباء", "ماء", "إنترنت", "فواتير", "بقالة", "مارشي", "تاكسي", "حافلة", "مواصلات", "وقود", "صحة", "صيدلية", "عيادة", "عائلي", "تعليم", "البريد", "الذهبية")
+        val wantsKeywords = listOf("مطاعم", "أكل سريع", "قهوة", "ملابس", "تسوق", "كوسميتيك", "عناية", "ألعاب", "ترفيه", "مناسبات", "رمضان")
         val savingsKeywords = listOf("ادخار", "توفير", "استثمار")
 
         // Create or update envelopes
@@ -81,7 +81,9 @@ class SaveSalaryDistributionUseCase(
                     EnvelopeType.WANTS -> wantsKeywords
                     EnvelopeType.SAVINGS -> savingsKeywords
                 }
-                allCategories.filter { it.name in keywords }.map { it.id }
+                allCategories.filter { cat ->
+                    cat.type == CategoryType.EXPENSE && keywords.any { kw -> cat.name.contains(kw) }
+                }.map { it.id }
             }
 
             SalaryEnvelope(

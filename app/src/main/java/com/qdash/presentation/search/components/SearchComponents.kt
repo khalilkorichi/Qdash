@@ -17,16 +17,16 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -36,20 +36,27 @@ import androidx.compose.ui.unit.sp
 import com.qdash.domain.model.Account
 import com.qdash.domain.model.Category
 import com.qdash.domain.model.Transaction
+import com.qdash.presentation.components.UnifiedCategoryIcon
+import com.qdash.presentation.components.safeParseColor
 import com.qdash.presentation.search.SearchUiState
 import com.qdash.ui.designsystem.components.shimmerEffect
-import com.qdash.ui.theme.Primary
 import com.qdash.ui.theme.TextGray
 
 val ADVANCED_FILTERS = listOf("المعاملات", "الحسابات", "الفئات", "المصاريف", "المداخيل")
 
+data class QuickSearchSuggestion(
+    val icon: ImageVector,
+    val label: String,
+    val query: String
+)
+
 val COMMON_SEARCH_SUGGESTIONS = listOf(
-    Triple("🛒", "مشتريات", "مشتريات"),
-    Triple("💡", "فواتير", "فواتير"),
-    Triple("🍽️", "مطاعم", "مطعم"),
-    Triple("🚗", "نقل", "سفر"),
-    Triple("💰", "راتب", "راتب"),
-    Triple("💵", "كاش", "سحب")
+    QuickSearchSuggestion(Icons.Default.ShoppingCart, "مشتريات", "مشتريات"),
+    QuickSearchSuggestion(Icons.Default.ReceiptLong, "فواتير", "فواتير"),
+    QuickSearchSuggestion(Icons.Default.Restaurant, "مطاعم", "مطعم"),
+    QuickSearchSuggestion(Icons.Default.DirectionsCar, "نقل", "سفر"),
+    QuickSearchSuggestion(Icons.Default.Payments, "راتب", "راتب"),
+    QuickSearchSuggestion(Icons.Default.AccountBalanceWallet, "كاش", "سحب")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,7 +73,6 @@ fun SearchTopBar(
         color = MaterialTheme.colorScheme.surface,
         modifier = Modifier
             .fillMaxWidth()
-            .statusBarsPadding()
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
     ) {
         Row(
@@ -78,7 +84,7 @@ fun SearchTopBar(
         ) {
             IconButton(onClick = onBack) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "رجوع",
                     tint = MaterialTheme.colorScheme.onSurface
                 )
@@ -89,6 +95,7 @@ fun SearchTopBar(
                 onValueChange = onQueryChange,
                 modifier = Modifier
                     .weight(1f)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
                     .testTag("search_text_field")
                     .focusRequester(focusRequester),
                 placeholder = { Text("ابحث عن المعاملات، الحسابات، أو الفئات…", color = TextGray, fontSize = 13.sp) },
@@ -234,43 +241,42 @@ fun EmptyQueryState(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(recentSearches) { recent ->
-                        InputChip(
-                            selected = false,
+                    items(recentSearches, key = { it }) { recent ->
+                        Surface(
                             onClick = { onSearchClick(recent) },
-                            label = { Text(recent, fontSize = 12.sp) },
-                            trailingIcon = {
-                                IconButton(
-                                    onClick = { onRemove(recent) },
-                                    modifier = Modifier.size(16.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Close,
-                                        contentDescription = "حذف",
-                                        modifier = Modifier.size(12.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            },
-                            leadingIcon = {
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(start = 12.dp)
+                            ) {
                                 Icon(
                                     Icons.Default.History,
                                     contentDescription = null,
                                     modifier = Modifier.size(14.dp),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                            },
-                            colors = InputChipDefaults.inputChipColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                labelColor = MaterialTheme.colorScheme.onSurface
-                            ),
-                            border = InputChipDefaults.inputChipBorder(
-                                enabled = true,
-                                selected = false,
-                                borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-                            ),
-                            shape = RoundedCornerShape(20.dp)
-                        )
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    text = recent,
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                IconButton(
+                                    onClick = { onRemove(recent) },
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "حذف",
+                                        modifier = Modifier.size(14.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -297,16 +303,24 @@ fun EmptyQueryState(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    COMMON_SEARCH_SUGGESTIONS.take(3).forEach { (emoji, label, query) ->
-                        SuggestionCard(emoji = emoji, label = label, onClick = { onSearchClick(query) })
+                    COMMON_SEARCH_SUGGESTIONS.take(3).forEach { suggestion ->
+                        SuggestionCard(
+                            icon = suggestion.icon,
+                            label = suggestion.label,
+                            onClick = { onSearchClick(suggestion.query) }
+                        )
                     }
                 }
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    COMMON_SEARCH_SUGGESTIONS.drop(3).forEach { (emoji, label, query) ->
-                        SuggestionCard(emoji = emoji, label = label, onClick = { onSearchClick(query) })
+                    COMMON_SEARCH_SUGGESTIONS.drop(3).forEach { suggestion ->
+                        SuggestionCard(
+                            icon = suggestion.icon,
+                            label = suggestion.label,
+                            onClick = { onSearchClick(suggestion.query) }
+                        )
                     }
                 }
             }
@@ -327,12 +341,8 @@ fun EmptyQueryState(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(suggestedCategories) { category ->
-                        val catColor = try {
-                            Color(android.graphics.Color.parseColor(if (category.color.startsWith("#")) category.color else "#${category.color}"))
-                        } catch (e: Exception) {
-                            MaterialTheme.colorScheme.primary
-                        }
+                    items(suggestedCategories, key = { it.id }) { category ->
+                        val catColor = safeParseColor(category.color, MaterialTheme.colorScheme.primary)
 
                         Card(
                             onClick = { onSearchClick(category.name) },
@@ -353,11 +363,11 @@ fun EmptyQueryState(
                                         .background(catColor.copy(alpha = 0.12f), CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Category,
-                                        contentDescription = null,
+                                    UnifiedCategoryIcon(
+                                        iconKey = category.icon,
                                         tint = catColor,
-                                        modifier = Modifier.size(12.dp)
+                                        modifier = Modifier.size(14.dp),
+                                        emojiFontSize = 13.sp
                                     )
                                 }
                                 Text(
@@ -377,7 +387,7 @@ fun EmptyQueryState(
 
 @Composable
 fun SuggestionCard(
-    emoji: String,
+    icon: ImageVector,
     label: String,
     onClick: () -> Unit
 ) {
@@ -386,7 +396,7 @@ fun SuggestionCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(
             modifier = Modifier
@@ -398,10 +408,15 @@ fun SuggestionCard(
             Box(
                 modifier = Modifier
                     .size(32.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp)),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = emoji, fontSize = 16.sp)
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
             }
             Text(
                 text = label,
@@ -464,7 +479,9 @@ fun ShowMoreRow(count: Int, label: String, onClick: () -> Unit) {
 @Composable
 fun SearchResultsList(
     uiState: SearchUiState,
-    onTransactionClick: (Transaction) -> Unit
+    onTransactionClick: (Transaction) -> Unit,
+    onAccountClick: (Account) -> Unit = {},
+    onCategoryClick: (Category) -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().testTag("search_results_list"),
@@ -473,25 +490,34 @@ fun SearchResultsList(
     ) {
         if (uiState.transactions.isNotEmpty()) {
             item { SearchSectionHeader(title = "المعاملات", count = uiState.transactions.size) }
-            itemsIndexed(uiState.transactions) { index, transaction ->
+            itemsIndexed(uiState.transactions, key = { _, tx -> "tx_${tx.id}" }) { index, transaction ->
                 AnimatedResultItem(index = index) {
-                    TransactionResultItem(transaction = transaction, onClick = { onTransactionClick(transaction) })
+                    TransactionResultItem(
+                        transaction = transaction,
+                        onClick = { onTransactionClick(transaction) }
+                    )
                 }
             }
         }
         if (uiState.accounts.isNotEmpty()) {
             item { SearchSectionHeader(title = "الحسابات الجارية", count = uiState.accounts.size) }
-            itemsIndexed(uiState.accounts) { index, account ->
+            itemsIndexed(uiState.accounts, key = { _, acc -> "acc_${acc.id}" }) { index, account ->
                 AnimatedResultItem(index = index) {
-                    AccountResultItem(account = account)
+                    AccountResultItem(
+                        account = account,
+                        onClick = { onAccountClick(account) }
+                    )
                 }
             }
         }
         if (uiState.categories.isNotEmpty()) {
             item { SearchSectionHeader(title = "فئات المعاملات", count = uiState.categories.size) }
-            itemsIndexed(uiState.categories) { index, category ->
+            itemsIndexed(uiState.categories, key = { _, cat -> "cat_${cat.id}" }) { index, category ->
                 AnimatedResultItem(index = index) {
-                    CategoryResultItem(category = category)
+                    CategoryResultItem(
+                        category = category,
+                        onClick = { onCategoryClick(category) }
+                    )
                 }
             }
         }

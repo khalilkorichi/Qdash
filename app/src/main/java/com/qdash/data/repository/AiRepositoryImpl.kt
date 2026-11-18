@@ -39,19 +39,40 @@ class AiRepositoryImpl(
     private val geminiApiKey: String,
     private val openRouterApiKey: String,
     private val nvidiaApiKey: String,
-    private val isTesting: Boolean = false
+    private val isTesting: Boolean = false,
+    private val preferencesManager: com.qdash.core.preferences.PreferencesManager? = null
 ) : AiRepository {
 
-    private val resolvedGeminiApiKey by lazy { if (geminiApiKey.isNotBlank()) geminiApiKey else (getApiKey() ?: "") }
-    private val resolvedOpenRouterApiKey by lazy {
-        if (openRouterApiKey.isNotBlank()) openRouterApiKey else {
+    private val runtimePreferencesManager: com.qdash.core.preferences.PreferencesManager? by lazy {
+        if (isTesting) null else {
             try {
-                com.qdash.core.utils.CryptoUtils.decrypt("Tsi1wycL1+Cbdm+wfFhc7DpgC1ksFwwFolpzWWCA5KxiS3sH+NziI+JQQKe3+dYOZdAJkKa6aDwRm6NArnknrYyT6RmJWxwNhkf3A3eiWiVvuhZ1YSM8aNAuLaGo9/TQy1J7mbA=")
-            } catch (e: Exception) {
-                ""
+                val app = Class.forName("android.app.ActivityThread")
+                    .getMethod("currentApplication")
+                    .invoke(null) as? android.content.Context
+                app?.let { com.qdash.core.preferences.PreferencesManager(it) }
+            } catch (_: Exception) {
+                null
             }
         }
     }
+
+    private fun activePrefs(): com.qdash.core.preferences.PreferencesManager? =
+        preferencesManager ?: runtimePreferencesManager
+
+    private fun effectiveGeminiApiKey(): String {
+        val custom = activePrefs()?.customGeminiApiKey?.trim()
+        if (!custom.isNullOrBlank()) return custom
+        if (geminiApiKey.isNotBlank() && geminiApiKey != "MY_GEMINI_API_KEY") return geminiApiKey
+        return getApiKey() ?: ""
+    }
+
+    private fun effectiveOpenRouterApiKey(): String {
+        val custom = activePrefs()?.customOpenRouterApiKey?.trim()
+        if (!custom.isNullOrBlank()) return custom
+        if (openRouterApiKey.isNotBlank() && openRouterApiKey != "MY_OPENROUTER_API_KEY") return openRouterApiKey
+        return OPENROUTER_API_KEY
+    }
+
     private val resolvedNvidiaApiKey by lazy { nvidiaApiKey }
     private val resolvedOpenCodeApiKey by lazy {
         try {
@@ -64,8 +85,8 @@ class AiRepositoryImpl(
 
     private val providers: List<com.qdash.data.ai.AiProvider> by lazy {
         listOf(
-            com.qdash.data.ai.providers.GeminiProvider(resolvedGeminiApiKey, okHttpClient),
-            com.qdash.data.ai.providers.OpenRouterProvider(resolvedOpenRouterApiKey, okHttpClient),
+            com.qdash.data.ai.providers.GeminiProvider({ effectiveGeminiApiKey() }, okHttpClient),
+            com.qdash.data.ai.providers.OpenRouterProvider({ effectiveOpenRouterApiKey() }, okHttpClient),
             com.qdash.data.ai.providers.OpenCodeProvider(resolvedOpenCodeApiKey, okHttpClient),
             com.qdash.data.ai.providers.AgentRouterProvider(resolvedAgentRouterApiKey, okHttpClient),
             com.qdash.data.ai.providers.NvidiaProvider(resolvedNvidiaApiKey, okHttpClient)
@@ -142,12 +163,17 @@ class AiRepositoryImpl(
 
             val account = accounts.firstOrNull()
             val category = categories.firstOrNull()
+            if (account == null) {
+                return AiResponse(
+                    replyText = "ليس لديك أي حسابات مسجلة حالياً لإضافة المعاملة إليها. يرجى إنشاء حساب أولاً."
+                )
+            }
 
             val draft = Transaction(
                 amount = amount,
                 type = TransactionType.EXPENSE,
-                categoryId = category?.id ?: 1L,
-                accountId = account?.id ?: 1L,
+                categoryId = category?.id,
+                accountId = account.id,
                 note = "AI generated transaction from: $prompt",
                 date = System.currentTimeMillis()
             )
@@ -156,7 +182,7 @@ class AiRepositoryImpl(
                 replyText = "لقد قمت بإنشاء مسودة لمعاملة بقيمة **$amount دج**. هل تريد تأكيد تسجيلها؟",
                 draftTransaction = draft,
                 categoryName = category?.name ?: "غير محدد",
-                accountName = account?.name ?: "غير محدد"
+                accountName = account.name
             )
         }
 
@@ -200,6 +226,10 @@ class AiRepositoryImpl(
         return aiChatDao.insertMessage(message.toEntity())
     }
 
+    override suspend fun updateDraftStatus(id: Long, status: String) {
+        aiChatDao.updateDraftStatus(id, status)
+    }
+
     override suspend fun clearHistory(sessionTitle: String) {
         aiChatDao.clearHistory(sessionTitle)
     }
@@ -225,10 +255,17 @@ class AiRepositoryImpl(
         val modelsToTry = listOf(modelId) + (modelFallbackMap[modelId] ?: emptyList())
         var aiResponse = ""
         var success = false
+        var toolCreatedTransaction = false
         
         for (candidateModelId in modelsToTry) {
             try {
-                aiResponse = tryGenerateResponse(sessionTitle, userPrompt, candidateModelId)
+                toolCreatedTransaction = false
+                aiResponse = tryGenerateResponse(
+                    sessionTitle = sessionTitle,
+                    prompt = userPrompt,
+                    modelId = candidateModelId,
+                    onToolCreatedTransaction = { toolCreatedTransaction = true }
+                )
                 success = true
                 break
             } catch (e: Exception) {
@@ -248,6 +285,7 @@ class AiRepositoryImpl(
         // Split response by [NEXT] and insert each as a separate sequential message
         val parts = aiResponse.split("[NEXT]")
         var tempTime = System.currentTimeMillis()
+        val initialDraftStatus = if (toolCreatedTransaction) "CONFIRMED" else null
         for (part in parts) {
             val trimmed = part.trim()
             if (trimmed.isNotEmpty()) {
@@ -256,7 +294,8 @@ class AiRepositoryImpl(
                         sender = ChatSender.AI,
                         message = trimmed,
                         sessionTitle = sessionTitle,
-                        timestamp = tempTime
+                        timestamp = tempTime,
+                        draftStatus = initialDraftStatus
                     )
                 )
                 tempTime += 50 // small millisecond offset for correct ordering
@@ -270,7 +309,8 @@ class AiRepositoryImpl(
         sessionTitle: String,
         userPrompt: String,
         modelId: String,
-        customApiKey: String? = null
+        customApiKey: String? = null,
+        onToolCreatedTransaction: (() -> Unit)? = null
     ): String = withContext(Dispatchers.IO) {
         try {
             val keyToUse = if (!customApiKey.isNullOrBlank()) customApiKey else AGENT_ROUTER_API_KEY
@@ -342,16 +382,16 @@ class AiRepositoryImpl(
                 .post(requestBodyJson.toString().toRequestBody(jsonMediaType))
                 .build()
 
-            val response = try {
-                okHttpClient.newCall(request).execute()
+            val responseBody = try {
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        throw AiFailureException.AiServiceFailure("فشل استجابة خادم الذكاء الاصطناعي برمز: ${response.code} ${response.message}")
+                    }
+                    response.body?.string() ?: throw AiFailureException.AiServiceFailure("تلقيت استجابة فارغة من خادم الذكاء الاصطناعي.")
+                }
             } catch (e: java.io.IOException) {
                 throw AiFailureException.NetworkFailure("فشل في الاتصال بخادم الذكاء الاصطناعي: ${e.localizedMessage}", e)
             }
-            if (!response.isSuccessful) {
-                throw AiFailureException.AiServiceFailure("فشل استجابة خادم الذكاء الاصطناعي برمز: ${response.code} ${response.message}")
-            }
-
-            val responseBody = response.body?.string() ?: throw AiFailureException.AiServiceFailure("تلقيت استجابة فارغة من خادم الذكاء الاصطناعي.")
             val responseJson = JSONObject(responseBody)
             val choices = responseJson.optJSONArray("choices")
             if (choices == null || choices.length() == 0) {
@@ -372,7 +412,7 @@ class AiRepositoryImpl(
                     val toolCallId = toolCall.getString("id")
 
                     // Execute the tool call locally
-                    val toolResultJson = executeToolCall(functionName, argumentsJson)
+                    val toolResultJson = executeToolCall(functionName, argumentsJson, onToolCreatedTransaction)
 
                     // Build the follow up messages array:
                     val followUpMessagesArray = JSONArray()
@@ -402,16 +442,16 @@ class AiRepositoryImpl(
                         .post(followUpRequestBodyJson.toString().toRequestBody(jsonMediaType))
                         .build()
 
-                    val followUpResponse = try {
-                        okHttpClient.newCall(followUpRequest).execute()
+                    val followUpResponseBody = try {
+                        okHttpClient.newCall(followUpRequest).execute().use { followUpResponse ->
+                            if (!followUpResponse.isSuccessful) {
+                                throw AiFailureException.AiServiceFailure("فشل الخادم أثناء معالجة الأداة برمز الخطأ: ${followUpResponse.code} ${followUpResponse.message}")
+                            }
+                            followUpResponse.body?.string() ?: ""
+                        }
                     } catch (e: java.io.IOException) {
                         throw AiFailureException.NetworkFailure("فشل في الاتصال بالخادم أثناء معالجة الأداة: ${e.localizedMessage}", e)
                     }
-                    if (!followUpResponse.isSuccessful) {
-                        throw AiFailureException.AiServiceFailure("فشل الخادم أثناء معالجة الأداة برمز الخطأ: ${followUpResponse.code} ${followUpResponse.message}")
-                    }
-
-                    val followUpResponseBody = followUpResponse.body?.string() ?: ""
                     val followUpResponseJson = JSONObject(followUpResponseBody)
                     val finalChoices = followUpResponseJson.optJSONArray("choices")
                     if (finalChoices == null || finalChoices.length() == 0) {
@@ -456,14 +496,19 @@ class AiRepositoryImpl(
         "opencode/nemotron-3-super-free" to listOf("nvidia/nemotron-3-super-120b-a12b:free")
     )
 
-    private suspend fun tryGenerateResponse(sessionTitle: String, prompt: String, modelId: String): String {
+    private suspend fun tryGenerateResponse(
+        sessionTitle: String,
+        prompt: String,
+        modelId: String,
+        onToolCreatedTransaction: (() -> Unit)? = null
+    ): String {
         if (isTesting) {
-            return simulateMockAiWithTools(prompt)
+            return simulateMockAiWithTools(prompt, onToolCreatedTransaction)
         }
-        val apiKey = if (modelId.startsWith("gemini-")) getApiKey() else null
+        val apiKey = if (modelId.startsWith("gemini-")) effectiveGeminiApiKey() else null
         return if (modelId.startsWith("gemini-")) {
             if (!apiKey.isNullOrBlank()) {
-                callGeminiApiWithTools(apiKey, sessionTitle, prompt, modelId)
+                callGeminiApiWithTools(apiKey, sessionTitle, prompt, modelId, onToolCreatedTransaction)
             } else {
                 if (sessionTitle != "Default" && (prompt.contains("حلل") || prompt.contains("تقرير") || prompt.contains("تحليل"))) {
                     "الخطوة 1: جاري تحليل مصاريفك الإجمالية لشهر مايو... [NEXT] الخطوة 2: يظهر أن فئة المواد الغذائية تستهلك 45% من دخلك. [NEXT] الخطوة 3: ننصحك بتقليل الطلبات الخارجية لزيادة معدل ادخارك بنسبة 10%."
@@ -472,22 +517,23 @@ class AiRepositoryImpl(
                     if (!fallbacks.isNullOrEmpty()) {
                         throw AiFailureException.AiServiceFailure("Google API key is missing, trying fallback.")
                     }
-                    simulateMockAiWithTools(prompt)
+                    simulateMockAiWithTools(prompt, onToolCreatedTransaction)
                 }
             }
         } else if (isOpenRouterModel(modelId)) {
-            callOpenRouterApi(sessionTitle, prompt, modelId)
+            callOpenRouterApi(sessionTitle, prompt, modelId, onToolCreatedTransaction)
         } else if (isOpenCodeModel(modelId)) {
-            callOpenCodeApi(sessionTitle, prompt, modelId)
+            callOpenCodeApi(sessionTitle, prompt, modelId, onToolCreatedTransaction)
         } else {
-            callAgentRouterApi(sessionTitle, prompt, modelId, if (!apiKey.isNullOrBlank()) apiKey else null)
+            callAgentRouterApi(sessionTitle, prompt, modelId, if (!apiKey.isNullOrBlank()) apiKey else null, onToolCreatedTransaction)
         }
     }
 
     private suspend fun callOpenRouterApi(
         sessionTitle: String,
         userPrompt: String,
-        modelId: String
+        modelId: String,
+        onToolCreatedTransaction: (() -> Unit)? = null
     ): String = withContext(Dispatchers.IO) {
         try {
             val url = "$OPENROUTER_BASE_URL/chat/completions"
@@ -547,26 +593,27 @@ class AiRepositoryImpl(
                 }
             }
 
+            val activeOpenRouterKey = effectiveOpenRouterApiKey()
             val request = Request.Builder()
                 .url(url)
-                .addHeader("Authorization", "Bearer $OPENROUTER_API_KEY")
+                .addHeader("Authorization", "Bearer $activeOpenRouterKey")
                 .addHeader("Content-Type", "application/json")
                 .addHeader("HTTP-Referer", "https://github.com/khalilkorichi/Qdash")
                 .addHeader("X-Title", "Qdash")
                 .post(requestBodyJson.toString().toRequestBody(jsonMediaType))
                 .build()
 
-            val response = try {
-                okHttpClient.newCall(request).execute()
+            val responseBody = try {
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        val errorBody = response.body?.string() ?: ""
+                        throw AiFailureException.AiServiceFailure("فشل استجابة خادم OpenRouter برمز: ${response.code} ${response.message}. التفاصيل: $errorBody")
+                    }
+                    response.body?.string() ?: throw AiFailureException.AiServiceFailure("تلقيت استجابة فارغة من خادم OpenRouter.")
+                }
             } catch (e: java.io.IOException) {
                 throw AiFailureException.NetworkFailure("فشل في الاتصال بخادم OpenRouter: ${e.localizedMessage}", e)
             }
-            if (!response.isSuccessful) {
-                val errorBody = response.body?.string() ?: ""
-                throw AiFailureException.AiServiceFailure("فشل استجابة خادم OpenRouter برمز: ${response.code} ${response.message}. التفاصيل: $errorBody")
-            }
-
-            val responseBody = response.body?.string() ?: throw AiFailureException.AiServiceFailure("تلقيت استجابة فارغة من خادم OpenRouter.")
             val responseJson = JSONObject(responseBody)
             val choices = responseJson.optJSONArray("choices")
             if (choices == null || choices.length() == 0) {
@@ -586,7 +633,7 @@ class AiRepositoryImpl(
                     val argumentsJson = JSONObject(argumentsStr)
                     val toolCallId = toolCall.getString("id")
 
-                    val toolResultJson = executeToolCall(functionName, argumentsJson)
+                    val toolResultJson = executeToolCall(functionName, argumentsJson, onToolCreatedTransaction)
 
                     val followUpMessagesArray = JSONArray()
                     for (i in 0 until messagesArray.length()) {
@@ -607,23 +654,23 @@ class AiRepositoryImpl(
 
                     val followUpRequest = Request.Builder()
                         .url(url)
-                        .addHeader("Authorization", "Bearer $OPENROUTER_API_KEY")
+                        .addHeader("Authorization", "Bearer $activeOpenRouterKey")
                         .addHeader("Content-Type", "application/json")
                         .addHeader("HTTP-Referer", "https://github.com/khalilkorichi/Qdash")
                         .addHeader("X-Title", "Qdash")
                         .post(followUpRequestBodyJson.toString().toRequestBody(jsonMediaType))
                         .build()
 
-                    val followUpResponse = try {
-                        okHttpClient.newCall(followUpRequest).execute()
+                    val followUpResponseBody = try {
+                        okHttpClient.newCall(followUpRequest).execute().use { followUpResponse ->
+                            if (!followUpResponse.isSuccessful) {
+                                throw AiFailureException.AiServiceFailure("فشل خادم OpenRouter أثناء معالجة الأداة برمز الخطأ: ${followUpResponse.code} ${followUpResponse.message}")
+                            }
+                            followUpResponse.body?.string() ?: ""
+                        }
                     } catch (e: java.io.IOException) {
                         throw AiFailureException.NetworkFailure("فشل في الاتصال بالخادم أثناء معالجة الأداة: ${e.localizedMessage}", e)
                     }
-                    if (!followUpResponse.isSuccessful) {
-                        throw AiFailureException.AiServiceFailure("فشل خادم OpenRouter أثناء معالجة الأداة برمز الخطأ: ${followUpResponse.code} ${followUpResponse.message}")
-                    }
-
-                    val followUpResponseBody = followUpResponse.body?.string() ?: ""
                     val followUpResponseJson = JSONObject(followUpResponseBody)
                     val finalChoices = followUpResponseJson.optJSONArray("choices")
                     if (finalChoices == null || finalChoices.length() == 0) {
@@ -644,7 +691,8 @@ class AiRepositoryImpl(
     private suspend fun callOpenCodeApi(
         sessionTitle: String,
         userPrompt: String,
-        modelId: String
+        modelId: String,
+        onToolCreatedTransaction: (() -> Unit)? = null
     ): String = withContext(Dispatchers.IO) {
         try {
             val url = "$OPENCODE_BASE_URL/chat/completions"
@@ -714,17 +762,17 @@ class AiRepositoryImpl(
                 .post(requestBodyJson.toString().toRequestBody(jsonMediaType))
                 .build()
 
-            val response = try {
-                okHttpClient.newCall(request).execute()
+            val responseBody = try {
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        val errorBody = response.body?.string() ?: ""
+                        throw AiFailureException.AiServiceFailure("فشل استجابة خادم OpenCode برمز: ${response.code} ${response.message}. التفاصيل: $errorBody")
+                    }
+                    response.body?.string() ?: throw AiFailureException.AiServiceFailure("تلقيت استجابة فارغة من خادم OpenCode.")
+                }
             } catch (e: java.io.IOException) {
                 throw AiFailureException.NetworkFailure("فشل في الاتصال بخادم OpenCode: ${e.localizedMessage}", e)
             }
-            if (!response.isSuccessful) {
-                val errorBody = response.body?.string() ?: ""
-                throw AiFailureException.AiServiceFailure("فشل استجابة خادم OpenCode برمز: ${response.code} ${response.message}. التفاصيل: $errorBody")
-            }
-
-            val responseBody = response.body?.string() ?: throw AiFailureException.AiServiceFailure("تلقيت استجابة فارغة من خادم OpenCode.")
             val responseJson = JSONObject(responseBody)
             val choices = responseJson.optJSONArray("choices")
             if (choices == null || choices.length() == 0) {
@@ -744,7 +792,7 @@ class AiRepositoryImpl(
                     val argumentsJson = JSONObject(argumentsStr)
                     val toolCallId = toolCall.getString("id")
 
-                    val toolResultJson = executeToolCall(functionName, argumentsJson)
+                    val toolResultJson = executeToolCall(functionName, argumentsJson, onToolCreatedTransaction)
 
                     val followUpMessagesArray = JSONArray()
                     for (i in 0 until messagesArray.length()) {
@@ -770,16 +818,16 @@ class AiRepositoryImpl(
                         .post(followUpRequestBodyJson.toString().toRequestBody(jsonMediaType))
                         .build()
 
-                    val followUpResponse = try {
-                        okHttpClient.newCall(followUpRequest).execute()
+                    val followUpResponseBody = try {
+                        okHttpClient.newCall(followUpRequest).execute().use { followUpResponse ->
+                            if (!followUpResponse.isSuccessful) {
+                                throw AiFailureException.AiServiceFailure("فشل خادم OpenCode أثناء معالجة الأداة برمز الخطأ: ${followUpResponse.code} ${followUpResponse.message}")
+                            }
+                            followUpResponse.body?.string() ?: ""
+                        }
                     } catch (e: java.io.IOException) {
                         throw AiFailureException.NetworkFailure("فشل في الاتصال بالخادم أثناء معالجة الأداة: ${e.localizedMessage}", e)
                     }
-                    if (!followUpResponse.isSuccessful) {
-                        throw AiFailureException.AiServiceFailure("فشل خادم OpenCode أثناء معالجة الأداة برمز الخطأ: ${followUpResponse.code} ${followUpResponse.message}")
-                    }
-
-                    val followUpResponseBody = followUpResponse.body?.string() ?: ""
                     val followUpResponseJson = JSONObject(followUpResponseBody)
                     val finalChoices = followUpResponseJson.optJSONArray("choices")
                     if (finalChoices == null || finalChoices.length() == 0) {
@@ -797,10 +845,16 @@ class AiRepositoryImpl(
         }
     }
 
-    private suspend fun callGeminiApiWithTools(apiKey: String, sessionTitle: String, userPrompt: String, modelId: String): String = withContext(Dispatchers.IO) {
+    private suspend fun callGeminiApiWithTools(
+        apiKey: String,
+        sessionTitle: String,
+        userPrompt: String,
+        modelId: String,
+        onToolCreatedTransaction: (() -> Unit)? = null
+    ): String = withContext(Dispatchers.IO) {
         try {
             val (apiModelId, thinkingBudget) = com.qdash.data.ai.providers.parseGeminiModelConfig(modelId)
-            val url = "https://generativelanguage.googleapis.com/v1beta/models/$apiModelId:generateContent?key=$apiKey"
+            val url = "https://generativelanguage.googleapis.com/v1beta/models/$apiModelId:generateContent"
             
             // Get previous chat history to pass as context
             val history = getMessagesBySession(sessionTitle).first().takeLast(10)
@@ -936,21 +990,21 @@ class AiRepositoryImpl(
 
             val request = Request.Builder()
                 .url(url)
-                .addHeader("X-goog-api-key", apiKey)
+                .addHeader("x-goog-api-key", apiKey)
                 .addHeader("Content-Type", "application/json")
                 .post(requestBodyJson.toString().toRequestBody(jsonMediaType))
                 .build()
 
-            val response = try {
-                okHttpClient.newCall(request).execute()
+            val responseBody = try {
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        throw AiFailureException.AiServiceFailure("فشل استجابة خادم Google Gemini برمز: ${response.code} ${response.message}")
+                    }
+                    response.body?.string() ?: throw AiFailureException.AiServiceFailure("تلقيت استجابة فارغة من خادم Google Gemini.")
+                }
             } catch (e: java.io.IOException) {
                 throw AiFailureException.NetworkFailure("فشل في الاتصال بخادم Google Gemini: ${e.localizedMessage}", e)
             }
-            if (!response.isSuccessful) {
-                throw AiFailureException.AiServiceFailure("فشل استجابة خادم Google Gemini برمز: ${response.code} ${response.message}")
-            }
-
-            val responseBody = response.body?.string() ?: throw AiFailureException.AiServiceFailure("تلقيت استجابة فارغة من خادم Google Gemini.")
             val responseJson = JSONObject(responseBody)
             val candidates = responseJson.optJSONArray("candidates")
             if (candidates == null || candidates.length() == 0) {
@@ -970,7 +1024,7 @@ class AiRepositoryImpl(
                 val args = functionCall.optJSONObject("args") ?: JSONObject()
 
                 // Execute the tool call locally
-                val toolResultJson = executeToolCall(functionName, args)
+                val toolResultJson = executeToolCall(functionName, args, onToolCreatedTransaction)
 
                 // Send response back to Gemini
                 val followUpContentsArray = JSONArray().apply {
@@ -1005,21 +1059,21 @@ class AiRepositoryImpl(
 
                 val followUpRequest = Request.Builder()
                     .url(url)
-                    .addHeader("X-goog-api-key", apiKey)
+                    .addHeader("x-goog-api-key", apiKey)
                     .addHeader("Content-Type", "application/json")
                     .post(followUpRequestBody.toString().toRequestBody(jsonMediaType))
                     .build()
 
-                val followUpResponse = try {
-                    okHttpClient.newCall(followUpRequest).execute()
+                val followUpResponseBody = try {
+                    okHttpClient.newCall(followUpRequest).execute().use { followUpResponse ->
+                        if (!followUpResponse.isSuccessful) {
+                            throw AiFailureException.AiServiceFailure("فشل خادم Gemini أثناء معالجة الأداة برمز الخطأ: ${followUpResponse.code} ${followUpResponse.message}")
+                        }
+                        followUpResponse.body?.string() ?: ""
+                    }
                 } catch (e: java.io.IOException) {
                     throw AiFailureException.NetworkFailure("فشل في الاتصال بالخادم أثناء معالجة الأداة: ${e.localizedMessage}", e)
                 }
-                if (!followUpResponse.isSuccessful) {
-                    throw AiFailureException.AiServiceFailure("فشل خادم Gemini أثناء معالجة الأداة برمز الخطأ: ${followUpResponse.code} ${followUpResponse.message}")
-                }
-
-                val followUpResponseBody = followUpResponse.body?.string() ?: ""
                 val followUpResponseJson = JSONObject(followUpResponseBody)
                 val finalCandidates = followUpResponseJson.optJSONArray("candidates")
                 if (finalCandidates == null || finalCandidates.length() == 0) {
@@ -1040,7 +1094,11 @@ class AiRepositoryImpl(
         }
     }
 
-    private suspend fun executeToolCall(name: String, args: JSONObject): JSONObject {
+    private suspend fun executeToolCall(
+        name: String,
+        args: JSONObject,
+        onToolCreatedTransaction: (() -> Unit)? = null
+    ): JSONObject {
         val result = JSONObject()
         try {
             when (name) {
@@ -1091,22 +1149,35 @@ class AiRepositoryImpl(
                 "create_transaction" -> {
                     val amount = args.getDouble("amount")
                     val typeStr = args.getString("type")
-                    val categoryId = args.getLong("categoryId")
-                    val accountId = args.getLong("accountId")
+                    val txType = TransactionType.valueOf(typeStr)
+                    val rawCategoryId = if (args.has("categoryId") && !args.isNull("categoryId")) args.optLong("categoryId", -1L) else -1L
+                    val rawAccountId = if (args.has("accountId") && !args.isNull("accountId")) args.optLong("accountId", -1L) else -1L
                     val note = args.optString("note", "")
 
-                    val newTransaction = Transaction(
-                        amount = amount,
-                        type = TransactionType.valueOf(typeStr),
-                        categoryId = categoryId,
-                        accountId = accountId,
-                        note = if (note.isEmpty()) null else note,
-                        date = System.currentTimeMillis(),
-                        occurredAt = System.currentTimeMillis()
-                    )
-                    val id = transactionRepository.insertTransaction(newTransaction)
-                    result.put("insertedId", id)
-                    result.put("status", "success")
+                    val accounts = accountRepository.getAllAccounts().first()
+                    val categories = categoryRepository.getAllCategories().first()
+                    val resolvedAccountId = (accounts.firstOrNull { it.id == rawAccountId } ?: accounts.firstOrNull())?.id
+                    val resolvedCategoryId = categories.firstOrNull { it.id == rawCategoryId }?.id
+
+                    if (resolvedAccountId == null) {
+                        result.put("status", "error")
+                        result.put("message", "No accounts found to record transaction.")
+                    } else {
+                        val newTransaction = Transaction(
+                            amount = amount,
+                            type = txType,
+                            categoryId = resolvedCategoryId,
+                            accountId = resolvedAccountId,
+                            note = if (note.isEmpty()) null else note,
+                            isDebit = txType != TransactionType.INCOME,
+                            date = System.currentTimeMillis(),
+                            occurredAt = System.currentTimeMillis()
+                        )
+                        val id = transactionRepository.insertTransaction(newTransaction)
+                        onToolCreatedTransaction?.invoke()
+                        result.put("insertedId", id)
+                        result.put("status", "success")
+                    }
                 }
                 "create_category" -> {
                     val catName = args.getString("name")
@@ -1132,7 +1203,18 @@ class AiRepositoryImpl(
                     } else {
                         val amount = if (args.has("amount")) args.getDouble("amount") else existing.amount
                         val typeStr = if (args.has("type")) args.getString("type") else existing.type.name
-                        val categoryId = if (args.has("categoryId")) args.getLong("categoryId") else existing.categoryId
+                        val newType = TransactionType.valueOf(typeStr)
+                        val newKind = if (newType != existing.type) {
+                            when (newType) {
+                                TransactionType.INCOME -> com.qdash.domain.model.TransactionKind.INCOME
+                                TransactionType.EXPENSE -> com.qdash.domain.model.TransactionKind.EXPENSE
+                                TransactionType.TRANSFER -> com.qdash.domain.model.TransactionKind.TRANSFER
+                            }
+                        } else existing.kind
+                        val newIsDebit = if (newType != existing.type) (newType != TransactionType.INCOME) else existing.isDebit
+                        val categoryId = if (args.has("categoryId")) {
+                            if (args.isNull("categoryId")) null else args.getLong("categoryId")
+                        } else existing.categoryId
                         val accountId = if (args.has("accountId")) args.getLong("accountId") else existing.accountId
                         val note = if (args.has("note")) {
                             val n = args.getString("note")
@@ -1141,7 +1223,9 @@ class AiRepositoryImpl(
 
                         val updated = existing.copy(
                             amount = amount,
-                            type = TransactionType.valueOf(typeStr),
+                            type = newType,
+                            kind = newKind,
+                            isDebit = newIsDebit,
                             categoryId = categoryId,
                             accountId = accountId,
                             note = note
@@ -1169,7 +1253,10 @@ class AiRepositoryImpl(
         return result
     }
 
-    private suspend fun simulateMockAiWithTools(prompt: String): String {
+    private suspend fun simulateMockAiWithTools(
+        prompt: String,
+        onToolCreatedTransaction: (() -> Unit)? = null
+    ): String {
         val normalized = prompt.trim().lowercase()
 
         // Mock error triggers for testing error banner and retry logic
@@ -1276,8 +1363,8 @@ class AiRepositoryImpl(
             val accounts = accountRepository.getAllAccounts().first()
             val categories = categoryRepository.getAllCategories().first()
 
-            val accountId = accounts.firstOrNull()?.id ?: 1L
-            val categoryId = categories.firstOrNull()?.id ?: 1L
+            val accountId = accounts.firstOrNull()?.id ?: return "ليس لديك أي حسابات مسجلة حالياً."
+            val categoryId = categories.firstOrNull()?.id
 
             val newTransaction = Transaction(
                 amount = amount,
@@ -1289,6 +1376,7 @@ class AiRepositoryImpl(
                 occurredAt = System.currentTimeMillis()
             )
             val id = transactionRepository.insertTransaction(newTransaction)
+            onToolCreatedTransaction?.invoke()
             return "Successfully recorded a transaction of **$amount DZD** (ID: $id) under the account *${accounts.firstOrNull()?.name ?: "Default"}* and category *${categories.firstOrNull()?.name ?: "Default"}*."
         }
 

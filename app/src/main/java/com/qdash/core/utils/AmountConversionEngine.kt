@@ -14,6 +14,42 @@ import java.util.Locale
 object AmountConversionEngine {
 
     /**
+     * Parses flexible user amount strings supporting Western & Eastern Arabic digits,
+     * postal format ("20.000,00"), French decimal comma ("5000,50"), and standard ("5000.50").
+     */
+    fun parseFlexibleAmount(raw: String): Double? {
+        if (raw.isBlank()) return null
+        val western = FormatterUtils.convertNumerals(raw, useWestern = true)
+            .replace(" ", "")
+            .replace("\u00A0", "")
+            .trim()
+        if (western.isEmpty()) return null
+
+        val normalized = when {
+            western.contains('.') && western.contains(',') -> {
+                if (western.lastIndexOf(',') > western.lastIndexOf('.')) {
+                    // Postal/European: 20.000,50 -> 20000.50
+                    western.replace(".", "").replace(',', '.')
+                } else {
+                    // US: 20,000.50 -> 20000.50
+                    western.replace(",", "")
+                }
+            }
+            western.contains(',') -> {
+                val parts = western.split(',')
+                // Single comma with 1-2 trailing digits = decimal separator (e.g. "5000,00" or "12,5")
+                if (parts.size == 2 && parts[1].length in 1..2) {
+                    "${parts[0]}.${parts[1]}"
+                } else {
+                    western.replace(",", "")
+                }
+            }
+            else -> western
+        }
+        return normalized.toDoubleOrNull()
+    }
+
+    /**
      * Format number to standard Algerian post layout (e.g. 20000 -> "20.000,00")
      */
     fun formatAmountToPostal(amount: Double): String {
@@ -55,12 +91,14 @@ object AmountConversionEngine {
                 words = words.substring(0, words.length - 1)
             }
             
+            val mod100 = dinars % 100L
             val suffix = when {
-                dinars == 10L -> "دنانير جزائرية"
-                dinars in 11L..99L -> "ديناراً جزائرياً"
+                dinars == 2L -> "ديناران جزائريان"
+                dinars in 3L..10L -> "دنانير جزائرية"
+                mod100 in 11L..99L -> "ديناراً جزائرياً"
                 else -> "دينار جزائري"
             }
-            "$words $suffix"
+            if (dinars == 2L) suffix else "$words $suffix"
         } else ""
 
         val centimePart = if (centimes > 0) {

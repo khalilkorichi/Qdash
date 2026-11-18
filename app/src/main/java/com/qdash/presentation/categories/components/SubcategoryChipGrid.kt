@@ -16,7 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.domain.model.Category
-import com.qdash.presentation.components.getIconByName
+import com.qdash.presentation.components.UnifiedCategoryIcon
 
 @Immutable
 data class SubcategoryChipGroupState(
@@ -65,11 +65,12 @@ fun SubcategoryChipGrid(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(
-                        imageVector = getIconByName(subcategory.icon),
-                        contentDescription = subcategory.name,
+                    UnifiedCategoryIcon(
+                        iconKey = subcategory.icon,
                         tint = if (isSelected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(14.dp),
+                        emojiFontSize = 12.sp,
+                        contentDescription = subcategory.name
                     )
 
                     Text(

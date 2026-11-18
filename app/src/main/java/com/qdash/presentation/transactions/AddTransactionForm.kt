@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -72,9 +73,17 @@ fun AddTransactionFormContent(
     parsedAmount: Double,
     typeAccentColor: Color,
     primaryColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onNoteFocused: () -> Unit = {},
+    onAmountTap: () -> Unit = {}
 ) {
     val haptic = LocalHapticFeedback.current
+    val nonArchivedAccounts = remember(uiState.accounts) {
+        uiState.accounts.filter { !it.isArchived }
+    }
+    val effectiveFromAccountId = selectedAccountId
+        ?: nonArchivedAccounts.find { it.isDefault }?.id
+        ?: nonArchivedAccounts.firstOrNull()?.id
 
     Column(
         modifier = modifier
@@ -98,7 +107,7 @@ fun AddTransactionFormContent(
             livePreviewAmount = livePreviewAmount,
             accentColor = typeAccentColor,
             showAmountWords = showAmountWords,
-            onTap = {}
+            onTap = onAmountTap
         )
 
         // Note input (Moved to the top)
@@ -107,6 +116,11 @@ fun AddTransactionFormContent(
             onValueChange = onNoteChange,
             modifier = Modifier
                 .fillMaxWidth()
+                .onFocusChanged { focusState ->
+                    if (focusState.isFocused) {
+                        onNoteFocused()
+                    }
+                }
                 .testTag("note_input"),
             placeholder = {
                 Text(
@@ -120,7 +134,7 @@ fun AddTransactionFormContent(
             },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = typeAccentColor,
-                unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                 focusedTextColor = MaterialTheme.colorScheme.onBackground,
                 unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
                 cursorColor = typeAccentColor
@@ -129,15 +143,18 @@ fun AddTransactionFormContent(
             singleLine = true
         )
 
-        // Real-time non-blocking smart category suggestion row
-        com.qdash.presentation.transactions.components.SmartCategorySuggestionRow(
-            suggestion = uiState.currentSuggestion,
-            matchedCategory = uiState.suggestedCategory,
-            onAcceptSuggestion = { categoryId ->
-                onAcceptSuggestion(categoryId)
-            },
-            onDismissSuggestion = onDismissSuggestion
-        )
+        // Single consolidated real-time non-blocking smart category suggestion row
+        if (type != TransactionType.TRANSFER) {
+            com.qdash.presentation.transactions.components.SmartCategorySuggestionRow(
+                suggestion = uiState.currentSuggestion,
+                matchedCategory = uiState.suggestedCategory,
+                onAcceptSuggestion = { categoryId ->
+                    onAcceptSuggestion(categoryId)
+                },
+                onAcceptNewCategory = onAcceptAndCreateSuggestion,
+                onDismissSuggestion = onDismissSuggestion
+            )
+        }
 
         TagsSection(
             selectedTags = selectedTags,
@@ -208,18 +225,7 @@ fun AddTransactionFormContent(
                     },
                     onAddMainCategory = onAddMainCategory,
                     onAddSubCategory = onAddSubCategory,
-                    suggestionData = remember(uiState.currentSuggestion, uiState.suggestedCategory, type) {
-                        val sugg = uiState.currentSuggestion
-                        if (sugg != null && type == TransactionType.EXPENSE) {
-                            CategorySuggestionData(
-                                existingCategory = uiState.suggestedCategory,
-                                newCategoryName = sugg.newCategoryName,
-                                newCategoryColor = sugg.newCategoryColor,
-                                newCategoryIcon = sugg.newCategoryIcon,
-                                confidenceScore = sugg.confidenceScore
-                            )
-                        } else null
-                    },
+                    suggestionData = null,
                     onAcceptSuggestion = onAcceptSuggestion,
                     onAcceptAndCreateSuggestion = onAcceptAndCreateSuggestion,
                     onDismissSuggestion = onDismissSuggestion
@@ -227,7 +233,7 @@ fun AddTransactionFormContent(
             }
         }
 
-        if (uiState.accounts.isNotEmpty()) {
+        if (nonArchivedAccounts.isNotEmpty()) {
             Column {
                 SectionLabel(
                     text = when (type) {
@@ -238,27 +244,33 @@ fun AddTransactionFormContent(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 AccountPickerRow(
-                    accounts = uiState.accounts,
-                    selectedId = selectedAccountId,
+                    accounts = nonArchivedAccounts,
+                    selectedId = effectiveFromAccountId,
                     accentColor = typeAccentColor,
                     disabledId = null,
                     expectedBalances = expectedBalances,
                     parsedAmount = parsedAmount,
-                    onSelect = onSelectedAccountIdChange
+                    onSelect = { chosenId ->
+                        onSelectedAccountIdChange(chosenId)
+                        if (type == TransactionType.TRANSFER && toAccountId == chosenId) {
+                            val fallbackTo = nonArchivedAccounts.firstOrNull { it.id != chosenId }?.id
+                            onToAccountIdChange(fallbackTo)
+                        }
+                    }
                 )
             }
         }
 
         // Destination account (Transfer only)
-        if (type == TransactionType.TRANSFER && uiState.accounts.isNotEmpty()) {
+        if (type == TransactionType.TRANSFER && nonArchivedAccounts.isNotEmpty()) {
             Column {
                 SectionLabel(text = "إلى حساب")
                 Spacer(modifier = Modifier.height(6.dp))
                 AccountPickerRow(
-                    accounts = uiState.accounts,
+                    accounts = nonArchivedAccounts,
                     selectedId = toAccountId,
                     accentColor = TransferBlue,
-                    disabledId = null,
+                    disabledId = effectiveFromAccountId,
                     expectedBalances = expectedBalances,
                     parsedAmount = parsedAmount,
                     onSelect = onToAccountIdChange

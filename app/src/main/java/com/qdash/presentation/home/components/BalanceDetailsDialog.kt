@@ -1,5 +1,6 @@
 package com.qdash.presentation.home.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -8,8 +9,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.ChevronLeft
@@ -69,6 +72,11 @@ fun BalanceDetailsDialog(
     val overlayAlpha = overlayAlphaState.value
     val scale = scaleState.value
     val cardAlpha = cardAlphaState.value
+    val activeAccounts = remember(accounts) { accounts.filter { it.isActive && !it.isArchived } }
+
+    BackHandler(enabled = showBalanceDetails) {
+        onDismiss()
+    }
 
     if (overlayAlpha > 0.01f) {
         // Backdrop dim overlay
@@ -166,7 +174,7 @@ fun BalanceDetailsDialog(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(26.dp)
+                                        .size(36.dp)
                                         .clip(CircleShape)
                                         .background(Color.White.copy(alpha = 0.12f))
                                         .clickable { onToggleShowBalances() },
@@ -176,12 +184,12 @@ fun BalanceDetailsDialog(
                                         imageVector = if (showBalances) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                         contentDescription = "إخفاء/إظهار الرصيد",
                                         tint = Color.White,
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                                 Box(
                                     modifier = Modifier
-                                        .size(26.dp)
+                                        .size(36.dp)
                                         .clip(CircleShape)
                                         .background(Color.White.copy(alpha = 0.12f))
                                         .clickable { onDismiss() },
@@ -191,7 +199,7 @@ fun BalanceDetailsDialog(
                                         imageVector = Icons.Default.Close,
                                         contentDescription = "إغلاق",
                                         tint = Color.White,
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
@@ -238,9 +246,12 @@ fun BalanceDetailsDialog(
 
                         Column(
                             verticalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 300.dp)
+                                .verticalScroll(rememberScrollState())
                         ) {
-                            accounts.forEach { acc ->
+                            activeAccounts.forEach { acc ->
                                 val accentColor = when (acc.type) {
                                     AccountType.BARIDIMOB -> Color(0xFF005CA9)
                                     AccountType.CCP -> Color(0xFFF59E0B)
@@ -310,8 +321,10 @@ fun BalanceDetailsDialog(
                                                     text = when (acc.type) {
                                                         AccountType.BARIDIMOB -> "بريدي موب"
                                                         AccountType.CCP -> "حساب جاري CCP"
-                                                        AccountType.CASH -> "نقد سلّة"
+                                                        AccountType.BANK -> "حساب بنكي"
+                                                        AccountType.CASH -> "نقدي / كاش"
                                                         AccountType.SAVINGS -> "ادخار"
+                                                        AccountType.WALLET -> "محفظة إلكترونية"
                                                         else -> "حساب آخر"
                                                     },
                                                     style = MaterialTheme.typography.labelSmall,
@@ -324,8 +337,9 @@ fun BalanceDetailsDialog(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
+                                            val isVisible = showBalances && (accountBalancesVisibility[acc.id] ?: true)
                                             Text(
-                                                text = if (accountBalancesVisibility[acc.id] ?: true) FormatterUtils.formatCurrency(acc.balance) else "•••• دج",
+                                                text = if (isVisible) FormatterUtils.formatCurrency(acc.balance) else "•••• دج",
                                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
                                                 color = Color.White
                                             )

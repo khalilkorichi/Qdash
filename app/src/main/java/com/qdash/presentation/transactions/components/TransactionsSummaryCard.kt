@@ -139,8 +139,8 @@ fun TransactionsSummaryCard(
                         leadingIcon = { Icon(Icons.Default.FilterList, contentDescription = null, modifier = Modifier.size(12.dp)) },
                         shape = RoundedCornerShape(50.dp),
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = primaryColor, selectedLabelColor = Color.White,
-                            selectedLeadingIconColor = Color.White,
+                            selectedContainerColor = primaryColor, selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
                             containerColor = MaterialTheme.colorScheme.surfaceVariant,
                             labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             iconColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -228,7 +228,7 @@ fun TransactionsSummaryCard(
                         item {
                             val isAllSelected = selectedCategoryId == null
                             val containerColor = if (isAllSelected) primaryColor else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                            val contentColor = if (isAllSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                            val contentColor = if (isAllSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
 
                             Box(
                                 modifier = Modifier
@@ -246,7 +246,7 @@ fun TransactionsSummaryCard(
                                     Icon(
                                         imageVector = Icons.Default.FilterList,
                                         contentDescription = null,
-                                        tint = if (isAllSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        tint = if (isAllSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))

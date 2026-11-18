@@ -7,9 +7,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -78,11 +80,12 @@ fun AppSectionHeader(
                     IconButton(
                         onClick = onBackClick,
                         modifier = Modifier
-                            .size(36.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f), CircleShape)
+                            .size(42.dp)
+                            .background(MaterialTheme.colorScheme.background, CircleShape)
+                            .border(1.dp, borderColor, CircleShape)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ArrowForward,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "رجوع",
                             tint = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.size(18.dp)
@@ -144,16 +147,22 @@ fun AppSectionHeader(
                 }
                 
                 val navController = com.qdash.presentation.navigation.LocalNavController.current
-                val currentRoute = navController?.currentBackStackEntry?.destination?.route
+                val backStackEntry = navController?.currentBackStackEntryAsState()?.value
+                val currentBaseRoute = backStackEntry?.destination?.route
+                    ?.substringBefore("?")
+                    ?.substringBefore("/")
 
-                if (currentRoute != "search") {
+                if (actions == null && currentBaseRoute != "search" && currentBaseRoute != "notifications") {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(40.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .background(MaterialTheme.colorScheme.background)
+                            .border(1.dp, borderColor, CircleShape)
                             .clickable {
-                                navController?.navigate(com.qdash.presentation.navigation.Screen.Search.route)
+                                navController?.navigate(com.qdash.presentation.navigation.Screen.Search.route) {
+                                    launchSingleTop = true
+                                }
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -165,15 +174,17 @@ fun AppSectionHeader(
                         )
                     }
                 }
-                
-                if (currentRoute != "notifications") {
+
+                if (actions == null && currentBaseRoute != "notifications") {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(40.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
                             .clickable {
-                                navController?.navigate(com.qdash.presentation.navigation.Screen.Notifications.route)
+                                navController?.navigate(com.qdash.presentation.navigation.Screen.Notifications.route) {
+                                    launchSingleTop = true
+                                }
                             },
                         contentAlignment = Alignment.Center
                     ) {

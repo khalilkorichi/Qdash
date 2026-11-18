@@ -136,9 +136,12 @@ fun AddTransactionScreen(
     }
 
     val effectiveCategoryId = subcategoryId ?: selectedCategoryId
+    val nonArchivedAccounts = remember(uiState.accounts) {
+        uiState.accounts.filter { !it.isArchived }
+    }
     val effectiveAccountId = selectedAccountId
-        ?: uiState.accounts.find { it.isDefault }?.id
-        ?: uiState.accounts.firstOrNull()?.id
+        ?: nonArchivedAccounts.find { it.isDefault }?.id
+        ?: nonArchivedAccounts.firstOrNull()?.id
     val canSaveTransaction = parsedAmount > 0.0 &&
         (type == TransactionType.TRANSFER || effectiveCategoryId != null) &&
         effectiveAccountId != null &&
@@ -242,14 +245,29 @@ fun AddTransactionScreen(
         // Form content
         AddTransactionFormContent(
             type = type,
-            onTypeChange = { type = it },
+            onTypeChange = { newType ->
+                type = newType
+                if (newType == TransactionType.TRANSFER) {
+                    viewModel.clearSuggestion()
+                    if (toAccountId == null || toAccountId == effectiveAccountId) {
+                        toAccountId = nonArchivedAccounts.firstOrNull { it.id != effectiveAccountId }?.id
+                    }
+                }
+            },
             rawAmountValue = rawAmountValue,
             onAmountValueChange = { rawAmountValue = it },
             displayAmount = displayAmount,
             livePreviewAmount = livePreviewAmount,
             showAmountWords = showAmountWords,
             note = note,
-            onNoteChange = { note = it },
+            onNoteChange = { newNote ->
+                note = newNote
+                if (type != TransactionType.TRANSFER) {
+                    viewModel.onNoteChanged(newNote, parsedAmount, effectiveAccountId)
+                } else {
+                    viewModel.clearSuggestion()
+                }
+            },
             selectedTags = selectedTags,
             onTagsChange = { selectedTags = it },
             activeBudget = activeBudget,
@@ -291,11 +309,19 @@ fun AddTransactionScreen(
                 viewModel.onNoteChanged(
                     note.ifBlank { "auto" },
                     parsedAmount,
-                    selectedAccountId
+                    effectiveAccountId,
+                    forceAi = true
                 )
             },
             onAcceptSuggestion = { catId ->
-                selectedCategoryId = catId
+                val cat = uiState.categories.find { it.id == catId }
+                if (cat?.parentId != null) {
+                    selectedCategoryId = cat.parentId
+                    subcategoryId = cat.id
+                } else {
+                    selectedCategoryId = catId
+                    subcategoryId = null
+                }
                 viewModel.learnMapping(note, catId)
                 viewModel.clearSuggestion()
             },
@@ -304,11 +330,12 @@ fun AddTransactionScreen(
                 if (newSuggestion != null && newSuggestion.newCategoryName != null) {
                     viewModel.createCategoryAndSelect(
                         name = newSuggestion.newCategoryName,
-                        typeStr = newSuggestion.newCategoryType ?: "EXPENSE",
+                        typeStr = newSuggestion.newCategoryType ?: type.name,
                         color = newSuggestion.newCategoryColor ?: "#7f7f7f",
                         icon = newSuggestion.newCategoryIcon ?: "category",
                         onCreated = { id ->
                             selectedCategoryId = id
+                            subcategoryId = null
                             viewModel.learnMapping(note, id)
                             viewModel.clearSuggestion()
                         }
@@ -320,6 +347,8 @@ fun AddTransactionScreen(
             parsedAmount = parsedAmount,
             typeAccentColor = typeAccentColor,
             primaryColor = primaryColor,
+            onNoteFocused = { isKeypadExpanded = false },
+            onAmountTap = { isKeypadExpanded = true },
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(scrollState)

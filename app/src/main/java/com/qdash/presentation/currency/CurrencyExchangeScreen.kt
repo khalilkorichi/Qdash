@@ -5,10 +5,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -23,7 +22,7 @@ import kotlinx.coroutines.launch
  * Main currency exchange screen.
  *
  * Tab layout (RTL — index 0 = rightmost):
- *   0 → السوق الموازي  (Coming Soon)
+ *   0 → السوق الموازي  (Parallel Market)
  *   1 → المحول          (Converter)
  *   2 → السوق الرسمي   (Official Market)
  *
@@ -40,10 +39,21 @@ fun CurrencyExchangeScreen(
     // Start on the converter tab (index 1 = center)
     val pagerState = rememberPagerState(initialPage = 1, pageCount = { 3 })
     val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val converterState by viewModel.converterState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(converterState.refreshError) {
+        val error = converterState.refreshError
+        if (!error.isNullOrBlank()) {
+            snackbarHostState.showSnackbar(error)
+            viewModel.clearRefreshError()
+        }
+    }
 
     val tabs = listOf("السوق الموازي", "المحول", "السوق الرسمي")
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -55,7 +65,7 @@ fun CurrencyExchangeScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.Default.ArrowForward,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "رجوع"
                         )
                     }

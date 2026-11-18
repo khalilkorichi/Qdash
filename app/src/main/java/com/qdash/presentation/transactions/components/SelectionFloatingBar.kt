@@ -10,10 +10,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.RemoveCircleOutline
+import com.qdash.presentation.components.UnifiedCategoryIcon
+import com.qdash.presentation.components.safeParseColor
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -47,7 +51,10 @@ fun SelectionFloatingBar(
     onEditClick: () -> Unit,
     onCloseClick: () -> Unit,
     onRemoveTransaction: (Transaction) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    totalTransactionsCount: Int = 0,
+    onSelectAllClick: () -> Unit = {},
+    onDeleteClick: () -> Unit = {}
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     
@@ -70,11 +77,11 @@ fun SelectionFloatingBar(
                 targetOffsetY = { it },
                 animationSpec = MotionTokens.springFluid()
             ) + fadeOut(animationSpec = MotionTokens.tweenMedium()),
-            modifier = modifier
+            modifier = modifier.navigationBarsPadding()
         ) {
             val isDark = MaterialTheme.colorScheme.background != ColorTokens.BackgroundLight
             val barBgColor = if (isDark) ColorTokens.SurfaceDark else ColorTokens.SurfaceLight
-            val borderColor = if (isDark) ColorTokens.BorderDark else ColorTokens.BorderLight
+            val borderColor = MaterialTheme.colorScheme.outline
             val itemBgColor = if (isDark) ColorTokens.ElevatedSurfaceDark else ColorTokens.BackgroundLight
             
             Surface(
@@ -146,11 +153,7 @@ fun SelectionFloatingBar(
                                 items(selectedTransactions, key = { it.id }) { tx ->
                                     val cat = categories.find { it.id == tx.categoryId }
                                     val acc = accounts.find { it.id == tx.accountId }
-                                    val catColor = try {
-                                        Color(android.graphics.Color.parseColor(cat?.color ?: "#6C63FF"))
-                                    } catch (e: Exception) {
-                                        MaterialTheme.colorScheme.primary
-                                    }
+                                    val catColor = safeParseColor(cat?.color, MaterialTheme.colorScheme.primary)
                                     
                                     Row(
                                         modifier = Modifier
@@ -175,9 +178,11 @@ fun SelectionFloatingBar(
                                                     .background(catColor.copy(alpha = 0.12f)),
                                                 contentAlignment = Alignment.Center
                                             ) {
-                                                Text(
-                                                    text = cat?.icon ?: "📁",
-                                                    fontSize = 16.sp
+                                                UnifiedCategoryIcon(
+                                                    iconKey = cat?.icon,
+                                                    tint = catColor,
+                                                    modifier = Modifier.size(18.dp),
+                                                    emojiFontSize = 16.sp
                                                 )
                                             }
 
@@ -250,6 +255,45 @@ fun SelectionFloatingBar(
                                 }
                             }
                             
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (totalTransactionsCount > selectedCount) {
+                                    OutlinedButton(
+                                        onClick = onSelectAllClick,
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(12.dp),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.DoneAll,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("تحديد الكل", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                                OutlinedButton(
+                                    onClick = onDeleteClick,
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ExpenseRed),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, ExpenseRed.copy(alpha = 0.4f)),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = ExpenseRed
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("حذف المحدد", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ExpenseRed)
+                                }
+                            }
+
                             HorizontalDivider(
                                 color = borderColor,
                                 thickness = 1.dp,
@@ -263,19 +307,20 @@ fun SelectionFloatingBar(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(64.dp)
-                            .padding(horizontal = 16.dp),
+                            .padding(horizontal = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Right side (RTL): Amount, count & expand toggle
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.weight(1f)
                         ) {
                             // Expand/collapse arrow icon button
                             IconButton(
                                 onClick = { isExpanded = !isExpanded },
-                                modifier = Modifier.size(32.dp),
+                                modifier = Modifier.size(30.dp),
                                 colors = IconButtonDefaults.iconButtonColors(
                                     contentColor = MaterialTheme.colorScheme.primary
                                 )
@@ -283,17 +328,19 @@ fun SelectionFloatingBar(
                                 Icon(
                                     imageVector = if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
                                     contentDescription = if (isExpanded) "تصغير" else "توسيع",
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
                             
                             Text(
-                                text = "مجموع: ${FormatterUtils.formatCurrency(selectedTotal)}",
+                                text = FormatterUtils.formatCurrency(selectedTotal),
                                 style = MaterialTheme.typography.titleSmall.copy(
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp
+                                    fontSize = 14.sp
                                 ),
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Badge(
                                 containerColor = MaterialTheme.colorScheme.primary,
@@ -307,11 +354,28 @@ fun SelectionFloatingBar(
                             }
                         }
 
-                        // Left side (RTL): Action Buttons (Edit, Close)
+                        // Left side (RTL): Action Buttons (Select All, Edit, Delete, Close)
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
+                            if (totalTransactionsCount > selectedCount) {
+                                IconButton(
+                                    onClick = onSelectAllClick,
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                        contentColor = MaterialTheme.colorScheme.primary
+                                    ),
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.DoneAll,
+                                        contentDescription = "تحديد الكل",
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+
                             // Edit (Pencil) button
                             IconButton(
                                 onClick = onEditClick,
@@ -319,12 +383,28 @@ fun SelectionFloatingBar(
                                     containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                                     contentColor = MaterialTheme.colorScheme.primary
                                 ),
-                                modifier = Modifier.size(40.dp)
+                                modifier = Modifier.size(36.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
                                     contentDescription = "تعديل جماعي",
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(17.dp)
+                                )
+                            }
+
+                            // Delete button
+                            IconButton(
+                                onClick = onDeleteClick,
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = ExpenseRed.copy(alpha = 0.1f),
+                                    contentColor = ExpenseRed
+                                ),
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "حذف المحدد",
+                                    modifier = Modifier.size(17.dp)
                                 )
                             }
 
@@ -335,12 +415,12 @@ fun SelectionFloatingBar(
                                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
                                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                                 ),
-                                modifier = Modifier.size(40.dp)
+                                modifier = Modifier.size(36.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "إلغاء التحديد",
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(17.dp)
                                 )
                             }
                         }

@@ -373,7 +373,7 @@ fun UpdateBottomBar(
                     is UpdateUiState.Downloading -> {
                         IconButton(
                             onClick = { onPauseClick(uiState.info) },
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(40.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Pause,
@@ -386,7 +386,7 @@ fun UpdateBottomBar(
                     is UpdateUiState.Paused -> {
                         IconButton(
                             onClick = { onResumeClick(uiState.info) },
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(40.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
@@ -441,17 +441,26 @@ fun UpdateBottomBar(
                     else -> {}
                 }
 
-                // Small X dismiss button for everything that is dismissible
-                if (uiState !is UpdateUiState.BackupInProgress && uiState !is UpdateUiState.BackupSuccess) {
+                // Hide X dismiss button for mandatory updates and active safety backups
+                val isMandatory = when (uiState) {
+                    is UpdateUiState.UpdateAvailable -> uiState.info.mandatory
+                    is UpdateUiState.Downloading -> uiState.info.mandatory
+                    is UpdateUiState.Paused -> uiState.info.mandatory
+                    is UpdateUiState.ReadyToInstall -> uiState.info.mandatory
+                    is UpdateUiState.DownloadFailed -> uiState.info.mandatory
+                    is UpdateUiState.FallbackRecovery -> uiState.info.mandatory
+                    else -> false
+                }
+                if (!isMandatory && uiState !is UpdateUiState.BackupInProgress && uiState !is UpdateUiState.BackupSuccess) {
                     IconButton(
                         onClick = onDismiss,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(40.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "تجاهل مؤقت",
-                            tint = Color.White.copy(alpha = 0.7f),
-                            modifier = Modifier.size(16.dp)
+                            tint = Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }

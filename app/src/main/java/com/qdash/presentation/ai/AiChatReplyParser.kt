@@ -165,15 +165,17 @@ class AiChatReplyParser(
                 toAcc = accounts.firstOrNull { it.id != fromAcc?.id } ?: accounts.firstOrNull()
             }
             
+            val fromId = fromAcc?.id ?: return null
+            val toId = toAcc?.id ?: return null
             val note = "تحويل مسجل عن طريق المساعد الذكي"
             
             return TransferDraftState(
                 amount = amount,
-                fromAccountId = fromAcc?.id ?: 1L,
-                toAccountId = toAcc?.id ?: 2L,
+                fromAccountId = fromId,
+                toAccountId = toId,
                 note = note,
-                fromAccountName = fromAcc?.name ?: "غير محدد",
-                toAccountName = toAcc?.name ?: "غير محدد"
+                fromAccountName = fromAcc.name,
+                toAccountName = toAcc.name
             )
         }
         return null
@@ -326,12 +328,13 @@ class AiChatReplyParser(
             }
 
             val category = findCategoryByKeywords(text, categories, type)
+            val accountId = accounts.firstOrNull()?.id ?: return null
 
             return Transaction(
                 amount = amount,
                 type = type,
-                categoryId = category?.id ?: 1L,
-                accountId = accounts.firstOrNull()?.id ?: 1L,
+                categoryId = category?.id,
+                accountId = accountId,
                 note = extractedNote,
                 date = System.currentTimeMillis()
             )

@@ -223,22 +223,73 @@ fun ExportSuccessView(
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
             shape = RoundedCornerShape(12.dp)
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(Icons.Default.FileOpen, contentDescription = null, tint = TransferBlue)
+                Icon(Icons.Default.PictureAsPdf, contentDescription = null, tint = TransferBlue)
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(result.fileName, fontWeight = FontWeight.Bold)
-                Text(result.fileUri ?: "مسار داخلي مؤمن", fontSize = 11.sp, color = TextGray)
+                Text("جاهز للفتح أو المشاركة", fontSize = 11.sp, color = TextGray)
             }
         }
 
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
         val context = LocalContext.current
+        Button(
+            onClick = {
+                result.fileUri?.let { path ->
+                    try {
+                        val file = java.io.File(path)
+                        if (!file.exists()) {
+                            android.widget.Toast.makeText(context, "الملف غير موجود!", android.widget.Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        val uri = runCatching {
+                            androidx.core.content.FileProvider.getUriForFile(
+                                context,
+                                "${context.packageName}.provider",
+                                file
+                            )
+                        }.getOrElse {
+                            androidx.core.content.FileProvider.getUriForFile(
+                                context,
+                                "${context.packageName}.fileprovider",
+                                file
+                            )
+                        }
+                        val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                            type = "application/pdf"
+                            putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        context.startActivity(android.content.Intent.createChooser(shareIntent, "مشاركة التقرير (PDF)"))
+                    } catch (e: Exception) {
+                        android.widget.Toast.makeText(
+                            context,
+                            "تعذّرت مشاركة الملف: ${e.localizedMessage}",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = TransferBlue),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(Icons.Default.Share, null, tint = Color.White)
+            Spacer(modifier = Modifier.width(6.dp))
+            Text("مشاركة التقرير (PDF)", color = Color.White, fontWeight = FontWeight.Bold)
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
         Button(
             onClick = {
                 result.fileUri?.let { com.qdash.core.utils.FileUtils.openPdfFile(context, it) }
@@ -247,12 +298,12 @@ fun ExportSuccessView(
             colors = ButtonDefaults.buttonColors(containerColor = IncomeGreen),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Icon(Icons.Default.FileOpen, null)
+            Icon(Icons.Default.FileOpen, null, tint = Color.White)
             Spacer(modifier = Modifier.width(6.dp))
-            Text("فتح التقرير مباشرة")
+            Text("فتح التقرير", color = Color.White, fontWeight = FontWeight.Bold)
         }
         
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         
         OutlinedButton(
             onClick = onClearResult,

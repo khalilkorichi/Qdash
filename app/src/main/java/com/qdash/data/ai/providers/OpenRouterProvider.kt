@@ -11,9 +11,11 @@ import okhttp3.Request
 import java.util.concurrent.TimeUnit
 
 class OpenRouterProvider(
-    private val apiKey: String,
+    private val apiKeyProvider: () -> String,
     private val parentClient: OkHttpClient
 ) : AiProvider {
+    constructor(apiKey: String, parentClient: OkHttpClient) : this({ apiKey }, parentClient)
+
     override val name = "OpenRouter"
 
     private val client = parentClient.newBuilder()
@@ -27,7 +29,8 @@ class OpenRouterProvider(
         history: List<AiChatMessage>,
         userMessage: String
     ): Result<String> = withContext(Dispatchers.IO) {
-        if (apiKey.isBlank()) {
+        val currentApiKey = apiKeyProvider()
+        if (currentApiKey.isBlank()) {
             return@withContext Result.failure(IllegalArgumentException("OpenRouter API key is empty"))
         }
 
@@ -44,15 +47,16 @@ class OpenRouterProvider(
                 val body = buildOpenAiRequestBody(systemPrompt, history, userMessage, modelId)
                 val request = Request.Builder()
                     .url("https://openrouter.ai/api/v1/chat/completions")
-                    .addHeader("Authorization", "Bearer $apiKey")
+                    .addHeader("Authorization", "Bearer $currentApiKey")
                     .addHeader("Content-Type", "application/json")
                     .addHeader("HTTP-Referer", "https://github.com/khalilkorichi/Qdash")
                     .addHeader("X-Title", "Qdash")
                     .post(body)
                     .build()
                 
-                val response = client.newCall(request).execute()
-                val reply = parseOpenAiResponse(response)
+                val reply = client.newCall(request).execute().use { response ->
+                    parseOpenAiResponse(response)
+                }
                 return@withContext Result.success(reply)
             } catch (e: Exception) {
                 errors.add("Model $modelId failed: ${e.localizedMessage}")

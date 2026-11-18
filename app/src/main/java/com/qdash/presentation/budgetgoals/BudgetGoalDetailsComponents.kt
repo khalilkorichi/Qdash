@@ -384,7 +384,9 @@ fun BudgetPreferencesCard(
 
 fun LazyListScope.budgetTransactionsSection(
     relatedTransactions: List<com.qdash.domain.model.Transaction>,
-    categories: List<com.qdash.domain.model.Category>
+    categories: List<com.qdash.domain.model.Category>,
+    accounts: List<com.qdash.domain.model.Account> = emptyList(),
+    onTransactionClick: (com.qdash.domain.model.Transaction) -> Unit = {}
 ) {
     item {
         Row(
@@ -436,11 +438,12 @@ fun LazyListScope.budgetTransactionsSection(
     } else {
         items(relatedTransactions, key = { it.id }) { tx ->
             val category = categories.find { it.id == tx.categoryId }
+            val resolvedAccountName = accounts.find { it.id == tx.accountId }?.name ?: "محفظة مالية"
             TransactionItem(
                 transaction = tx,
                 category = category,
-                accountName = "الحساب الجاري", // Fallback text safely
-                onClick = {}
+                accountName = resolvedAccountName,
+                onClick = { onTransactionClick(tx) }
             )
         }
     }

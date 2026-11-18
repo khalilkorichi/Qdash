@@ -33,7 +33,7 @@ import com.qdash.ui.designsystem.components.AppInput
 import com.qdash.ui.designsystem.tokens.SpacingTokens
 import com.qdash.ui.designsystem.tokens.ShapeTokens
 import com.qdash.core.utils.FormatterUtils
-import com.qdash.ui.theme.Primary
+import com.qdash.presentation.components.safeParseColor
 import com.qdash.ui.theme.TextGray
 
 data class AccountPreset(
@@ -109,9 +109,8 @@ fun QuickPresetsRow(
                     Box(
                         modifier = Modifier
                             .background(
-                                runCatching { Color(android.graphics.Color.parseColor(preset.color)) }
-                                    .getOrElse { Primary }
-                                    .copy(alpha = 0.05f)
+                                safeParseColor(preset.color, MaterialTheme.colorScheme.primary)
+                                    .copy(alpha = 0.06f)
                             )
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
@@ -136,9 +135,10 @@ fun LiveAccountPreviewCard(
     icon: String,
     iconPath: String?,
     isAmana: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    currency: String = "DZD"
 ) {
-    val themeColor = runCatching { Color(android.graphics.Color.parseColor(color)) }.getOrElse { Primary }
+    val themeColor = safeParseColor(color, MaterialTheme.colorScheme.primary)
     val displayTitle = name.ifBlank { "اسم الحساب" }
 
     AppCard(
@@ -247,7 +247,7 @@ fun LiveAccountPreviewCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = FormatterUtils.formatCurrency(balance),
+                    text = FormatterUtils.formatCurrency(balance, currencyCode = currency),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 16.sp

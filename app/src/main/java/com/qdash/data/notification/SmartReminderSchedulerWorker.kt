@@ -8,6 +8,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.ExistingWorkPolicy
 import com.qdash.FinTrackApp
+import com.qdash.core.preferences.PreferencesManager
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
@@ -17,11 +18,22 @@ class SmartReminderSchedulerWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
+        if (runAttemptCount >= 3) return Result.failure()
         val app = applicationContext as? FinTrackApp ?: return Result.failure()
         val container = app.container
         val transactionRepository = container.transactionRepository
+        val prefs = PreferencesManager(applicationContext)
+        val workManager = WorkManager.getInstance(applicationContext)
 
         try {
+            // Cancel previously scheduled SmartReminder jobs so stale peak hours don't linger
+            workManager.cancelAllWorkByTag("SmartReminder")
+
+            if (!prefs.notifSmartReminders) {
+                Log.d("SmartReminderScheduler", "Smart reminders disabled by user preference; skipping schedule.")
+                return Result.success()
+            }
+
             val peakHours = transactionRepository.getPeakTransactionHours()
             val now = System.currentTimeMillis()
 
@@ -47,7 +59,7 @@ class SmartReminderSchedulerWorker(
                     .addTag("SmartReminder")
                     .build()
 
-                WorkManager.getInstance(applicationContext).enqueueUniqueWork(
+                workManager.enqueueUniqueWork(
                     "SmartReminder_Hour_$hour",
                     ExistingWorkPolicy.REPLACE,
                     reminderRequest
@@ -59,7 +71,7 @@ class SmartReminderSchedulerWorker(
             return Result.success()
         } catch (e: Exception) {
             e.printStackTrace()
-            return Result.retry()
+            return if (runAttemptCount >= 3) Result.failure() else Result.retry()
         }
     }
 }
