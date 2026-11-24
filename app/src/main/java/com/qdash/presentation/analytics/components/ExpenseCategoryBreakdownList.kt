@@ -41,6 +41,7 @@ import com.qdash.presentation.analytics.CategoryShare
 import com.qdash.presentation.analytics.HierarchicalCategoryShare
 import com.qdash.presentation.components.UnifiedCategoryIcon
 import com.qdash.ui.designsystem.components.AppCard
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 import com.qdash.ui.designsystem.components.CardVariant
 import com.qdash.ui.designsystem.tokens.ShapeTokens
 
@@ -249,33 +250,27 @@ fun ExpenseCategoryBreakdownList(
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
 
                         // Quick 1-tap transactions detail button alongside long-press
-                        Box(
-                            modifier = Modifier
-                                .size(30.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f))
-                                .clickable {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    onOpenCategoryTransactions(share)
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
-                                contentDescription = "عرض عمليات ${share.categoryName}",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(15.dp)
-                            )
-                        }
+                        AppCircleIconButton(
+                            icon = Icons.AutoMirrored.Filled.ReceiptLong,
+                            contentDescription = "عرض عمليات ${share.categoryName}",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+                            size = 32.dp,
+                            iconSize = 15.dp,
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onOpenCategoryTransactions(share)
+                            }
+                        )
 
                         if (item.isExpandable) {
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
                             Box(
                                 modifier = Modifier
-                                    .size(30.dp)
+                                    .size(32.dp)
                                     .clip(CircleShape)
                                     .background(if (isExpanded) parseColor.copy(alpha = 0.14f) else Color.Transparent)
                                     .clickable { onToggleExpand(share.categoryId) },

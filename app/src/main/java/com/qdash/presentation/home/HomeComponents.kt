@@ -91,34 +91,28 @@ fun HomeTopBar(
         )
 
         Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Search button
-            IconButton(
+            AppCircleIconButton(
+                icon = Icons.Default.Search,
+                contentDescription = "بحث",
                 onClick = onSearchClick,
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f), CircleShape)
-                    .clip(CircleShape)
-                    .testTag("home_search_button")
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "بحث",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+                size = 40.dp,
+                iconSize = 20.dp,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier.testTag("home_search_button")
+            )
 
             // Notification bell with badge
-            IconButton(
+            AppCircleButton(
                 onClick = onNotificationClick,
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(Primary.copy(alpha = 0.12f), CircleShape)
-                    .clip(CircleShape)
-                    .testTag("home_notification_button")
+                contentDescription = "الإشعارات",
+                size = 40.dp,
+                containerColor = Primary.copy(alpha = 0.12f),
+                modifier = Modifier.testTag("home_notification_button")
             ) {
                 BadgedBox(
                     badge = {
@@ -138,7 +132,7 @@ fun HomeTopBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Notifications,
-                        contentDescription = "الإشعارات",
+                        contentDescription = null,
                         tint = Primary,
                         modifier = Modifier.size(20.dp)
                     )
@@ -354,26 +348,25 @@ fun PremiumTopBalanceCard(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
                         text = "الرصيد المتوفر (دج)",
                         style = MaterialTheme.typography.titleSmall,
-                        color = Color.White.copy(alpha = 0.8f)
+                        color = Color.White.copy(alpha = 0.8f),
+                        modifier = Modifier.weight(1f)
                     )
 
                     // Show/hide eye icon
-                    IconButton(
+                    AppCircleIconButton(
+                        icon = if (showBalances) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        contentDescription = if (showBalances) "إخفاء الرصيد" else "إظهار الرصيد",
                         onClick = onToggleShowBalances,
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (showBalances) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = if (showBalances) "إخفاء الرصيد" else "إظهار الرصيد",
-                            tint = Color.White.copy(alpha = 0.8f),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                        size = 34.dp,
+                        iconSize = 18.dp,
+                        tint = Color.White.copy(alpha = 0.85f),
+                        containerColor = Color.White.copy(alpha = 0.14f)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -481,49 +474,37 @@ fun PremiumTopBalanceCard(
                     }
 
                     // Calendar button (navigates to financial plans)
-                    IconButton(
+                    AppCircleIconButton(
+                        icon = Icons.Default.DateRange,
+                        contentDescription = "الخطط المالية",
                         onClick = { navController?.navigate(com.qdash.presentation.navigation.Screen.FinancialPlans.route) },
-                        modifier = Modifier
-                            .size(44.dp)
-                            .background(Color.White.copy(alpha = 0.15f), CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DateRange,
-                            contentDescription = "الخطط المالية",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                        size = 44.dp,
+                        iconSize = 20.dp,
+                        tint = Color.White,
+                        containerColor = Color.White.copy(alpha = 0.15f)
+                    )
 
                     // Currency Exchange button (navigates to exchange rates)
-                    IconButton(
+                    AppCircleIconButton(
+                        icon = Icons.Default.CurrencyExchange,
+                        contentDescription = "أسعار الصرف",
                         onClick = { navController?.navigate(com.qdash.presentation.navigation.Screen.CurrencyExchange.route) },
-                        modifier = Modifier
-                            .size(44.dp)
-                            .background(Color.White.copy(alpha = 0.15f), CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CurrencyExchange,
-                            contentDescription = "أسعار الصرف",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                        size = 44.dp,
+                        iconSize = 20.dp,
+                        tint = Color.White,
+                        containerColor = Color.White.copy(alpha = 0.15f)
+                    )
 
                     // Settings button (navigates to settings)
-                    IconButton(
+                    AppCircleIconButton(
+                        icon = Icons.Default.Settings,
+                        contentDescription = "الإعدادات",
                         onClick = { navController?.navigate(com.qdash.presentation.navigation.Screen.Settings.route) },
-                        modifier = Modifier
-                            .size(44.dp)
-                            .background(Color.White.copy(alpha = 0.15f), CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "الإعدادات",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                        size = 44.dp,
+                        iconSize = 20.dp,
+                        tint = Color.White,
+                        containerColor = Color.White.copy(alpha = 0.15f)
+                    )
                 }
             }
         }

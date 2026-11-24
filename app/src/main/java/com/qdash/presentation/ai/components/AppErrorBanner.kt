@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.presentation.ai.AiErrorState
 import com.qdash.presentation.ai.AiErrorType
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 import com.qdash.ui.designsystem.tokens.ShapeTokens
 
 /**
@@ -92,19 +93,15 @@ fun AppErrorBanner(
             }
 
             // Close button
-            IconButton(
+            AppCircleIconButton(
+                icon = Icons.Default.Close,
+                contentDescription = "إغلاق",
                 onClick = onDismissClick,
-                modifier = Modifier
-                    .padding(start = 4.dp)
-                    .size(24.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "إغلاق",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                    modifier = Modifier.size(16.dp)
-                )
-            }
+                size = 28.dp,
+                iconSize = 15.dp,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                modifier = Modifier.padding(start = 6.dp)
+            )
         }
     }
 }

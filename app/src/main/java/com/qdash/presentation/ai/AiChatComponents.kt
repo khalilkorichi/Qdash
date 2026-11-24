@@ -265,7 +265,7 @@ fun AiStructuredCard(
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
-                    text = "$amount دج",
+                    text = com.qdash.core.utils.FormatterUtils.formatCurrency(amount.toDouble()),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
                     color = accent
                 )
@@ -418,7 +418,7 @@ fun ChatInputBar(
         )
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.padding(bottom = 4.dp)
         ) {
             IconButton(onClick = { isExpanded = !isExpanded }) {

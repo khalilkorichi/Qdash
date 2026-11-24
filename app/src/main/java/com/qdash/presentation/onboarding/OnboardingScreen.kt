@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.presentation.onboarding.components.*
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 import com.qdash.ui.theme.TextGray
 import com.qdash.ui.designsystem.components.shimmerEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -97,24 +98,20 @@ fun OnboardingScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (uiState.currentStep > 1) {
-                            IconButton(
+                            AppCircleIconButton(
+                                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "رجوع",
                                 onClick = {
                                     keyboardController?.hide()
                                     viewModel.prevStep()
                                 },
-                                enabled = !uiState.isSaving && !isRestoring,
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .background(MaterialTheme.colorScheme.surface, CircleShape)
-                                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "رجوع",
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
+                                size = 38.dp,
+                                iconSize = 18.dp,
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                borderColor = MaterialTheme.colorScheme.outline,
+                                enabled = !uiState.isSaving && !isRestoring
+                            )
                         }
 
                         Text(

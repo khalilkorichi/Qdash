@@ -105,7 +105,7 @@ fun TransactionDraftCard(
                 )
             } else {
                 Text(
-                    text = "$currentAmount دج",
+                    text = com.qdash.core.utils.FormatterUtils.formatCurrency(currentAmount),
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp
                 )

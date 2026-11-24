@@ -82,8 +82,8 @@ object FormatterUtils {
         override fun initialValue(): DecimalFormat = DecimalFormat("#,##0", DecimalFormatSymbols(Locale.US))
     }
 
-    fun currencySymbol(currencyCode: String): String = when (currencyCode.uppercase(Locale.US)) {
-        "DZD", "DA", "" -> "دج"
+    fun currencySymbol(currencyCode: String): String = when (currencyCode.trim().uppercase(Locale.US)) {
+        "DZD", "DA", "دج", "د.ج", "" -> "دج"
         "EUR" -> "€"
         "USD" -> "$"
         "GBP" -> "£"
@@ -91,14 +91,15 @@ object FormatterUtils {
         "SAR" -> "ر.س"
         "AED" -> "د.إ"
         "TND" -> "د.ت"
-        else -> currencyCode.uppercase(Locale.US)
+        else -> currencyCode.trim().uppercase(Locale.US)
     }
 
     fun formatCurrency(amount: Double, prefix: String = "", currencyCode: String = "DZD"): String {
         val format = if (hideDecimals) decimalFormatWithoutDecimals.get()!! else decimalFormatWithDecimals.get()!!
         val formattedNumber = format.format(amount)
         val unit = currencySymbol(currencyCode)
-        val result = if (prefix.isNotEmpty()) "\u200E$prefix$formattedNumber $unit" else "$formattedNumber $unit"
+        val safePrefix = if (prefix.trim().uppercase(Locale.US) in setOf("DZD", "DA", "دج", "د.ج")) "" else prefix
+        val result = if (safePrefix.isNotEmpty()) "\u200E$safePrefix$formattedNumber $unit" else "$formattedNumber $unit"
         return convertNumerals(result)
     }
 

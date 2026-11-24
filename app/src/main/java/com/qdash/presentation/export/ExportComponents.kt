@@ -547,7 +547,7 @@ fun AccountSelectorSection(
                                 color = if (isChecked) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
                             )
                             Text(
-                                text = "الرصيد: ${account.balance.toInt()} د.ج",
+                                text = "الرصيد: ${com.qdash.core.utils.FormatterUtils.formatCurrency(account.balance)}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (isChecked) TransferBlue else TextGray
                             )

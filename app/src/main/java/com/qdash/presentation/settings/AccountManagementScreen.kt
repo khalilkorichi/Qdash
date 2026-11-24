@@ -278,7 +278,7 @@ fun AccountManagementScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 14.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -300,17 +300,14 @@ fun AccountManagementScreen(
                                 )
                             }
                             if (displayBirthdate.isNotEmpty()) {
-                                IconButton(
+                                AppCircleIconButton(
+                                    icon = Icons.Default.Clear,
+                                    contentDescription = "مسح التاريخ",
                                     onClick = { viewModel.saveBirthDate("") },
-                                    modifier = Modifier.size(28.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Clear,
-                                        contentDescription = "مسح التاريخ",
-                                        tint = TextGray,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
+                                    size = 30.dp,
+                                    iconSize = 16.dp,
+                                    tint = TextGray
+                                )
                             }
                         }
                     }

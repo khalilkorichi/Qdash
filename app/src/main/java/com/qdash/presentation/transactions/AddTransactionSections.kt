@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import com.qdash.core.utils.FormatterUtils
 import com.qdash.domain.model.BudgetGoal
 import com.qdash.domain.model.TransactionType
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 import com.qdash.ui.designsystem.components.AppDatePickerDialog
 import com.qdash.ui.designsystem.components.AppTimePickerDialog
 import com.qdash.ui.theme.SavingsAmber
@@ -119,7 +120,7 @@ fun TagsSection(
                         .fillMaxWidth()
                         .padding(horizontal = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     BasicTextField(
                         value = customTagText,
@@ -146,7 +147,14 @@ fun TagsSection(
                             innerTextField()
                         }
                     )
-                    IconButton(
+                    AppCircleIconButton(
+                        icon = Icons.Default.Check,
+                        contentDescription = "إضافة",
+                        tint = typeAccentColor,
+                        containerColor = typeAccentColor.copy(alpha = 0.14f),
+                        borderColor = typeAccentColor.copy(alpha = 0.30f),
+                        size = 32.dp,
+                        iconSize = 16.dp,
                         onClick = {
                             val trimmed = customTagText.trim().replace("#", "")
                             if (trimmed.isNotEmpty() && trimmed !in selectedTags) {
@@ -154,30 +162,21 @@ fun TagsSection(
                             }
                             customTagText = ""
                             showCustomTagInput = false
-                        },
-                        modifier = Modifier.size(30.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "إضافة",
-                            tint = typeAccentColor,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    IconButton(
+                        }
+                    )
+                    AppCircleIconButton(
+                        icon = Icons.Default.Close,
+                        contentDescription = "إلغاء",
+                        tint = TextGray,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+                        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                        size = 32.dp,
+                        iconSize = 16.dp,
                         onClick = {
                             customTagText = ""
                             showCustomTagInput = false
-                        },
-                        modifier = Modifier.size(30.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "إلغاء",
-                            tint = TextGray,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                        }
+                    )
                 }
             }
 
@@ -358,7 +357,9 @@ fun TransactionDateSelector(
             // Date Card
             Surface(
                 onClick = { showDatePicker = true },
-                modifier = Modifier.weight(if (onOccurredAtChanged != null) 1.15f else 1f),
+                modifier = Modifier
+                    .weight(1.15f.takeIf { onOccurredAtChanged != null } ?: 1f)
+                    .heightIn(min = 48.dp),
                 shape = RoundedCornerShape(14.dp),
                 color = MaterialTheme.colorScheme.surface,
                 border = BorderStroke(
@@ -369,12 +370,13 @@ fun TransactionDateSelector(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(
@@ -383,7 +385,6 @@ fun TransactionDateSelector(
                             tint = typeAccentColor,
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = FormatterUtils.formatDate(transactionDate),
                             style = MaterialTheme.typography.bodyMedium,
@@ -393,12 +394,17 @@ fun TransactionDateSelector(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "تعديل التاريخ",
-                        tint = TextGray,
-                        modifier = Modifier.size(15.dp)
-                    )
+                    Box(
+                        modifier = Modifier.size(28.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "تعديل التاريخ",
+                            tint = TextGray,
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
                 }
             }
 
@@ -408,6 +414,7 @@ fun TransactionDateSelector(
                     onClick = { showTimePicker = true },
                     modifier = Modifier
                         .weight(0.95f)
+                        .heightIn(min = 48.dp)
                         .testTag("time_selector"),
                     shape = RoundedCornerShape(14.dp),
                     color = MaterialTheme.colorScheme.surface,
@@ -423,12 +430,13 @@ fun TransactionDateSelector(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                            .padding(start = 12.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(
@@ -437,7 +445,6 @@ fun TransactionDateSelector(
                                 tint = if (occurredAt != null) typeAccentColor else TextGray,
                                 modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(7.dp))
                             Text(
                                 text = if (occurredAt != null) {
                                     FormatterUtils.formatTime(occurredAt)
@@ -456,21 +463,29 @@ fun TransactionDateSelector(
                             )
                         }
                         if (occurredAt != null) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
+                            AppCircleIconButton(
+                                icon = Icons.Default.Close,
                                 contentDescription = "إزالة الوقت",
-                                tint = TextGray,
-                                modifier = Modifier
-                                    .size(16.dp)
-                                    .clickable { onOccurredAtChanged(null) }
+                                onClick = { onOccurredAtChanged(null) },
+                                size = 28.dp,
+                                iconSize = 14.dp,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
+                                borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+                                modifier = Modifier.testTag("clear_time_button")
                             )
                         } else {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "تعديل الوقت",
-                                tint = TextGray,
-                                modifier = Modifier.size(15.dp)
-                            )
+                            Box(
+                                modifier = Modifier.size(28.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "تعديل الوقت",
+                                    tint = TextGray,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                            }
                         }
                     }
                 }

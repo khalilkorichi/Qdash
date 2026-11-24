@@ -39,7 +39,9 @@ import androidx.compose.ui.unit.sp
 import com.qdash.domain.model.AccountType
 import com.qdash.presentation.onboarding.CustomWalletDraft
 import com.qdash.presentation.onboarding.OnboardingUiState
+import com.qdash.core.utils.FormatterUtils
 import com.qdash.presentation.onboarding.WalletOption
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 import com.qdash.ui.theme.IncomeGreen
 import com.qdash.ui.theme.TextGray
 
@@ -696,12 +698,17 @@ private fun AddedCustomWalletCard(draft: CustomWalletDraft, onRemove: () -> Unit
             )
             val bal = draft.balance.toDoubleOrNull()
             if (bal != null && bal > 0) {
-                Text("${bal.toInt()} دج", style = MaterialTheme.typography.labelSmall, color = TextGray)
+                Text(FormatterUtils.formatCurrency(bal), style = MaterialTheme.typography.labelSmall, color = TextGray)
             }
         }
-        IconButton(onClick = onRemove, modifier = Modifier.size(36.dp)) {
-            Icon(Icons.Default.Close, "إزالة", tint = TextGray, modifier = Modifier.size(16.dp))
-        }
+        AppCircleIconButton(
+            icon = Icons.Default.Close,
+            contentDescription = "إزالة",
+            onClick = onRemove,
+            size = 32.dp,
+            iconSize = 16.dp,
+            tint = TextGray
+        )
     }
 }
 

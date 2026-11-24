@@ -134,28 +134,33 @@ fun BudgetGoalDetailsScreen(
                 showBackButton = true,
                 onBackClick = onBack,
                 actions = {
-                    IconButton(onClick = { showEditSheet = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "تعديل الميزانية",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    IconButton(onClick = { viewModel.toggleBudgetArchive(budget) }) {
-                        Icon(
-                            imageVector = if (budget.isActive) Icons.Default.ToggleOn else Icons.Default.ToggleOff,
-                            contentDescription = "تعطيل أو تنشيط",
-                            tint = if (budget.isActive) IncomeGreen else TextGray,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                    IconButton(onClick = { showDeleteConfirm = true }) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteOutline,
-                            contentDescription = "حذف الميزانية",
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
+                    AppCircleIconButton(
+                        icon = Icons.Default.Edit,
+                        contentDescription = "تعديل الميزانية",
+                        tint = MaterialTheme.colorScheme.primary,
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        size = 36.dp,
+                        iconSize = 18.dp,
+                        onClick = { showEditSheet = true }
+                    )
+                    AppCircleIconButton(
+                        icon = if (budget.isActive) Icons.Default.ToggleOn else Icons.Default.ToggleOff,
+                        contentDescription = "تعطيل أو تنشيط",
+                        tint = if (budget.isActive) IncomeGreen else TextGray,
+                        containerColor = (if (budget.isActive) IncomeGreen else TextGray).copy(alpha = 0.12f),
+                        size = 36.dp,
+                        iconSize = 20.dp,
+                        onClick = { viewModel.toggleBudgetArchive(budget) }
+                    )
+                    AppCircleIconButton(
+                        icon = Icons.Default.DeleteOutline,
+                        contentDescription = "حذف الميزانية",
+                        tint = MaterialTheme.colorScheme.error,
+                        containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
+                        size = 36.dp,
+                        iconSize = 18.dp,
+                        onClick = { showDeleteConfirm = true }
+                    )
                 }
             )
         },

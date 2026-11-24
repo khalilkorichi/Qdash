@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.qdash.ui.designsystem.components.AppCircleButton
 import com.qdash.ui.designsystem.tokens.ShapeTokens
 import com.qdash.ui.designsystem.tokens.SpacingTokens
 
@@ -90,14 +91,17 @@ fun DataSourceBadge(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            IconButton(
+            AppCircleButton(
                 onClick = onRefreshClick,
+                contentDescription = "تحديث الأسعار",
+                size = 34.dp,
+                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                 enabled = !isRefreshing,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.padding(start = 8.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Refresh,
-                    contentDescription = "تحديث الأسعار",
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .size(18.dp)

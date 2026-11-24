@@ -64,7 +64,9 @@ fun AnalyticsCashFlowChart(
             typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD)
         }
     }
-    val decimalFormatter = remember { java.text.DecimalFormat("#,##0") }
+    val decimalFormatter = remember {
+        java.text.DecimalFormat("#,##0", java.text.DecimalFormatSymbols(java.util.Locale.US))
+    }
     var selectedTrendIndex by remember { mutableStateOf<Int?>(null) }
     val primaryColor = MaterialTheme.colorScheme.primary
 
@@ -227,11 +229,27 @@ fun AnalyticsCashFlowChart(
                             backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                    Text(text = "تفاصيل التدفق: ${trend.periodLabel}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                                    IconButton(onClick = { selectedTrendIndex = null }, modifier = Modifier.size(20.dp)) {
-                                        Icon(imageVector = Icons.Default.Close, contentDescription = "إغلاق التفاصيل", tint = TextGray, modifier = Modifier.size(14.dp))
-                                    }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "تفاصيل التدفق: ${trend.periodLabel}",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    AppCircleIconButton(
+                                        icon = Icons.Default.Close,
+                                        contentDescription = "إغلاق التفاصيل",
+                                        tint = TextGray,
+                                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                                        size = 28.dp,
+                                        iconSize = 14.dp,
+                                        onClick = { selectedTrendIndex = null }
+                                    )
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

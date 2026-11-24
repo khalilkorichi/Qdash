@@ -45,6 +45,7 @@ import com.qdash.presentation.categories.MoveCategoryDialog
 import com.qdash.presentation.components.UnifiedCategoryIcon
 import com.qdash.presentation.components.safeParseColor
 import com.qdash.ui.designsystem.components.AppCard
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 import com.qdash.ui.designsystem.components.CardVariant
 import com.qdash.ui.designsystem.tokens.ShapeTokens
 import com.qdash.ui.theme.ExpenseRed
@@ -205,7 +206,7 @@ fun CategoryColorPickerDialog(
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -258,28 +259,34 @@ fun CategoryColorPickerDialog(
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             if (categoryModel != null && onMoveCategory != null && !category.directOnly) {
-                                HeaderActionCircleButton(
+                                AppCircleIconButton(
                                     icon = Icons.Default.DriveFileMove,
                                     contentDescription = "نقل وتنظيم الفئة",
                                     tint = MaterialTheme.colorScheme.primary,
+                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                    borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
                                     onClick = { showMoveDialog = true }
                                 )
                             }
                             if (category.categoryId > 0L && !category.directOnly) {
-                                HeaderActionCircleButton(
+                                AppCircleIconButton(
                                     icon = Icons.Default.Palette,
                                     contentDescription = "تعديل اللون",
                                     tint = accentColor,
+                                    containerColor = accentColor.copy(alpha = 0.12f),
+                                    borderColor = accentColor.copy(alpha = 0.22f),
                                     onClick = { showColorPicker = !showColorPicker }
                                 )
                             }
-                            HeaderActionCircleButton(
+                            AppCircleIconButton(
                                 icon = Icons.Default.Close,
                                 contentDescription = "إغلاق",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+                                borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
                                 onClick = dismissAndSave
                             )
                         }
@@ -603,7 +610,7 @@ fun CategoryColorPickerDialog(
 
                                     Column(horizontalAlignment = Alignment.End) {
                                         Text(
-                                            text = FormatterUtils.formatCurrency(tx.amount, txAcc?.currency ?: "DZD"),
+                                            text = FormatterUtils.formatCurrency(tx.amount, currencyCode = txAcc?.currency ?: "DZD"),
                                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Black),
                                             color = if (tx.type == TransactionType.INCOME) IncomeGreen else ExpenseRed
                                         )
@@ -622,30 +629,6 @@ fun CategoryColorPickerDialog(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun HeaderActionCircleButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    contentDescription: String,
-    tint: Color,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .size(34.dp)
-            .clip(CircleShape)
-            .background(tint.copy(alpha = 0.12f))
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = tint,
-            modifier = Modifier.size(17.dp)
-        )
     }
 }
 

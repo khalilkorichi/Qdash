@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 import com.qdash.ui.theme.TextGray
 
 @Composable
@@ -91,17 +92,16 @@ fun WalletSetupReminderCard(
                 }
             }
 
-            IconButton(
+            AppCircleIconButton(
+                icon = Icons.Default.Close,
+                contentDescription = "إغلاق",
                 onClick = onDismiss,
-                modifier = Modifier.size(36.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "إغلاق",
-                    tint = TextGray,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
+                size = 32.dp,
+                iconSize = 16.dp,
+                tint = TextGray,
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f),
+                borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+            )
         }
     }
 }

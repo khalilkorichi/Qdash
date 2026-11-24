@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.domain.model.UpdateInfo
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 import java.io.File
 
 @Composable
@@ -353,7 +354,7 @@ fun UpdateBottomBar(
             // Right action buttons / icons
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 when (uiState) {
                     is UpdateUiState.UpdateAvailable -> {
@@ -371,30 +372,26 @@ fun UpdateBottomBar(
                         }
                     }
                     is UpdateUiState.Downloading -> {
-                        IconButton(
+                        AppCircleIconButton(
+                            icon = Icons.Default.Pause,
+                            contentDescription = "إيقاف مؤقت",
                             onClick = { onPauseClick(uiState.info) },
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Pause,
-                                contentDescription = "إيقاف مؤقت",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                            size = 38.dp,
+                            iconSize = 20.dp,
+                            tint = Color.White,
+                            containerColor = Color.White.copy(alpha = 0.16f)
+                        )
                     }
                     is UpdateUiState.Paused -> {
-                        IconButton(
+                        AppCircleIconButton(
+                            icon = Icons.Default.PlayArrow,
+                            contentDescription = "استئناف",
                             onClick = { onResumeClick(uiState.info) },
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = "استئناف",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                            size = 38.dp,
+                            iconSize = 20.dp,
+                            tint = Color.White,
+                            containerColor = Color.White.copy(alpha = 0.16f)
+                        )
                     }
                     is UpdateUiState.ReadyToInstall -> {
                         Button(
@@ -452,17 +449,15 @@ fun UpdateBottomBar(
                     else -> false
                 }
                 if (!isMandatory && uiState !is UpdateUiState.BackupInProgress && uiState !is UpdateUiState.BackupSuccess) {
-                    IconButton(
+                    AppCircleIconButton(
+                        icon = Icons.Default.Close,
+                        contentDescription = "تجاهل مؤقت",
                         onClick = onDismiss,
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "تجاهل مؤقت",
-                            tint = Color.White.copy(alpha = 0.8f),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                        size = 36.dp,
+                        iconSize = 18.dp,
+                        tint = Color.White.copy(alpha = 0.85f),
+                        containerColor = Color.White.copy(alpha = 0.14f)
+                    )
                 }
             }
         }

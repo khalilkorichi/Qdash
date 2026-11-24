@@ -19,6 +19,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,6 +31,7 @@ import com.qdash.domain.model.CategorySuggestion
 import com.qdash.domain.model.SuggestionSource
 import com.qdash.presentation.components.UnifiedCategoryIcon
 import com.qdash.presentation.components.safeParseColor
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 
 @Immutable
 data class SmartSuggestionUiState(
@@ -184,43 +189,48 @@ fun SmartCategorySuggestionRow(
                 }
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (categoryId != null || (isNewCategory && onAcceptNewCategory != null)) {
-                        IconButton(
-                            onClick = {
-                                if (categoryId != null) {
-                                    onAcceptSuggestion(categoryId)
-                                } else {
-                                    onAcceptNewCategory?.invoke()
-                                }
-                            },
+                        val acceptDesc = if (isNewCategory) "إنشاء وتأكيد" else "تأكيد"
+                        Box(
                             modifier = Modifier
                                 .size(32.dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(MaterialTheme.colorScheme.primary)
+                                .clickable {
+                                    if (categoryId != null) {
+                                        onAcceptSuggestion(categoryId)
+                                    } else {
+                                        onAcceptNewCategory?.invoke()
+                                    }
+                                }
+                                .semantics {
+                                    this.contentDescription = acceptDesc
+                                    this.role = Role.Button
+                                },
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Check,
-                                contentDescription = if (isNewCategory) "إنشاء وتأكيد" else "تأكيد",
+                                contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(17.dp)
                             )
                         }
                     }
 
-                    IconButton(
+                    AppCircleIconButton(
+                        icon = Icons.Default.Close,
+                        contentDescription = "إلغاء",
                         onClick = onDismissSuggestion,
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "إلغاء",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                        size = 32.dp,
+                        iconSize = 16.dp,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+                        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                    )
                 }
             }
         }

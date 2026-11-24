@@ -352,7 +352,7 @@ fun getFormattedDisplayAmount(rawAmount: String, operatorsList: Set<String>): St
                 val formattedInteger = try {
                     val longVal = integerPart.toLongOrNull()
                     if (longVal != null) {
-                        java.text.DecimalFormat("#,###").format(longVal)
+                        java.text.DecimalFormat("#,###", java.text.DecimalFormatSymbols(java.util.Locale.US)).format(longVal)
                     } else {
                         integerPart
                     }
@@ -424,9 +424,9 @@ fun getLivePreviewAmount(rawAmount: String, hasOperators: Boolean): String {
     val result = if (hasOperators) {
         val eval = com.qdash.core.utils.CalculatorParser.evaluate(rawAmount)
         if (eval % 1 == 0.0) {
-            java.text.DecimalFormat("#,###").format(eval.toLong())
+            java.text.DecimalFormat("#,###", java.text.DecimalFormatSymbols(java.util.Locale.US)).format(eval.toLong())
         } else {
-            "%,.2f".format(eval).replace(",", ".")
+            "%,.2f".format(java.util.Locale.US, eval)
         }
     } else {
         ""

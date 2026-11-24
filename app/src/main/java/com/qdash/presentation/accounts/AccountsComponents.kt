@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.core.ui.components.FinTrackTopBar
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 import com.qdash.core.ui.components.UnifiedScreenHeader
 import com.qdash.domain.model.Account
 import com.qdash.domain.model.AccountType
@@ -638,17 +639,15 @@ fun NetWealthCard(
                             color = Color.White.copy(alpha = 0.8f),
                             fontWeight = FontWeight.Bold
                         )
-                        IconButton(
+                        AppCircleIconButton(
+                            icon = if (showTotalBalance) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = if (showTotalBalance) "إخفاء الرصيد" else "إظهار الرصيد",
                             onClick = onToggleTotalBalance,
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (showTotalBalance) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.8f),
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
+                            size = 30.dp,
+                            iconSize = 15.dp,
+                            tint = Color.White.copy(alpha = 0.85f),
+                            containerColor = Color.White.copy(alpha = 0.15f)
+                        )
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(

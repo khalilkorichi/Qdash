@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.qdash.core.utils.FormatterUtils
 import com.qdash.presentation.ai.AccountBalanceItem
 import com.qdash.presentation.ai.WalletSnapshot
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 import com.qdash.ui.theme.TextGray
 import com.qdash.ui.designsystem.tokens.ShapeTokens
 
@@ -92,17 +93,14 @@ fun WalletAccountsBalanceCard(
 
                 // Toggle accounts list
                 if (snapshot.accounts.isNotEmpty()) {
-                    IconButton(
+                    AppCircleIconButton(
+                        icon = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = if (expanded) "طي" else "توسيع",
                         onClick = { expanded = !expanded },
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                            contentDescription = if (expanded) "طي" else "توسيع",
-                            tint = TextGray,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                        size = 30.dp,
+                        iconSize = 18.dp,
+                        tint = TextGray
+                    )
                 }
             }
 

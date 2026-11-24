@@ -35,6 +35,7 @@ import com.qdash.domain.model.Account
 import com.qdash.domain.model.Category
 import com.qdash.domain.model.Transaction
 import com.qdash.domain.model.TransactionType
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 import com.qdash.ui.designsystem.tokens.ColorTokens
 import com.qdash.ui.designsystem.tokens.MotionTokens
 import com.qdash.ui.theme.ExpenseRed
@@ -113,7 +114,7 @@ fun SelectionFloatingBar(
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
@@ -122,23 +123,19 @@ fun SelectionFloatingBar(
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 15.sp
                                     ),
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f)
                                 )
                                 
-                                IconButton(
+                                AppCircleIconButton(
+                                    icon = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "تصغير",
                                     onClick = { isExpanded = false },
-                                    colors = IconButtonDefaults.iconButtonColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                    ),
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.KeyboardArrowDown,
-                                        contentDescription = "تصغير",
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
+                                    size = 32.dp,
+                                    iconSize = 18.dp,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
                             }
                             
                             Spacer(modifier = Modifier.height(12.dp))
@@ -161,7 +158,7 @@ fun SelectionFloatingBar(
                                             .clip(RoundedCornerShape(12.dp))
                                             .background(itemBgColor)
                                             .padding(8.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         // 1. Details & Category Icon (on the right in RTL)
@@ -238,19 +235,15 @@ fun SelectionFloatingBar(
                                         }
 
                                         // 2. Remove button (on the left in RTL)
-                                        IconButton(
+                                        AppCircleIconButton(
+                                            icon = Icons.Default.RemoveCircleOutline,
+                                            contentDescription = "إزالة من التحديد",
                                             onClick = { onRemoveTransaction(tx) },
-                                            modifier = Modifier.size(32.dp),
-                                            colors = IconButtonDefaults.iconButtonColors(
-                                                contentColor = MaterialTheme.colorScheme.error
-                                            )
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.RemoveCircleOutline,
-                                                contentDescription = "إزالة من التحديد",
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
+                                            size = 32.dp,
+                                            iconSize = 18.dp,
+                                            tint = MaterialTheme.colorScheme.error,
+                                            containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.10f)
+                                        )
                                     }
                                 }
                             }
@@ -308,29 +301,25 @@ fun SelectionFloatingBar(
                             .fillMaxWidth()
                             .height(64.dp)
                             .padding(horizontal = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Right side (RTL): Amount, count & expand toggle
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.weight(1f)
                         ) {
                             // Expand/collapse arrow icon button
-                            IconButton(
+                            AppCircleIconButton(
+                                icon = if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                                contentDescription = if (isExpanded) "تصغير" else "توسيع",
                                 onClick = { isExpanded = !isExpanded },
-                                modifier = Modifier.size(30.dp),
-                                colors = IconButtonDefaults.iconButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.primary
-                                )
-                            ) {
-                                Icon(
-                                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
-                                    contentDescription = if (isExpanded) "تصغير" else "توسيع",
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
+                                size = 32.dp,
+                                iconSize = 20.dp,
+                                tint = MaterialTheme.colorScheme.primary,
+                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                            )
                             
                             Text(
                                 text = FormatterUtils.formatCurrency(selectedTotal),
@@ -357,72 +346,52 @@ fun SelectionFloatingBar(
                         // Left side (RTL): Action Buttons (Select All, Edit, Delete, Close)
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             if (totalTransactionsCount > selectedCount) {
-                                IconButton(
+                                AppCircleIconButton(
+                                    icon = Icons.Default.DoneAll,
+                                    contentDescription = "تحديد الكل",
                                     onClick = onSelectAllClick,
-                                    colors = IconButtonDefaults.iconButtonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                        contentColor = MaterialTheme.colorScheme.primary
-                                    ),
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.DoneAll,
-                                        contentDescription = "تحديد الكل",
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
+                                    size = 36.dp,
+                                    iconSize = 18.dp,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                                )
                             }
 
                             // Edit (Pencil) button
-                            IconButton(
+                            AppCircleIconButton(
+                                icon = Icons.Default.Edit,
+                                contentDescription = "تعديل جماعي",
                                 onClick = onEditClick,
-                                colors = IconButtonDefaults.iconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                    contentColor = MaterialTheme.colorScheme.primary
-                                ),
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "تعديل جماعي",
-                                    modifier = Modifier.size(17.dp)
-                                )
-                            }
+                                size = 36.dp,
+                                iconSize = 17.dp,
+                                tint = MaterialTheme.colorScheme.primary,
+                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                            )
 
                             // Delete button
-                            IconButton(
+                            AppCircleIconButton(
+                                icon = Icons.Default.Delete,
+                                contentDescription = "حذف المحدد",
                                 onClick = onDeleteClick,
-                                colors = IconButtonDefaults.iconButtonColors(
-                                    containerColor = ExpenseRed.copy(alpha = 0.1f),
-                                    contentColor = ExpenseRed
-                                ),
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "حذف المحدد",
-                                    modifier = Modifier.size(17.dp)
-                                )
-                            }
+                                size = 36.dp,
+                                iconSize = 17.dp,
+                                tint = ExpenseRed,
+                                containerColor = ExpenseRed.copy(alpha = 0.10f)
+                            )
 
                             // Close (✕) button
-                            IconButton(
+                            AppCircleIconButton(
+                                icon = Icons.Default.Close,
+                                contentDescription = "إلغاء التحديد",
                                 onClick = onCloseClick,
-                                colors = IconButtonDefaults.iconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                ),
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "إلغاء التحديد",
-                                    modifier = Modifier.size(17.dp)
-                                )
-                            }
+                                size = 36.dp,
+                                iconSize = 17.dp,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
                         }
                     }
                 }

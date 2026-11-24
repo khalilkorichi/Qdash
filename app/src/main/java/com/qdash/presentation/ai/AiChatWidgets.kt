@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.qdash.presentation.ai.components.ChatBubbleItem
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 import com.qdash.ui.designsystem.tokens.ColorTokens
 import com.qdash.ui.designsystem.tokens.MotionTokens
 
@@ -151,9 +152,14 @@ internal fun AiModelSelector(
                                     textAlign = TextAlign.Start
                                 )
                             }
-                            IconButton(onClick = onRefreshAvailability, modifier = Modifier.size(36.dp)) {
-                                Icon(Icons.Rounded.Sync, contentDescription = "فحص توفر النماذج", tint = MaterialTheme.colorScheme.primary)
-                            }
+                            AppCircleIconButton(
+                                icon = Icons.Rounded.Sync,
+                                contentDescription = "فحص توفر النماذج",
+                                onClick = onRefreshAvailability,
+                                size = 34.dp,
+                                iconSize = 18.dp,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
 
@@ -564,9 +570,15 @@ internal fun ChatHistoryDrawer(
                         onClick = { onSelectSession(session) },
                         icon = { Icon(if (selected) Icons.Rounded.ChatBubble else Icons.Rounded.ChatBubbleOutline, contentDescription = null) },
                         badge = {
-                            IconButton(onClick = { onDeleteSession(session) }, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Rounded.DeleteSweep, contentDescription = "حذف", tint = MaterialTheme.colorScheme.error.copy(alpha = 0.72f), modifier = Modifier.size(18.dp))
-                            }
+                            AppCircleIconButton(
+                                icon = Icons.Rounded.DeleteSweep,
+                                contentDescription = "حذف",
+                                onClick = { onDeleteSession(session) },
+                                size = 32.dp,
+                                iconSize = 18.dp,
+                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.78f),
+                                containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.10f)
+                            )
                         },
                         colors = NavigationDrawerItemDefaults.colors(
                             selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
@@ -607,9 +619,15 @@ internal fun ErrorRetryBanner(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    IconButton(onClick = onDismiss, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Rounded.Close, contentDescription = "إخفاء", tint = MaterialTheme.colorScheme.error)
-                    }
+                    AppCircleIconButton(
+                        icon = Icons.Rounded.Close,
+                        contentDescription = "إخفاء",
+                        onClick = onDismiss,
+                        size = 34.dp,
+                        iconSize = 18.dp,
+                        tint = MaterialTheme.colorScheme.error,
+                        containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.10f)
+                    )
                     Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
                         Text("تعذر الحصول على رد", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold), color = MaterialTheme.colorScheme.error)
                         Text(error.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface, maxLines = 2)

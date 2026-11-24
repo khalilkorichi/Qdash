@@ -220,7 +220,7 @@ fun DebtDetailsContent(
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             val sign = if (isLent) "+" else "-"
                             Text(
@@ -229,17 +229,15 @@ fun DebtDetailsContent(
                                 fontWeight = FontWeight.ExtraBold,
                                 color = if (isLent) IncomeGreen else MaterialTheme.colorScheme.onSurface
                             )
-                            IconButton(
+                            AppCircleIconButton(
+                                icon = Icons.Default.Undo,
+                                contentDescription = "التراجع عن الدفعة",
                                 onClick = { onCancelPaymentClick(payment) },
-                                modifier = Modifier.size(34.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Undo,
-                                    contentDescription = "التراجع عن الدفعة",
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
+                                size = 34.dp,
+                                iconSize = 18.dp,
+                                tint = MaterialTheme.colorScheme.error,
+                                containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.10f)
+                            )
                         }
                     }
                 }

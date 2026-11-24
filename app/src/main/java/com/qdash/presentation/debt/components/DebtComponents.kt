@@ -689,7 +689,7 @@ fun SmartPayoffPlanCard(
                             "توفير ${FormatterUtils.formatCurrency(interestSavedByAvalanche)}"
                         activeResult.totalInterestCharged > 1.0 ->
                             FormatterUtils.formatCurrency(activeResult.totalInterestCharged)
-                        else -> "٠ د.ج (بدون فوائد)"
+                        else -> "${com.qdash.core.utils.FormatterUtils.formatCurrency(0.0)} (بدون فوائد)"
                     }
                     val interestColor = when {
                         selectedStrategy == "avalanche" && interestSavedByAvalanche >= 10.0 -> IncomeGreen

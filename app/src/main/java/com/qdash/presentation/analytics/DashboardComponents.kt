@@ -104,7 +104,7 @@ fun DashboardOverviewCard(
             // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -992,7 +992,7 @@ fun MonthComparisonCard(
             // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -1523,7 +1523,10 @@ fun GroupedBarChart(
                 val chartHeight = size.height - topPadding - bottomPadding
                 val gridLines = 4
                 
-                val decimalFormat = java.text.DecimalFormat("#,##0")
+                val decimalFormat = java.text.DecimalFormat(
+                    "#,##0",
+                    java.text.DecimalFormatSymbols(java.util.Locale.US)
+                )
 
                 for (i in 0 until gridLines) {
                     val fraction = i.toFloat() / (gridLines - 1)

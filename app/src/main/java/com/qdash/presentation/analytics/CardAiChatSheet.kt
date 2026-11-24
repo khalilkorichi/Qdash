@@ -33,6 +33,7 @@ import com.qdash.domain.model.ChatSender
 import com.qdash.presentation.ai.components.MarkdownMessageText
 import com.qdash.presentation.analytics.components.CardAiThinkingPanel
 import com.qdash.ui.designsystem.components.AppBottomSheet
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 import com.qdash.ui.designsystem.tokens.ShapeTokens
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -153,26 +154,30 @@ fun CardAiChatSheet(
                         }
 
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            IconButton(onClick = { showHelpDialog = true }) {
-                                Icon(
-                                    imageVector = Icons.Default.HelpOutline,
-                                    contentDescription = "حول البطاقة",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            IconButton(onClick = {
-                                viewModel.closeSheet()
-                                onDismiss()
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "إغلاق",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                            AppCircleIconButton(
+                                icon = Icons.Default.HelpOutline,
+                                contentDescription = "حول البطاقة",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                                size = 34.dp,
+                                iconSize = 18.dp,
+                                onClick = { showHelpDialog = true }
+                            )
+                            AppCircleIconButton(
+                                icon = Icons.Default.Close,
+                                contentDescription = "إغلاق",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                                size = 34.dp,
+                                iconSize = 18.dp,
+                                onClick = {
+                                    viewModel.closeSheet()
+                                    onDismiss()
+                                }
+                            )
                         }
                     }
 

@@ -576,7 +576,7 @@ fun InteractiveDonutCard(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
@@ -1849,21 +1849,16 @@ fun HelpIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .size(26.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.QuestionMark,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(14.dp)
-        )
-    }
+    AppCircleIconButton(
+        icon = Icons.Default.QuestionMark,
+        contentDescription = "مساعدة",
+        onClick = onClick,
+        modifier = modifier,
+        size = 28.dp,
+        iconSize = 14.dp,
+        tint = MaterialTheme.colorScheme.primary,
+        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+    )
 }
 
 @Composable
@@ -1871,22 +1866,17 @@ fun CardAiChatButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .size(28.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f), CircleShape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.AutoAwesome,
-            contentDescription = "الذكاء الاصطناعي",
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(14.dp)
-        )
-    }
+    AppCircleIconButton(
+        icon = Icons.Default.AutoAwesome,
+        contentDescription = "الذكاء الاصطناعي",
+        onClick = onClick,
+        modifier = modifier,
+        size = 30.dp,
+        iconSize = 15.dp,
+        tint = MaterialTheme.colorScheme.primary,
+        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+        borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+    )
 }
 
 @Composable
@@ -1921,7 +1911,7 @@ fun EmergencyFundCard(
             // Inner Header/Title
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -2090,7 +2080,7 @@ fun SalaryCycleCard(
             // Inner Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -2281,7 +2271,7 @@ fun WeekendWeekdayCard(
             // Inner Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {

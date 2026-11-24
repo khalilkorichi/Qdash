@@ -88,10 +88,13 @@ fun BalanceHeroCard(
                 Column {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
                             Box(
                                 modifier = Modifier
                                     .size(8.dp)
@@ -105,20 +108,18 @@ fun BalanceHeroCard(
                                 color = Color.White.copy(alpha = 0.75f)
                             )
                         }
-                        IconButton(
+                        AppCircleIconButton(
+                            icon = if (showBalances) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = if (showBalances) "إخفاء الرصيد" else "إظهار الرصيد",
                             onClick = {
                                 showBalances = !showBalances
                                 sharedPrefs.edit().putBoolean("show_balance_total", showBalances).apply()
                             },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (showBalances) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = if (showBalances) "إخفاء الرصيد" else "إظهار الرصيد",
-                                tint = Color.White.copy(alpha = 0.8f),
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
+                            size = 32.dp,
+                            iconSize = 16.dp,
+                            tint = Color.White.copy(alpha = 0.85f),
+                            containerColor = Color.White.copy(alpha = 0.14f)
+                        )
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     val balanceText = remember(totalBalance, showBalances) {

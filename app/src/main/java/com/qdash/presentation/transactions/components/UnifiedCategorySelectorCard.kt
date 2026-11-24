@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -34,6 +35,7 @@ import com.qdash.domain.model.Transaction
 import com.qdash.domain.model.TransactionType
 import com.qdash.presentation.components.UnifiedCategoryIcon
 import com.qdash.presentation.components.safeParseColor
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 import com.qdash.ui.theme.TextGray
 
 /**
@@ -595,7 +597,7 @@ private fun IntegratedSmartSuggestionCompartment(
                         .fillMaxWidth()
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Row(
                         modifier = Modifier.weight(1f),
@@ -691,11 +693,9 @@ private fun IntegratedSmartSuggestionCompartment(
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp))
-
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Button(
                             onClick = {
@@ -705,7 +705,9 @@ private fun IntegratedSmartSuggestionCompartment(
                                     onAcceptAndCreateSuggestion()
                                 }
                             },
-                            modifier = Modifier.height(32.dp),
+                            modifier = Modifier
+                                .height(32.dp)
+                                .testTag("accept_suggestion_button"),
                             shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(horizontal = 11.dp, vertical = 4.dp),
                             colors = ButtonDefaults.buttonColors(
@@ -739,20 +741,17 @@ private fun IntegratedSmartSuggestionCompartment(
                             )
                         }
 
-                        IconButton(
+                        AppCircleIconButton(
+                            icon = Icons.Default.Close,
+                            contentDescription = "تجاهل الاقتراح",
                             onClick = onDismissSuggestion,
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "تجاهل الاقتراح",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(14.dp)
-                            )
-                        }
+                            size = 32.dp,
+                            iconSize = 15.dp,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
+                            borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+                            modifier = Modifier.testTag("dismiss_suggestion_button")
+                        )
                     }
                 }
             }

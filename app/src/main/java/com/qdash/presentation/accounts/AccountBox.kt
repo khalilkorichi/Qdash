@@ -233,20 +233,18 @@ fun AccountItemCard(
                 // Balance & Eye Toggle
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(horizontal = 8.dp)
                 ) {
-                    IconButton(
+                    AppCircleIconButton(
+                        icon = if (showBalance) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        contentDescription = "إخفاء/إظهار",
                         onClick = onToggleBalance,
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (showBalance) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = "إخفاء/إظهار",
-                            tint = TextGray,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
+                        size = 30.dp,
+                        iconSize = 15.dp,
+                        tint = TextGray,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                    )
                     Text(
                         text = if (showBalance) {
                             FormatterUtils.formatCurrency(account.balance, currencyCode = account.currency)

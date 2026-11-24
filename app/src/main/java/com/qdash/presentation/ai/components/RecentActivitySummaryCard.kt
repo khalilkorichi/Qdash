@@ -20,6 +20,7 @@ import com.qdash.domain.model.RecentActivitySummary
 import com.qdash.domain.model.Transaction
 import com.qdash.domain.model.TransactionType
 import com.qdash.core.utils.FormatterUtils
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 import com.qdash.ui.theme.TextGray
 
 @Composable
@@ -76,29 +77,25 @@ fun RecentActivitySummaryCard(
                             )
                         }
                         
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            IconButton(
-                                onClick = { onEditClick?.invoke(messageId, tx) },
-                                modifier = Modifier.size(28.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "تعديل",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                            IconButton(
-                                onClick = { onDuplicateClick?.invoke(tx) },
-                                modifier = Modifier.size(28.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = "تكرار",
-                                    tint = Color(0xFF22C55E),
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            AppCircleIconButton(
+                                icon = Icons.Default.Edit,
+                                contentDescription = "تعديل",
+                                tint = MaterialTheme.colorScheme.primary,
+                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                size = 30.dp,
+                                iconSize = 15.dp,
+                                onClick = { onEditClick?.invoke(messageId, tx) }
+                            )
+                            AppCircleIconButton(
+                                icon = Icons.Default.Refresh,
+                                contentDescription = "تكرار",
+                                tint = Color(0xFF22C55E),
+                                containerColor = Color(0xFF22C55E).copy(alpha = 0.12f),
+                                size = 30.dp,
+                                iconSize = 15.dp,
+                                onClick = { onDuplicateClick?.invoke(tx) }
+                            )
                         }
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))

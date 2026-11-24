@@ -181,7 +181,14 @@ fun DashboardCustomizationDialog(
                                         }
                                 )
 
-                                IconButton(
+                                AppCircleIconButton(
+                                    icon = Icons.Default.ArrowUpward,
+                                    contentDescription = "للأعلى",
+                                    tint = if (index > 0) Primary else TextGray.copy(alpha = 0.4f),
+                                    containerColor = if (index > 0) Primary.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                    size = 30.dp,
+                                    iconSize = 16.dp,
+                                    enabled = index > 0,
                                     onClick = {
                                         if (index > 0) {
                                             val newList = sectionsOrder.toMutableList()
@@ -190,18 +197,16 @@ fun DashboardCustomizationDialog(
                                             newList[index - 1] = temp
                                             sectionsOrder = newList
                                         }
-                                    },
-                                    enabled = index > 0,
-                                    modifier = Modifier.size(28.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ArrowUpward,
-                                        contentDescription = "للأعلى",
-                                        tint = if (index > 0) Primary else TextGray.copy(alpha = 0.4f),
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                                IconButton(
+                                    }
+                                )
+                                AppCircleIconButton(
+                                    icon = Icons.Default.ArrowDownward,
+                                    contentDescription = "للأسفل",
+                                    tint = if (index < sectionsOrder.size - 1) Primary else TextGray.copy(alpha = 0.4f),
+                                    containerColor = if (index < sectionsOrder.size - 1) Primary.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                    size = 30.dp,
+                                    iconSize = 16.dp,
+                                    enabled = index < sectionsOrder.size - 1,
                                     onClick = {
                                         if (index < sectionsOrder.size - 1) {
                                             val newList = sectionsOrder.toMutableList()
@@ -210,17 +215,8 @@ fun DashboardCustomizationDialog(
                                             newList[index + 1] = temp
                                             sectionsOrder = newList
                                         }
-                                    },
-                                    enabled = index < sectionsOrder.size - 1,
-                                    modifier = Modifier.size(28.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ArrowDownward,
-                                        contentDescription = "للأسفل",
-                                        tint = if (index < sectionsOrder.size - 1) Primary else TextGray.copy(alpha = 0.4f),
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
+                                    }
+                                )
                             }
 
                             Text(

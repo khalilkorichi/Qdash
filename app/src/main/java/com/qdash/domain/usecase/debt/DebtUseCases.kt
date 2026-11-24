@@ -1,5 +1,6 @@
 package com.qdash.domain.usecase.debt
 
+import com.qdash.core.utils.FormatterUtils
 import com.qdash.domain.model.*
 import com.qdash.domain.repository.*
 import kotlinx.coroutines.flow.Flow
@@ -213,11 +214,11 @@ class GetDebtInsightsUseCase(
         } else {
             if (myDebts.isNotEmpty()) {
                 val totalRemaining = myDebts.sumOf { it.remainingAmount }
-                list.add("إجمالي المبالغ المطلوبة منك للسداد: ${String.format(Locale.getDefault(), "%,.1f", totalRemaining)} د.ج.")
+                list.add("إجمالي المبالغ المطلوبة منك للسداد: ${FormatterUtils.formatCurrency(totalRemaining)}.")
             }
             if (lentDebts.isNotEmpty()) {
                 val totalLent = lentDebts.sumOf { it.remainingAmount }
-                list.add("لديك ${lentDebts.size} سلفة مستحقة لك عند الغير بإجمالي: ${String.format(Locale.getDefault(), "%,.1f", totalLent)} د.ج.")
+                list.add("لديك ${lentDebts.size} سلفة مستحقة لك عند الغير بإجمالي: ${FormatterUtils.formatCurrency(totalLent)}.")
             }
 
             val regulars = myDebts.filterIsInstance<RegularDebt>()

@@ -442,23 +442,25 @@ private fun SubscriptionCardRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    IconButton(onClick = onEditClick, modifier = Modifier.size(32.dp)) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "تعديل الاشتراك",
-                            tint = primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    IconButton(onClick = onDeleteClick, modifier = Modifier.size(32.dp)) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteOutline,
-                            contentDescription = "حذف الاشتراك",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AppCircleIconButton(
+                        icon = Icons.Default.Edit,
+                        contentDescription = "تعديل الاشتراك",
+                        tint = primary,
+                        containerColor = primary.copy(alpha = 0.10f),
+                        size = 34.dp,
+                        iconSize = 17.dp,
+                        onClick = onEditClick
+                    )
+                    AppCircleIconButton(
+                        icon = Icons.Default.DeleteOutline,
+                        contentDescription = "حذف الاشتراك",
+                        tint = MaterialTheme.colorScheme.error,
+                        containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.10f),
+                        size = 34.dp,
+                        iconSize = 17.dp,
+                        onClick = onDeleteClick
+                    )
                 }
             }
         }

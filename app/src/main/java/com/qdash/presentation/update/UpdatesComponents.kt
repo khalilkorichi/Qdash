@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.domain.model.UpdateInfo
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 import com.qdash.ui.theme.IncomeGreen
 import com.qdash.ui.theme.ExpenseRed
 import com.qdash.ui.theme.TextGray
@@ -634,19 +635,25 @@ fun DownloadedUpdatesSection(
                         }
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        IconButton(
-                            onClick = { onInstall(file, versionName) },
-                            colors = IconButtonDefaults.iconButtonColors(contentColor = IncomeGreen)
-                        ) {
-                            Icon(Icons.Default.OpenInNew, contentDescription = "تثبيت")
-                        }
-                        IconButton(
-                            onClick = { fileToDelete = file },
-                            colors = IconButtonDefaults.iconButtonColors(contentColor = ExpenseRed)
-                        ) {
-                            Icon(Icons.Default.Delete, contentDescription = "حذف")
-                        }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AppCircleIconButton(
+                            icon = Icons.Default.OpenInNew,
+                            contentDescription = "تثبيت",
+                            tint = IncomeGreen,
+                            containerColor = IncomeGreen.copy(alpha = 0.12f),
+                            size = 36.dp,
+                            iconSize = 18.dp,
+                            onClick = { onInstall(file, versionName) }
+                        )
+                        AppCircleIconButton(
+                            icon = Icons.Default.Delete,
+                            contentDescription = "حذف",
+                            tint = ExpenseRed,
+                            containerColor = ExpenseRed.copy(alpha = 0.12f),
+                            size = 36.dp,
+                            iconSize = 18.dp,
+                            onClick = { fileToDelete = file }
+                        )
                     }
                 }
             }

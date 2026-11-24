@@ -41,9 +41,9 @@ fun BudgetGoalCard(
         BudgetStatus.EXCEEDED -> ExpenseRed
     }
 
-    val dzdAmountLimit = com.qdash.core.utils.FormatterUtils.convertNumerals("${String.format("%,.0f", budget.amountLimit)} د.ج")
-    val dzdAmountSpent = com.qdash.core.utils.FormatterUtils.convertNumerals("${String.format("%,.0f", budget.spentAmount)} د.ج")
-    val dzdRemaining = com.qdash.core.utils.FormatterUtils.convertNumerals("${String.format("%,.0f", budget.remainingAmount.coerceAtLeast(0.0))} د.ج")
+    val dzdAmountLimit = com.qdash.core.utils.FormatterUtils.formatCurrency(budget.amountLimit)
+    val dzdAmountSpent = com.qdash.core.utils.FormatterUtils.formatCurrency(budget.spentAmount)
+    val dzdRemaining = com.qdash.core.utils.FormatterUtils.formatCurrency(budget.remainingAmount.coerceAtLeast(0.0))
 
     val now = System.currentTimeMillis()
     val totalDuration = budget.endDate - now
@@ -178,7 +178,7 @@ fun BudgetGoalCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (budget.remainingAmount < 0) com.qdash.core.utils.FormatterUtils.convertNumerals("المبلغ المتجاوز: ${String.format("%,.0f", -budget.remainingAmount)} د.ج") else "المتبقي: $dzdRemaining",
+                    text = if (budget.remainingAmount < 0) "المبلغ المتجاوز: ${com.qdash.core.utils.FormatterUtils.formatCurrency(-budget.remainingAmount)}" else "المتبقي: $dzdRemaining",
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                     color = if (budget.remainingAmount < 0) ExpenseRed else IncomeGreen
                 )

@@ -249,7 +249,10 @@ fun PlanCard(
                     }
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     val statusTint = planStatusColor(plan.status)
                     Surface(
                         shape = RoundedCornerShape(20.dp),
@@ -265,14 +268,15 @@ fun PlanCard(
                     }
 
                     Box {
-                        IconButton(onClick = { showMenu = true }, modifier = Modifier.size(36.dp)) {
-                            Icon(
-                                Icons.Default.MoreVert,
-                                contentDescription = "خيارات الخطة",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+                        com.qdash.ui.designsystem.components.AppCircleIconButton(
+                            icon = Icons.Default.MoreVert,
+                            contentDescription = "خيارات الخطة",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                            size = 34.dp,
+                            iconSize = 18.dp,
+                            onClick = { showMenu = true }
+                        )
                         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                             DropdownMenuItem(
                                 text = { Text("تحديث التقدم") },

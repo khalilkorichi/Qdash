@@ -291,7 +291,7 @@ fun CreateEditTemplateScreen(
                         Text(text = iconEmoji, fontSize = 20.sp)
                         Column {
                             Text(text = name.ifBlank { "اسم القالب" }, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                            Text(text = "${amountText.ifBlank { "0" }} دج", fontSize = 11.sp, color = typeAccentColor, fontWeight = FontWeight.ExtraBold)
+                            Text(text = com.qdash.core.utils.FormatterUtils.formatCurrency(amountText.toDoubleOrNull() ?: 0.0), fontSize = 11.sp, color = typeAccentColor, fontWeight = FontWeight.ExtraBold)
                         }
                     }
                 }

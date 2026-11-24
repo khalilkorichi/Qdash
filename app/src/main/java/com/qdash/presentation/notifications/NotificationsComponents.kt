@@ -166,39 +166,17 @@ internal fun NotificationCircleIconButton(
     size: Dp = 34.dp,
     iconSize: Dp = 17.dp
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.90f else 1f,
-        animationSpec = MotionTokens.springResponsive(),
-        label = "circle_btn_scale"
+    com.qdash.ui.designsystem.components.AppCircleIconButton(
+        icon = icon,
+        contentDescription = contentDescription,
+        onClick = onClick,
+        modifier = modifier,
+        size = size,
+        iconSize = iconSize,
+        tint = tint,
+        containerColor = containerColor,
+        borderColor = borderColor
     )
-
-    Box(
-        modifier = modifier
-            .size(size)
-            .scale(scale)
-            .clip(CircleShape)
-            .background(containerColor)
-            .border(1.dp, borderColor, CircleShape)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = ripple(bounded = true),
-                onClick = onClick
-            )
-            .semantics {
-                this.contentDescription = contentDescription
-                this.role = Role.Button
-            },
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(iconSize)
-        )
-    }
 }
 
 @Composable

@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 import com.qdash.ui.theme.ExpenseRed
 import com.qdash.ui.theme.IncomeGreen
 import com.qdash.ui.theme.SavingsAmber
@@ -34,7 +35,7 @@ fun MetricSwitcherRow(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         LazyRow(
@@ -81,14 +82,15 @@ fun MetricSwitcherRow(
             }
         }
 
-        IconButton(onClick = { showHelpDialog = true }, modifier = Modifier.size(32.dp)) {
-            Icon(
-                imageVector = Icons.Default.Info,
-                contentDescription = "معلومات المؤشرات",
-                tint = TextGray,
-                modifier = Modifier.size(20.dp)
-            )
-        }
+        AppCircleIconButton(
+            icon = Icons.Default.Info,
+            contentDescription = "معلومات المؤشرات",
+            tint = TextGray,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+            size = 34.dp,
+            iconSize = 18.dp,
+            onClick = { showHelpDialog = true }
+        )
 
         if (showHelpDialog) {
             AlertDialog(

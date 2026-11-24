@@ -151,22 +151,20 @@ fun DebtPaymentsBottomSheet(
                                 ) {
                                     val sign = if (debt.direction == com.qdash.domain.model.DebtDirection.OWED_TO_ME) "+" else "-"
                                     Text(
-                                        text = "$sign ${payment.amount.toInt()} د.ج",
+                                        text = "$sign ${com.qdash.core.utils.FormatterUtils.formatCurrency(payment.amount)}",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = IncomeGreen
                                     )
-                                    IconButton(
+                                    AppCircleIconButton(
+                                        icon = Icons.Default.Delete,
+                                        contentDescription = "إلغاء الدفعة",
                                         onClick = { onCancelPaymentClick(payment) },
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = "إلغاء الدفعة",
-                                            tint = ExpenseRed,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
+                                        size = 34.dp,
+                                        iconSize = 18.dp,
+                                        tint = ExpenseRed,
+                                        containerColor = ExpenseRed.copy(alpha = 0.10f)
+                                    )
                                 }
                             }
                         }

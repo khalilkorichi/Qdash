@@ -109,27 +109,26 @@ fun AccountCard(
             Column {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "الرصيد المتوفر",
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                        color = TextGray
+                        color = TextGray,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
                     )
-                    IconButton(
+                    AppCircleIconButton(
+                        icon = if (showBalance) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        contentDescription = "إخفاء/إظهار",
                         onClick = onToggleBalanceVisibility,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .offset(x = 6.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (showBalance) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = "إخفاء/إظهار",
-                            tint = TextGray,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                        size = 30.dp,
+                        iconSize = 15.dp,
+                        tint = TextGray,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    )
                 }
                 Text(
                     text = if (showBalance) FormatterUtils.formatCurrency(account.balance) else "•••• دج",

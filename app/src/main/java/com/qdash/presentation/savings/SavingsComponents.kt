@@ -289,18 +289,26 @@ fun SavingsDashboardContent(
                                 }
                             }
 
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                IconButton(onClick = { onAddContribution(goal) }, modifier = Modifier.size(34.dp)) {
-                                    Icon(Icons.Default.AddCircle, contentDescription = "إيداع مدخرات", tint = IncomeGreen)
-                                }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                AppCircleIconButton(
+                                    icon = Icons.Default.AddCircle,
+                                    contentDescription = "إيداع مدخرات",
+                                    tint = IncomeGreen,
+                                    containerColor = IncomeGreen.copy(alpha = 0.12f),
+                                    size = 34.dp,
+                                    iconSize = 18.dp,
+                                    onClick = { onAddContribution(goal) }
+                                )
                                 if (goal.currentAmount > 0.0) {
-                                    IconButton(onClick = { onWithdrawSavings(goal) }, modifier = Modifier.size(34.dp)) {
-                                        Icon(
-                                            Icons.Default.RemoveCircleOutline,
-                                            contentDescription = "سحب مدخرات",
-                                            tint = MaterialTheme.colorScheme.error
-                                        )
-                                    }
+                                    AppCircleIconButton(
+                                        icon = Icons.Default.RemoveCircleOutline,
+                                        contentDescription = "سحب مدخرات",
+                                        tint = MaterialTheme.colorScheme.error,
+                                        containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
+                                        size = 34.dp,
+                                        iconSize = 18.dp,
+                                        onClick = { onWithdrawSavings(goal) }
+                                    )
                                 }
                             }
                         }

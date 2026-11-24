@@ -39,6 +39,7 @@ import com.qdash.domain.model.Transaction
 import com.qdash.presentation.components.UnifiedCategoryIcon
 import com.qdash.presentation.components.safeParseColor
 import com.qdash.presentation.search.SearchUiState
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 import com.qdash.ui.designsystem.components.shimmerEffect
 import com.qdash.ui.theme.TextGray
 
@@ -250,7 +251,8 @@ fun EmptyQueryState(
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(start = 12.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 4.dp, bottom = 4.dp)
                             ) {
                                 Icon(
                                     Icons.Default.History,
@@ -258,23 +260,19 @@ fun EmptyQueryState(
                                     modifier = Modifier.size(14.dp),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Spacer(Modifier.width(6.dp))
                                 Text(
                                     text = recent,
                                     fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
-                                IconButton(
+                                AppCircleIconButton(
+                                    icon = Icons.Default.Close,
+                                    contentDescription = "حذف",
                                     onClick = { onRemove(recent) },
-                                    modifier = Modifier.size(40.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Close,
-                                        contentDescription = "حذف",
-                                        modifier = Modifier.size(14.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
+                                    size = 26.dp,
+                                    iconSize = 14.dp,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }

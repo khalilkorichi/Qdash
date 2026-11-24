@@ -171,7 +171,7 @@ fun AddRegularDebtDialog(
                         )
                         accounts.forEach { account ->
                             DropdownMenuItem(
-                                text = { Text("${account.name} (رصيد: ${account.balance.toInt()} د.ج)") },
+                                text = { Text("${account.name} (رصيد: ${com.qdash.core.utils.FormatterUtils.formatCurrency(account.balance)})") },
                                 onClick = {
                                     selectedAccountId = account.id
                                     expanded = false
@@ -406,7 +406,7 @@ fun AddInstallmentDebtDialog(
                         )
                         accounts.forEach { account ->
                             DropdownMenuItem(
-                                text = { Text("${account.name} (رصيد: ${account.balance.toInt()} د.ج)") },
+                                text = { Text("${account.name} (رصيد: ${com.qdash.core.utils.FormatterUtils.formatCurrency(account.balance)})") },
                                 onClick = {
                                     selectedAccountId = account.id
                                     expanded = false
@@ -512,7 +512,7 @@ fun RecordRegularPaymentDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("الدين: ${debt.title}", fontWeight = FontWeight.Medium, color = ExpenseRed)
-                Text("المتبقي الكلي: ${debt.remainingAmount.toInt()} د.ج", style = MaterialTheme.typography.bodySmall)
+                Text("المتبقي الكلي: ${com.qdash.core.utils.FormatterUtils.formatCurrency(debt.remainingAmount)}", style = MaterialTheme.typography.bodySmall)
 
                 AppInput(
                     value = paymentAmount,
@@ -581,7 +581,7 @@ fun RecordRegularPaymentDialog(
                     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                         accounts.forEach { account ->
                             DropdownMenuItem(
-                                text = { Text("${account.name} (رصيد: ${account.balance.toInt()} د.ج)") },
+                                text = { Text("${account.name} (رصيد: ${com.qdash.core.utils.FormatterUtils.formatCurrency(account.balance)})") },
                                 onClick = {
                                     sourceAccountId = account.id
                                     expanded = false
@@ -601,7 +601,7 @@ fun RecordRegularPaymentDialog(
                     } else if (sourceAccountId == null) {
                         Toast.makeText(context, "الرجاء تحديد الحساب مصدر السداد", Toast.LENGTH_SHORT).show()
                     } else if (amount > debt.remainingAmount) {
-                        Toast.makeText(context, "المبلغ المدفوع أكبر من قيمة الدين المتبقية (${debt.remainingAmount.toInt()} د.ج)!", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "المبلغ المدفوع أكبر من قيمة الدين المتبقية (${com.qdash.core.utils.FormatterUtils.formatCurrency(debt.remainingAmount)})!", Toast.LENGTH_LONG).show()
                     } else {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         onConfirm(amount, paymentNote.ifBlank { null }, paymentDate, sourceAccountId!!)
@@ -673,7 +673,7 @@ fun RecordInstallmentPaymentDialog(
                 modifier = Modifier.verticalScroll(rememberScrollState())
             ) {
                 Text("الدين: ${debt.title}", fontWeight = FontWeight.Medium, color = ExpenseRed)
-                Text("المتبقي الكلي: ${debt.remainingAmount.toInt()} د.ج | القسط الأساسي: ${debt.minimumPayment.toInt()} د.ج", style = MaterialTheme.typography.bodySmall)
+                Text("المتبقي الكلي: ${com.qdash.core.utils.FormatterUtils.formatCurrency(debt.remainingAmount)} | القسط الأساسي: ${com.qdash.core.utils.FormatterUtils.formatCurrency(debt.minimumPayment)}", style = MaterialTheme.typography.bodySmall)
 
                 Text("نوع السداد / الدفعة:", style = MaterialTheme.typography.labelSmall)
                 Row(
@@ -769,7 +769,7 @@ fun RecordInstallmentPaymentDialog(
                     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                         accounts.forEach { account ->
                             DropdownMenuItem(
-                                text = { Text("${account.name} (رصيد: ${account.balance.toInt()} د.ج)") },
+                                text = { Text("${account.name} (رصيد: ${com.qdash.core.utils.FormatterUtils.formatCurrency(account.balance)})") },
                                 onClick = {
                                     sourceAccountId = account.id
                                     expanded = false
@@ -789,7 +789,7 @@ fun RecordInstallmentPaymentDialog(
                     } else if (sourceAccountId == null) {
                         Toast.makeText(context, "الرجاء تحديد الحساب مصدر السداد", Toast.LENGTH_SHORT).show()
                     } else if (amount > debt.remainingAmount) {
-                        Toast.makeText(context, "المبلغ المدفوع أكبر من قيمة الدين المتبقية (${debt.remainingAmount.toInt()} د.ج)!", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "المبلغ المدفوع أكبر من قيمة الدين المتبقية (${com.qdash.core.utils.FormatterUtils.formatCurrency(debt.remainingAmount)})!", Toast.LENGTH_LONG).show()
                     } else {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         onConfirm(amount, paymentType, paymentNote.ifBlank { null }, paymentDate, sourceAccountId!!)
@@ -888,7 +888,7 @@ fun AddLentDebtDialog(
                     var expanded by remember { mutableStateOf(false) }
                     val selectedAccount = accounts.find { it.id == selectedAccountId }
                     val selectedAccountName = if (selectedAccount != null) {
-                        "${selectedAccount.name} (رصيد: ${selectedAccount.balance.toInt()} د.ج)"
+                        "${selectedAccount.name} (رصيد: ${com.qdash.core.utils.FormatterUtils.formatCurrency(selectedAccount.balance)})"
                     } else "اختر المحفظة"
 
                     AppCard(
@@ -908,7 +908,7 @@ fun AddLentDebtDialog(
                     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                         accounts.forEach { account ->
                             DropdownMenuItem(
-                                text = { Text("${account.name} (رصيد: ${account.balance.toInt()} د.ج)") },
+                                text = { Text("${account.name} (رصيد: ${com.qdash.core.utils.FormatterUtils.formatCurrency(account.balance)})") },
                                 onClick = {
                                     selectedAccountId = account.id
                                     expanded = false
@@ -982,7 +982,7 @@ fun AddLentDebtDialog(
                     } else if (selectedAccountId == null) {
                         Toast.makeText(context, "الرجاء اختيار المحفظة المخصوم منها", Toast.LENGTH_SHORT).show()
                     } else if (chosenAcc != null && chosenAcc.balance < total) {
-                        Toast.makeText(context, "تنبيه: رصيد المحفظة (${chosenAcc.balance.toInt()} د.ج) أقل من مبلغ السلفة!", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "تنبيه: رصيد المحفظة (${com.qdash.core.utils.FormatterUtils.formatCurrency(chosenAcc.balance)}) أقل من مبلغ السلفة!", Toast.LENGTH_LONG).show()
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         onConfirm(title.trim(), debtorName.trim(), total, selectedAccountId!!, dueDate, notes.ifBlank { null }, color)
                     } else {
@@ -1032,7 +1032,7 @@ fun RecordLentRepaymentDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("السلفة: ${debt.title} (المدين: ${debt.creditorName})", fontWeight = FontWeight.Medium, color = com.qdash.ui.theme.IncomeGreen)
-                Text("المتبقي للاسترداد: ${debt.remainingAmount.toInt()} د.ج", style = MaterialTheme.typography.bodySmall)
+                Text("المتبقي للاسترداد: ${com.qdash.core.utils.FormatterUtils.formatCurrency(debt.remainingAmount)}", style = MaterialTheme.typography.bodySmall)
 
                 AppInput(
                     value = paymentAmount,
@@ -1101,7 +1101,7 @@ fun RecordLentRepaymentDialog(
                     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                         accounts.forEach { account ->
                             DropdownMenuItem(
-                                text = { Text("${account.name} (رصيد: ${account.balance.toInt()} د.ج)") },
+                                text = { Text("${account.name} (رصيد: ${com.qdash.core.utils.FormatterUtils.formatCurrency(account.balance)})") },
                                 onClick = {
                                     targetAccountId = account.id
                                     expanded = false
@@ -1121,7 +1121,7 @@ fun RecordLentRepaymentDialog(
                     } else if (targetAccountId == null) {
                         Toast.makeText(context, "الرجاء تحديد المحفظة المستلمة للمبلغ", Toast.LENGTH_SHORT).show()
                     } else if (amount > debt.remainingAmount) {
-                        Toast.makeText(context, "المبلغ المسترد أكبر من قيمة السلفة المتبقية (${debt.remainingAmount.toInt()} د.ج)!", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "المبلغ المسترد أكبر من قيمة السلفة المتبقية (${com.qdash.core.utils.FormatterUtils.formatCurrency(debt.remainingAmount)})!", Toast.LENGTH_LONG).show()
                     } else {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         onConfirm(amount, paymentNote.ifBlank { null }, paymentDate, targetAccountId!!)

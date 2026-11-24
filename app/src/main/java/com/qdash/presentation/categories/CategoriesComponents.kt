@@ -24,6 +24,7 @@ import com.qdash.presentation.components.getIconByName
 import com.qdash.presentation.components.safeParseColor
 import com.qdash.ui.theme.ExpenseRed
 import com.qdash.ui.theme.TextGray
+import com.qdash.ui.designsystem.components.AppCircleIconButton
 import com.qdash.ui.designsystem.components.shimmerEffect
 
 val iconOptions = listOf(
@@ -130,9 +131,15 @@ fun CategoryCard(
 
             // More options
             Box {
-                IconButton(onClick = { showMenu = true }, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.MoreVert, contentDescription = null, tint = TextGray, modifier = Modifier.size(18.dp))
-                }
+                AppCircleIconButton(
+                    icon = Icons.Default.MoreVert,
+                    contentDescription = "خيارات الفئة",
+                    tint = TextGray,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    size = 34.dp,
+                    iconSize = 18.dp,
+                    onClick = { showMenu = true }
+                )
                 DropdownMenu(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false }
@@ -211,9 +218,15 @@ fun SubcategoryItem(
         )
 
         Box {
-            IconButton(onClick = { showMenu = true }, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.MoreVert, null, tint = TextGray, modifier = Modifier.size(16.dp))
-            }
+            AppCircleIconButton(
+                icon = Icons.Default.MoreVert,
+                contentDescription = "خيارات الفئة الفرعية",
+                tint = TextGray,
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                size = 32.dp,
+                iconSize = 16.dp,
+                onClick = { showMenu = true }
+            )
             DropdownMenu(
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false }
