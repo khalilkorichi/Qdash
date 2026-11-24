@@ -6,7 +6,7 @@ import com.qdash.domain.model.common.Identifiable
 enum class NotificationType {
     BUDGET_ALERT, SUBSCRIPTION_REMINDER, SAVINGS_MILESTONE,
     DEBT_DUE, BACKUP_DONE, EXPORT_DONE, SALARY_ADDED,
-    TIP, OVERSPEND_FORECAST, SMART_REMINDER
+    TIP, OVERSPEND_FORECAST, SMART_REMINDER, APP_UPDATE
 }
 
 data class AppNotification(
@@ -24,7 +24,7 @@ fun NotificationEntity.toDomain() = AppNotification(
     id = id,
     title = title,
     message = message,
-    type = NotificationType.valueOf(type),
+    type = NotificationType.entries.firstOrNull { it.name == type } ?: NotificationType.TIP,
     isRead = isRead,
     timestamp = timestamp,
     deepLinkRoute = deepLinkRoute,

@@ -482,7 +482,10 @@ internal fun FinTrackNavGraph(
                 onNavigateTo = { route ->
                     runCatching {
                         if (route == Screen.Home.route) {
-                            navController.popBackStack(Screen.Home.route, inclusive = false)
+                            val popped = navController.popBackStack(Screen.Home.route, inclusive = false)
+                            if (!popped) {
+                                navController.navigate(Screen.Home.route) { launchSingleTop = true }
+                            }
                         } else {
                             navController.navigate(route) { launchSingleTop = true }
                         }

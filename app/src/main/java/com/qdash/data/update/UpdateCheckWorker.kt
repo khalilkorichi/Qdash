@@ -37,7 +37,8 @@ class UpdateCheckWorker(
                     val notification = AppNotification(
                         title = "تحديث جديد متوفر! 🎉",
                         message = "إصدار جديد من التطبيق (${updateInfo.versionName}) متوفر الآن للتحميل.",
-                        type = NotificationType.TIP
+                        type = NotificationType.APP_UPDATE,
+                        deepLinkRoute = com.qdash.presentation.navigation.Screen.Updates.route
                     )
                     notificationRepository.insertNotification(notification)
                 }

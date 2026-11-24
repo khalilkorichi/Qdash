@@ -18,6 +18,7 @@ data class NotificationsUiState(
     val notifications: List<AppNotification> = emptyList(),
     val totalCount: Int = 0,
     val unreadCount: Int = 0,
+    val unreadCountByFilter: Map<String, Int> = emptyMap(),
     val selectedFilter: NotificationType? = null,
     val selectedFilterLabel: String = "الكل",
     val selectedFilterTypes: Set<NotificationType> = emptySet(),
@@ -45,8 +46,16 @@ class NotificationsViewModel(
     ) { allNotifications, filterGroup, isRefreshing ->
         val (filterLabel, filterTypes) = filterGroup
         val unreadCount = allNotifications.count { !it.isRead }
+        val unreadByFilter = FILTER_CHIPS.associate { chip ->
+            val count = if (chip.types.isEmpty()) {
+                unreadCount
+            } else {
+                allNotifications.count { !it.isRead && it.effectiveType() in chip.types }
+            }
+            chip.label to count
+        }
         val filtered = if (filterTypes.isNotEmpty()) {
-            allNotifications.filter { it.type in filterTypes }
+            allNotifications.filter { it.effectiveType() in filterTypes }
         } else {
             allNotifications
         }
@@ -54,6 +63,7 @@ class NotificationsViewModel(
             notifications = filtered,
             totalCount = allNotifications.size,
             unreadCount = unreadCount,
+            unreadCountByFilter = unreadByFilter,
             selectedFilter = filterTypes.singleOrNull(),
             selectedFilterLabel = filterLabel,
             selectedFilterTypes = filterTypes,

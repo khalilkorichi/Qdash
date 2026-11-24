@@ -212,7 +212,8 @@ class UpdatesViewModel(
                         val notification = com.qdash.domain.model.AppNotification(
                             title = "تحديث جديد متوفر! 🎉",
                             message = "إصدار جديد من التطبيق (${info.versionName}) متوفر الآن للتحميل.",
-                            type = com.qdash.domain.model.NotificationType.TIP
+                            type = com.qdash.domain.model.NotificationType.APP_UPDATE,
+                            deepLinkRoute = com.qdash.presentation.navigation.Screen.Updates.route
                         )
                         notificationRepository.insertNotification(notification)
                     }

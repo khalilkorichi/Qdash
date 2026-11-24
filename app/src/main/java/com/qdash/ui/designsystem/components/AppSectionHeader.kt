@@ -15,6 +15,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -68,7 +72,7 @@ fun AppSectionHeader(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
@@ -77,16 +81,22 @@ fun AppSectionHeader(
                 modifier = Modifier.weight(1f)
             ) {
                 if (showBackButton) {
-                    IconButton(
-                        onClick = onBackClick,
+                    Box(
                         modifier = Modifier
-                            .size(42.dp)
-                            .background(MaterialTheme.colorScheme.background, CircleShape)
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.background)
                             .border(1.dp, borderColor, CircleShape)
+                            .clickable(onClick = onBackClick)
+                            .semantics {
+                                contentDescription = "رجوع"
+                                role = Role.Button
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "رجوع",
+                            contentDescription = null,
                             tint = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.size(18.dp)
                         )

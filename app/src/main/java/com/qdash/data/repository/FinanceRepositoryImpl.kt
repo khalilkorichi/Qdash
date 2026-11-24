@@ -129,6 +129,7 @@ class TransactionRepositoryImpl(
                         title = "تم إضافة الراتب 💰",
                         message = "تم إضافة راتب بقيمة ${transaction.amount.toInt()} د.ج إلى حسابك.",
                         type = NotificationType.SALARY_ADDED,
+                        deepLinkRoute = "salary",
                         relatedEntityId = transactionId
                     )
                     notificationRepository.insertNotification(notification)

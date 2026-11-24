@@ -71,7 +71,7 @@ class SmartReminderWorker(
                 title = title,
                 message = message,
                 type = NotificationType.SMART_REMINDER,
-                deepLinkRoute = "home"
+                deepLinkRoute = com.qdash.presentation.navigation.Screen.AddTransaction.createRoute("EXPENSE")
             )
             notificationRepository.insertNotification(notification)
 

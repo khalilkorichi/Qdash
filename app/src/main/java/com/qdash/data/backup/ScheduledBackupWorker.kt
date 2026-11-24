@@ -73,7 +73,8 @@ class ScheduledBackupWorker(
             id = System.currentTimeMillis() % 100000,
             title = "تم النسخ الاحتياطي التلقائي",
             message = "تم حفظ ملف النسخة الاحتياطية بنجاح: $filename",
-            type = NotificationType.BACKUP_DONE
+            type = NotificationType.BACKUP_DONE,
+            deepLinkRoute = com.qdash.presentation.navigation.Screen.Backup.route
         )
         SystemNotificationHelper.showNotification(applicationContext, notification)
     }
@@ -83,7 +84,8 @@ class ScheduledBackupWorker(
             id = (System.currentTimeMillis() % 100000) + 100000,
             title = "فشل النسخ الاحتياطي التلقائي",
             message = "السبب: $error",
-            type = NotificationType.BACKUP_DONE // Keep under BACKUP_DONE to route correctly
+            type = NotificationType.BACKUP_DONE, // Keep under BACKUP_DONE to route correctly
+            deepLinkRoute = com.qdash.presentation.navigation.Screen.Backup.route
         )
         SystemNotificationHelper.showNotification(applicationContext, notification)
     }
