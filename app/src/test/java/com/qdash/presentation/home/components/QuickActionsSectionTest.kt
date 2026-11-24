@@ -34,7 +34,7 @@ class QuickActionsSectionTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun allSevenBentoTilesRenderClickAndMaintainSquareAndWideGeometry() {
+    fun allSevenBentoTilesRenderClickAndMaintainCompactFlushGeometry() {
         var addTxClicks = 0
         var viewAllClicks = 0
         var savingsClicks = 0
@@ -77,7 +77,6 @@ class QuickActionsSectionTest {
             composeRule.onNodeWithText(label).assertIsDisplayed()
         }
 
-        // Verify square 1x1 tiles and 2x1 wide tiles share exact row height and flush edges
         val addBounds = composeRule.onNodeWithTag("quick_action_إضافة معاملة").getBoundsInRoot()
         val historyBounds = composeRule.onNodeWithTag("quick_action_سجل المعاملات").getBoundsInRoot()
         val savingsBounds = composeRule.onNodeWithTag("quick_action_حصالة الادخار").getBoundsInRoot()
@@ -86,25 +85,25 @@ class QuickActionsSectionTest {
         val currencyBounds = composeRule.onNodeWithTag("quick_action_أسعار الصرف").getBoundsInRoot()
         val aiBounds = composeRule.onNodeWithTag("quick_action_المساعد الذكي AI").getBoundsInRoot()
 
-        val squareBounds = listOf(historyBounds, savingsBounds, subsBounds, postalBounds, currencyBounds)
-        squareBounds.forEach { bounds ->
+        val compactTiles = listOf(historyBounds, savingsBounds, subsBounds, postalBounds, currencyBounds)
+        compactTiles.forEach { bounds ->
             assertTrue(
-                "Expected 1x1 tile to be square, got width=${bounds.width}, height=${bounds.height}",
-                abs(bounds.width.value - bounds.height.value) <= 1.5f
+                "Expected compact tile height between 74dp and 80dp, got ${bounds.height}",
+                bounds.height.value in 73.5f..80.5f
             )
         }
 
         assertTrue(
-            "Wide tile height should match square tile height",
+            "Wide tile height should match single tile height",
             abs(addBounds.height.value - historyBounds.height.value) <= 1.0f
         )
         assertTrue(
-            "Bottom wide tile height should match square tile height",
+            "Bottom wide tile height should match single tile height",
             abs(aiBounds.height.value - currencyBounds.height.value) <= 1.0f
         )
         assertTrue(
-            "Wide tile should be roughly 2x square tile + 10.dp spacing",
-            abs(addBounds.width.value - (historyBounds.width.value * 2f + 10f)) <= 2.0f
+            "Wide tile should be roughly 2x single tile + 8.dp spacing",
+            abs(addBounds.width.value - (historyBounds.width.value * 2f + 8f)) <= 2.0f
         )
         // Flush outer edges across all 3 rows in RTL (rightmost = Row start, leftmost = Row end)
         assertTrue(abs(addBounds.right.value - savingsBounds.right.value) <= 1.5f)
@@ -112,7 +111,6 @@ class QuickActionsSectionTest {
         assertTrue(abs(historyBounds.left.value - postalBounds.left.value) <= 1.5f)
         assertTrue(abs(postalBounds.left.value - aiBounds.left.value) <= 1.5f)
 
-        // Verify all click callbacks
         labels.forEach { label ->
             composeRule.onNodeWithTag("quick_action_$label").performClick()
         }
@@ -127,7 +125,7 @@ class QuickActionsSectionTest {
     }
 
     @Test
-    fun narrow320dpScreenMaintainsTrueSquareBentoTiles() {
+    fun narrow320dpScreenMaintainsCompactBentoTilesWithoutOverflow() {
         composeRule.setContent {
             KdachTheme(darkTheme = false) {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -148,8 +146,8 @@ class QuickActionsSectionTest {
 
         val savingsBounds = composeRule.onNodeWithTag("quick_action_حصالة الادخار").getBoundsInRoot()
         assertTrue(
-            "Expected 1x1 tile on 320dp width to be square, got width=${savingsBounds.width}, height=${savingsBounds.height}",
-            abs(savingsBounds.width.value - savingsBounds.height.value) <= 1.5f
+            "Expected compact tile height between 74dp and 80dp on 320dp width, got ${savingsBounds.height}",
+            savingsBounds.height.value in 73.5f..80.5f
         )
     }
 

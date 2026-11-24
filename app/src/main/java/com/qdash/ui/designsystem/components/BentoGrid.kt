@@ -23,19 +23,20 @@ data class BentoGridCell<T>(
 )
 
 /**
- * Renders rows of 1x1 square and 2x1 wide cells in a flush 3-column Bento grid.
+ * Renders rows of compact 1x1 and 2x1 wide cells in a flush 3-column Bento grid.
  */
 @Composable
 fun <T> ThreeColumnBentoGrid(
     rows: List<List<BentoGridCell<T>>>,
     modifier: Modifier = Modifier,
-    spacing: Dp = 10.dp,
-    minRowHeight: Dp = 84.dp,
+    spacing: Dp = 8.dp,
+    minRowHeight: Dp = 74.dp,
+    maxRowHeight: Dp = 80.dp,
     cellContent: @Composable (cellModifier: Modifier, cell: BentoGridCell<T>) -> Unit
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val rawSingleWidth = ((maxWidth - (spacing * 2)) / 3f).coerceAtLeast(0.dp)
-        val rowHeight = rawSingleWidth.coerceAtLeast(minRowHeight)
+        val rowHeight = rawSingleWidth.coerceIn(minRowHeight, maxRowHeight)
         val wideWidth = (rawSingleWidth * 2f) + spacing
 
         Column(

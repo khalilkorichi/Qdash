@@ -147,7 +147,7 @@ fun QuickActionsSection(
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
             color = MaterialTheme.colorScheme.onBackground
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         ThreeColumnBentoGrid(rows = bentoRows) { cellModifier, cell ->
             val item = cell.value

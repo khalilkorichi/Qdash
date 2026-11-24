@@ -105,7 +105,7 @@ fun HomeSkeleton(
                     .height(16.dp)
                     .shimmerEffect(RoundedCornerShape(4.dp))
             )
-            val tileShape = RoundedCornerShape(20.dp)
+            val tileShape = RoundedCornerShape(16.dp)
             val bentoSkeletonRows = listOf(
                 listOf(BentoGridCell(Unit, isWide = true), BentoGridCell(Unit)),
                 listOf(BentoGridCell(Unit), BentoGridCell(Unit), BentoGridCell(Unit)),

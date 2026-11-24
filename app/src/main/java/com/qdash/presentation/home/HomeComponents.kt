@@ -1061,7 +1061,7 @@ fun QuickActionTile(
         animationSpec = MotionTokens.springResponsive(),
         label = "quick_action_press_scale"
     )
-    val tileShape = RoundedCornerShape(20.dp)
+    val tileShape = RoundedCornerShape(16.dp)
 
     Surface(
         onClick = onClick,
@@ -1079,15 +1079,15 @@ fun QuickActionTile(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .defaultMinSize(minHeight = 84.dp)
+                .defaultMinSize(minHeight = 74.dp)
                 .drawBehind {
                     val glowCenter = Offset(x = if (isRtl) 0f else size.width, y = 0f)
-                    val glowRadius = size.minDimension * 0.95f
+                    val glowRadius = size.minDimension * 0.85f
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                iconColor.copy(alpha = if (isWide) 0.14f else 0.12f),
-                                iconColor.copy(alpha = 0.04f),
+                                iconColor.copy(alpha = if (isWide) 0.12f else 0.10f),
+                                iconColor.copy(alpha = 0.03f),
                                 Color.Transparent
                             ),
                             center = glowCenter,
@@ -1097,7 +1097,7 @@ fun QuickActionTile(
                         center = glowCenter
                     )
                 }
-                .padding(horizontal = 11.dp, vertical = 10.dp)
+                .padding(horizontal = 10.dp, vertical = 9.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxSize(),
@@ -1111,8 +1111,8 @@ fun QuickActionTile(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(11.dp))
+                            .size(32.dp)
+                            .clip(RoundedCornerShape(10.dp))
                             .background(iconBg),
                         contentAlignment = Alignment.Center
                     ) {
@@ -1120,14 +1120,14 @@ fun QuickActionTile(
                             imageVector = icon,
                             contentDescription = null,
                             tint = iconColor,
-                            modifier = Modifier.size(19.dp)
+                            modifier = Modifier.size(17.dp)
                         )
                     }
                     Icon(
                         imageVector = if (isRtl) Icons.Default.NorthWest else Icons.Default.NorthEast,
                         contentDescription = null,
                         tint = iconColor.copy(alpha = 0.45f),
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(12.dp)
                     )
                 }
 
@@ -1135,8 +1135,8 @@ fun QuickActionTile(
                     text = label,
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.ExtraBold,
-                        fontSize = if (isWide) 13.sp else 12.sp,
-                        lineHeight = 15.sp
+                        fontSize = if (isWide) 12.5.sp else 11.5.sp,
+                        lineHeight = 14.sp
                     ),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
