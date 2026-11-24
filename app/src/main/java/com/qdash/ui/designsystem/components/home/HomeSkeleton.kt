@@ -2,21 +2,26 @@ package com.qdash.ui.designsystem.components.home
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.qdash.ui.designsystem.components.BentoGridCell
+import com.qdash.ui.designsystem.components.ThreeColumnBentoGrid
 import com.qdash.ui.designsystem.components.shimmerEffect
 import com.qdash.ui.designsystem.tokens.ShapeTokens
 import com.qdash.ui.designsystem.tokens.SpacingTokens
 
 /**
  * Skeleton loading UI for the Home screen.
- * Shimmer-animated placeholders matching the Balance Hero Card, Quick Actions, and Recent Transactions list.
+ * Shimmer-animated placeholders matching the Balance Hero Card, Quick Actions Bento Grid,
+ * and Recent Transactions list.
  */
 @Composable
 fun HomeSkeleton(
@@ -25,6 +30,7 @@ fun HomeSkeleton(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState(), enabled = false)
             .padding(horizontal = SpacingTokens.Lg, vertical = SpacingTokens.Md),
         verticalArrangement = Arrangement.spacedBy(SpacingTokens.Lg)
     ) {
@@ -88,28 +94,25 @@ fun HomeSkeleton(
             }
         }
 
-        // ── 2. Quick Actions Grid Skeleton ────────────────────────────────────
-        Row(
+        // ── 2. Quick Actions Bento Grid Skeleton ──────────────────────────────
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            repeat(4) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(54.dp)
-                            .shimmerEffect(CircleShape)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .width(50.dp)
-                            .height(10.dp)
-                            .shimmerEffect(RoundedCornerShape(3.dp))
-                    )
-                }
+            Box(
+                modifier = Modifier
+                    .width(96.dp)
+                    .height(16.dp)
+                    .shimmerEffect(RoundedCornerShape(4.dp))
+            )
+            val tileShape = RoundedCornerShape(20.dp)
+            val bentoSkeletonRows = listOf(
+                listOf(BentoGridCell(Unit, isWide = true), BentoGridCell(Unit)),
+                listOf(BentoGridCell(Unit), BentoGridCell(Unit), BentoGridCell(Unit)),
+                listOf(BentoGridCell(Unit), BentoGridCell(Unit, isWide = true))
+            )
+            ThreeColumnBentoGrid(rows = bentoSkeletonRows) { cellModifier, _ ->
+                Box(modifier = cellModifier.shimmerEffect(tileShape))
             }
         }
 

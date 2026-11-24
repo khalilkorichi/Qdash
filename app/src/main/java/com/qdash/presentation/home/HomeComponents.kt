@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -21,7 +23,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -32,9 +36,12 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.core.ui.components.*
@@ -1033,8 +1040,8 @@ fun IncomeExpenseSplitCards(
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
-//  QuickActionTile â€” compact action card with gradient icon
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  QuickActionTile — Bento square/wide action tile with corner glow & icon
+// ─────────────────────────────────────────────────────────
 
 @Composable
 fun QuickActionTile(
@@ -1043,40 +1050,100 @@ fun QuickActionTile(
     label: String,
     iconBg: Brush,
     iconColor: Color,
+    isWide: Boolean = false,
     onClick: () -> Unit
 ) {
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = MotionTokens.springResponsive(),
+        label = "quick_action_press_scale"
+    )
+    val tileShape = RoundedCornerShape(20.dp)
+
     Surface(
+        onClick = onClick,
         modifier = modifier
-            .clickable { onClick() }
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .testTag("quick_action_$label"),
-        shape = RoundedCornerShape(16.dp),
+        shape = tileShape,
         color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 1.dp
+        tonalElevation = 1.dp,
+        interactionSource = interactionSource
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .defaultMinSize(minHeight = 84.dp)
+                .drawBehind {
+                    val glowCenter = Offset(x = if (isRtl) 0f else size.width, y = 0f)
+                    val glowRadius = size.minDimension * 0.95f
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                iconColor.copy(alpha = if (isWide) 0.14f else 0.12f),
+                                iconColor.copy(alpha = 0.04f),
+                                Color.Transparent
+                            ),
+                            center = glowCenter,
+                            radius = glowRadius
+                        ),
+                        radius = glowRadius,
+                        center = glowCenter
+                    )
+                }
+                .padding(horizontal = 11.dp, vertical = 10.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(iconBg),
-                contentAlignment = Alignment.Center
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.Start
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconColor,
-                    modifier = Modifier.size(20.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(iconBg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = iconColor,
+                            modifier = Modifier.size(19.dp)
+                        )
+                    }
+                    Icon(
+                        imageVector = if (isRtl) Icons.Default.NorthWest else Icons.Default.NorthEast,
+                        contentDescription = null,
+                        tint = iconColor.copy(alpha = 0.45f),
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = if (isWide) 13.sp else 12.sp,
+                        lineHeight = 15.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Start
                 )
             }
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold),
-                color = MaterialTheme.colorScheme.onSurface
-            )
         }
     }
 }
