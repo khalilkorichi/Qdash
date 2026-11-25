@@ -12,57 +12,15 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.Calculate
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.LocalAtm
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Today
-import androidx.compose.material.icons.filled.Translate
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -71,11 +29,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.qdash.core.utils.AmountConversionEngine
-import com.qdash.core.utils.PostalCcpUtils
+import com.qdash.core.utils.PostalAmountSuggester
 import com.qdash.domain.model.PostalProfile
 import com.qdash.domain.model.PostalProfileRole
 import com.qdash.presentation.simulator.DocumentSimulatorUiState
@@ -83,13 +42,28 @@ import com.qdash.presentation.simulator.DocumentType
 import com.qdash.presentation.simulator.SfpOperationType
 import com.qdash.presentation.simulator.WordsLanguage
 
-private val PRESET_AMOUNTS = listOf(1000, 2000, 5000, 10000, 20000)
-private val INCREMENT_DELTAS = listOf(500, 1000, 5000)
-private val QUICK_SFP_MOTIFS = listOf("مصاريف شخصية", "أمانة / عائلة", "إيجار", "تسديد فاتورة")
+private val QUICK_SFP_MOTIFS = listOf(
+    "مصاريف شخصية",
+    "أمانة / عائلة",
+    "إيجار",
+    "تسديد فاتورة",
+    "راتب / منحة",
+    "شراء سلعة"
+)
 private val QUICK_PI_TYPES = listOf("CNI", "Passeport", "Permis")
 
+private enum class SfpDropdownPanelType {
+    NONE,
+    OPERATION_AND_SERVICES,
+    MOTIF
+}
+
 /**
- * Zero-typing-first quick-fill panel for Algerian postal checks and SFP 01 forms.
+ * Streamlined quick-fill controls for Postal Check and Chèque Secours (SFP 01):
+ * - Reactive 3x3 Smart Amount dropdown (no cheat sheet, no horizontal preset row)
+ * - Unified side-by-side Operation/Services and Motif dropdowns for Chèque Secours
+ * - Saved profiles quick pills & optional manual edit drawer
+ * - Place/Date/Clé-Calc/RIP-Paste buttons intentionally removed per UX spec.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -101,14 +75,7 @@ fun QuickFillControlsPanel(
     onMoiMemeClick: () -> Unit = {},
     onToggleWordsLanguage: () -> Unit = {},
     onToggleManualEditMode: () -> Unit = {},
-    onPresetAmountClick: (Int) -> Unit = {},
-    onIncrementAmountClick: (Int) -> Unit = {},
     onClearAmountClick: () -> Unit = {},
-    onOpenReadyAmountsClick: () -> Unit = {},
-    onQuickPlaceClick: (String) -> Unit = {},
-    onTodayDateClick: () -> Unit = {},
-    onAutoCalcKeyClick: () -> Unit = {},
-    onExtractRipInput: (String) -> Unit = {},
     onChequeNumberChange: (String) -> Unit = {},
     onChequeAmountChange: (String) -> Unit = {},
     onChequeBeneficiaryChange: (String) -> Unit = {},
@@ -147,20 +114,16 @@ fun QuickFillControlsPanel(
     val context = LocalContext.current
     val isCheque = uiState.selectedDocType == DocumentType.CHEQUE
     val currentAmountStr = if (isCheque) uiState.chequeAmount else uiState.sfpAmount
-    val currentCcp = if (isCheque) uiState.chequeCcp else uiState.sfpCcp
-    val currentPlace = if (isCheque) uiState.chequePlace else uiState.sfpPlace
+    val onCurrentAmountChange = if (isCheque) onChequeAmountChange else onSfpAmountChange
     val wordsLanguage = if (isCheque) uiState.chequeWordsLanguage else uiState.sfpWordsLanguage
-
-    var showRipPasteDialog by remember { mutableStateOf(false) }
-    var ripDialogText by remember { mutableStateOf("") }
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .testTag("quick_fill_panel"),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 1. Top Quick-Action Bar (Zero-Typing First)
+        // 1. Top Quick-Action Strip
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -203,7 +166,7 @@ fun QuickFillControlsPanel(
                     Icon(Icons.Default.Translate, contentDescription = null, modifier = Modifier.size(16.dp))
                 },
                 label = {
-                    val label = if (wordsLanguage == WordsLanguage.ARABIC) "عربي ⇄ FR (عربي)" else "عربي ⇄ FR (FR)"
+                    val label = if (wordsLanguage == WordsLanguage.ARABIC) "التفقيط: عربي" else "En lettres: FR"
                     Text(label, fontSize = 12.sp, maxLines = 1)
                 }
             )
@@ -223,13 +186,11 @@ fun QuickFillControlsPanel(
             )
         }
 
-        // 2. Preset Amounts & Quick Increments
-        QuickAmountSection(
+        // 2. Smart Amount Dropdown Selector (Input + Live 3x3 Prefix Suggestions Grid)
+        SmartAmountDropdownSection(
             currentAmountRaw = currentAmountStr,
-            onPresetAmountClick = onPresetAmountClick,
-            onIncrementAmountClick = onIncrementAmountClick,
-            onClearAmountClick = onClearAmountClick,
-            onOpenReadyAmountsClick = onOpenReadyAmountsClick
+            onAmountChange = onCurrentAmountChange,
+            onClearAmountClick = onClearAmountClick
         )
 
         // 3. Live Tafqit Summary Banner
@@ -245,7 +206,22 @@ fun QuickFillControlsPanel(
             )
         }
 
-        // 4. Saved Beneficiaries / Profiles Quick Chips
+        // 4. Chèque Secours Unified Side-by-Side Dropdowns (Operation/Services + Motif)
+        if (!isCheque) {
+            SfpUnifiedDropdownsSection(
+                uiState = uiState,
+                onSfpOperationChange = onSfpOperationChange,
+                onSfpReleveOperationsChange = onSfpReleveOperationsChange,
+                onSfpAvecSoldeChange = onSfpAvecSoldeChange,
+                onSfpNotificationAvoirChange = onSfpNotificationAvoirChange,
+                onSfpCommandeCarnetChange = onSfpCommandeCarnetChange,
+                onSfpReleveDuChange = onSfpReleveDuChange,
+                onSfpReleveAuChange = onSfpReleveAuChange,
+                onSfpMotifChange = onSfpMotifChange
+            )
+        }
+
+        // 5. Saved Beneficiaries / Profiles Quick Chips
         SavedProfilesQuickRow(
             profiles = uiState.savedProfiles,
             isCheque = isCheque,
@@ -254,40 +230,7 @@ fun QuickFillControlsPanel(
             onOpenProfilePicker = onOpenProfilePicker
         )
 
-        // 5. SFP 01 Operation & Motif Quick Chips
-        if (!isCheque) {
-            SfpQuickOptionsSection(
-                uiState = uiState,
-                onSfpOperationChange = onSfpOperationChange,
-                onSfpReleveOperationsChange = onSfpReleveOperationsChange,
-                onSfpAvecSoldeChange = onSfpAvecSoldeChange,
-                onSfpNotificationAvoirChange = onSfpNotificationAvoirChange,
-                onSfpCommandeCarnetChange = onSfpCommandeCarnetChange,
-                onSfpMotifChange = onSfpMotifChange
-            )
-        }
-
-        // 6. Quick Place, Today Date, Clé Auto-Calc & RIP Paste
-        QuickPlaceAndToolsSection(
-            lastSavedPlace = uiState.lastSavedPlace,
-            currentPlace = currentPlace,
-            currentCcp = currentCcp,
-            onQuickPlaceClick = onQuickPlaceClick,
-            onTodayDateClick = onTodayDateClick,
-            onAutoCalcKeyClick = onAutoCalcKeyClick,
-            onPasteRipClick = {
-                val clipText = readClipboardText(context)
-                if (!clipText.isNullOrBlank() && PostalCcpUtils.extractFromInput(clipText) != null) {
-                    onExtractRipInput(clipText)
-                    Toast.makeText(context, "تم استخراج بيانات الحساب من الحافظة!", Toast.LENGTH_SHORT).show()
-                } else {
-                    ripDialogText = clipText.orEmpty()
-                    showRipPasteDialog = true
-                }
-            }
-        )
-
-        // 7. Manual Edit Mode (hidden by default for zero-typing UX)
+        // 6. Optional Manual Edit Section
         AnimatedVisibility(
             visible = uiState.isManualEditMode,
             enter = expandVertically() + fadeIn(),
@@ -295,7 +238,6 @@ fun QuickFillControlsPanel(
         ) {
             ManualEditSection(
                 uiState = uiState,
-                onAutoCalcKeyClick = onAutoCalcKeyClick,
                 onChequeNumberChange = onChequeNumberChange,
                 onChequeAmountChange = onChequeAmountChange,
                 onChequeBeneficiaryChange = onChequeBeneficiaryChange,
@@ -327,126 +269,498 @@ fun QuickFillControlsPanel(
             )
         }
     }
+}
 
-    if (showRipPasteDialog) {
-        AlertDialog(
-            onDismissRequest = { showRipPasteDialog = false },
-            title = { Text("استخراج CCP والمفتاح من RIP") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+@Composable
+private fun SmartAmountDropdownSection(
+    currentAmountRaw: String,
+    onAmountChange: (String) -> Unit,
+    onClearAmountClick: () -> Unit
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+    val parsedAmount = AmountConversionEngine.parseFlexibleAmount(currentAmountRaw)
+    val gridAmounts = remember(currentAmountRaw) {
+        PostalAmountSuggester.suggestGridAmounts(currentAmountRaw)
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Dropdown Trigger Button
+        Surface(
+            onClick = { isExpanded = !isExpanded },
+            shape = RoundedCornerShape(14.dp),
+            color = if (isExpanded) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            },
+            border = BorderStroke(
+                width = if (isExpanded) 1.5.dp else 1.dp,
+                color = if (isExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("amount_dropdown_trigger")
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Payments,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "الصق رقم RIP (20 رقماً) أو صيغة CCP/Clé مثل 42339121/98:",
-                        style = MaterialTheme.typography.bodySmall,
+                        text = "المبلغ بالدينار (DA)",
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    OutlinedTextField(
-                        value = ripDialogText,
-                        onValueChange = { ripDialogText = it },
-                        singleLine = true,
-                        label = { Text("RIP أو CCP/Clé") },
-                        modifier = Modifier.fillMaxWidth()
+                    Text(
+                        text = if (parsedAmount != null && parsedAmount > 0.0) {
+                            "\u2066${AmountConversionEngine.formatAmountToPostal(parsedAmount)} DA\u2069"
+                        } else {
+                            "اضغط لإدخال أو اختيار المبلغ"
+                        },
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = if (parsedAmount != null && parsedAmount > 0.0) FontFamily.Monospace else FontFamily.Default
+                        ),
+                        color = if (parsedAmount != null && parsedAmount > 0.0) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        onExtractRipInput(ripDialogText)
-                        showRipPasteDialog = false
+
+                if (currentAmountRaw.isNotBlank()) {
+                    IconButton(
+                        onClick = onClearAmountClick,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("btn_clear_amount")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = "مسح المبلغ",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
-                ) {
-                    Text("استخراج")
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showRipPasteDialog = false }) {
-                    Text("إلغاء")
+
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (isExpanded) "إغلاق قائمة المبلغ" else "فتح قائمة المبلغ",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        // Expandable Dropdown Box: Input Rectangle + Live 3x3 Suggestions Grid
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("amount_dropdown_panel"),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+                tonalElevation = 2.dp
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedTextField(
+                        value = currentAmountRaw,
+                        onValueChange = onAmountChange,
+                        label = { Text("اكتب المبلغ يدوياً (مثلاً 2 أو 5200)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("amount_dropdown_input"),
+                        shape = RoundedCornerShape(10.dp),
+                        trailingIcon = {
+                            if (currentAmountRaw.isNotEmpty()) {
+                                IconButton(onClick = onClearAmountClick) {
+                                    Icon(Icons.Default.Clear, contentDescription = "مسح")
+                                }
+                            }
+                        }
+                    )
+
+                    Text(
+                        text = if (currentAmountRaw.isBlank()) {
+                            "المبالغ الشائعة (اضغط للاختيار):"
+                        } else {
+                            "اقتراحات مطابقة لـ «${currentAmountRaw}»:"
+                        },
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // 3 rows x 3 columns grid
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("amount_suggestions_grid"),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        gridAmounts.chunked(3).forEach { rowAmounts ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                rowAmounts.forEach { suggested ->
+                                    val isSelected = parsedAmount != null &&
+                                        kotlin.math.abs(parsedAmount - suggested.toDouble()) < 0.001
+                                    Surface(
+                                        onClick = {
+                                            onAmountChange(suggested.toString())
+                                            isExpanded = false
+                                        },
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = if (isSelected) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.surfaceVariant
+                                        },
+                                        border = BorderStroke(
+                                            1.dp,
+                                            if (isSelected) {
+                                                MaterialTheme.colorScheme.primary
+                                            } else {
+                                                MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+                                            }
+                                        ),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(44.dp)
+                                            .testTag("amount_grid_item_$suggested")
+                                    ) {
+                                        Box(
+                                            contentAlignment = Alignment.Center,
+                                            modifier = Modifier.padding(horizontal = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = "\u2066${PostalAmountSuggester.formatGridAmount(suggested)}\u2069",
+                                                style = MaterialTheme.typography.labelMedium.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontFamily = FontFamily.Monospace,
+                                                    fontSize = 12.sp
+                                                ),
+                                                color = if (isSelected) {
+                                                    MaterialTheme.colorScheme.onPrimary
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurface
+                                                },
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
-        )
+        }
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun QuickAmountSection(
-    currentAmountRaw: String,
-    onPresetAmountClick: (Int) -> Unit,
-    onIncrementAmountClick: (Int) -> Unit,
-    onClearAmountClick: () -> Unit,
-    onOpenReadyAmountsClick: () -> Unit
+private fun SfpUnifiedDropdownsSection(
+    uiState: DocumentSimulatorUiState,
+    onSfpOperationChange: (SfpOperationType) -> Unit,
+    onSfpReleveOperationsChange: (Boolean) -> Unit,
+    onSfpAvecSoldeChange: (Boolean) -> Unit,
+    onSfpNotificationAvoirChange: (Boolean) -> Unit,
+    onSfpCommandeCarnetChange: (Boolean) -> Unit,
+    onSfpReleveDuChange: (String) -> Unit,
+    onSfpReleveAuChange: (String) -> Unit,
+    onSfpMotifChange: (String) -> Unit
 ) {
-    val parsedCurrent = AmountConversionEngine.parseFlexibleAmount(currentAmountRaw)
+    var openPanel by remember { mutableStateOf(SfpDropdownPanelType.NONE) }
+
+    val operationSummary = remember(
+        uiState.sfpOperation,
+        uiState.sfpReleveOperations,
+        uiState.sfpAvecSolde,
+        uiState.sfpNotificationAvoir,
+        uiState.sfpCommandeCarnet
+    ) {
+        val base = when (uiState.sfpOperation) {
+            SfpOperationType.VERSEMENT -> "دفع"
+            SfpOperationType.RETRAIT -> "سحب"
+            SfpOperationType.VIREMENT -> "تحويل"
+        }
+        val extraCount = listOf(
+            uiState.sfpReleveOperations,
+            uiState.sfpAvecSolde,
+            uiState.sfpNotificationAvoir,
+            uiState.sfpCommandeCarnet
+        ).count { it }
+        if (extraCount > 0) "$base +$extraCount" else base
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = "المبلغ السريع (دج)",
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+        // Two unified dropdown buttons side-by-side in one Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            items(PRESET_AMOUNTS) { amount ->
-                val isSelected = parsedCurrent != null && kotlin.math.abs(parsedCurrent - amount.toDouble()) < 0.001
-                val formattedLabel = String.format(java.util.Locale.US, "%,d دج", amount)
-                FilterChip(
-                    selected = isSelected,
-                    onClick = { onPresetAmountClick(amount) },
-                    modifier = Modifier.testTag("preset_amount_$amount"),
-                    label = {
-                        Text(
-                            text = formattedLabel,
-                            fontSize = 12.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            maxLines = 1
-                        )
+            UnifiedDropdownTriggerBox(
+                title = "العملية والخدمات",
+                valueText = operationSummary,
+                isExpanded = openPanel == SfpDropdownPanelType.OPERATION_AND_SERVICES,
+                onClick = {
+                    openPanel = if (openPanel == SfpDropdownPanelType.OPERATION_AND_SERVICES) {
+                        SfpDropdownPanelType.NONE
+                    } else {
+                        SfpDropdownPanelType.OPERATION_AND_SERVICES
                     }
-                )
-            }
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("sfp_operation_dropdown_trigger")
+            )
+
+            UnifiedDropdownTriggerBox(
+                title = "سبب العملية",
+                valueText = uiState.sfpMotif.ifBlank { "اختر السبب" },
+                isExpanded = openPanel == SfpDropdownPanelType.MOTIF,
+                onClick = {
+                    openPanel = if (openPanel == SfpDropdownPanelType.MOTIF) {
+                        SfpDropdownPanelType.NONE
+                    } else {
+                        SfpDropdownPanelType.MOTIF
+                    }
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("sfp_motif_dropdown_trigger")
+            )
         }
 
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        // Unified Dropdown Content Panel
+        AnimatedVisibility(
+            visible = openPanel != SfpDropdownPanelType.NONE,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
         ) {
-            INCREMENT_DELTAS.forEach { delta ->
-                val label = String.format(java.util.Locale.US, "+%,d", delta)
-                OutlinedButton(
-                    onClick = { onIncrementAmountClick(delta) },
-                    modifier = Modifier.testTag("increment_amount_$delta"),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                ) {
-                    Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                }
-            }
-
-            OutlinedButton(
-                onClick = onOpenReadyAmountsClick,
-                modifier = Modifier.testTag("btn_ready_amounts"),
-                shape = RoundedCornerShape(10.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("sfp_unified_dropdown_panel"),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+                tonalElevation = 2.dp
             ) {
-                Icon(Icons.Default.LocalAtm, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("جداول المبالغ", fontSize = 12.sp, maxLines = 1)
-            }
-
-            if (currentAmountRaw.isNotBlank()) {
-                TextButton(
-                    onClick = onClearAmountClick,
-                    modifier = Modifier.testTag("btn_clear_amount"),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(Icons.Default.Clear, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("مسح", fontSize = 12.sp, color = MaterialTheme.colorScheme.error, maxLines = 1)
+                    when (openPanel) {
+                        SfpDropdownPanelType.OPERATION_AND_SERVICES -> {
+                            Text(
+                                text = "نوع العملية والخدمات المرفقة",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                FilterChip(
+                                    selected = uiState.sfpOperation == SfpOperationType.VERSEMENT,
+                                    onClick = { onSfpOperationChange(SfpOperationType.VERSEMENT) },
+                                    label = { Text("دفع Versement", fontSize = 12.sp, maxLines = 1) }
+                                )
+                                FilterChip(
+                                    selected = uiState.sfpOperation == SfpOperationType.RETRAIT,
+                                    onClick = { onSfpOperationChange(SfpOperationType.RETRAIT) },
+                                    label = { Text("سحب Retrait", fontSize = 12.sp, maxLines = 1) }
+                                )
+                                FilterChip(
+                                    selected = uiState.sfpOperation == SfpOperationType.VIREMENT,
+                                    onClick = { onSfpOperationChange(SfpOperationType.VIREMENT) },
+                                    label = { Text("تحويل Virement", fontSize = 12.sp, maxLines = 1) }
+                                )
+                                FilterChip(
+                                    selected = uiState.sfpReleveOperations,
+                                    onClick = { onSfpReleveOperationsChange(!uiState.sfpReleveOperations) },
+                                    label = { Text("كشف العمليات", fontSize = 12.sp, maxLines = 1) }
+                                )
+                                FilterChip(
+                                    selected = uiState.sfpAvecSolde,
+                                    onClick = { onSfpAvecSoldeChange(!uiState.sfpAvecSolde) },
+                                    label = { Text("إظهار الرصيد", fontSize = 12.sp, maxLines = 1) }
+                                )
+                                FilterChip(
+                                    selected = uiState.sfpNotificationAvoir,
+                                    onClick = { onSfpNotificationAvoirChange(!uiState.sfpNotificationAvoir) },
+                                    label = { Text("إشعار بالرصيد", fontSize = 12.sp, maxLines = 1) }
+                                )
+                                FilterChip(
+                                    selected = uiState.sfpCommandeCarnet,
+                                    onClick = { onSfpCommandeCarnetChange(!uiState.sfpCommandeCarnet) },
+                                    label = { Text("طلب دفتر", fontSize = 12.sp, maxLines = 1) }
+                                )
+                            }
+
+                            if (uiState.sfpReleveOperations) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = uiState.sfpReleveDu,
+                                        onValueChange = onSfpReleveDuChange,
+                                        label = { Text("من (Du)") },
+                                        singleLine = true,
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                    OutlinedTextField(
+                                        value = uiState.sfpReleveAu,
+                                        onValueChange = onSfpReleveAuChange,
+                                        label = { Text("إلى (Au)") },
+                                        singleLine = true,
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        SfpDropdownPanelType.MOTIF -> {
+                            Text(
+                                text = "سبب العملية (Motif)",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                QUICK_SFP_MOTIFS.forEach { motif ->
+                                    FilterChip(
+                                        selected = uiState.sfpMotif == motif,
+                                        onClick = {
+                                            onSfpMotifChange(motif)
+                                            openPanel = SfpDropdownPanelType.NONE
+                                        },
+                                        label = { Text(motif, fontSize = 12.sp, maxLines = 1) }
+                                    )
+                                }
+                            }
+                            OutlinedTextField(
+                                value = uiState.sfpMotif,
+                                onValueChange = onSfpMotifChange,
+                                label = { Text("أو اكتب سبباً مخصصاً") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                trailingIcon = {
+                                    if (uiState.sfpMotif.isNotEmpty()) {
+                                        IconButton(onClick = { onSfpMotifChange("") }) {
+                                            Icon(Icons.Default.Clear, contentDescription = "مسح")
+                                        }
+                                    }
+                                }
+                            )
+                        }
+
+                        SfpDropdownPanelType.NONE -> Unit
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun UnifiedDropdownTriggerBox(
+    title: String,
+    valueText: String,
+    isExpanded: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = if (isExpanded) {
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant
+        },
+        border = BorderStroke(
+            width = if (isExpanded) 1.5.dp else 1.dp,
+            color = if (isExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = valueText,
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Icon(
+                imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = title,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }
@@ -487,7 +801,7 @@ private fun TafqitSummaryBanner(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "#$formatted#",
+                    text = "\u2066#$formatted#\u2069",
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Black,
                         fontFamily = FontFamily.Monospace,
@@ -647,187 +961,8 @@ private fun resolveQuickTapRole(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SfpQuickOptionsSection(
-    uiState: DocumentSimulatorUiState,
-    onSfpOperationChange: (SfpOperationType) -> Unit,
-    onSfpReleveOperationsChange: (Boolean) -> Unit,
-    onSfpAvecSoldeChange: (Boolean) -> Unit,
-    onSfpNotificationAvoirChange: (Boolean) -> Unit,
-    onSfpCommandeCarnetChange: (Boolean) -> Unit,
-    onSfpMotifChange: (String) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(
-            text = "نوع العملية والخدمات البريدية",
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            FilterChip(
-                selected = uiState.sfpOperation == SfpOperationType.VERSEMENT,
-                onClick = { onSfpOperationChange(SfpOperationType.VERSEMENT) },
-                label = { Text("دفع Versement", fontSize = 12.sp, maxLines = 1) }
-            )
-            FilterChip(
-                selected = uiState.sfpOperation == SfpOperationType.RETRAIT,
-                onClick = { onSfpOperationChange(SfpOperationType.RETRAIT) },
-                label = { Text("سحب Retrait", fontSize = 12.sp, maxLines = 1) }
-            )
-            FilterChip(
-                selected = uiState.sfpOperation == SfpOperationType.VIREMENT,
-                onClick = { onSfpOperationChange(SfpOperationType.VIREMENT) },
-                label = { Text("تحويل Virement", fontSize = 12.sp, maxLines = 1) }
-            )
-            FilterChip(
-                selected = uiState.sfpReleveOperations,
-                onClick = { onSfpReleveOperationsChange(!uiState.sfpReleveOperations) },
-                label = { Text("كشف العمليات", fontSize = 12.sp, maxLines = 1) }
-            )
-            FilterChip(
-                selected = uiState.sfpAvecSolde,
-                onClick = { onSfpAvecSoldeChange(!uiState.sfpAvecSolde) },
-                label = { Text("إظهار الرصيد", fontSize = 12.sp, maxLines = 1) }
-            )
-            FilterChip(
-                selected = uiState.sfpNotificationAvoir,
-                onClick = { onSfpNotificationAvoirChange(!uiState.sfpNotificationAvoir) },
-                label = { Text("إشعار بالرصيد", fontSize = 12.sp, maxLines = 1) }
-            )
-            FilterChip(
-                selected = uiState.sfpCommandeCarnet,
-                onClick = { onSfpCommandeCarnetChange(!uiState.sfpCommandeCarnet) },
-                label = { Text("طلب دفتر", fontSize = 12.sp, maxLines = 1) }
-            )
-        }
-
-        Text(
-            text = "سبب العملية (Motif)",
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            QUICK_SFP_MOTIFS.forEach { motif ->
-                FilterChip(
-                    selected = uiState.sfpMotif == motif,
-                    onClick = { onSfpMotifChange(motif) },
-                    label = { Text(motif, fontSize = 12.sp, maxLines = 1) }
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun QuickPlaceAndToolsSection(
-    lastSavedPlace: String,
-    currentPlace: String,
-    currentCcp: String,
-    onQuickPlaceClick: (String) -> Unit,
-    onTodayDateClick: () -> Unit,
-    onAutoCalcKeyClick: () -> Unit,
-    onPasteRipClick: () -> Unit
-) {
-    val places = remember(lastSavedPlace) {
-        buildList {
-            if (lastSavedPlace.isNotBlank()) add(lastSavedPlace)
-            PostalCcpUtils.quickAlgerianPlaces.forEach { place ->
-                if (!place.equals(lastSavedPlace, ignoreCase = true)) add(place)
-            }
-        }
-    }
-    val computedRip = remember(currentCcp) { PostalCcpUtils.buildFullRip(currentCcp) }
-
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = "المكان والتاريخ والمفتاح",
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            items(places) { place ->
-                val isSelected = currentPlace.equals(place, ignoreCase = true)
-                FilterChip(
-                    selected = isSelected,
-                    onClick = { onQuickPlaceClick(place) },
-                    leadingIcon = {
-                        Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(14.dp))
-                    },
-                    label = { Text(place, fontSize = 12.sp, maxLines = 1) }
-                )
-            }
-        }
-
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedButton(
-                onClick = onTodayDateClick,
-                shape = RoundedCornerShape(10.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Icon(Icons.Default.Today, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("تاريخ اليوم", fontSize = 12.sp, maxLines = 1)
-            }
-
-            OutlinedButton(
-                onClick = onAutoCalcKeyClick,
-                modifier = Modifier.testTag("btn_auto_calc_key"),
-                shape = RoundedCornerShape(10.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Icon(Icons.Default.Calculate, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("حساب المفتاح", fontSize = 12.sp, maxLines = 1)
-            }
-
-            OutlinedButton(
-                onClick = onPasteRipClick,
-                modifier = Modifier.testTag("btn_paste_rip"),
-                shape = RoundedCornerShape(10.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("لصق RIP", fontSize = 12.sp, maxLines = 1)
-            }
-        }
-
-        if (computedRip != null) {
-            Text(
-                text = "RIP: $computedRip",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
 private fun ManualEditSection(
     uiState: DocumentSimulatorUiState,
-    onAutoCalcKeyClick: () -> Unit,
     onChequeNumberChange: (String) -> Unit,
     onChequeAmountChange: (String) -> Unit,
     onChequeBeneficiaryChange: (String) -> Unit,
@@ -902,12 +1037,11 @@ private fun ManualEditSection(
                     shape = RoundedCornerShape(10.dp)
                 )
 
-                CcpAndKeyRow(
+                CcpAndKeyManualRow(
                     ccp = uiState.chequeCcp,
                     key = uiState.chequeKey,
                     onCcpChange = onChequeCcpChange,
-                    onKeyChange = onChequeKeyChange,
-                    onAutoCalcKeyClick = onAutoCalcKeyClick
+                    onKeyChange = onChequeKeyChange
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
@@ -974,12 +1108,11 @@ private fun ManualEditSection(
                     }
                 )
 
-                CcpAndKeyRow(
+                CcpAndKeyManualRow(
                     ccp = uiState.sfpCcp,
                     key = uiState.sfpKey,
                     onCcpChange = onSfpCcpChange,
-                    onKeyChange = onSfpKeyChange,
-                    onAutoCalcKeyClick = onAutoCalcKeyClick
+                    onKeyChange = onSfpKeyChange
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
@@ -1087,12 +1220,6 @@ private fun ManualEditSection(
                     }
                 }
 
-                Text(
-                    text = "بطاقة الهوية (P.I - اختياري للمراجعة)",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -1158,12 +1285,11 @@ private fun ManualEditSection(
 }
 
 @Composable
-private fun CcpAndKeyRow(
+private fun CcpAndKeyManualRow(
     ccp: String,
     key: String,
     onCcpChange: (String) -> Unit,
-    onKeyChange: (String) -> Unit,
-    onAutoCalcKeyClick: () -> Unit
+    onKeyChange: (String) -> Unit
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
         OutlinedTextField(
@@ -1181,17 +1307,8 @@ private fun CcpAndKeyRow(
             label = { Text("المفتاح") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             singleLine = true,
-            modifier = Modifier.weight(1.2f),
-            shape = RoundedCornerShape(10.dp),
-            trailingIcon = {
-                IconButton(onClick = onAutoCalcKeyClick) {
-                    Icon(
-                        imageVector = Icons.Default.Calculate,
-                        contentDescription = "حساب المفتاح",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(10.dp)
         )
     }
 }
@@ -1199,11 +1316,4 @@ private fun CcpAndKeyRow(
 private fun copyToClipboard(context: Context, label: String, text: String) {
     val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
     cb.setPrimaryClip(ClipData.newPlainText(label, text))
-}
-
-private fun readClipboardText(context: Context): String? {
-    val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return null
-    val clip = cb.primaryClip ?: return null
-    if (clip.itemCount == 0) return null
-    return clip.getItemAt(0)?.coerceToText(context)?.toString()
 }

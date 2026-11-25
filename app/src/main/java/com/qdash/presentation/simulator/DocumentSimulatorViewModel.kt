@@ -79,6 +79,9 @@ data class DocumentSimulatorUiState(
     val errors: Map<String, String> = emptyMap(),
     val warnings: List<String> = emptyList(),
     val completionPercentage: Float = 0f,
+    val missingFieldLabels: List<String> = emptyList(),
+    // Fullscreen rotated editor state
+    val isFullscreenViewerOpen: Boolean = false,
     // Panels & navigation context
     val activePanel: SimulatorActivePanel = SimulatorActivePanel.NONE,
     val showReadyAmounts: Boolean = false,
@@ -381,6 +384,10 @@ class DocumentSimulatorViewModel(
         }
     }
 
+    fun setFullscreenViewerOpen(open: Boolean) {
+        _uiState.update { it.copy(isFullscreenViewerOpen = open) }
+    }
+
     fun toggleReadyAmounts(show: Boolean) {
         _uiState.update { it.copy(showReadyAmounts = show) }
     }
@@ -417,7 +424,12 @@ class DocumentSimulatorViewModel(
     private fun validateCurrentDocument() {
         val result = DocumentSimulatorValidator.validate(_uiState.value)
         _uiState.update {
-            it.copy(errors = result.errors, warnings = result.warnings, completionPercentage = result.completionPercentage)
+            it.copy(
+                errors = result.errors,
+                warnings = result.warnings,
+                completionPercentage = result.completionPercentage,
+                missingFieldLabels = result.missingFieldLabels
+            )
         }
     }
 

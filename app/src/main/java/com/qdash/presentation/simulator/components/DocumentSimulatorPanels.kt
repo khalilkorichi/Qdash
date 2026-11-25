@@ -2,7 +2,6 @@ package com.qdash.presentation.simulator.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,13 +16,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.qdash.core.utils.AmountConversionEngine
 import com.qdash.presentation.simulator.DocumentSimulatorUiState
 import com.qdash.presentation.simulator.DocumentType
 import com.qdash.ui.designsystem.tokens.ColorTokens
@@ -33,169 +30,6 @@ private fun isDarkSimulatorTheme(): Boolean =
     MaterialTheme.colorScheme.background.luminance() < 0.5f
 
 private fun ltrIsolate(text: String): String = "\u2066$text\u2069"
-
-private fun formatGroupedInteger(value: Int): String {
-    val raw = value.toString()
-    val sb = StringBuilder()
-    var count = 0
-    for (i in raw.length - 1 downTo 0) {
-        sb.append(raw[i])
-        count++
-        if (count % 3 == 0 && i > 0) sb.append('.')
-    }
-    return sb.reverse().toString()
-}
-
-@Composable
-fun AmountCheatSheetPanel(
-    onAmountSelected: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val isDark = isDarkSimulatorTheme()
-    val amounts = listOf(
-        1_000.0,
-        2_000.0,
-        5_000.0,
-        10_000.0,
-        20_000.0,
-        30_000.0,
-        50_000.0,
-        100_000.0,
-        150_000.0,
-        200_000.0
-    )
-
-    val cardBg = if (isDark) ColorTokens.CardDark else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-    val headerBg = if (isDark) ColorTokens.PosteYellow.copy(alpha = 0.14f) else ColorTokens.PosteBlue.copy(alpha = 0.08f)
-    val headerBorder = if (isDark) ColorTokens.PosteYellow.copy(alpha = 0.28f) else ColorTokens.PosteBlue.copy(alpha = 0.18f)
-    val headerTextColor = if (isDark) ColorTokens.PosteYellow else ColorTokens.PosteBlue
-    val formattedAmountColor = if (isDark) ColorTokens.InfoDark else ColorTokens.PosteBlue
-    val colloquialColor = if (isDark) ColorTokens.SuccessDark else ColorTokens.SfpBeneficiaryGreen
-
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag("amount_cheat_sheet_panel"),
-        color = cardBg,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = "اضغط على أي مبلغ لتعبئته تلقائياً في الوثيقة",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 2.dp)
-            )
-
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = headerBg,
-                border = BorderStroke(1.dp, headerBorder),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "المبلغ",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                        color = headerTextColor,
-                        modifier = Modifier.weight(0.9f),
-                        textAlign = TextAlign.Start,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = "مضاد للتزوير",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                        color = headerTextColor,
-                        modifier = Modifier.weight(1.15f),
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = "بالعامية",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                        color = headerTextColor,
-                        modifier = Modifier.weight(1.15f),
-                        textAlign = TextAlign.End,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            amounts.forEachIndexed { index, value ->
-                val intValue = value.toInt()
-                val formatted = AmountConversionEngine.formatAmountToPostal(value)
-                val colloquial = AmountConversionEngine.getAlgerianColloquialWords(value)
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { onAmountSelected(intValue.toString()) }
-                        .padding(horizontal = 8.dp, vertical = 9.dp)
-                        .testTag("cheat_sheet_row_$intValue"),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = ltrIsolate("${formatGroupedInteger(intValue)} DA"),
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(0.9f),
-                        textAlign = TextAlign.Start,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = ltrIsolate("#$formatted#"),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            color = formattedAmountColor
-                        ),
-                        modifier = Modifier.weight(1.15f),
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = colloquial,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = colloquialColor,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        modifier = Modifier.weight(1.15f),
-                        textAlign = TextAlign.End,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                if (index < amounts.size - 1) {
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                        thickness = 0.5.dp
-                    )
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun EducationalGuidePanel(
@@ -222,7 +56,7 @@ fun EducationalGuidePanel(
         4 -> if (isCheque) "5. تاريخ التحرير وصلاحية الصك" else "5. عنوان المرسل الكامل"
         5 -> if (isCheque) "6. التوقيع والمنطقة البيضاء (Série AP)" else "6. معلومات المستفيد (3)"
         6 -> "7. عنوان المستفيد"
-        7 -> "8. السبب وتاريخ الاستمارة"
+        7 -> "8. السبب وتاريخ شاك سوكور"
         8 -> "9. الإمضاء وإطار مكتب البريد (P.I)"
         else -> ""
     }

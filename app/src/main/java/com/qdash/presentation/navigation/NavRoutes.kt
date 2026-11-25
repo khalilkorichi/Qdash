@@ -73,11 +73,11 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
     object AiVoice : Screen("ai_voice", "الإدخال الصوتي", Icons.Default.Mic)
 
     // Document Simulator Features
-    object DocumentSimulatorEntry : Screen("document_simulator_entry", "المساعد البريدي المالي", Icons.Default.Description)
-    object DocumentSimulator : Screen("document_simulator/{docType}", "محاكي الوثائق البريدية") {
+    object DocumentSimulatorEntry : Screen("document_simulator_entry", "المحاكي البريدي", Icons.Default.Description)
+    object DocumentSimulator : Screen("document_simulator/{docType}", "محاكي الصك وشاك سوكور") {
         fun createRoute(docType: String) = "document_simulator/$docType"
     }
-    object PostalProfiles : Screen("postal_profiles", "ملفات الحسابات البريدية", Icons.Default.People)
+    object PostalProfiles : Screen("postal_profiles", "الحسابات البريدية", Icons.Default.AccountBalanceWallet)
     object CreateEditPostalProfile : Screen("create_edit_postal_profile?profileId={profileId}", "ملف حساب بريدي") {
         fun createRoute(profileId: Long? = null) = "create_edit_postal_profile" + if (profileId != null) "?profileId=$profileId" else ""
     }

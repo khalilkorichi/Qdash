@@ -14,12 +14,14 @@ object DocumentSimulatorValidator {
     data class ValidationResult(
         val errors: Map<String, String>,
         val warnings: List<String>,
-        val completionPercentage: Float
+        val completionPercentage: Float,
+        val missingFieldLabels: List<String> = emptyList()
     )
 
     fun validate(state: DocumentSimulatorUiState): ValidationResult {
         val errMap = mutableMapOf<String, String>()
         val warnings = mutableListOf<String>()
+        val missingLabels = mutableListOf<String>()
         var filledCount = 0
         var totalCount = 0
 
@@ -29,10 +31,12 @@ object DocumentSimulatorValidator {
             // 1. Amount
             if (state.chequeAmount.isBlank()) {
                 errMap["chequeAmount"] = "المبلغ مطلوب بالأرقام"
+                missingLabels.add("المبلغ")
             } else {
                 val amt = parseAmount(state.chequeAmount)
                 if (amt == null || amt <= 0) {
                     errMap["chequeAmount"] = "أدخل مبلغاً صحيحاً أكبر من الصفر"
+                    missingLabels.add("المبلغ")
                 } else {
                     filledCount++
                     if (state.chequeAmount.contains(Regex("[.,]")) && !state.chequeAmount.endsWith("00")) {
@@ -44,6 +48,7 @@ object DocumentSimulatorValidator {
             // 2. Beneficiary
             if (state.chequeBeneficiary.isBlank()) {
                 errMap["chequeBeneficiary"] = "اسم المستفيد مطلوب (لأمر)"
+                missingLabels.add("المستفيد")
             } else {
                 filledCount++
             }
@@ -51,6 +56,7 @@ object DocumentSimulatorValidator {
             // 3. CCP Account
             if (state.chequeCcp.isBlank()) {
                 errMap["chequeCcp"] = "رقم الحساب البريدي (CCP) مطلوب"
+                missingLabels.add("رقم CCP")
             } else {
                 filledCount++
             }
@@ -58,8 +64,10 @@ object DocumentSimulatorValidator {
             // 4. Clé
             if (state.chequeKey.isBlank()) {
                 errMap["chequeKey"] = "المفتاح مطلوب"
+                missingLabels.add("المفتاح")
             } else if (state.chequeKey.length != 2) {
                 errMap["chequeKey"] = "المفتاح يتكون من رقمين"
+                missingLabels.add("المفتاح")
             } else {
                 filledCount++
                 addCcpKeyWarningIfMismatch(state.chequeCcp, state.chequeKey, warnings)
@@ -68,6 +76,7 @@ object DocumentSimulatorValidator {
             // 5. Place
             if (state.chequePlace.isBlank()) {
                 errMap["chequePlace"] = "المكان مطلوب"
+                missingLabels.add("المكان")
             } else {
                 filledCount++
             }
@@ -75,12 +84,13 @@ object DocumentSimulatorValidator {
             // 6. Date
             if (state.chequeDate.isBlank()) {
                 errMap["chequeDate"] = "التاريخ مطلوب"
+                missingLabels.add("التاريخ")
             } else {
                 filledCount++
             }
 
         } else {
-            // SFP 01
+            // Chèque Secours (SFP 01)
             val requiresBeneficiary = state.sfpOperation == SfpOperationType.VERSEMENT ||
                 state.sfpOperation == SfpOperationType.VIREMENT
             totalCount = if (requiresBeneficiary) 9 else 7
@@ -91,6 +101,7 @@ object DocumentSimulatorValidator {
             // 2. CCP
             if (state.sfpCcp.isBlank()) {
                 errMap["sfpCcp"] = "رقم الحساب مطلوب"
+                missingLabels.add("رقم CCP")
             } else {
                 filledCount++
             }
@@ -98,8 +109,10 @@ object DocumentSimulatorValidator {
             // 3. Key
             if (state.sfpKey.isBlank()) {
                 errMap["sfpKey"] = "المفتاح مطلوب"
+                missingLabels.add("المفتاح")
             } else if (state.sfpKey.length != 2) {
                 errMap["sfpKey"] = "المفتاح يتكون من رقمين"
+                missingLabels.add("المفتاح")
             } else {
                 filledCount++
                 addCcpKeyWarningIfMismatch(state.sfpCcp, state.sfpKey, warnings)
@@ -108,10 +121,12 @@ object DocumentSimulatorValidator {
             // 4. Amount
             if (state.sfpAmount.isBlank()) {
                 errMap["sfpAmount"] = "المبلغ مطلوب"
+                missingLabels.add("المبلغ")
             } else {
                 val amt = parseAmount(state.sfpAmount)
                 if (amt == null || amt <= 0) {
                     errMap["sfpAmount"] = "أدخل مبلغاً صحيحاً أكبر من الصفر"
+                    missingLabels.add("المبلغ")
                 } else {
                     filledCount++
                 }
@@ -120,6 +135,7 @@ object DocumentSimulatorValidator {
             // 5. Sender Name
             if (state.sfpSenderNom.isBlank() || state.sfpSenderPrenom.isBlank()) {
                 errMap["sfpSenderName"] = "معلومات المرسل (الاسم واللقب) مطلوبة"
+                missingLabels.add("اسم المرسل")
             } else {
                 filledCount++
             }
@@ -127,6 +143,7 @@ object DocumentSimulatorValidator {
             // 6. Sender Address
             if (state.sfpSenderAddress.isBlank()) {
                 errMap["sfpSenderAddress"] = "عنوان المرسل مطلوب"
+                missingLabels.add("عنوان المرسل")
             } else {
                 filledCount++
             }
@@ -134,6 +151,7 @@ object DocumentSimulatorValidator {
             // 7. Place / Date
             if (state.sfpPlace.isBlank() || state.sfpDate.isBlank()) {
                 errMap["sfpPlaceDate"] = "المكان والتاريخ مطلوبان"
+                missingLabels.add("المكان والتاريخ")
             } else {
                 filledCount++
             }
@@ -142,12 +160,14 @@ object DocumentSimulatorValidator {
             if (requiresBeneficiary) {
                 if (state.sfpBeneficiaryNom.isBlank() || state.sfpBeneficiaryPrenom.isBlank()) {
                     errMap["sfpBeneficiaryName"] = "معلومات المستفيد (المرسل إليه) مطلوبة"
+                    missingLabels.add("اسم المستفيد")
                 } else {
                     filledCount++
                 }
 
                 if (state.sfpBeneficiaryAddress.isBlank()) {
                     warnings.add("تنبيه: يفضل ملء عنوان المستفيد لتسهيل مطابقة الحوالة.")
+                    missingLabels.add("عنوان المستفيد")
                 } else {
                     filledCount++
                 }
@@ -162,7 +182,8 @@ object DocumentSimulatorValidator {
         return ValidationResult(
             errors = errMap,
             warnings = warnings,
-            completionPercentage = percentage
+            completionPercentage = percentage,
+            missingFieldLabels = missingLabels
         )
     }
 

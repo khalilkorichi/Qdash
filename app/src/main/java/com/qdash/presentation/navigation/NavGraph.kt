@@ -660,6 +660,11 @@ internal fun FinTrackNavGraph(
             }
             DocumentSimulatorScreen(
                 viewModel = simulatorViewModel,
+                onOpenPostalProfiles = {
+                    navController.navigate(Screen.PostalProfiles.route) {
+                        launchSingleTop = true
+                    }
+                },
                 onBack = { navController.popBackStack() }
             )
         }
@@ -673,6 +678,12 @@ internal fun FinTrackNavGraph(
                 },
                 onEditProfile = { id ->
                     navController.navigate(Screen.CreateEditPostalProfile.createRoute(id))
+                },
+                onSelectDocType = { docType ->
+                    navController.navigate(Screen.DocumentSimulator.createRoute(docType.name)) {
+                        popUpTo(Screen.DocumentSimulatorEntry.route) { inclusive = false }
+                        launchSingleTop = true
+                    }
                 },
                 onBack = { navController.popBackStack() }
             )
