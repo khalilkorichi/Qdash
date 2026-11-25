@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -41,9 +42,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import com.qdash.core.utils.AmountConversionEngine
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.qdash.core.utils.PostalAmountSuggester
 import com.qdash.core.utils.PostalCcpUtils
 import com.qdash.domain.model.PostalProfile
@@ -56,13 +57,13 @@ import com.qdash.ui.designsystem.components.FormGrid
 import com.qdash.ui.designsystem.tokens.ColorTokens
 
 /**
- * Full-screen rotated landscape viewer and interactive editor for both Check and Chèque Secours.
- * Supports 2-finger pinch-to-zoom, pan, double-tap reset, and opens a floating edit card on the
- * opposite vertical side of the tapped document field so the live ink remains visible.
+ * Edge-to-edge full-screen rotated landscape viewer and interactive editor for both Check
+ * and Chèque Secours. Rendered directly inside the Activity window (never inside a portrait-locked
+ * Dialog window) so rotating to landscape expands both documents smoothly across the full screen.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun FullscreenDocumentEditorDialog(
+fun FullscreenDocumentEditorOverlay(
     uiState: DocumentSimulatorUiState,
     amountInWords: String?,
     onDismiss: () -> Unit,
@@ -76,7 +77,6 @@ fun FullscreenDocumentEditorDialog(
     onChequeKeyChange: (String) -> Unit,
     onChequePlaceChange: (String) -> Unit,
     onChequeDateChange: (String) -> Unit,
-    onChequeNumberChange: (String) -> Unit,
     onChequeHolderChange: (String) -> Unit,
     onChequeMoiMemeClick: () -> Unit,
     // Chèque Secours (SFP 01) callbacks
@@ -102,11 +102,23 @@ fun FullscreenDocumentEditorDialog(
     onSfpIdDescriptionChange: (String) -> Unit
 ) {
     val context = LocalContext.current
+    BackHandler(enabled = true, onBack = onDismiss)
+
     DisposableEffect(context) {
         val activity = context.findActivity()
         val previousOrientation = activity?.requestedOrientation ?: ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        val window = activity?.window
+        val controller = window?.let { WindowCompat.getInsetsController(it, it.decorView) }
+        runCatching {
+            controller?.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller?.hide(WindowInsetsCompat.Type.statusBars())
+        }
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         onDispose {
+            runCatching {
+                controller?.show(WindowInsetsCompat.Type.statusBars())
+            }
             activity?.requestedOrientation = previousOrientation
         }
     }
@@ -121,277 +133,294 @@ fun FullscreenDocumentEditorDialog(
     var activeEditorField by remember { mutableStateOf<String?>(null) }
     var zoomScale by remember { mutableFloatStateOf(1f) }
     var panOffset by remember { mutableStateOf(Offset.Zero) }
-    val scrollState = rememberScrollState()
+    val sfpScrollState = rememberScrollState()
 
     val isTopFieldSelected = remember(activeEditorField) {
         isDocumentTopHalfField(activeEditorField)
     }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            dismissOnBackPress = true,
-            dismissOnClickOutside = false
-        )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0A0F1A))
+            .safeDrawingPadding()
+            .imePadding()
+            .testTag(if (isCheque) "cheque_fullscreen_dialog" else "sfp01_fullscreen_dialog")
     ) {
-        Surface(
+        // Non-racing backdrop to clear active field editor when tapping outside the document fields
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .testTag(if (isCheque) "cheque_fullscreen_dialog" else "sfp01_fullscreen_dialog"),
-            color = Color(0xFF0A0F1A)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = {
+                            if (activeEditorField != null) {
+                                activeEditorField = null
+                            }
+                        }
+                    )
+                }
+        )
+
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onDoubleTap = {
+                            if (zoomScale > 1.05f) {
+                                zoomScale = 1f
+                                panOffset = Offset.Zero
+                            } else {
+                                zoomScale = 1.65f
+                            }
+                        }
+                    )
+                }
+                .twoFingerPinchZoom(
+                    getScale = { zoomScale },
+                    getPan = { panOffset },
+                    onTransform = { newScale, newPan ->
+                        zoomScale = newScale
+                        panOffset = newPan
+                    },
+                    minScale = 1f,
+                    maxScale = 3.5f
+                )
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                // Full-width interactive document area with 2-finger pinch-zoom & pan
+            if (isCheque) {
+                // Proportional sizing so the Check stretches cleanly across full landscape width without overflow or top gap
+                val targetCheckWidth = minOf(
+                    (maxWidth - 24.dp).coerceAtLeast(280.dp),
+                    ((maxHeight - 24.dp).coerceAtLeast(180.dp) * 2.28f),
+                    860.dp
+                )
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onDoubleTap = {
-                                    if (zoomScale > 1.05f) {
-                                        zoomScale = 1f
-                                        panOffset = Offset.Zero
-                                    } else {
-                                        zoomScale = 1.65f
-                                    }
-                                },
-                                onTap = {
-                                    if (activeEditorField != null) {
-                                        activeEditorField = null
-                                    }
-                                }
-                            )
-                        }
-                        .twoFingerPinchZoom(
-                            getScale = { zoomScale },
-                            getPan = { panOffset },
-                            onTransform = { newScale, newPan ->
-                                zoomScale = newScale
-                                panOffset = newPan
-                            },
-                            minScale = 1f,
-                            maxScale = 3f
-                        ),
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Box(
+                    ChequeVisualView(
+                        chequeAmount = uiState.chequeAmount,
+                        chequeBeneficiary = uiState.chequeBeneficiary,
+                        chequePlace = uiState.chequePlace,
+                        chequeDate = uiState.chequeDate,
+                        chequeCcp = uiState.chequeCcp,
+                        chequeKey = uiState.chequeKey,
+                        onFieldTap = { tapped ->
+                            onFieldFocus(tapped)
+                            activeEditorField = tapped
+                        },
+                        focusedField = activeEditorField ?: uiState.focusedField,
+                        chequeNumber = uiState.chequeNumber,
+                        accountHolderName = uiState.chequeAccountHolder,
+                        accountHolderAddress = uiState.chequeAccountAddress,
+                        amountInWords = amountInWords,
+                        isFrenchWords = isFrenchWords,
+                        onToggleWordsLanguage = onToggleWordsLanguage,
+                        ripCode = PostalCcpUtils.buildFullRip(uiState.chequeCcp).orEmpty(),
                         modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(scrollState, enabled = zoomScale <= 1.05f)
-                            .padding(horizontal = 24.dp, vertical = 14.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        val docModifier = Modifier
-                            .widthIn(max = 780.dp)
-                            .fillMaxWidth()
+                            .width(targetCheckWidth)
                             .graphicsLayer(
                                 scaleX = zoomScale,
                                 scaleY = zoomScale,
                                 translationX = panOffset.x,
                                 translationY = panOffset.y
                             )
-
-                        if (isCheque) {
-                            ChequeVisualView(
-                                chequeAmount = uiState.chequeAmount,
-                                chequeBeneficiary = uiState.chequeBeneficiary,
-                                chequePlace = uiState.chequePlace,
-                                chequeDate = uiState.chequeDate,
-                                chequeCcp = uiState.chequeCcp,
-                                chequeKey = uiState.chequeKey,
-                                onFieldTap = { tapped ->
-                                    onFieldFocus(tapped)
-                                    activeEditorField = tapped
-                                },
-                                focusedField = activeEditorField ?: uiState.focusedField,
-                                chequeNumber = uiState.chequeNumber,
-                                accountHolderName = uiState.chequeAccountHolder,
-                                accountHolderAddress = uiState.chequeAccountAddress,
-                                amountInWords = amountInWords,
-                                isFrenchWords = isFrenchWords,
-                                onToggleWordsLanguage = onToggleWordsLanguage,
-                                ripCode = PostalCcpUtils.buildFullRip(uiState.chequeCcp).orEmpty(),
-                                modifier = docModifier
-                            )
-                        } else {
-                            FormGrid(
-                                uiState = uiState,
-                                onCcpChange = onSfpCcpChange,
-                                onKeyChange = onSfpKeyChange,
-                                onAmountChange = onSfpAmountChange,
-                                onSenderNomChange = onSfpSenderNomChange,
-                                onSenderPrenomChange = onSfpSenderPrenomChange,
-                                onSenderAddressChange = onSfpSenderAddressChange,
-                                onSenderPhoneChange = {},
-                                onBeneficiaryNomChange = onSfpBeneficiaryNomChange,
-                                onBeneficiaryPrenomChange = onSfpBeneficiaryPrenomChange,
-                                onBeneficiaryAddressChange = onSfpBeneficiaryAddressChange,
-                                onBeneficiaryPhoneChange = {},
-                                onPlaceChange = onSfpPlaceChange,
-                                onDateChange = onSfpDateChange,
-                                onIdDescriptionChange = onSfpIdDescriptionChange,
-                                onOperationChange = onSfpOperationChange,
-                                onJustificatifCcpChange = {},
-                                onAvisCreditChange = {},
-                                onCarnetChequesChange = {},
-                                onCodeConfidentielChange = {},
-                                onRipChange = {},
-                                focusedField = activeEditorField ?: uiState.focusedField,
-                                onFieldFocus = { tapped ->
-                                    onFieldFocus(tapped)
-                                    if (tapped != null) activeEditorField = tapped
-                                },
-                                onMotifChange = onSfpMotifChange,
-                                sfpReleveOperations = uiState.sfpReleveOperations,
-                                onReleveOperationsChange = onSfpReleveOperationsChange,
-                                sfpAvecSolde = uiState.sfpAvecSolde,
-                                onAvecSoldeChange = onSfpAvecSoldeChange,
-                                sfpNotificationAvoir = uiState.sfpNotificationAvoir,
-                                onNotificationAvoirChange = onSfpNotificationAvoirChange,
-                                sfpCommandeCarnet = uiState.sfpCommandeCarnet,
-                                onCommandeCarnetChange = onSfpCommandeCarnetChange,
-                                sfpReleveDu = uiState.sfpReleveDu,
-                                onReleveDuChange = onSfpReleveDuChange,
-                                sfpReleveAu = uiState.sfpReleveAu,
-                                onReleveAuChange = onSfpReleveAuChange,
-                                sfpPiType = uiState.sfpPiType,
-                                sfpPiNumero = uiState.sfpPiNumero,
-                                sfpPiDelivreLe = uiState.sfpPiDelivreLe,
-                                sfpPiPar = uiState.sfpPiPar,
-                                amountInWords = amountInWords,
-                                isFrenchWords = isFrenchWords,
-                                onToggleWordsLanguage = onToggleWordsLanguage,
-                                isPreviewReadOnly = true,
-                                modifier = docModifier
-                            )
-                        }
-                    }
+                    )
                 }
-
-                // Very translucent floating corner actions (Close, AR/FR, Reset Zoom)
-                Row(
+            } else {
+                // Full landscape width FormGrid for SFP 01 / Chèque Secours with smooth vertical scrolling
+                val targetFormWidth = (maxWidth - 36.dp).coerceIn(300.dp, 820.dp)
+                Box(
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .fillMaxSize()
+                        .verticalScroll(sfpScrollState, enabled = zoomScale <= 1.05f)
+                        .padding(horizontal = 18.dp, vertical = 12.dp),
+                    contentAlignment = Alignment.TopCenter
                 ) {
-                    if (zoomScale > 1.05f || panOffset != Offset.Zero) {
-                        Surface(
-                            onClick = {
-                                zoomScale = 1f
-                                panOffset = Offset.Zero
-                            },
-                            shape = CircleShape,
-                            color = Color.Black.copy(alpha = 0.28f),
-                            border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.30f)),
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.CenterFocusStrong,
-                                    contentDescription = "إعادة ضبط التكبير",
-                                    tint = ColorTokens.PosteYellow.copy(alpha = 0.9f),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    Surface(
-                        onClick = onToggleWordsLanguage,
-                        shape = RoundedCornerShape(50),
-                        color = Color.Black.copy(alpha = 0.28f),
-                        border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.30f))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Translate,
-                                contentDescription = "تبديل لغة التفقيط",
-                                tint = ColorTokens.PosteYellow.copy(alpha = 0.9f),
-                                modifier = Modifier.size(15.dp)
-                            )
-                            Text(
-                                text = if (isFrenchWords) "FR" else "AR",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White.copy(alpha = 0.9f)
-                                )
-                            )
-                        }
-                    }
-
-                    Surface(
-                        onClick = onDismiss,
-                        shape = CircleShape,
-                        color = Color.Black.copy(alpha = 0.32f),
-                        border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.35f)),
+                    FormGrid(
+                        uiState = uiState,
+                        onCcpChange = onSfpCcpChange,
+                        onKeyChange = onSfpKeyChange,
+                        onAmountChange = onSfpAmountChange,
+                        onSenderNomChange = onSfpSenderNomChange,
+                        onSenderPrenomChange = onSfpSenderPrenomChange,
+                        onSenderAddressChange = onSfpSenderAddressChange,
+                        onSenderPhoneChange = {},
+                        onBeneficiaryNomChange = onSfpBeneficiaryNomChange,
+                        onBeneficiaryPrenomChange = onSfpBeneficiaryPrenomChange,
+                        onBeneficiaryAddressChange = onSfpBeneficiaryAddressChange,
+                        onBeneficiaryPhoneChange = {},
+                        onPlaceChange = onSfpPlaceChange,
+                        onDateChange = onSfpDateChange,
+                        onIdDescriptionChange = onSfpIdDescriptionChange,
+                        onOperationChange = onSfpOperationChange,
+                        onJustificatifCcpChange = {},
+                        onAvisCreditChange = {},
+                        onCarnetChequesChange = {},
+                        onCodeConfidentielChange = {},
+                        onRipChange = {},
+                        focusedField = activeEditorField ?: uiState.focusedField,
+                        onFieldFocus = { tapped ->
+                            onFieldFocus(tapped)
+                            if (tapped != null) activeEditorField = tapped
+                        },
+                        onMotifChange = onSfpMotifChange,
+                        sfpReleveOperations = uiState.sfpReleveOperations,
+                        onReleveOperationsChange = onSfpReleveOperationsChange,
+                        sfpAvecSolde = uiState.sfpAvecSolde,
+                        onAvecSoldeChange = onSfpAvecSoldeChange,
+                        sfpNotificationAvoir = uiState.sfpNotificationAvoir,
+                        onNotificationAvoirChange = onSfpNotificationAvoirChange,
+                        sfpCommandeCarnet = uiState.sfpCommandeCarnet,
+                        onCommandeCarnetChange = onSfpCommandeCarnetChange,
+                        sfpReleveDu = uiState.sfpReleveDu,
+                        onReleveDuChange = onSfpReleveDuChange,
+                        sfpReleveAu = uiState.sfpReleveAu,
+                        onReleveAuChange = onSfpReleveAuChange,
+                        sfpPiType = uiState.sfpPiType,
+                        sfpPiNumero = uiState.sfpPiNumero,
+                        sfpPiDelivreLe = uiState.sfpPiDelivreLe,
+                        sfpPiPar = uiState.sfpPiPar,
+                        amountInWords = amountInWords,
+                        isFrenchWords = isFrenchWords,
+                        onToggleWordsLanguage = onToggleWordsLanguage,
+                        isPreviewReadOnly = true,
                         modifier = Modifier
-                            .size(36.dp)
-                            .testTag("fullscreen_close_button")
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "إغلاق المعاينة الكاملة",
-                                tint = Color.White.copy(alpha = 0.9f),
-                                modifier = Modifier.size(18.dp)
+                            .width(targetFormWidth)
+                            .graphicsLayer(
+                                scaleX = zoomScale,
+                                scaleY = zoomScale,
+                                translationX = panOffset.x,
+                                translationY = panOffset.y
                             )
-                        }
-                    }
+                    )
                 }
+            }
+        }
 
-                // Floating Editor Box positioned on the OPPOSITE side of the tapped document field
-                val editorAlignment = if (isTopFieldSelected) Alignment.BottomCenter else Alignment.TopCenter
-                AnimatedVisibility(
-                    visible = activeEditorField != null,
-                    enter = fadeIn() + slideInVertically(initialOffsetY = { if (isTopFieldSelected) it / 2 else -it / 2 }),
-                    exit = fadeOut() + slideOutVertically(targetOffsetY = { if (isTopFieldSelected) it / 2 else -it / 2 }),
-                    modifier = Modifier
-                        .align(editorAlignment)
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+        // Very translucent floating corner actions (Close, AR/FR, Reset Zoom)
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (zoomScale > 1.05f || panOffset != Offset.Zero) {
+                Surface(
+                    onClick = {
+                        zoomScale = 1f
+                        panOffset = Offset.Zero
+                    },
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.28f),
+                    border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.30f)),
+                    modifier = Modifier.size(36.dp)
                 ) {
-                    activeEditorField?.let { field ->
-                        FloatingOppositeFieldEditorCard(
-                            fieldName = field,
-                            uiState = uiState,
-                            onClose = { activeEditorField = null },
-                            onSelectProfile = onSelectProfile,
-                            onChequeAmountChange = onChequeAmountChange,
-                            onChequeBeneficiaryChange = onChequeBeneficiaryChange,
-                            onChequeCcpChange = onChequeCcpChange,
-                            onChequeKeyChange = onChequeKeyChange,
-                            onChequePlaceChange = onChequePlaceChange,
-                            onChequeDateChange = onChequeDateChange,
-                            onChequeNumberChange = onChequeNumberChange,
-                            onChequeHolderChange = onChequeHolderChange,
-                            onChequeMoiMemeClick = onChequeMoiMemeClick,
-                            onSfpCcpChange = onSfpCcpChange,
-                            onSfpKeyChange = onSfpKeyChange,
-                            onSfpAmountChange = onSfpAmountChange,
-                            onSfpOperationChange = onSfpOperationChange,
-                            onSfpReleveOperationsChange = onSfpReleveOperationsChange,
-                            onSfpAvecSoldeChange = onSfpAvecSoldeChange,
-                            onSfpNotificationAvoirChange = onSfpNotificationAvoirChange,
-                            onSfpCommandeCarnetChange = onSfpCommandeCarnetChange,
-                            onSfpSenderNomChange = onSfpSenderNomChange,
-                            onSfpSenderPrenomChange = onSfpSenderPrenomChange,
-                            onSfpSenderAddressChange = onSfpSenderAddressChange,
-                            onSfpBeneficiaryNomChange = onSfpBeneficiaryNomChange,
-                            onSfpBeneficiaryPrenomChange = onSfpBeneficiaryPrenomChange,
-                            onSfpBeneficiaryAddressChange = onSfpBeneficiaryAddressChange,
-                            onSfpMotifChange = onSfpMotifChange,
-                            onSfpPlaceChange = onSfpPlaceChange,
-                            onSfpDateChange = onSfpDateChange,
-                            onSfpIdDescriptionChange = onSfpIdDescriptionChange
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.CenterFocusStrong,
+                            contentDescription = "إعادة ضبط التكبير",
+                            tint = ColorTokens.PosteYellow.copy(alpha = 0.9f),
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
+            }
+
+            Surface(
+                onClick = onToggleWordsLanguage,
+                shape = RoundedCornerShape(50),
+                color = Color.Black.copy(alpha = 0.28f),
+                border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.30f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Translate,
+                        contentDescription = "تبديل لغة التفقيط",
+                        tint = ColorTokens.PosteYellow.copy(alpha = 0.9f),
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Text(
+                        text = if (isFrenchWords) "FR" else "AR",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White.copy(alpha = 0.9f)
+                        )
+                    )
+                }
+            }
+
+            Surface(
+                onClick = onDismiss,
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.32f),
+                border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.35f)),
+                modifier = Modifier
+                    .size(36.dp)
+                    .testTag("fullscreen_close_button")
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "إغلاق المعاينة الكاملة",
+                        tint = Color.White.copy(alpha = 0.9f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+
+        // Floating Editor Box positioned on the OPPOSITE side of the tapped document field
+        val editorAlignment = if (isTopFieldSelected) Alignment.BottomCenter else Alignment.TopCenter
+        AnimatedVisibility(
+            visible = activeEditorField != null,
+            enter = fadeIn() + slideInVertically(initialOffsetY = { if (isTopFieldSelected) it / 2 else -it / 2 }),
+            exit = fadeOut() + slideOutVertically(targetOffsetY = { if (isTopFieldSelected) it / 2 else -it / 2 }),
+            modifier = Modifier
+                .align(editorAlignment)
+                .padding(horizontal = 16.dp, vertical = 10.dp)
+        ) {
+            activeEditorField?.let { field ->
+                FloatingOppositeFieldEditorCard(
+                    fieldName = field,
+                    uiState = uiState,
+                    onClose = { activeEditorField = null },
+                    onSelectProfile = onSelectProfile,
+                    onChequeAmountChange = onChequeAmountChange,
+                    onChequeBeneficiaryChange = onChequeBeneficiaryChange,
+                    onChequeCcpChange = onChequeCcpChange,
+                    onChequeKeyChange = onChequeKeyChange,
+                    onChequePlaceChange = onChequePlaceChange,
+                    onChequeDateChange = onChequeDateChange,
+                    onChequeHolderChange = onChequeHolderChange,
+                    onChequeMoiMemeClick = onChequeMoiMemeClick,
+                    onSfpCcpChange = onSfpCcpChange,
+                    onSfpKeyChange = onSfpKeyChange,
+                    onSfpAmountChange = onSfpAmountChange,
+                    onSfpOperationChange = onSfpOperationChange,
+                    onSfpReleveOperationsChange = onSfpReleveOperationsChange,
+                    onSfpAvecSoldeChange = onSfpAvecSoldeChange,
+                    onSfpNotificationAvoirChange = onSfpNotificationAvoirChange,
+                    onSfpCommandeCarnetChange = onSfpCommandeCarnetChange,
+                    onSfpSenderNomChange = onSfpSenderNomChange,
+                    onSfpSenderPrenomChange = onSfpSenderPrenomChange,
+                    onSfpSenderAddressChange = onSfpSenderAddressChange,
+                    onSfpBeneficiaryNomChange = onSfpBeneficiaryNomChange,
+                    onSfpBeneficiaryPrenomChange = onSfpBeneficiaryPrenomChange,
+                    onSfpBeneficiaryAddressChange = onSfpBeneficiaryAddressChange,
+                    onSfpMotifChange = onSfpMotifChange,
+                    onSfpPlaceChange = onSfpPlaceChange,
+                    onSfpDateChange = onSfpDateChange,
+                    onSfpIdDescriptionChange = onSfpIdDescriptionChange
+                )
             }
         }
     }
@@ -409,7 +438,6 @@ private fun FloatingOppositeFieldEditorCard(
     onChequeKeyChange: (String) -> Unit,
     onChequePlaceChange: (String) -> Unit,
     onChequeDateChange: (String) -> Unit,
-    onChequeNumberChange: (String) -> Unit,
     onChequeHolderChange: (String) -> Unit,
     onChequeMoiMemeClick: () -> Unit,
     onSfpCcpChange: (String) -> Unit,
@@ -623,18 +651,6 @@ private fun FloatingOppositeFieldEditorCard(
                     }
                 }
 
-                "chequeNumber" -> {
-                    OutlinedTextField(
-                        value = uiState.chequeNumber,
-                        onValueChange = onChequeNumberChange,
-                        label = { Text("رقم الصك (Chèque n°)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                }
-
                 "chequePlace" -> {
                     OutlinedTextField(
                         value = uiState.chequePlace,
@@ -777,7 +793,6 @@ private fun FloatingOppositeFieldEditorCard(
 
 internal fun isDocumentTopHalfField(fieldName: String?): Boolean {
     return fieldName in setOf(
-        "chequeNumber",
         "chequeAmount",
         "sfpCcp",
         "sfpKey",
@@ -793,7 +808,6 @@ internal fun isDocumentTopHalfField(fieldName: String?): Boolean {
 
 private fun resolveFloatingFieldTitle(fieldName: String): String {
     return when (fieldName) {
-        "chequeNumber" -> "رقم الصك (Chèque n°)"
         "chequeAmount", "sfpAmount" -> "تعديل المبلغ (DA)"
         "chequeBeneficiary" -> "المستفيد (لأمر / A l'ordre de)"
         "chequePlace", "sfpPlace" -> "المكان"

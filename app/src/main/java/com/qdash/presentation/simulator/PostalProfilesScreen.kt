@@ -60,17 +60,7 @@ fun PostalProfilesScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-
-    val profiles = uiState.savedProfiles
-    var selectedRoleFilter by remember { mutableStateOf<PostalProfileRole?>(null) }
-    var profilePendingDelete by remember { mutableStateOf<PostalProfile?>(null) }
-
-    val filteredProfiles = remember(profiles, selectedRoleFilter) {
-        val base = if (selectedRoleFilter == null) profiles else profiles.filter { it.defaultRole == selectedRoleFilter }
-        base.sortedByDescending { it.isFavorite }
-    }
 
     var scrollDeltaAccumulator by remember { mutableFloatStateOf(0f) }
     var isBottomBarVisible by remember { mutableStateOf(true) }
@@ -119,123 +109,15 @@ fun PostalProfilesScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
         ) {
-            if (profiles.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 24.dp)
-                        .padding(bottom = 96.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    EmptyStateView(
-                        title = "لا توجد حسابات بريدية محفوظة",
-                        description = "أضف حسابك البريدي أو حسابات المستفيدين لتعبئة الصك وشاك سوكور بضغطة واحدة.",
-                        icon = Icons.Default.AccountBalanceWallet
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    AppButton(
-                        onClick = onAddProfile,
-                        variant = ButtonVariant.SOLID,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .testTag("btn_add_first_profile")
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("إضافة حساب بريدي", fontWeight = FontWeight.Bold)
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag("postal_profiles_list"),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = listBottomPadding),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item {
-                        PostalProfilesSummaryHeader(
-                            totalCount = profiles.size,
-                            favoritesCount = profiles.count { it.isFavorite },
-                            isDark = isDark
-                        )
-                    }
-
-                    item {
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            item {
-                                FilterChip(
-                                    selected = selectedRoleFilter == null,
-                                    onClick = { selectedRoleFilter = null },
-                                    label = { Text("الكل (${profiles.size})", fontSize = 12.sp) }
-                                )
-                            }
-                            item {
-                                FilterChip(
-                                    selected = selectedRoleFilter == PostalProfileRole.SELF,
-                                    onClick = {
-                                        selectedRoleFilter = if (selectedRoleFilter == PostalProfileRole.SELF) null else PostalProfileRole.SELF
-                                    },
-                                    label = { Text("حسابي الشخصي", fontSize = 12.sp) }
-                                )
-                            }
-                            item {
-                                FilterChip(
-                                    selected = selectedRoleFilter == PostalProfileRole.SENDER,
-                                    onClick = {
-                                        selectedRoleFilter = if (selectedRoleFilter == PostalProfileRole.SENDER) null else PostalProfileRole.SENDER
-                                    },
-                                    label = { Text("مرسل", fontSize = 12.sp) }
-                                )
-                            }
-                            item {
-                                FilterChip(
-                                    selected = selectedRoleFilter == PostalProfileRole.BENEFICIARY,
-                                    onClick = {
-                                        selectedRoleFilter = if (selectedRoleFilter == PostalProfileRole.BENEFICIARY) null else PostalProfileRole.BENEFICIARY
-                                    },
-                                    label = { Text("مستفيد", fontSize = 12.sp) }
-                                )
-                            }
-                        }
-                    }
-
-                    items(filteredProfiles, key = { it.id }) { profile ->
-                        PostalProfileCard(
-                            profile = profile,
-                            isDark = isDark,
-                            onEditClick = { onEditProfile(profile.id) },
-                            onToggleFavorite = { viewModel.toggleProfileFavorite(profile) },
-                            onCopyRip = { rip ->
-                                val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                                cb?.setPrimaryClip(ClipData.newPlainText("RIP", rip))
-                                Toast.makeText(context, "تم نسخ رقم RIP!", Toast.LENGTH_SHORT).show()
-                            },
-                            onDeleteClick = { profilePendingDelete = profile }
-                        )
-                    }
-                }
-            }
-
-            // Floating Add Button above the SimulatorBottomBar
-            ExtendedFloatingActionButton(
-                onClick = onAddProfile,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = RoundedCornerShape(16.dp),
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("حساب جديد", fontWeight = FontWeight.Bold) },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .navigationBarsPadding()
-                    .padding(end = 16.dp, bottom = fabBottomPadding)
-                    .testTag("fab_add_postal_profile")
+            PostalProfilesPageContent(
+                uiState = uiState,
+                isDark = isDark,
+                fabBottomPadding = fabBottomPadding,
+                listBottomPadding = listBottomPadding,
+                onAddProfile = onAddProfile,
+                onEditProfile = onEditProfile,
+                onToggleFavorite = { viewModel.toggleProfileFavorite(it) },
+                onDeleteProfile = { viewModel.deletePostalProfile(it) }
             )
 
             // Floating Qdash-style 3-tab simulator bottom bar
@@ -253,6 +135,158 @@ fun PostalProfilesScreen(
             )
         }
     }
+}
+
+/**
+ * Reusable Postal Profiles page body shared cleanly between standalone PostalProfilesScreen
+ * and Page 2 ("الحساب البريدي") of the swipeable simulator HorizontalPager.
+ */
+@Composable
+fun PostalProfilesPageContent(
+    uiState: DocumentSimulatorUiState,
+    isDark: Boolean,
+    fabBottomPadding: androidx.compose.ui.unit.Dp,
+    listBottomPadding: androidx.compose.ui.unit.Dp,
+    onAddProfile: () -> Unit,
+    onEditProfile: (Long) -> Unit,
+    onToggleFavorite: (PostalProfile) -> Unit,
+    onDeleteProfile: (PostalProfile) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val profiles = uiState.savedProfiles
+    var selectedRoleFilter by remember { mutableStateOf<PostalProfileRole?>(null) }
+    var profilePendingDelete by remember { mutableStateOf<PostalProfile?>(null) }
+
+    val filteredProfiles = remember(profiles, selectedRoleFilter) {
+        val base = if (selectedRoleFilter == null) profiles else profiles.filter { it.defaultRole == selectedRoleFilter }
+        base.sortedByDescending { it.isFavorite }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .testTag("postal_profiles_page")
+    ) {
+        if (profiles.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 96.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                EmptyStateView(
+                    title = "لا توجد حسابات بريدية محفوظة",
+                    description = "أضف حسابك البريدي أو حسابات المستفيدين لتعبئة الصك وشاك سوكور بضغطة واحدة.",
+                    icon = Icons.Default.AccountBalanceWallet
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                AppButton(
+                    onClick = onAddProfile,
+                    variant = ButtonVariant.SOLID,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .testTag("btn_add_first_profile")
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("إضافة حساب بريدي", fontWeight = FontWeight.Bold)
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag("postal_profiles_list"),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = listBottomPadding),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item {
+                    PostalProfilesSummaryHeader(
+                        totalCount = profiles.size,
+                        favoritesCount = profiles.count { it.isFavorite },
+                        isDark = isDark
+                    )
+                }
+
+                item {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        item {
+                            FilterChip(
+                                selected = selectedRoleFilter == null,
+                                onClick = { selectedRoleFilter = null },
+                                label = { Text("الكل (${profiles.size})", fontSize = 12.sp) }
+                            )
+                        }
+                        item {
+                            FilterChip(
+                                selected = selectedRoleFilter == PostalProfileRole.SELF,
+                                onClick = {
+                                    selectedRoleFilter = if (selectedRoleFilter == PostalProfileRole.SELF) null else PostalProfileRole.SELF
+                                },
+                                label = { Text("حسابي الشخصي", fontSize = 12.sp) }
+                            )
+                        }
+                        item {
+                            FilterChip(
+                                selected = selectedRoleFilter == PostalProfileRole.SENDER,
+                                onClick = {
+                                    selectedRoleFilter = if (selectedRoleFilter == PostalProfileRole.SENDER) null else PostalProfileRole.SENDER
+                                },
+                                label = { Text("مرسل", fontSize = 12.sp) }
+                            )
+                        }
+                        item {
+                            FilterChip(
+                                selected = selectedRoleFilter == PostalProfileRole.BENEFICIARY,
+                                onClick = {
+                                    selectedRoleFilter = if (selectedRoleFilter == PostalProfileRole.BENEFICIARY) null else PostalProfileRole.BENEFICIARY
+                                },
+                                label = { Text("مستفيد", fontSize = 12.sp) }
+                            )
+                        }
+                    }
+                }
+
+                items(filteredProfiles, key = { it.id }) { profile ->
+                    PostalProfileCard(
+                        profile = profile,
+                        isDark = isDark,
+                        onEditClick = { onEditProfile(profile.id) },
+                        onToggleFavorite = { onToggleFavorite(profile) },
+                        onCopyRip = { rip ->
+                            val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                            cb?.setPrimaryClip(ClipData.newPlainText("RIP", rip))
+                            Toast.makeText(context, "تم نسخ رقم RIP!", Toast.LENGTH_SHORT).show()
+                        },
+                        onDeleteClick = { profilePendingDelete = profile }
+                    )
+                }
+            }
+        }
+
+        // Floating Add Button above the SimulatorBottomBar
+        ExtendedFloatingActionButton(
+            onClick = onAddProfile,
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            shape = RoundedCornerShape(16.dp),
+            icon = { Icon(Icons.Default.Add, contentDescription = null) },
+            text = { Text("حساب جديد", fontWeight = FontWeight.Bold) },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .navigationBarsPadding()
+                .padding(end = 16.dp, bottom = fabBottomPadding)
+                .testTag("fab_add_postal_profile")
+        )
+    }
 
     profilePendingDelete?.let { pending ->
         AppDialog(
@@ -263,7 +297,7 @@ fun PostalProfilesScreen(
             dismissButtonText = "إلغاء",
             isDestructive = true,
             onConfirm = {
-                viewModel.deletePostalProfile(pending)
+                onDeleteProfile(pending)
                 profilePendingDelete = null
             }
         )

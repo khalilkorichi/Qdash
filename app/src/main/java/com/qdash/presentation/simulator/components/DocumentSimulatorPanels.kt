@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -63,63 +64,64 @@ fun EducationalGuidePanel(
 
     val guideDesc = when (uiState.currentGuideStep) {
         0 -> if (isCheque) {
-            "في أسفل الوسط يظهر رقم حسابك الجاري CCP مرفقاً بالمفتاح (Clé) المكون من رقمين واسم صاحب الحساب. على اليسار يظهر إطار التوطين الثابت «Payable à / يوفى: Agence 99999 - CNCP 16407 Alger»."
+            "في أسفل الوسط يظهر رقم CCP والمفتاح (رقمان) مع اسم صاحب الحساب، وإلى اليسار إطار التوطين الثابت (CNCP 16407 Alger)."
         } else {
-            "اشطب (X) في الخانات أعلى اليسار: «سحب / Retrait» أو «دفع / Versement»، ويمكنك تحديد «كشف العمليات / Relevé des opérations» مع الفترة (du ... au ...)، أو «مع إظهار الرصيد»، أو «إشعار بالرصيد»، أو «طلب دفتر»."
+            "اشطب (X) على نوع العملية: «سحب Retrait» أو «دفع Versement»، ويمكنك تفعيل كشف العمليات أو إظهار الرصيد أو طلب دفتر."
         }
         1 -> if (isCheque) {
-            "اكتب المبلغ بالأرقام بين DA و دج بصيغة #5.200,00# لمنع التلاعب، ثم اكتبه بالحروف على السطرين أسفل «Payez, contre ce chèque / إدفعوا مقابل هذا الصك» بالعربية أو الفرنسية."
+            "اكتب المبلغ بالأرقام بين DA و دج بصيغة #5.200,00#، ثم بالحروف على السطرين بالعربية أو الفرنسية."
         } else {
-            "في الخانة العلوية «(1) Compte N° / ح ب ج رقم»، اكتب رقم الحساب البريدي الجاري (CCP) داخل المربع الأبيض الطويل، والمفتاح من رقمين في خانة «Clé / المفتاح»."
+            "في خانة «Compte N° / ح ب ج رقم» أدخل رقم الحساب البريدي الجاري (CCP) والمفتاح من رقمين في خانة Clé."
         }
         2 -> if (isCheque) {
-            "اكتب اسم ولقب المستفيد في سطر «A l'ordre de / لأمر». للسحب النقدي الشخصي اكتب «لنفسي» أو «Moi-même»، وللتحويل أضف اسم الشخص ورقم حسابه CCP والمفتاح."
+            "اكتب اسم المستفيد في سطر «لأمر». للسحب الشخصي اختر «لنفسي / Moi-même»، وللتحويل أضف رقم CCP المستفيد."
         } else {
-            "اكتب المبلغ بالأرقام داخل المربع الأبيض لخانة «(1) Montant en chiffres / المبلغ بالأرقام»، ثم اكتبه بالحروف أسفل «en lettres» بالدينار الجزائري حصراً وليس بالسنتيم."
+            "اكتب المبلغ بالأرقام ثم بالحروف أسفل «en lettres» بالدينار الجزائري حصراً وليس بالسنتيم."
         }
         3 -> if (isCheque) {
-            "اكتب اسم البلدية أو الولاية التي تحرر فيها الصك قبل كلمة «Le» (مثال: الجزائر أو وهران أو بومرداس)."
+            "اكتب اسم البلدية أو الولاية التي تحرر فيها الصك قبل كلمة «Le / في» (مثال: الجزائر أو وهران)."
         } else {
-            "في عمود «(3) Expéditeur / Donneur d'ordre (المرسل)»، اكتب اللقب (Nom) والاسم (Prénom) كما هما في بطاقة الهوية (إجباري في حالة الدفع Versement)."
+            "في عمود «Expéditeur / المرسل» أدخل اللقب والاسم كما في بطاقة الهوية (إجباري عند الدفع Versement)."
         }
         4 -> if (isCheque) {
-            "اكتب التاريخ الفعلي للتوقيع بعد «Le / في». ملاحظة: الصك البريدي لبريد الجزائر صالح قانونياً لمدة 3 سنوات من تاريخ إصداره."
+            "اكتب تاريخ التحرير بعد «Le / في». ملاحظة: الصك البريدي لبريد الجزائر صالح لمدة 3 سنوات من تاريخ إصداره."
         } else {
-            "أكمل خانة «Adresse / العنوان» في عمود المرسل بعنوان إقامتك الحالي بدقة للتواصل عند وجود أي ملاحظة على الحوالة."
+            "أكمل عنوان إقامة المرسل بدقة في خانة «Adresse / العنوان» للتواصل عند الحاجة."
         }
         5 -> if (isCheque) {
-            "وقّع في خانة الإمضاء أسفل التاريخ بما يطابق توقيعك المعتمد. تنبيه: الشريط الأبيض السفلي بجانب «Série : AP» مخصص للقراءة الآلية (MICR) — يُمنع الكتابة فيه (الرجاء عدم الكتابة في المساحة البيضاء)."
+            "وقّع أسفل التاريخ ولا تكتب في الشريط الأبيض السفلي (Série AP) المخصص للقراءة الآلية MICR."
         } else {
-            "في عمود «(3) Bénéficiaire (المستفيد)»، اكتب لقب واسم المستفيد بدقة مطابقة لوثيقة الهوية الوطنية (إجباري في حالة الدفع)."
+            "في عمود «Bénéficiaire / المستفيد» أدخل لقب واسم المستفيد بدقة مطابقة لوثيقة الهوية."
         }
-        6 -> "أدخل العنوان الكامل للشخص المستفيد في خانة «Adresse / العنوان» داخل عمود المستفيد لتسهيل التحقق والمطابقة في مكتب البريد."
-        7 -> "حدّد تاريخ العملية في خانة «Date / التاريخ» بصيغة اليوم/الشهر/السنة، واكتب غرض العملية في خانة «(3) Motif / Correspondance» عند الحاجة."
-        8 -> "وقّع في خانة «(1) Signature / الإمضاء». تنبيه: الشريط الأصفر «إطار مخصص لمكتب البريد / Cadre réservé au bureau de poste» وما تحته من بيانات بطاقة الهوية (P.I / N° / Délivré(e) le / Par) وختم التاريخ (T.A.D) ووصل العملية مخصصة لعون البريد (وتملأ P.I هنا للمحاكاة التعليمية)."
+        6 -> "أدخل العنوان الكامل للمستفيد في خانة «Adresse / العنوان» لتسهيل التحقق في مكتب البريد."
+        7 -> "حدّد تاريخ العملية في خانة «Date / التاريخ» واكتب سبب العملية في «Motif / Correspondance» عند الحاجة."
+        8 -> "وقّع في خانة الإمضاء؛ الشريط السفلي (P.I / T.A.D / وصل العملية) مخصص لعون البريد (تملأ P.I هنا للمحاكاة)."
         else -> ""
     }
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp)
-            .testTag("educational_guide_panel"),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .testTag("educational_guide_panel")
     ) {
         if (!uiState.guideActive) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = cardBg,
                 border = BorderStroke(1.dp, cardBorder),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(10.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(56.dp)
+                            .size(34.dp)
                             .background(accentColor.copy(alpha = 0.14f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
@@ -127,29 +129,50 @@ fun EducationalGuidePanel(
                             imageVector = Icons.AutoMirrored.Filled.MenuBook,
                             contentDescription = null,
                             tint = accentColor,
-                            modifier = Modifier.size(30.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        text = "الدليل التفاعلي المساعد",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "اضغط على زر البدء للحصول على محاكاة مرئية حية لكل خانة بالترتيب مع إرشادات لتفادي أخطاء ملء الوثائق البريدية.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(1.dp)
+                    ) {
+                        Text(
+                            text = "الدليل التفاعلي المساعد",
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "شرح مختصر خطوة بخطوة لحقول الوثيقة",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                     Button(
                         onClick = onStartGuide,
-                        modifier = Modifier.testTag("btn_start_guide")
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier
+                            .height(32.dp)
+                            .testTag("btn_start_guide")
                     ) {
-                        Text("بدء الدليل التفاعلي", fontWeight = FontWeight.Bold)
+                        Text("بدء", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                    }
+                    IconButton(
+                        onClick = onStopGuide,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .testTag("btn_stop_guide")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "إغلاق الدليل",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
             }
@@ -158,34 +181,95 @@ fun EducationalGuidePanel(
                 modifier = Modifier.fillMaxWidth(),
                 color = cardBg,
                 border = BorderStroke(1.dp, cardBorder),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(10.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = guideTitle,
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            color = accentColor,
-                            modifier = Modifier.weight(1f),
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
                         Surface(
                             color = accentColor.copy(alpha = 0.14f),
                             shape = RoundedCornerShape(6.dp)
                         ) {
                             Text(
-                                text = ltrIsolate("${uiState.currentGuideStep + 1} / $totalSteps"),
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                text = ltrIsolate("${uiState.currentGuideStep + 1}/$totalSteps"),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.5.sp
+                                ),
                                 color = accentColor,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                        Text(
+                            text = guideTitle,
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.5.sp
+                            ),
+                            color = accentColor,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        IconButton(
+                            onClick = onPrevStep,
+                            enabled = uiState.currentGuideStep > 0,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .testTag("btn_prev_guide_step")
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = "السابق",
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Surface(
+                            onClick = {
+                                if (uiState.currentGuideStep < totalSteps - 1) {
+                                    onNextStep()
+                                } else {
+                                    onStopGuide()
+                                }
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            color = accentColor,
+                            modifier = Modifier
+                                .height(26.dp)
+                                .testTag("btn_next_guide_step")
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.padding(horizontal = 10.dp)
+                            ) {
+                                Text(
+                                    text = if (uiState.currentGuideStep == totalSteps - 1) "إنهاء" else "التالي",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp
+                                    ),
+                                    color = if (isDark) Color.Black else Color.White,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                        IconButton(
+                            onClick = onStopGuide,
+                            modifier = Modifier
+                                .size(26.dp)
+                                .testTag("btn_stop_guide")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "إغلاق",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(15.dp)
                             )
                         }
                     }
@@ -194,7 +278,7 @@ fun EducationalGuidePanel(
                         progress = { (uiState.currentGuideStep + 1).toFloat() / totalSteps.toFloat() },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(5.dp)
+                            .height(3.dp)
                             .clip(CircleShape),
                         color = accentColor,
                         trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
@@ -202,54 +286,14 @@ fun EducationalGuidePanel(
 
                     Text(
                         text = guideDesc,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 11.5.sp,
+                            lineHeight = 16.sp
+                        ),
                         color = MaterialTheme.colorScheme.onSurface,
-                        lineHeight = 22.sp
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
                     )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TextButton(
-                            onClick = onPrevStep,
-                            enabled = uiState.currentGuideStep > 0,
-                            modifier = Modifier.testTag("btn_prev_guide_step")
-                        ) {
-                            Text("السابق", maxLines = 1)
-                        }
-
-                        TextButton(
-                            onClick = onStopGuide,
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("btn_stop_guide")
-                        ) {
-                            Text(
-                                text = "إنهاء الدليل",
-                                color = if (isDark) ColorTokens.DangerDark else MaterialTheme.colorScheme.error,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-
-                        Button(
-                            onClick = {
-                                if (uiState.currentGuideStep < totalSteps - 1) {
-                                    onNextStep()
-                                } else {
-                                    onStopGuide()
-                                }
-                            },
-                            modifier = Modifier.testTag("btn_next_guide_step")
-                        ) {
-                            Text(
-                                text = if (uiState.currentGuideStep == totalSteps - 1) "إنهاء" else "التالي",
-                                maxLines = 1
-                            )
-                        }
-                    }
                 }
             }
         }

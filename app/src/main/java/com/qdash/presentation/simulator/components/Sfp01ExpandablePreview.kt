@@ -80,11 +80,17 @@ fun Sfp01ExpandablePreview(
     isGuideActive: Boolean = false,
     onRotateExpandClick: () -> Unit = {},
     onToggleGuideClick: () -> Unit = {},
+    onZoomChanged: (Boolean) -> Unit = {},
+    previewHeight: androidx.compose.ui.unit.Dp = 264.dp,
     modifier: Modifier = Modifier
 ) {
     val compactScrollState = rememberScrollState()
     var zoomScale by remember { mutableFloatStateOf(1f) }
     var panOffset by remember { mutableStateOf(Offset.Zero) }
+
+    LaunchedEffect(zoomScale) {
+        onZoomChanged(zoomScale > 1.05f)
+    }
 
     // Smoothly auto-scroll compact preview to keep the currently focused Chèque Secours section visible
     LaunchedEffect(focusedField, compactScrollState.maxValue) {
@@ -107,7 +113,7 @@ fun Sfp01ExpandablePreview(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(264.dp)
+                .height(previewHeight)
                 .clip(RoundedCornerShape(14.dp))
                 .pointerInput(Unit) {
                     detectTapGestures(

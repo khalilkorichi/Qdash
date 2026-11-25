@@ -29,7 +29,7 @@ data class DocumentSimulatorUiState(
     val chequeKey: String = "",
     val chequePlace: String = "",
     val chequeDate: String = "",
-    val chequeNumber: String = "3245101",
+    val chequeNumber: String = "XXXX",
     val chequeAccountHolder: String = "",
     val chequeAccountAddress: String = "",
     val chequeWordsLanguage: WordsLanguage = WordsLanguage.ARABIC,
@@ -293,7 +293,6 @@ class DocumentSimulatorViewModel(
     fun updateChequeCcp(value: String) = updateField { it.copy(chequeCcp = value.filter { c -> c.isDigit() }) }
     fun updateChequeKey(value: String) = updateField { it.copy(chequeKey = value.filter { c -> c.isDigit() }.take(2)) }
     fun updateChequeDate(value: String) = updateField { it.copy(chequeDate = value) }
-    fun updateChequeNumber(value: String) = updateField { it.copy(chequeNumber = value.filter { c -> c.isDigit() }.take(12)) }
     fun updateChequeAccountHolder(value: String) = updateField { it.copy(chequeAccountHolder = value) }
     fun updateChequeAccountAddress(value: String) = updateField { it.copy(chequeAccountAddress = value) }
 

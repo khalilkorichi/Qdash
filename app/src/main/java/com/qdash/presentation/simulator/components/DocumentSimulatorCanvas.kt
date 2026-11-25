@@ -90,7 +90,7 @@ fun ChequeVisualView(
     chequeKey: String,
     onFieldTap: (String) -> Unit,
     focusedField: String? = null,
-    chequeNumber: String = "3245101",
+    chequeNumber: String = "XXXX",
     accountHolderName: String = "",
     accountHolderAddress: String = "",
     amountInWords: String? = null,
@@ -134,7 +134,7 @@ fun ChequeVisualView(
         if (cleanKeyDigits.isNotEmpty()) cleanKeyDigits.padStart(2, '0') else ".."
     }
     val resolvedChequeNumber = remember(chequeNumber) {
-        chequeNumber.trim().ifEmpty { "3245101" }
+        chequeNumber.trim().ifEmpty { "XXXX" }
     }
     val resolvedRip = remember(ripCode, cleanCcpDigits) {
         ripCode.trim().ifEmpty {
@@ -143,7 +143,6 @@ fun ChequeVisualView(
         }
     }
 
-    val isNumberFocused = focusedField == "chequeNumber"
     val isAmountFocused = focusedField == "chequeAmount"
     val isBeneficiaryFocused = focusedField == "chequeBeneficiary"
     val isPlaceFocused = focusedField == "chequePlace"
@@ -179,7 +178,6 @@ fun ChequeVisualView(
                     ChequeHeaderRow(
                         chequeNumber = resolvedChequeNumber,
                         formattedAmount = formattedAmount,
-                        isNumberFocused = isNumberFocused,
                         isAmountFocused = isAmountFocused,
                         onFieldTap = onFieldTap
                     )
@@ -345,7 +343,6 @@ fun ChequeVisualView(
 private fun ChequeHeaderRow(
     chequeNumber: String,
     formattedAmount: String,
-    isNumberFocused: Boolean,
     isAmountFocused: Boolean,
     onFieldTap: (String) -> Unit
 ) {
@@ -353,13 +350,11 @@ private fun ChequeHeaderRow(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Top-Left: Chèque n° : <chequeNumber>
+        // Top-Left: Pre-printed Chèque n° : XXXX (read-only)
         Row(
             modifier = Modifier
                 .weight(0.95f)
-                .testTag("cheque_number_field")
-                .focusHighlightModifier(isFocused = isNumberFocused, paddingHorizontal = 3.dp, paddingVertical = 2.dp)
-                .clickable { onFieldTap("chequeNumber") },
+                .testTag("cheque_number_field"),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(

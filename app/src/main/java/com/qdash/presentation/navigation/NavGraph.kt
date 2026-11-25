@@ -637,7 +637,7 @@ internal fun FinTrackNavGraph(
                     navController.navigate(Screen.DocumentSimulator.createRoute(docType.name))
                 },
                 onManageProfiles = {
-                    navController.navigate(Screen.PostalProfiles.route)
+                    navController.navigate(Screen.DocumentSimulator.createRoute("POSTAL_PROFILES"))
                 },
                 onBack = { navController.popBackStack() }
             )
@@ -652,18 +652,26 @@ internal fun FinTrackNavGraph(
             )
         ) { backStackEntry ->
             val simulatorViewModel: DocumentSimulatorViewModel = viewModel(factory = factory)
-            val docType = backStackEntry.arguments?.getString("docType")
-                ?.let { runCatching { DocumentType.valueOf(it) }.getOrNull() }
-                ?: DocumentType.CHEQUE
-            LaunchedEffect(docType) {
-                simulatorViewModel.selectDocumentType(docType)
+            val docTypeArg = backStackEntry.arguments?.getString("docType") ?: "CHEQUE"
+            val initialTab = when (docTypeArg) {
+                "SFP01" -> com.qdash.presentation.simulator.components.SimulatorBottomTab.CHEQUE_SECOURS
+                "POSTAL_PROFILES" -> com.qdash.presentation.simulator.components.SimulatorBottomTab.POSTAL_PROFILES
+                else -> com.qdash.presentation.simulator.components.SimulatorBottomTab.CHEQUE
+            }
+            LaunchedEffect(docTypeArg) {
+                when (docTypeArg) {
+                    "CHEQUE" -> simulatorViewModel.selectDocumentType(DocumentType.CHEQUE)
+                    "SFP01" -> simulatorViewModel.selectDocumentType(DocumentType.SFP01)
+                }
             }
             DocumentSimulatorScreen(
                 viewModel = simulatorViewModel,
-                onOpenPostalProfiles = {
-                    navController.navigate(Screen.PostalProfiles.route) {
-                        launchSingleTop = true
-                    }
+                initialTab = initialTab,
+                onAddProfile = {
+                    navController.navigate(Screen.CreateEditPostalProfile.createRoute())
+                },
+                onEditProfile = { id ->
+                    navController.navigate(Screen.CreateEditPostalProfile.createRoute(id))
                 },
                 onBack = { navController.popBackStack() }
             )
