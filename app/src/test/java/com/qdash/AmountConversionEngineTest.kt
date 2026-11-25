@@ -24,6 +24,7 @@ class AmountConversionEngineTest {
         assertEquals("خمسمائة دينار جزائري", AmountConversionEngine.convertToArabicWords(500.0, preferCentimes = false))
         assertEquals("ألف دينار جزائري", AmountConversionEngine.convertToArabicWords(1000.0, preferCentimes = false))
         assertEquals("ألفا دينار جزائري", AmountConversionEngine.convertToArabicWords(2000.0, preferCentimes = false))
+        assertEquals("خمسة آلاف و مائتا دينار جزائري", AmountConversionEngine.convertToArabicWords(5200.0, preferCentimes = false))
         assertEquals("عشرة آلاف دينار جزائري", AmountConversionEngine.convertToArabicWords(10000.0, preferCentimes = false))
         assertEquals("خمسة عشر ألف دينار جزائري", AmountConversionEngine.convertToArabicWords(15000.0, preferCentimes = false))
         assertEquals("عشرون ألف دينار جزائري", AmountConversionEngine.convertToArabicWords(20000.0, preferCentimes = false))
@@ -31,6 +32,27 @@ class AmountConversionEngineTest {
         assertEquals("مائة ألف دينار جزائري", AmountConversionEngine.convertToArabicWords(100000.0, preferCentimes = false))
         assertEquals("مائتا ألف دينار جزائري", AmountConversionEngine.convertToArabicWords(200000.0, preferCentimes = false))
         assertEquals("مليون دينار جزائري", AmountConversionEngine.convertToArabicWords(1000000.0, preferCentimes = false))
+    }
+
+    @Test
+    fun testConvertToFrenchWords_OfficialPostalRules() {
+        assertEquals("Zéro dinar", AmountConversionEngine.convertToFrenchWords(0.0))
+        assertEquals("Un dinar", AmountConversionEngine.convertToFrenchWords(1.0))
+        assertEquals("Vingt et un dinars", AmountConversionEngine.convertToFrenchWords(21.0))
+        assertEquals("Soixante et onze dinars", AmountConversionEngine.convertToFrenchWords(71.0))
+        assertEquals("Quatre-vingts dinars", AmountConversionEngine.convertToFrenchWords(80.0))
+        assertEquals("Quatre-vingt-un dinars", AmountConversionEngine.convertToFrenchWords(81.0))
+        assertEquals("Quatre-vingt-onze dinars", AmountConversionEngine.convertToFrenchWords(91.0))
+        assertEquals("Deux cents dinars", AmountConversionEngine.convertToFrenchWords(200.0))
+        assertEquals("Mille dinars", AmountConversionEngine.convertToFrenchWords(1000.0))
+        assertEquals("Deux mille dinars", AmountConversionEngine.convertToFrenchWords(2000.0))
+        assertEquals("Cinq mille deux cents dinars", AmountConversionEngine.convertToFrenchWords(5200.0))
+        assertEquals("Deux cent mille dinars", AmountConversionEngine.convertToFrenchWords(200000.0))
+        assertEquals("Un million de dinars", AmountConversionEngine.convertToFrenchWords(1000000.0))
+        assertEquals(
+            "Mille cinq cents dinars et cinquante centimes",
+            AmountConversionEngine.convertToFrenchWords(1500.50)
+        )
     }
 
     @Test
@@ -71,5 +93,3 @@ class AmountConversionEngineTest {
         assertEquals("زوج ملايين سنتيم", AmountConversionEngine.convertCentimesToColloquialWords(2000000L))
     }
 }
-
-

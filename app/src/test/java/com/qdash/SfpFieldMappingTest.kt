@@ -6,6 +6,7 @@ import com.qdash.domain.repository.PostalProfileRepository
 import com.qdash.presentation.simulator.DocumentSimulatorViewModel
 import com.qdash.presentation.simulator.DocumentType
 import com.qdash.presentation.simulator.SfpOperationType
+import com.qdash.presentation.simulator.WordsLanguage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -120,5 +121,87 @@ class SfpFieldMappingTest {
         assertEquals("0612345678", viewModel.uiState.value.sfpBeneficiaryPhone)
         assertEquals("1234567890", viewModel.uiState.value.sfpCcp)
         assertEquals("12", viewModel.uiState.value.sfpKey)
+    }
+
+    @Test
+    fun testQuickFillAmountPresetsAndIncrements() = runTest(testDispatcher) {
+        viewModel.selectDocumentType(DocumentType.CHEQUE)
+        viewModel.selectPresetAmount(5000)
+        assertEquals("5000", viewModel.uiState.value.chequeAmount)
+
+        viewModel.incrementAmount(1000)
+        assertEquals("6000", viewModel.uiState.value.chequeAmount)
+
+        viewModel.selectPresetAmount(0)
+        assertEquals("", viewModel.uiState.value.chequeAmount)
+
+        viewModel.selectDocumentType(DocumentType.SFP01)
+        viewModel.selectPresetAmount(10000)
+        assertEquals("10000", viewModel.uiState.value.sfpAmount)
+    }
+
+    @Test
+    fun testWordsLanguageToggleAndMoiMeme() = runTest(testDispatcher) {
+        viewModel.selectDocumentType(DocumentType.CHEQUE)
+        assertEquals(WordsLanguage.ARABIC, viewModel.uiState.value.chequeWordsLanguage)
+
+        viewModel.setChequeBeneficiaryMoiMeme()
+        assertEquals("لنفسي", viewModel.uiState.value.chequeBeneficiary)
+
+        viewModel.toggleWordsLanguage()
+        assertEquals(WordsLanguage.FRENCH, viewModel.uiState.value.chequeWordsLanguage)
+
+        viewModel.setChequeBeneficiaryMoiMeme()
+        assertEquals("Moi-même", viewModel.uiState.value.chequeBeneficiary)
+    }
+
+    @Test
+    fun testComputeCcpKeyAndExtractRipPaste() = runTest(testDispatcher) {
+        viewModel.selectDocumentType(DocumentType.CHEQUE)
+        viewModel.updateChequeCcp("42339121")
+        viewModel.computeCcpKeyFromCurrent()
+        assertEquals("98", viewModel.uiState.value.chequeKey)
+
+        // Wrong key generates validation warning
+        viewModel.updateChequeKey("11")
+        assertTrue(viewModel.uiState.value.warnings.any { it.contains("98") })
+
+        // Pasting full RIP extracts CCP + Key and clears mismatch warning
+        assertTrue(viewModel.extractFromRipPaste("00799999004233912175"))
+        assertEquals("42339121", viewModel.uiState.value.chequeCcp)
+        assertEquals("98", viewModel.uiState.value.chequeKey)
+        assertFalse(viewModel.uiState.value.warnings.any { it.contains("لا يطابق") })
+    }
+
+    @Test
+    fun testSfpNewCheckboxesAndPiFieldsAndValidationWarnings() = runTest(testDispatcher) {
+        viewModel.selectDocumentType(DocumentType.SFP01)
+        viewModel.updateSfpReleveOperations(true)
+        viewModel.updateSfpAvecSolde(true)
+        viewModel.updateSfpNotificationAvoir(true)
+        viewModel.updateSfpCommandeCarnet(true)
+
+        // Relevé checked without dates produces helpful warning
+        assertTrue(viewModel.uiState.value.warnings.any { it.contains("كشف العمليات") })
+
+        viewModel.updateSfpReleveDu("01/01/2026")
+        viewModel.updateSfpReleveAu("31/01/2026")
+        viewModel.updateSfpPiType("CNI")
+        viewModel.updateSfpPiNumero("100200300")
+        viewModel.updateSfpPiDelivreLe("01/05/2020")
+        viewModel.updateSfpPiPar("Daira Alger")
+
+        val state = viewModel.uiState.value
+        assertTrue(state.sfpReleveOperations)
+        assertTrue(state.sfpAvecSolde)
+        assertTrue(state.sfpNotificationAvoir)
+        assertTrue(state.sfpCommandeCarnet)
+        assertEquals("01/01/2026", state.sfpReleveDu)
+        assertEquals("31/01/2026", state.sfpReleveAu)
+        assertEquals("CNI", state.sfpPiType)
+        assertEquals("100200300", state.sfpPiNumero)
+        assertEquals("01/05/2020", state.sfpPiDelivreLe)
+        assertEquals("Daira Alger", state.sfpPiPar)
+        assertFalse(state.warnings.any { it.contains("كشف العمليات") })
     }
 }

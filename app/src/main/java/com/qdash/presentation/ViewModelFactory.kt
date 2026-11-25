@@ -251,7 +251,8 @@ class ViewModelFactory(
             }
             modelClass.isAssignableFrom(DocumentSimulatorViewModel::class.java) -> {
                 DocumentSimulatorViewModel(
-                    container.postalProfileRepository
+                    postalProfileRepository = container.postalProfileRepository,
+                    preferencesManager = container.preferencesManager
                 ) as T
             }
             modelClass.isAssignableFrom(com.qdash.presentation.settings.AccountManagementViewModel::class.java) -> {

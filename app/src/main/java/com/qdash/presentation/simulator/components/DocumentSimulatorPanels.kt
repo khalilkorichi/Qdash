@@ -1,14 +1,13 @@
 package com.qdash.presentation.simulator.components
 
-import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -16,331 +15,35 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.qdash.domain.model.PostalProfileRole
 import com.qdash.core.utils.AmountConversionEngine
 import com.qdash.presentation.simulator.DocumentSimulatorUiState
 import com.qdash.presentation.simulator.DocumentType
-import com.qdash.presentation.simulator.SimulatorActivePanel
+import com.qdash.ui.designsystem.tokens.ColorTokens
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FillFormPanel(
-    uiState: DocumentSimulatorUiState,
-    onChequeAmountChange: (String) -> Unit,
-    onChequeBeneficiaryChange: (String) -> Unit,
-    onChequeCcpChange: (String) -> Unit,
-    onChequeKeyChange: (String) -> Unit,
-    onChequePlaceChange: (String) -> Unit,
-    onChequeDateChange: (String) -> Unit,
-    onToggleReadyAmounts: (Boolean) -> Unit,
-    onAutofillClick: (PostalProfileRole) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
+private fun isDarkSimulatorTheme(): Boolean =
+    MaterialTheme.colorScheme.background.luminance() < 0.5f
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        if (uiState.selectedDocType == DocumentType.CHEQUE) {
-            // Cheque Edit Mode
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = { onAutofillClick(PostalProfileRole.SELF) },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("سحب لنفسي", fontSize = 12.sp)
-                }
+private fun ltrIsolate(text: String): String = "\u2066$text\u2069"
 
-                Button(
-                    onClick = { onAutofillClick(PostalProfileRole.BENEFICIARY) },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Icon(Icons.Default.People, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("تعبئة مستفيد", fontSize = 12.sp)
-                }
-            }
-
-            // 1. Amount Input & Assistance
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OutlinedTextField(
-                        value = uiState.chequeAmount,
-                        onValueChange = onChequeAmountChange,
-                        label = { Text("المبلغ بالدينار الجزائري (DA)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
-                        trailingIcon = {
-                            if (uiState.chequeAmount.isNotEmpty()) {
-                                IconButton(onClick = { onChequeAmountChange("") }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "مسح")
-                                }
-                            }
-                        }
-                    )
-                    
-                    IconButton(
-                        onClick = { onToggleReadyAmounts(true) },
-                        modifier = Modifier
-                            .padding(top = 8.dp)
-                            .size(50.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocalAtm,
-                            contentDescription = "المبالغ الجاهزة",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-
-                val amt = AmountConversionEngine.parseFlexibleAmount(uiState.chequeAmount)
-                if (amt != null && amt > 0) {
-                    val formatted   = AmountConversionEngine.formatAmountToPostal(amt)
-                    val colloquial  = AmountConversionEngine.getAlgerianColloquialWords(amt)
-                    val officialWords = AmountConversionEngine.convertToArabicWords(amt, preferCentimes = false)
-
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF0D47A1).copy(alpha = 0.08f)),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("التنسيق المالي المضاد للتزوير:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(
-                                    text = "#$formatted#",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Black,
-                                        fontFamily = FontFamily.Monospace,
-                                        color = Color(0xFF0D47A1)
-                                    )
-                                )
-                            }
-                            HorizontalDivider(color = Color(0xFF0D47A1).copy(alpha = 0.15f))
-                            Text(
-                                text = "بالعامية: $colloquial",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "بالفصحى: $officialWords",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Surface(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .clickable {
-                                            val cb = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                            cb.setPrimaryClip(android.content.ClipData.newPlainText("words", officialWords))
-                                            Toast.makeText(context, "تم نسخ الحروف!", Toast.LENGTH_SHORT).show()
-                                        },
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                    shape = RoundedCornerShape(6.dp)
-                                ) {
-                                    Text("نسخ", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 2. Beneficiary Input
-            OutlinedTextField(
-                value = uiState.chequeBeneficiary,
-                onValueChange = onChequeBeneficiaryChange,
-                label = { Text("المستفيد (لأمر / A l'ordre de)") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp)
-            )
-
-            // 3. Account CCP & Key
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = uiState.chequeCcp,
-                    onValueChange = onChequeCcpChange,
-                    label = { Text("رقم حسابك CCP") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(2f),
-                    shape = RoundedCornerShape(10.dp)
-                )
-                OutlinedTextField(
-                    value = uiState.chequeKey,
-                    onValueChange = onChequeKeyChange,
-                    label = { Text("المفتاح") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp)
-                )
-            }
-
-            // 4. Place & Date
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = uiState.chequePlace,
-                    onValueChange = onChequePlaceChange,
-                    label = { Text("المكان") },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp)
-                )
-                OutlinedTextField(
-                    value = uiState.chequeDate,
-                    onValueChange = onChequeDateChange,
-                    label = { Text("التاريخ") },
-                    modifier = Modifier.weight(1.2f),
-                    shape = RoundedCornerShape(10.dp)
-                )
-            }
-
-        } else {
-            // SFP 01 Edit Mode
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Button(
-                        onClick = { onAutofillClick(PostalProfileRole.SENDER) },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Column {
-                            Text("تعبئة المرسل", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            Text("من ملفاتك", fontSize = 9.sp)
-                        }
-                    }
-                    Button(
-                        onClick = { onAutofillClick(PostalProfileRole.BENEFICIARY) },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary,
-                            contentColor = MaterialTheme.colorScheme.onSecondary
-                        ),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Icon(Icons.Default.People, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Column {
-                            Text("تعبئة المستفيد", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            Text("من ملفاتك", fontSize = 9.sp)
-                        }
-                    }
-                }
-            }
-
-            // Anti-fraud formatted display helper
-            val sfpAmt = AmountConversionEngine.parseFlexibleAmount(uiState.sfpAmount)
-            if (sfpAmt != null && sfpAmt > 0) {
-                val formatted     = AmountConversionEngine.formatAmountToPostal(sfpAmt)
-                val colloquial    = AmountConversionEngine.getAlgerianColloquialWords(sfpAmt)
-                val officialWords = AmountConversionEngine.convertToArabicWords(sfpAmt, preferCentimes = false)
-
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0D47A1).copy(alpha = 0.08f)),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("التنسيق المالي المضاد للتزوير:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(
-                                text = "#$formatted#",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Black,
-                                    fontFamily = FontFamily.Monospace,
-                                    color = Color(0xFF0D47A1)
-                                )
-                            )
-                        }
-                        HorizontalDivider(color = Color(0xFF0D47A1).copy(alpha = 0.15f))
-                        Text(
-                            text = "بالعامية: $colloquial",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "بالفصحى: $officialWords",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Surface(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .clickable {
-                                        val cb = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                        cb.setPrimaryClip(android.content.ClipData.newPlainText("words", officialWords))
-                                        Toast.makeText(context, "تم نسخ الحروف!", Toast.LENGTH_SHORT).show()
-                                    },
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(6.dp)
-                             ) {
-                                Text("نسخ", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary))
-                            }
-                        }
-                    }
-                }
-            }
-        }
+private fun formatGroupedInteger(value: Int): String {
+    val raw = value.toString()
+    val sb = StringBuilder()
+    var count = 0
+    for (i in raw.length - 1 downTo 0) {
+        sb.append(raw[i])
+        count++
+        if (count % 3 == 0 && i > 0) sb.append('.')
     }
+    return sb.reverse().toString()
 }
 
 @Composable
@@ -348,92 +51,147 @@ fun AmountCheatSheetPanel(
     onAmountSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isDark = isDarkSimulatorTheme()
     val amounts = listOf(
-        1_000.0   to "1.000 DA – ألف دينار",
-        2_000.0   to "2.000 DA – ألفين دينار",
-        5_000.0   to "5.000 DA – خمسة آلاف",
-        10_000.0  to "10.000 DA – عشرة آلاف",
-        20_000.0  to "20.000 DA – عشرون ألف",
-        30_000.0  to "30.000 DA – ثلاثون ألف",
-        50_000.0  to "50.000 DA – خمسون ألف",
-        100_000.0 to "100.000 DA – مئة ألف",
-        150_000.0 to "150.000 DA – مئة وخمسون ألف",
-        200_000.0 to "200.000 DA – مئتا ألف"
+        1_000.0,
+        2_000.0,
+        5_000.0,
+        10_000.0,
+        20_000.0,
+        30_000.0,
+        50_000.0,
+        100_000.0,
+        150_000.0,
+        200_000.0
     )
 
-    Column(
+    val cardBg = if (isDark) ColorTokens.CardDark else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+    val headerBg = if (isDark) ColorTokens.PosteYellow.copy(alpha = 0.14f) else ColorTokens.PosteBlue.copy(alpha = 0.08f)
+    val headerBorder = if (isDark) ColorTokens.PosteYellow.copy(alpha = 0.28f) else ColorTokens.PosteBlue.copy(alpha = 0.18f)
+    val headerTextColor = if (isDark) ColorTokens.PosteYellow else ColorTokens.PosteBlue
+    val formattedAmountColor = if (isDark) ColorTokens.InfoDark else ColorTokens.PosteBlue
+    val colloquialColor = if (isDark) ColorTokens.SuccessDark else ColorTokens.SfpBeneficiaryGreen
+
+    Surface(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .testTag("amount_cheat_sheet_panel"),
+        color = cardBg,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Text(
-            text = "اضغط على أي مبلغ لتعبئته تلقائياً في الوثيقة",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 4.dp)
-        )
-
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("المبلغ بالأرقام", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), modifier = Modifier.weight(1.2f))
-            Text("تنسيق مضاد للتزوير", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), modifier = Modifier.weight(1.3f), textAlign = TextAlign.Center)
-            Text("بالعامية", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), modifier = Modifier.weight(1f), textAlign = TextAlign.End)
-        }
+            Text(
+                text = "اضغط على أي مبلغ لتعبئته تلقائياً في الوثيقة",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 2.dp)
+            )
 
-        Spacer(modifier = Modifier.height(2.dp))
-
-        amounts.forEachIndexed { index, (value, _) ->
-            val formatted = AmountConversionEngine.formatAmountToPostal(value)
-            val colloquial = AmountConversionEngine.getAlgerianColloquialWords(value)
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(6.dp))
-                    .clickable { onAmountSelected(value.toInt().toString()) }
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = headerBg,
+                border = BorderStroke(1.dp, headerBorder),
+                shape = RoundedCornerShape(8.dp)
             ) {
-                Text(
-                    text = "${value.toInt()} DA",
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.weight(1.2f),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "#$formatted#",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1565C0)
-                    ),
-                    modifier = Modifier.weight(1.3f),
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = colloquial,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        color = MaterialTheme.colorScheme.secondary,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.End,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "المبلغ",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
+                        color = headerTextColor,
+                        modifier = Modifier.weight(0.9f),
+                        textAlign = TextAlign.Start,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "مضاد للتزوير",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
+                        color = headerTextColor,
+                        modifier = Modifier.weight(1.15f),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "بالعامية",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
+                        color = headerTextColor,
+                        modifier = Modifier.weight(1.15f),
+                        textAlign = TextAlign.End,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
 
-            if (index < amounts.size - 1) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), thickness = 0.5.dp)
+            amounts.forEachIndexed { index, value ->
+                val intValue = value.toInt()
+                val formatted = AmountConversionEngine.formatAmountToPostal(value)
+                val colloquial = AmountConversionEngine.getAlgerianColloquialWords(value)
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onAmountSelected(intValue.toString()) }
+                        .padding(horizontal = 8.dp, vertical = 9.dp)
+                        .testTag("cheat_sheet_row_$intValue"),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = ltrIsolate("${formatGroupedInteger(intValue)} DA"),
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(0.9f),
+                        textAlign = TextAlign.Start,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = ltrIsolate("#$formatted#"),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = formattedAmountColor
+                        ),
+                        modifier = Modifier.weight(1.15f),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = colloquial,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = colloquialColor,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        modifier = Modifier.weight(1.15f),
+                        textAlign = TextAlign.End,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                if (index < amounts.size - 1) {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                        thickness = 0.5.dp
+                    )
+                }
             }
         }
     }
@@ -448,126 +206,165 @@ fun EducationalGuidePanel(
     onStopGuide: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isDark = isDarkSimulatorTheme()
     val isCheque = uiState.selectedDocType == DocumentType.CHEQUE
     val totalSteps = if (isCheque) 6 else 9
 
+    val accentColor = if (isDark) ColorTokens.PosteYellow else ColorTokens.PosteBlue
+    val cardBg = if (isDark) ColorTokens.CardDark else ColorTokens.PosteBlue.copy(alpha = 0.04f)
+    val cardBorder = if (isDark) ColorTokens.PosteYellow.copy(alpha = 0.35f) else ColorTokens.PosteBlue.copy(alpha = 0.25f)
+
     val guideTitle = when (uiState.currentGuideStep) {
-        0 -> if (isCheque) "1. الحساب البريدي والمفتاح (CCP & Clé)" else "1. تحديد نوع العملية المالية"
-        1 -> if (isCheque) "2. كتابة المبلغ بالأرقام" else "2. رقم حساب المستقبل والمفتاح"
-        2 -> if (isCheque) "3. المستفيد من الصك (لأمر)" else "3. كتابة المبالغ بالأرقام والحروف"
-        3 -> if (isCheque) "4. تحديد مكان السحب أو التحويل" else "4. معلومات المرسل (أنت)"
-        4 -> if (isCheque) "5. تاريخ ملء الصك البريدي" else "5. عنوان المرسل الكامل"
-        5 -> if (isCheque) "6. إمضاء الصك البريدي" else "6. معلومات المستفيد"
+        0 -> if (isCheque) "1. الحساب البريدي والموطن (CCP & Payable à)" else "1. اختيار العملية والخدمات (2)"
+        1 -> if (isCheque) "2. المبلغ بالأرقام والحروف" else "2. رقم الحساب والمفتاح (1)"
+        2 -> if (isCheque) "3. المستفيد من الصك (لأمر)" else "3. المبلغ بالأرقام والحروف"
+        3 -> if (isCheque) "4. مكان تحرير الصك" else "4. هوية المرسل / صاحب الأمر (3)"
+        4 -> if (isCheque) "5. تاريخ التحرير وصلاحية الصك" else "5. عنوان المرسل الكامل"
+        5 -> if (isCheque) "6. التوقيع والمنطقة البيضاء (Série AP)" else "6. معلومات المستفيد (3)"
         6 -> "7. عنوان المستفيد"
-        7 -> "8. مكان وتاريخ ملء الحوالة"
-        8 -> "9. إمضاء الاستمارة وتفاصيل الهوية"
+        7 -> "8. السبب وتاريخ الاستمارة"
+        8 -> "9. الإمضاء وإطار مكتب البريد (P.I)"
         else -> ""
     }
 
     val guideDesc = when (uiState.currentGuideStep) {
         0 -> if (isCheque) {
-            "في أسفل الصك، اكتب رقم حسابك الجاري CCP بدون المفتاح، ثم اكتب المفتاح المكون من رقمين في الخانة المجاورة. تأكد من دقتها لتفادي سحب الأموال من حساب خاطئ."
+            "في أسفل الوسط يظهر رقم حسابك الجاري CCP مرفقاً بالمفتاح (Clé) المكون من رقمين واسم صاحب الحساب. على اليسار يظهر إطار التوطين الثابت «Payable à / يوفى: Agence 99999 - CNCP 16407 Alger»."
         } else {
-            "ضع علامة مقاطع (X) في المربع المقابل للعملية المرغوبة: 'دفع' (Versement) لصب الأموال نقداً، أو 'سحب' (Retrait) لسحب المال من حسابك."
+            "اشطب (X) في الخانات أعلى اليسار: «سحب / Retrait» أو «دفع / Versement»، ويمكنك تحديد «كشف العمليات / Relevé des opérations» مع الفترة (du ... au ...)، أو «مع إظهار الرصيد»، أو «إشعار بالرصيد»، أو «طلب دفتر»."
         }
         1 -> if (isCheque) {
-            "اكتب المبلغ بالأرقام بوضوح في المربع الأعلى يميناً بجانب رمز DA. يُنصح بكتابة الفاصلة والصفرين مثل 12.300,00 لتفادي التلاعب بالمبلغ أو التزوير."
+            "اكتب المبلغ بالأرقام بين DA و دج بصيغة #5.200,00# لمنع التلاعب، ثم اكتبه بالحروف على السطرين أسفل «Payez, contre ce chèque / إدفعوا مقابل هذا الصك» بالعربية أو الفرنسية."
         } else {
-            "اكتب رقم الحساب الجاري للمستقبل (CCP) والمفتاح المكون من رقمين بدقة عالية لتضمن وصول الأموال للشخص الصحيح."
+            "في الخانة العلوية «(1) Compte N° / ح ب ج رقم»، اكتب رقم الحساب البريدي الجاري (CCP) داخل المربع الأبيض الطويل، والمفتاح من رقمين في خانة «Clé / المفتاح»."
         }
         2 -> if (isCheque) {
-            "اكتب اسم ولقب المستفيد بالكامل. إذا كنت تسحب لنفسك نقداً، اكتب 'لنفسي' أو 'Moi-même'. وفي حالة التحويل، اكتب اسم الشخص متبوعاً بـ CCP والمفتاح الخاص به."
+            "اكتب اسم ولقب المستفيد في سطر «A l'ordre de / لأمر». للسحب النقدي الشخصي اكتب «لنفسي» أو «Moi-même»، وللتحويل أضف اسم الشخص ورقم حسابه CCP والمفتاح."
         } else {
-            "اكتب المبلغ بالأرقام في الخانة المخصصة (مثال: 5000,00)، ثم أتبعه بكتابته بالحروف الفصحى بالدينار حصراً (مثال: خمسة آلاف دينار جزائري). انتبه: لا تكتب بالسنتيم!"
+            "اكتب المبلغ بالأرقام داخل المربع الأبيض لخانة «(1) Montant en chiffres / المبلغ بالأرقام»، ثم اكتبه بالحروف أسفل «en lettres» بالدينار الجزائري حصراً وليس بالسنتيم."
         }
         3 -> if (isCheque) {
-            "اكتب اسم البلدية أو المدينة التي تسحب أو توقع فيها الصك الجاري (مثال: في تقرت أو في الجزائر العاصمة)."
+            "اكتب اسم البلدية أو الولاية التي تحرر فيها الصك قبل كلمة «Le» (مثال: الجزائر أو وهران أو بومرداس)."
         } else {
-            "اكتب لقبك واسمك بوضوح كما هو مسجل في بطاقة الهوية الخاصة بك. أنت بصفتك دافع أو مرسل الأموال."
+            "في عمود «(3) Expéditeur / Donneur d'ordre (المرسل)»، اكتب اللقب (Nom) والاسم (Prénom) كما هما في بطاقة الهوية (إجباري في حالة الدفع Versement)."
         }
         4 -> if (isCheque) {
-            "اكتب التاريخ الفعلي ليوم ملء وتوقيع الصك. يرجى الملاحظة أن الصك البريدي لبريد الجزائر صالح قانونياً لمدة 3 سنوات من تاريخ إصداره."
+            "اكتب التاريخ الفعلي للتوقيع بعد «Le / في». ملاحظة: الصك البريدي لبريد الجزائر صالح قانونياً لمدة 3 سنوات من تاريخ إصداره."
         } else {
-            "اكتب عنوان سكنك الفعلي والحالي بوضوح، حيث يطلب مكتب البريد كتابة عنوان المرسل للتواصل في حال حدوث أي مشكلة في الحوالة."
+            "أكمل خانة «Adresse / العنوان» في عمود المرسل بعنوان إقامتك الحالي بدقة للتواصل عند وجود أي ملاحظة على الحوالة."
         }
         5 -> if (isCheque) {
-            "ضع توقيعك المطابق للتوقيع المعتمد في ملف حسابك البريدي. تذكر أن التوقيع الخاطئ أو غير المطابق يؤدي لرفض صرف الصك فوراً."
+            "وقّع في خانة الإمضاء أسفل التاريخ بما يطابق توقيعك المعتمد. تنبيه: الشريط الأبيض السفلي بجانب «Série : AP» مخصص للقراءة الآلية (MICR) — يُمنع الكتابة فيه (الرجاء عدم الكتابة في المساحة البيضاء)."
         } else {
-            "اكتب اسم ولقب الشخص المستقبل للأموال (المستفيد) بالكامل وبدقة كما هو مسجل في هويته الوطنية لضمان إمكانية استلامه للمبلغ."
+            "في عمود «(3) Bénéficiaire (المستفيد)»، اكتب لقب واسم المستفيد بدقة مطابقة لوثيقة الهوية الوطنية (إجباري في حالة الدفع)."
         }
-        6 -> "اكتب العنوان الكامل للشخص المستفيد (المرسل إليه). هذا الحقل يساعد عون البريد في التحقق من البيانات وتفادي أي التباس."
-        7 -> "اكتب تاريخ ملء الاستمارة، واكتب اسم المدينة أو البلدية التي تتواجد بها حالياً في الخانات المخصصة."
-        8 -> "قم بالتوقيع في خانة الإمضاء الخاصة بك. يرجى الانتباه أن الجزء السفلي المسمى 'إطار مخصص لمكتب البريد' يجب تركه تماماً فارغاً."
+        6 -> "أدخل العنوان الكامل للشخص المستفيد في خانة «Adresse / العنوان» داخل عمود المستفيد لتسهيل التحقق والمطابقة في مكتب البريد."
+        7 -> "حدّد تاريخ العملية في خانة «Date / التاريخ» بصيغة اليوم/الشهر/السنة، واكتب غرض العملية في خانة «(3) Motif / Correspondance» عند الحاجة."
+        8 -> "وقّع في خانة «(1) Signature / الإمضاء». تنبيه: الشريط الأصفر «إطار مخصص لمكتب البريد / Cadre réservé au bureau de poste» وما تحته من بيانات بطاقة الهوية (P.I / N° / Délivré(e) le / Par) وختم التاريخ (T.A.D) ووصل العملية مخصصة لعون البريد (وتملأ P.I هنا للمحاكاة التعليمية)."
         else -> ""
     }
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(16.dp)
+            .testTag("educational_guide_panel"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (!uiState.guideActive) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
-                    .padding(20.dp),
-                contentAlignment = Alignment.Center
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = cardBg,
+                border = BorderStroke(1.dp, cardBorder),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.MenuBook,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(44.dp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .background(accentColor.copy(alpha = 0.14f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                            contentDescription = null,
+                            tint = accentColor,
+                            modifier = Modifier.size(30.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
                     Text(
                         text = "الدليل التفاعلي المساعد",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "اضغط على زر البدء ليعطيك محاكاة مرئية حية لكل خانة بالترتيب مع إرشادات لتفادي أخطاء ملء النماذج.",
+                        text = "اضغط على زر البدء للحصول على محاكاة مرئية حية لكل خانة بالترتيب مع إرشادات لتفادي أخطاء ملء الوثائق البريدية.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Button(onClick = onStartGuide) {
-                        Text("بدء الدليل التفاعلي")
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Button(
+                        onClick = onStartGuide,
+                        modifier = Modifier.testTag("btn_start_guide")
+                    ) {
+                        Text("بدء الدليل التفاعلي", fontWeight = FontWeight.Bold)
                     }
                 }
             }
         } else {
-            Card(
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
+                color = cardBg,
+                border = BorderStroke(1.dp, cardBorder),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = guideTitle,
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.primary
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = accentColor,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
-                        Text(
-                            text = "${uiState.currentGuideStep + 1} / $totalSteps",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Surface(
+                            color = accentColor.copy(alpha = 0.14f),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text(
+                                text = ltrIsolate("${uiState.currentGuideStep + 1} / $totalSteps"),
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = accentColor,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
+
+                    LinearProgressIndicator(
+                        progress = { (uiState.currentGuideStep + 1).toFloat() / totalSteps.toFloat() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(5.dp)
+                            .clip(CircleShape),
+                        color = accentColor,
+                        trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                    )
 
                     Text(
                         text = guideDesc,
@@ -576,23 +373,31 @@ fun EducationalGuidePanel(
                         lineHeight = 22.sp
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         TextButton(
                             onClick = onPrevStep,
-                            enabled = uiState.currentGuideStep > 0
+                            enabled = uiState.currentGuideStep > 0,
+                            modifier = Modifier.testTag("btn_prev_guide_step")
                         ) {
-                            Text("السابق")
+                            Text("السابق", maxLines = 1)
                         }
 
                         TextButton(
-                            onClick = onStopGuide
+                            onClick = onStopGuide,
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("btn_stop_guide")
                         ) {
-                            Text("إنهاء الدليل", color = MaterialTheme.colorScheme.error)
+                            Text(
+                                text = "إنهاء الدليل",
+                                color = if (isDark) ColorTokens.DangerDark else MaterialTheme.colorScheme.error,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
 
                         Button(
@@ -602,9 +407,13 @@ fun EducationalGuidePanel(
                                 } else {
                                     onStopGuide()
                                 }
-                            }
+                            },
+                            modifier = Modifier.testTag("btn_next_guide_step")
                         ) {
-                            Text(if (uiState.currentGuideStep == totalSteps - 1) "إنهاء" else "التالي")
+                            Text(
+                                text = if (uiState.currentGuideStep == totalSteps - 1) "إنهاء" else "التالي",
+                                maxLines = 1
+                            )
                         }
                     }
                 }
@@ -618,31 +427,56 @@ fun ValidationChecklistPanel(
     uiState: DocumentSimulatorUiState,
     modifier: Modifier = Modifier
 ) {
+    val isDark = isDarkSimulatorTheme()
     val errors = uiState.errors
     val warnings = uiState.warnings
     val percentage = uiState.completionPercentage
+    val isReady = errors.isEmpty() && percentage == 1f
+
+    val successTextColor = if (isDark) ColorTokens.SuccessDark else Color(0xFF15803D)
+    val successBgColor = if (isDark) ColorTokens.PositiveContainerDark.copy(alpha = 0.5f) else Color(0xFFE8F5E9)
+    val successBorderColor = if (isDark) ColorTokens.SuccessDark.copy(alpha = 0.45f) else ColorTokens.Success.copy(alpha = 0.45f)
+
+    val progressAccent = when {
+        isReady -> successTextColor
+        isDark -> ColorTokens.PosteYellow
+        else -> ColorTokens.PosteBlue
+    }
+
+    val errorBgColor = if (isDark) ColorTokens.NegativeContainerDark.copy(alpha = 0.4f) else ColorTokens.Danger.copy(alpha = 0.08f)
+    val errorBorderColor = if (isDark) ColorTokens.DangerDark.copy(alpha = 0.4f) else ColorTokens.Danger.copy(alpha = 0.3f)
+    val errorTitleColor = if (isDark) ColorTokens.DangerDark else Color(0xFFB91C1C)
+    val errorTextColor = if (isDark) ColorTokens.TextPrimaryDark else Color(0xFF7F1D1D)
+
+    val warningBgColor = if (isDark) ColorTokens.WarningDark.copy(alpha = 0.14f) else ColorTokens.Warning.copy(alpha = 0.10f)
+    val warningBorderColor = if (isDark) ColorTokens.WarningDark.copy(alpha = 0.4f) else ColorTokens.Warning.copy(alpha = 0.35f)
+    val warningTitleColor = if (isDark) ColorTokens.WarningDark else Color(0xFFB45309)
+    val warningTextColor = if (isDark) ColorTokens.TextPrimaryDark else Color(0xFF78350F)
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(16.dp)
+            .testTag("validation_checklist_panel"),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "جاهزية الوثيقة للتعبئة الحقيقية:",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
                 )
                 Text(
-                    text = "${(percentage * 100).toInt()}%",
+                    text = ltrIsolate("${(percentage * 100).toInt()}%"),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Black,
-                        color = if (percentage == 1f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                        color = progressAccent
                     )
                 )
             }
@@ -652,89 +486,152 @@ fun ValidationChecklistPanel(
                     .fillMaxWidth()
                     .height(8.dp)
                     .clip(CircleShape),
-                color = if (percentage == 1f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
+                color = progressAccent,
+                trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
             )
         }
 
-        HorizontalDivider()
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-        if (errors.isEmpty() && warnings.isEmpty() && percentage == 1f) {
-            Box(
+        if (isReady) {
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFFE8F5E9), RoundedCornerShape(8.dp))
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
+                    .testTag("validation_ready_banner"),
+                color = successBgColor,
+                border = BorderStroke(1.dp, successBorderColor),
+                shape = RoundedCornerShape(10.dp)
             ) {
                 Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = null,
-                        tint = Color(0xFF2E7D32),
-                        modifier = Modifier.size(28.dp)
+                        tint = successTextColor,
+                        modifier = Modifier.size(26.dp)
                     )
                     Text(
-                        text = "الوثيقة جاهزة تماماً! يمكنك نسخ البيانات المكتوبة هنا إلى الوثيقة الورقية الحقيقية بأمان.",
+                        text = if (warnings.isEmpty()) {
+                            "الوثيقة جاهزة تماماً! يمكنك نسخ البيانات المكتوبة هنا إلى الوثيقة الورقية الحقيقية بأمان."
+                        } else {
+                            "الحقول الأساسية مكتملة! راجع التنبيهات الإضافية أدناه قبل التحرير على الورق."
+                        },
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFF2E7D32)
+                        color = successTextColor,
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (errors.isNotEmpty()) {
-                    Text(
-                        text = "الحقول الناقصة أو الخاطئة (${errors.size}):",
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.error
-                    )
+        }
+
+        if (errors.isNotEmpty()) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("validation_errors_card"),
+                color = errorBgColor,
+                border = BorderStroke(1.dp, errorBorderColor),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ErrorOutline,
+                            contentDescription = null,
+                            tint = errorTitleColor,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = "الحقول الناقصة أو الخاطئة (${errors.size}):",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = errorTitleColor
+                        )
+                    }
                     errors.forEach { (_, message) ->
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
+                            verticalAlignment = Alignment.Top,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(horizontal = 8.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp)
                         ) {
                             Box(
                                 modifier = Modifier
+                                    .padding(top = 7.dp)
                                     .size(6.dp)
-                                    .background(MaterialTheme.colorScheme.error, CircleShape)
+                                    .background(errorTitleColor, CircleShape)
                             )
                             Text(
                                 text = message,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onErrorContainer
+                                color = errorTextColor,
+                                modifier = Modifier.weight(1f)
                             )
                         }
                     }
                 }
+            }
+        }
 
-                if (warnings.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "تنبيهات هامة وملاحظات:",
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFFFF8F00)
-                    )
+        if (warnings.isNotEmpty()) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("validation_warnings_card"),
+                color = warningBgColor,
+                border = BorderStroke(1.dp, warningBorderColor),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.WarningAmber,
+                            contentDescription = null,
+                            tint = warningTitleColor,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = "تنبيهات هامة وملاحظات:",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = warningTitleColor
+                        )
+                    }
                     warnings.forEach { warning ->
                         Row(
                             verticalAlignment = Alignment.Top,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(horizontal = 8.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .padding(top = 6.dp)
+                                    .padding(top = 7.dp)
                                     .size(6.dp)
-                                    .background(Color(0xFFFF8F00), CircleShape)
+                                    .background(warningTitleColor, CircleShape)
                             )
                             Text(
                                 text = warning,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF827717)
+                                color = warningTextColor,
+                                modifier = Modifier.weight(1f)
                             )
                         }
                     }

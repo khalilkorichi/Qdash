@@ -52,5 +52,15 @@ object ColorTokens {
     val SfpBorderBrown = Color(0xFF8A5E3A)
     val SfpBeneficiaryGreen = Color(0xFF1B5E20)
     val SfpSenderRed = Color(0xFFB71C1C)
+
+    // Authentic Algérie Poste Brand & Document Tokens
+    val PosteYellow = Color(0xFFF8C91C)
+    val PosteBlue = Color(0xFF1565C0)
+    val PosteNavyStripe = Color(0xFF0E4D92)
+    val PosteChequeCream = Color(0xFFFCF8E3)
+    val PosteChequeGuilloche = Color(0xFFEFE08B)
+    val PosteChequeBorder = Color(0xFF8C9D86)
+    val PosteInkBlue = Color(0xFF0F2B8C)
+    val PosteSfpBg = Color(0xFFFEF8CE)
 }
 

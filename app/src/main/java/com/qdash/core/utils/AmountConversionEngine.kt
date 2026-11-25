@@ -255,4 +255,134 @@ object AmountConversionEngine {
         }
         return if (remainder == 0L) billionWord else "$billionWord و ${convertNumberToWords(remainder)}"
     }
+
+    /**
+     * Converts a Dinar amount to official Algerian postal French words (e.g. 5200.0 -> "Cinq mille deux cents dinars").
+     */
+    fun convertToFrenchWords(amount: Double): String {
+        val safeAmount = if (amount.isFinite() && amount > 0.0) amount else 0.0
+        val totalCentimes = kotlin.math.round(safeAmount * 100.0).toLong()
+        val dinars = totalCentimes / 100L
+        val centimes = (totalCentimes % 100L).toInt()
+
+        if (dinars == 0L && centimes == 0) {
+            return "Zéro dinar"
+        }
+
+        val dinarPart = if (dinars > 0L) {
+            val words = convertFrenchNumber(dinars)
+            val currencyUnit = when {
+                dinars == 1L -> "dinar"
+                dinars >= 1_000_000L && dinars % 1_000_000L == 0L -> "de dinars"
+                else -> "dinars"
+            }
+            "$words $currencyUnit"
+        } else ""
+
+        val centimePart = if (centimes > 0) {
+            val words = convertFrenchBelow100(centimes, allowFinalPluralS = true)
+            val unit = if (centimes == 1) "centime" else "centimes"
+            "$words $unit"
+        } else ""
+
+        val combined = when {
+            dinarPart.isNotEmpty() && centimePart.isNotEmpty() -> "$dinarPart et $centimePart"
+            dinarPart.isNotEmpty() -> dinarPart
+            else -> centimePart
+        }
+
+        return combined.replaceFirstChar { ch ->
+            if (ch.isLowerCase()) ch.titlecase(Locale.FRENCH) else ch.toString()
+        }
+    }
+
+    private val frenchUnits = arrayOf(
+        "", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf",
+        "dix", "onze", "douze", "treize", "quatorze", "quinze", "seize",
+        "dix-sept", "dix-huit", "dix-neuf"
+    )
+    private val frenchTens = arrayOf(
+        "", "dix", "vingt", "trente", "quarante", "cinquante", "soixante"
+    )
+
+    private fun convertFrenchNumber(number: Long): String {
+        if (number == 0L) return "zéro"
+
+        val parts = mutableListOf<String>()
+        val billions = number / 1_000_000_000L
+        val millions = (number % 1_000_000_000L) / 1_000_000L
+        val thousands = (number % 1_000_000L) / 1_000L
+        val remainder = (number % 1_000L).toInt()
+
+        if (billions > 0L) {
+            parts.add(
+                when {
+                    billions == 1L -> "un milliard"
+                    billions < 1_000L -> "${convertFrenchBelow1000(billions.toInt(), allowFinalPluralS = true)} milliards"
+                    else -> "${convertFrenchNumber(billions)} milliards"
+                }
+            )
+        }
+        if (millions > 0L) {
+            parts.add(
+                if (millions == 1L) "un million"
+                else "${convertFrenchBelow1000(millions.toInt(), allowFinalPluralS = true)} millions"
+            )
+        }
+        if (thousands > 0L) {
+            parts.add(
+                if (thousands == 1L) "mille"
+                else "${convertFrenchBelow1000(thousands.toInt(), allowFinalPluralS = false)} mille"
+            )
+        }
+        if (remainder > 0) {
+            parts.add(convertFrenchBelow1000(remainder, allowFinalPluralS = true))
+        }
+
+        return parts.joinToString(" ")
+    }
+
+    private fun convertFrenchBelow1000(number: Int, allowFinalPluralS: Boolean): String {
+        val hundreds = number / 100
+        val remainder = number % 100
+        if (hundreds == 0) {
+            return convertFrenchBelow100(remainder, allowFinalPluralS)
+        }
+        val hundredBase = if (hundreds == 1) {
+            "cent"
+        } else {
+            val pluralS = if (remainder == 0 && allowFinalPluralS) "s" else ""
+            "${frenchUnits[hundreds]} cent$pluralS"
+        }
+        return if (remainder == 0) {
+            hundredBase
+        } else {
+            "$hundredBase ${convertFrenchBelow100(remainder, allowFinalPluralS)}"
+        }
+    }
+
+    private fun convertFrenchBelow100(number: Int, allowFinalPluralS: Boolean): String {
+        if (number <= 0) return ""
+        if (number < 20) return frenchUnits[number]
+
+        if (number < 70) {
+            val ten = number / 10
+            val unit = number % 10
+            return when (unit) {
+                0 -> frenchTens[ten]
+                1 -> "${frenchTens[ten]} et un"
+                else -> "${frenchTens[ten]}-${frenchUnits[unit]}"
+            }
+        }
+        if (number < 80) {
+            val sub = number - 60
+            return if (sub == 11) "soixante et onze" else "soixante-${frenchUnits[sub]}"
+        }
+        val sub = number - 80
+        return if (sub == 0) {
+            if (allowFinalPluralS) "quatre-vingts" else "quatre-vingt"
+        } else {
+            "quatre-vingt-${frenchUnits[sub]}"
+        }
+    }
 }

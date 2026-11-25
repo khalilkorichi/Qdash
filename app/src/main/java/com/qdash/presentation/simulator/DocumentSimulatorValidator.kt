@@ -1,6 +1,9 @@
 package com.qdash.presentation.simulator
 
 import com.qdash.core.utils.AmountConversionEngine
+import com.qdash.core.utils.PostalCcpUtils
+import com.qdash.domain.model.PostalProfile
+import com.qdash.domain.model.PostalProfileRole
 
 /**
  * Helper to perform validation on postal document simulator values.
@@ -59,6 +62,7 @@ object DocumentSimulatorValidator {
                 errMap["chequeKey"] = "المفتاح يتكون من رقمين"
             } else {
                 filledCount++
+                addCcpKeyWarningIfMismatch(state.chequeCcp, state.chequeKey, warnings)
             }
 
             // 5. Place
@@ -98,6 +102,7 @@ object DocumentSimulatorValidator {
                 errMap["sfpKey"] = "المفتاح يتكون من رقمين"
             } else {
                 filledCount++
+                addCcpKeyWarningIfMismatch(state.sfpCcp, state.sfpKey, warnings)
             }
 
             // 4. Amount
@@ -147,6 +152,10 @@ object DocumentSimulatorValidator {
                     filledCount++
                 }
             }
+
+            if (state.sfpReleveOperations && (state.sfpReleveDu.isBlank() || state.sfpReleveAu.isBlank())) {
+                warnings.add("تنبيه: تم تحديد «كشف العمليات» — يُنصح بتحديد تاريخ البداية (من) والنهاية (إلى).")
+            }
         }
 
         val percentage = (filledCount.toFloat() / totalCount.toFloat()).coerceIn(0f, 1f)
@@ -157,7 +166,130 @@ object DocumentSimulatorValidator {
         )
     }
 
+    private fun addCcpKeyWarningIfMismatch(
+        ccp: String,
+        key: String,
+        warnings: MutableList<String>
+    ) {
+        if (ccp.isBlank() || key.length != 2) return
+        val expectedKey = PostalCcpUtils.calculateCcpKey(ccp) ?: return
+        if (!PostalCcpUtils.isValidCcpKey(ccp, key)) {
+            warnings.add("تنبيه: مفتاح الحساب ($key) لا يطابق المفتاح المحسوب لحساب CCP (المتوقع: $expectedKey).")
+        }
+    }
+
     private fun parseAmount(value: String): Double? {
         return AmountConversionEngine.parseFlexibleAmount(value)
+    }
+
+    internal fun applyAutofill(
+        state: DocumentSimulatorUiState,
+        profile: PostalProfile,
+        role: PostalProfileRole
+    ): DocumentSimulatorUiState {
+        val profileCity = profile.city?.trim()?.takeIf { it.isNotEmpty() }
+        return if (state.selectedDocType == DocumentType.CHEQUE) {
+            when (role) {
+                PostalProfileRole.SELF -> {
+                    val holderName = "${profile.lastName} ${profile.firstName}".trim()
+                        .ifBlank { profile.fullName.trim() }
+                    val holderAddress = profile.address?.takeIf { it.isNotBlank() }
+                        ?: profileCity
+                        ?: ""
+                    state.copy(
+                        chequeCcp = profile.accountNumber,
+                        chequeKey = profile.accountKey,
+                        chequeBeneficiary = if (state.chequeWordsLanguage == WordsLanguage.FRENCH) "Moi-même" else "لنفسي",
+                        chequePlace = profileCity ?: state.chequePlace,
+                        chequeAccountHolder = holderName,
+                        chequeAccountAddress = holderAddress
+                    )
+                }
+                PostalProfileRole.BENEFICIARY -> state.copy(
+                    chequeBeneficiary = "${profile.lastName} ${profile.firstName} ccp ${profile.accountNumber} clé ${profile.accountKey}",
+                    chequePlace = if (state.chequePlace.isBlank() && profileCity != null) profileCity else state.chequePlace
+                )
+                else -> state
+            }
+        } else {
+            when (role) {
+                PostalProfileRole.SELF, PostalProfileRole.SENDER -> state.copy(
+                    sfpSenderNom = profile.lastName,
+                    sfpSenderPrenom = profile.firstName,
+                    sfpSenderAddress = profile.address ?: "",
+                    sfpSenderPhone = profile.phone ?: "",
+                    sfpPlace = profileCity ?: state.sfpPlace,
+                    sfpCcp = if (state.sfpOperation == SfpOperationType.RETRAIT) profile.accountNumber else state.sfpCcp,
+                    sfpKey = if (state.sfpOperation == SfpOperationType.RETRAIT) profile.accountKey else state.sfpKey
+                )
+                PostalProfileRole.BENEFICIARY -> {
+                    val fillsAccount = state.sfpOperation == SfpOperationType.VERSEMENT ||
+                        state.sfpOperation == SfpOperationType.VIREMENT
+                    state.copy(
+                        sfpBeneficiaryNom = profile.lastName,
+                        sfpBeneficiaryPrenom = profile.firstName,
+                        sfpBeneficiaryAddress = profile.address ?: "",
+                        sfpBeneficiaryPhone = profile.phone ?: "",
+                        sfpPlace = if (state.sfpPlace.isBlank() && profileCity != null) profileCity else state.sfpPlace,
+                        sfpCcp = if (fillsAccount) profile.accountNumber else state.sfpCcp,
+                        sfpKey = if (fillsAccount) profile.accountKey else state.sfpKey
+                    )
+                }
+            }
+        }
+    }
+
+    internal fun getGuideFieldName(docType: DocumentType, step: Int): String? {
+        return if (docType == DocumentType.CHEQUE) {
+            when (step) {
+                0 -> "chequeCcp"
+                1 -> "chequeAmount"
+                2 -> "chequeBeneficiary"
+                3 -> "chequePlace"
+                4 -> "chequeDate"
+                5 -> "chequeSignature"
+                else -> null
+            }
+        } else {
+            when (step) {
+                0 -> "sfpOperation"
+                1 -> "sfpCcp"
+                2 -> "sfpAmount"
+                3 -> "sfpSenderName"
+                4 -> "sfpSenderAddress"
+                5 -> "sfpBeneficiaryName"
+                6 -> "sfpBeneficiaryAddress"
+                7 -> "sfpPlaceDate"
+                8 -> "sfpSignature"
+                else -> null
+            }
+        }
+    }
+
+    internal fun getStepIndexForField(docType: DocumentType, fieldName: String): Int {
+        return if (docType == DocumentType.CHEQUE) {
+            when (fieldName) {
+                "chequeCcp", "chequeKey" -> 0
+                "chequeAmount" -> 1
+                "chequeBeneficiary" -> 2
+                "chequePlace" -> 3
+                "chequeDate" -> 4
+                "chequeSignature" -> 5
+                else -> -1
+            }
+        } else {
+            when (fieldName) {
+                "sfpOperation", "sfpJustificatifCcp", "sfpAvisCredit", "sfpCarnetCheques", "sfpCodeConfidentiel", "sfpRip" -> 0
+                "sfpCcp", "sfpKey" -> 1
+                "sfpAmount" -> 2
+                "sfpSenderNom", "sfpSenderPrenom", "sfpSenderName" -> 3
+                "sfpSenderAddress", "sfpSenderPhone" -> 4
+                "sfpBeneficiaryNom", "sfpBeneficiaryPrenom", "sfpBeneficiaryName" -> 5
+                "sfpBeneficiaryAddress", "sfpBeneficiaryPhone" -> 6
+                "sfpPlace", "sfpDate", "sfpMotif" -> 7
+                "sfpSignature", "sfpIdDescription" -> 8
+                else -> -1
+            }
+        }
     }
 }

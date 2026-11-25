@@ -211,6 +211,10 @@ class PreferencesManager(context: Context) {
         get() = mainPrefs.getLong("last_update_check_time", 0L)
         set(value) = mainPrefs.edit().putLong("last_update_check_time", value).apply()
 
+    var lastPostalPlace: String
+        get() = mainPrefs.getString("last_postal_place", "") ?: ""
+        set(value) = mainPrefs.edit().putString("last_postal_place", value.trim()).apply()
+
     fun getShowBalanceAcc(accountId: Long): Boolean {
         return mainPrefs.getBoolean("show_balance_acc_$accountId", true)
     }
